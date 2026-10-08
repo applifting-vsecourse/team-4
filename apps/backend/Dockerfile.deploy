@@ -1,0 +1,71 @@
+# Build context must be the repo root:
+#   docker build -f apps/backend/Dockerfile.deploy -t backend .
+
+# --- Build stage: install all deps, generate Prisma client, compile Nest ---
+FROM node:24-alpine AS builder
+
+RUN apk add --no-cache openssl
+RUN corepack enable
+
+
+WORKDIR /app
+
+# Every workspace member's manifest has to be present before install: pnpm
+# reconciles the lockfile against the whole workspace, and --frozen-lockfile
+# fails if a member is missing. Manifests only, so editing source code doesn't
+# invalidate the install layer.
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY apps/backend/package.json ./apps/backend/
+COPY apps/frontend/package.json ./apps/frontend/
+
+RUN pnpm install --frozen-lockfile
+
+COPY apps/backend ./apps/backend
+
+ARG CI_COMMIT_SHA
+ENV CI_COMMIT_SHA=$CI_COMMIT_SHA
+
+# Runs `prisma generate && nest build`.
+RUN pnpm --filter backend build
+
+
+# --- Production deps: the same lockfile, minus everything only used to build ---
+FROM node:24-alpine AS prod-deps
+
+RUN apk add --no-cache openssl
+RUN corepack enable
+
+WORKDIR /app
+
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY apps/backend/package.json ./apps/backend/
+COPY apps/frontend/package.json ./apps/frontend/
+
+RUN pnpm install --frozen-lockfile --prod --no-optional --filter backend
+
+
+# --- Runtime stage: production deps + compiled output, nothing else ---
+FROM node:24-alpine
+
+RUN apk add --no-cache openssl
+RUN corepack enable
+
+WORKDIR /app
+
+COPY --from=builder /app/pnpm-workspace.yaml /app/pnpm-lock.yaml /app/package.json ./
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=prod-deps /app/apps/backend/node_modules ./apps/backend/node_modules
+
+# The Prisma client is generated into src, so it compiles into dist and needs
+# no regeneration here. prisma/ and its config come along for `migrate deploy`.
+COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
+COPY --from=builder /app/apps/backend/package.json /app/apps/backend/prisma.config.ts ./apps/backend/
+COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
+
+ARG CI_COMMIT_SHA
+ENV CI_COMMIT_SHA=$CI_COMMIT_SHA
+
+USER node
+WORKDIR /app/apps/backend
+
+CMD ["pnpm", "start:migrate:prod"]

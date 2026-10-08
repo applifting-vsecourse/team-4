@@ -1,0 +1,32 @@
+packages:
+  - apps/*
+
+catalogs:
+  default:
+    '@types/node': ^20.19.43
+    prettier: ^3.9.6
+    react-hook-form: ^7.85.0
+    typescript: ^5.9.3
+    zod: ^4.4.3
+  lint:
+    '@eslint/compat': ^2.1.0
+    '@eslint/js': ^10.0.1
+    '@tanstack/eslint-plugin-query': ^5.101.4
+    '@tanstack/eslint-plugin-router': ^1.162.0
+    '@typescript-eslint/eslint-plugin': ^8.67.0
+    '@typescript-eslint/parser': ^8.67.0
+    '@vitest/eslint-plugin': ^1.6.16
+    eslint: ^10.8.1
+    eslint-import-resolver-typescript: ^4.4.5
+    eslint-plugin-import: ^2.32.0
+    eslint-plugin-jsx-a11y: ^6.10.2
+    eslint-plugin-react: ^7.37.5
+    eslint-plugin-react-hooks: ^7.1.1
+    eslint-plugin-turbo: ^2.9.6
+    globals: ^16.5.0
+    typescript-eslint: ^8.67.0
+  react19:
+    '@types/react': ^19.2.18
+    '@types/react-dom': ^19.2.4
+    react: ^19.2.8
+    react-dom: ^19.2.8

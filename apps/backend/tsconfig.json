@@ -1,0 +1,51 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "es2017",
+    "jsx": "react-jsx",
+    "sourceMap": true,
+    "outDir": "./dist",
+    // Pin the source root. Without it TypeScript infers it from whatever files
+    // happen to be included, so an unrelated `include` edit silently moves the
+    // compiled entrypoint.
+    "rootDir": "./src",
+    // `@/` points at src, same as the frontend. `baseUrl` used to resolve these
+    // implicitly, but it resolves every bare specifier against a directory —
+    // which neither Node nor bundlers do — and is deprecated.
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "strict": true,
+    "incremental": true,
+    // Keep the incremental cache inside dist. `prebuild` runs `rimraf dist`, so
+    // a cache stored outside it survives, convinces tsc everything is already
+    // emitted, and every build after the first silently produces nothing.
+    "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo",
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
+    "noFallthroughCasesInSwitch": false,
+    "inlineSources": true,
+
+    // Set `sourceRoot` to  "/" to strip the build path prefix
+    // from generated source code references.
+    // This improves issue grouping in Sentry.
+    "typeRoots": [
+      "./prisma",
+      "./node_modules/@types",
+      "../node_modules/@types"
+    ],
+    "types": ["node", "express", "jest"]
+  },
+  "include": [
+    "src/**/*",
+    "test/**/*",
+  ]
+}

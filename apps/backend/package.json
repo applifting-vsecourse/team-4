@@ -1,0 +1,130 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "description": "Quacker backend \u2014 NestJS + Prisma + Postgres teaching template",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "prebuild": "rimraf dist",
+    "build": "prisma generate && nest build",
+    "format:check": "prettier \"src/**/*.ts\" --check --no-error-on-unmatched-pattern",
+    "format:write": "prettier \"src/**/*.ts\" --write --no-error-on-unmatched-pattern",
+    "start": "prisma generate && nest start --path tsconfig.dev.json --env-file .env",
+    "start:dev": "prisma generate && nest start --path tsconfig.dev.json --env-file .env --watch --verbose",
+    "start:debug": "prisma generate && nest start --path tsconfig.dev.json --env-file .env --debug --watch",
+    "start:prod": "NODE_ENV=\"production\" node dist/main",
+    "seed": "prisma generate && ts-node -r dotenv/config -r tsconfig-paths/register src/scripts/seed/seed.script.ts",
+    "migrate": "prisma migrate deploy",
+    "start:migrate:prod": "prisma migrate deploy && npm run start:prod",
+    "lint:check": "eslint \"src/**/*.ts\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:ci": "jest --ci",
+    "docker:up": "docker compose up",
+    "docker:up:wait": "docker compose up -d --wait",
+    "docker:up-rebuild": "docker compose down; docker compose up --renew-anon-volumes --build --force-recreate be",
+    "docker:down": "docker compose down",
+    "prisma:generate": "prisma generate",
+    "prisma:migrations:generate": "prisma migrate dev --create-only --name",
+    "prisma:migrations:run": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "auth:generate": "npx @better-auth/cli generate --config ./src/shared/auth/utils/cli-auth-client.ts",
+    "db:reset": "prisma migrate reset --force",
+    "email:dev": "email dev --dir ./src/core/email/templates",
+    "email:export": "email export --dir ./src/core/email/templates"
+  },
+  "dependencies": {
+    "@applifting-io/nestjs-decorated-config": "^1.0.8",
+    "@nestjs/common": "^11.2.1",
+    "@nestjs/core": "^11.2.1",
+    "@nestjs/platform-express": "^11.2.1",
+    "@nestjs/swagger": "^11.4.7",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "better-auth": "^1.7.1",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "nodemailer": "^9.0.5",
+    "prisma": "^7.9.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-email": "^6.9.2",
+    "reflect-metadata": "^0.2.2",
+    "resend": "^6.20.0",
+    "rimraf": "^6.1.3",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "catalog:lint",
+    "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
+    "@nestjs/cli": "^11.0.24",
+    "@nestjs/schematics": "^11.1.0",
+    "@nestjs/testing": "^11.2.1",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.13.3",
+    "@types/nodemailer": "^8.0.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "eslint": "catalog:lint",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "globals": "^17.11.0",
+    "jest": "^30.4.2",
+    "jest-mock-extended": "^4.0.1",
+    "prettier": "catalog:",
+    "ts-jest": "^29.4.12",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:lint"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "./",
+    "moduleDirectories": [
+      "node_modules"
+    ],
+    "testRegex": "\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "**/*.ts"
+    ],
+    "coveragePathIgnorePatterns": [
+      "dist",
+      "interfaces",
+      ".module.ts",
+      "<rootDir>/src/main.ts",
+      ".mock.ts",
+      ".type.ts",
+      ".dto.ts",
+      "<rootDir>/scripts"
+    ],
+    "coverageReporters": [
+      "html",
+      "text",
+      "text-summary",
+      "cobertura"
+    ],
+    "coverageDirectory": "coverage",
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1"
+    }
+  }
+}

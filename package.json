@@ -1,0 +1,43 @@
+{
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "backend": "pnpm --filter backend",
+    "frontend": "pnpm --filter frontend",
+    "env:check": "node scripts/check-env.js",
+    "dev": "run-s env:check \"backend docker:up:wait\" \"backend migrate\" \"backend seed\" dev:servers",
+    "dev:servers": "run-p \"backend start:dev\" \"frontend dev\"",
+    "dev:down": "pnpm backend docker:down",
+    "check-all": "run-s \"backend lint:check\" \"backend test\" \"backend build\" \"frontend lint:check\" \"frontend type-check\" \"frontend test:ci\" \"frontend build\" format:check",
+    "format": "run-s format:root:write format:workspaces:write",
+    "format:check": "run-s format:root:check format:workspaces:check",
+    "format:root:write": "prettier \"**/*.{cjs,js,mjs,ts,json,md,yaml,yml}\" --write --list-different",
+    "format:root:check": "prettier \"**/*.{cjs,js,mjs,ts,json,md,yaml,yml}\" --check",
+    "format:workspaces:write": "pnpm -r --stream --if-present run format:write",
+    "format:workspaces:check": "pnpm -r --stream --if-present run format:check",
+    "prepare": "husky || true"
+  },
+  "devDependencies": {
+    "dotenv-flow": "^4.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.3.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "catalog:",
+    "typescript": "catalog:"
+  },
+  "packageManager": "pnpm@10.15.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
+    ]
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

@@ -1,0 +1,25 @@
+**/node_modules
+**/dist
+**/dist-dev
+# Incremental build cache: without this tsc sees "already built" while dist
+# (excluded above) is empty, and emits no JavaScript into the image.
+**/*.tsbuildinfo
+**/build
+**/coverage
+**/.turbo
+**/.next
+**/.cache
+
+**/.env
+**/.env.*
+!**/.env.example
+
+.git
+.gitignore
+.github
+
+**/*.log
+.DS_Store
+
+apps/backend/tmp
+apps/frontend/tmp

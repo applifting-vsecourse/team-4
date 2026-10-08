@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  // Prisma 7's modern generator. The client is written into src/ as ordinary
+  // generated source instead of being injected into node_modules, so it
+  // survives dependency pruning and multi-stage Docker copies.
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+  runtime      = "nodejs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  user
+  admin
+
+  @@map("user_role")
+}
+
+model Quack {
+  id        String   @id @default(cuid())
+  text      String   @db.Text
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([userId])
+  @@map("quack")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @db.VarChar(255)
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?  @db.VarChar(45)
+  userAgent String?  @db.Text
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  issuer                String?
+  password              String?   @db.Text
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+model User {
+  id              String    @id
+  name            String
+  email           String
+  emailVerified   Boolean
+  image           String?   @db.Text
+  createdAt       DateTime
+  updatedAt       DateTime
+  sessions        Session[]
+  accounts        Account[]
+  quacks          Quack[]
+  role            UserRole  @default(user)
+
+  username        String? @db.VarChar(50)
+  displayUsername String? @db.VarChar(50)
+
+  @@unique([email])
+  @@unique([username])
+  @@map("user")
+}

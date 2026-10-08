@@ -1,0 +1,68 @@
+# Production stack: Postgres + backend + frontend.
+# Build context is the repo root for both app images.
+#
+# Local test:      cp .env.example .env && docker compose up --build
+# Coolify/Hetzner: point a Docker Compose resource at this file; set the
+#                  variables below in the resource's environment.
+#
+# The frontend is a static bundle, so the API URL is baked in AT BUILD TIME
+# (VITE_* are build args, not runtime env). Changing BACKEND_URL therefore
+# requires a rebuild, not just a restart.
+#
+# BACKEND_URL / FRONTEND_URL are the only URLs you set: the backend reads them
+# directly (CORS, trusted origins, password-reset links) and the frontend's
+# VITE_* build args are derived from BACKEND_URL below.
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile.deploy
+      args:
+        CI_COMMIT_SHA: ${CI_COMMIT_SHA:-}
+    restart: on-failure:5
+    depends_on:
+      db:
+        condition: service_healthy
+    # Forwards only the vars actually defined in .env — keeps unset
+    # values truly unset so the backend's in-code defaults apply.
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    ports:
+      - '${BACKEND_HOST_PORT:-4050}:4050'
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile.deploy
+      args:
+        # The backend mounts all REST routes under /api.
+        VITE_API_URL: ${BACKEND_URL:-http://localhost:4050}/api
+        VITE_BETTER_AUTH_URL: ${BACKEND_URL:-http://localhost:4050}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - '${FRONTEND_HOST_PORT:-3050}:80'
+
+volumes:
+  db-data:

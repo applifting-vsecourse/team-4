@@ -1,0 +1,51 @@
+name: Build & Deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+env:
+  COURSE_DOMAIN: vsepractical.applifting.dev
+  REGISTRY: registry.vsepractical.applifting.dev
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+      COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Determine slug
+        id: slug
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          if [ "$REPO_NAME" = "edu-template" ]; then SLUG="$OWNER"; else SLUG="${REPO_NAME,,}"; fi
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          echo "url=https://$SLUG.$COURSE_DOMAIN" >> "$GITHUB_OUTPUT"
+      - name: Login to registry
+        uses: docker/login-action@v3
+        with:
+          registry: registry.vsepractical.applifting.dev
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      - name: Build & push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/backend/Dockerfile.deploy
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend:latest
+      - name: Build & push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/frontend/Dockerfile.deploy
+          push: true
+          build-args: |
+            VITE_API_URL=${{ steps.slug.outputs.url }}/api
+            VITE_BETTER_AUTH_URL=${{ steps.slug.outputs.url }}
+          tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-frontend:latest
+      - name: Trigger Coolify deploy
+        if: env.COOLIFY_WEBHOOK != ''
+        run: |
+          curl -fsS -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK"

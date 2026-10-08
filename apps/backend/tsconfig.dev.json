@@ -1,0 +1,12 @@
+{
+  // Dev-only output location. `nest start --watch` and `nest build` both compile
+  // this project, and sharing one `dist` makes them fight: `prebuild` wipes the
+  // directory the running app was loaded from, and both write the same
+  // incremental cache. Pointing dev at its own directory means `pnpm check-all`
+  // can build without stopping a server that is already running.
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    "outDir": "./dist-dev",
+    "tsBuildInfoFile": "./dist-dev/tsconfig.dev.tsbuildinfo"
+  }
+}
