@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "0.1.0",
-  "description": "Quacker backend \u2014 NestJS + Prisma + Postgres teaching template",
+  "description": "NestJS + Prisma + PostgreSQL backend starter",
   "private": true,
   "license": "MIT",
   "engines": {
@@ -125,6 +125,7 @@
     "testEnvironment": "node",
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1"
-    }
+    },
+    "passWithNoTests": true
   }
 }

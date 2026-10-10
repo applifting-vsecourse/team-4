@@ -14,7 +14,7 @@ export const Route = createFileRoute("/signup")({
   loader: async ({ context }) => {
     const session = await context.queryClient.ensureQueryData(authSessionQueryOptions())
     if (!session) return
-    throw redirect({ to: ROUTES.quacks })
+    throw redirect({ to: ROUTES.dashboard })
   },
 })
 
@@ -37,7 +37,7 @@ function SignUpPage() {
         name: values.name,
         username: values.username,
       })
-      await navigate({ to: ROUTES.quacks })
+      await navigate({ to: ROUTES.dashboard })
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Sign up failed")
     }
@@ -48,7 +48,7 @@ function SignUpPage() {
       <Seo title="Sign up" />
       <AuthLayout
         title="Sign up"
-        description="Create your Quacker account."
+        description="Create your Starter account."
         footer={
           <>
             Already have an account?{" "}

@@ -11,7 +11,7 @@ import { authKeys } from "@/lib/auth-keys"
 // - turn API errors into readable messages (see beforeError below)
 //
 // Paths are joined onto `prefix`, and a leading slash is normalised away, so
-// both `api.get("quacks")` and `api.get("/quacks")` hit the same endpoint.
+// both `api.get("health")` and `api.get("/health")` hit the same endpoint.
 export const api = ky.create({
   prefix: env.VITE_API_URL,
   credentials: "include",

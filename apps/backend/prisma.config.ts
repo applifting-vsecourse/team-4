@@ -14,9 +14,7 @@ export default defineConfig({
   schema: 'prisma/schema.prisma',
   migrations: {
     path: 'prisma/migrations',
-    // `prisma migrate reset` drops everything and replays the migrations. Without
-    // this it stops there, leaving an empty database and an app that looks broken
-    // to whoever just ran it.
+    // Keep the project seed entry point available after a reset.
     seed: 'pnpm seed',
   },
   datasource: { url: process.env.DATABASE_URL ?? '' },

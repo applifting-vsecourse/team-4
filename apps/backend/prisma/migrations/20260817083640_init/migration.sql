@@ -2,17 +2,6 @@
 CREATE TYPE "user_role" AS ENUM ('user', 'admin');
 
 -- CreateTable
-CREATE TABLE "quack" (
-    "id" TEXT NOT NULL,
-    "text" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "quack_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "session" (
     "id" TEXT NOT NULL,
     "expiresAt" TIMESTAMP(3) NOT NULL,
@@ -74,9 +63,6 @@ CREATE TABLE "user" (
 );
 
 -- CreateIndex
-CREATE INDEX "quack_userId_idx" ON "quack"("userId");
-
--- CreateIndex
 CREATE INDEX "session_userId_idx" ON "session"("userId");
 
 -- CreateIndex
@@ -90,9 +76,6 @@ CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "user_username_key" ON "user"("username");
-
--- AddForeignKey
-ALTER TABLE "quack" ADD CONSTRAINT "quack_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
