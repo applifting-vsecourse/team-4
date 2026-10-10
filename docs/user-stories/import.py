@@ -152,7 +152,13 @@ def main():
                 command += ['--add-label', label]
             gh(*command)
             if project and state['issues'][story['id']] not in project_urls:
-                gh('project', 'item-add', str(project['number']), '--owner', repo.split('/')[0], '--url', state['issues'][story['id']])
+                # Auto-add may finish after the first project snapshot.
+                refreshed = json.loads(gh('project', 'item-list', str(project['number']), '--owner', repo.split('/')[0], '--limit', '1000', '--format', 'json'))
+                if refreshed.get('totalCount', 0) > len(refreshed['items']):
+                    raise ValueError('Neúplný inventář projektu; je nutná stránkovaná kontrola.')
+                project_urls = {item.get('content', {}).get('url') for item in refreshed['items']}
+                if state['issues'][story['id']] not in project_urls:
+                    gh('project', 'item-add', str(project['number']), '--owner', repo.split('/')[0], '--url', state['issues'][story['id']])
             print(f"Aktualizováno: {state['issues'][story['id']]}", flush=True)
         print('Import a propojení dokončeno. Lokální mapa URL: ' + str(args.state))
 
