@@ -1,0 +1,57 @@
+[
+  {
+    "color": "0075ca",
+    "description": "",
+    "name": "epic: přihlášky"
+  },
+  {
+    "color": "40d652",
+    "description": "",
+    "name": "priority: MVP"
+  },
+  {
+    "color": "ce05cb",
+    "description": "",
+    "name": "priority: nice to have"
+  },
+  {
+    "color": "61170a",
+    "description": "",
+    "name": "epic: technický základ"
+  },
+  {
+    "color": "ecca65",
+    "description": "",
+    "name": "epic: ubytování"
+  },
+  {
+    "color": "ccdc80",
+    "description": "",
+    "name": "epic: platby"
+  },
+  {
+    "color": "70289d",
+    "description": "",
+    "name": "epic: přehledy"
+  },
+  {
+    "color": "6ab90c",
+    "description": "",
+    "name": "epic: přístupy"
+  },
+  {
+    "color": "275971",
+    "description": "",
+    "name": "epic: připomínky"
+  },
+  {
+    "color": "e99112",
+    "description": "",
+    "name": "epic: landing page"
+  },
+  {
+    "color": "858987",
+    "description": "",
+    "name": "epic: katalog akcí"
+  }
+]
