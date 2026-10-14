@@ -17,8 +17,10 @@ function HomePage() {
       <Seo title="Home" />
       <Header userMenu={<HeaderMenu />} />
       <main className="mx-auto w-full max-w-4xl px-4 py-12">
-        <h1 className="text-2xl font-semibold tracking-tight">Welcome</h1>
-        <p className="mt-3 text-muted-foreground">Your new project starts here.</p>
+        <h1 className="text-2xl font-semibold tracking-tight">Welcome to akc.io</h1>
+        <p className="mt-3 text-muted-foreground">
+          Event management for organizers and participants.
+        </p>
         <div className="mt-6 flex gap-3">
           {user ? (
             <Button asChild>

@@ -8,7 +8,7 @@ export function HeaderLogo() {
       to={ROUTES.home}
       className="font-semibold tracking-tight"
     >
-      Starter
+      akc.io
     </Link>
   )
 }

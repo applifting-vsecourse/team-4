@@ -24,7 +24,7 @@ export const ResetPassword = ({
 }: ResetPasswordProps): React.JSX.Element => (
   <Html>
     <Head />
-    <Preview>Reset your Starter password</Preview>
+    <Preview>Reset your akc.io password</Preview>
     <Tailwind>
       <Body className="bg-gray-50 font-sans py-10">
         <Container className="bg-white rounded-lg mx-auto p-8 max-w-xl">
@@ -32,7 +32,7 @@ export const ResetPassword = ({
             Reset your password
           </Heading>
           <Text className="text-gray-700 text-base leading-6 mt-4">
-            Hi {username}, we received a request to reset your Starter password.
+            Hi {username}, we received a request to reset your akc.io password.
             Click the button below to choose a new one.
           </Text>
           <Section className="text-center my-8">

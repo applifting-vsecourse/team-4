@@ -14,8 +14,8 @@ import {
 @Injectable()
 export class Config {
   // basic info
-  readonly name: string = 'Starter backend';
-  readonly description: string = 'NestJS backend for a new project.';
+  readonly name: string = 'akc.io backend';
+  readonly description: string = 'Event management API for akc.io.';
 
   @IsSemVer()
   readonly version: string = '0.1.0';
@@ -66,7 +66,7 @@ export class Config {
 
   @Env('EMAIL_FROM', {
     expose: true,
-    defaultValue: 'Starter <onboarding@resend.dev>',
+    defaultValue: 'akc.io <onboarding@resend.dev>',
   })
   @IsNotEmpty()
   readonly emailFrom!: string;

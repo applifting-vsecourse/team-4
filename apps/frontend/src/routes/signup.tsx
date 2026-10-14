@@ -48,7 +48,7 @@ function SignUpPage() {
       <Seo title="Sign up" />
       <AuthLayout
         title="Sign up"
-        description="Create your Starter account."
+        description="Create your akc.io account."
         footer={
           <>
             Already have an account?{" "}

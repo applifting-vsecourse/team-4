@@ -20,12 +20,12 @@ export interface VerifyEmailProps {
 export const VerifyEmail = ({ url }: VerifyEmailProps): React.JSX.Element => (
   <Html>
     <Head />
-    <Preview>Verify your Starter email address</Preview>
+    <Preview>Verify your akc.io email address</Preview>
     <Tailwind>
       <Body className="bg-gray-50 font-sans py-10">
         <Container className="bg-white rounded-lg mx-auto p-8 max-w-xl">
           <Heading className="text-2xl font-bold text-gray-900 m-0">
-            Welcome to Starter
+            Welcome to akc.io
           </Heading>
           <Text className="text-gray-700 text-base leading-6 mt-4">
             Tap the button below to verify your email address and finish setting
@@ -46,7 +46,7 @@ export const VerifyEmail = ({ url }: VerifyEmailProps): React.JSX.Element => (
           <Text className="text-blue-600 text-sm break-all">{url}</Text>
           <Hr className="border-gray-200 my-6" />
           <Text className="text-gray-400 text-xs">
-            If you didn&apos;t create a Starter account, you can safely ignore
+            If you didn&apos;t create an akc.io account, you can safely ignore
             this email.
           </Text>
         </Container>
