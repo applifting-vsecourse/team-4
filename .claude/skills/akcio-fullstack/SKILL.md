@@ -70,4 +70,4 @@ Verify against `docs/sprints/sprint-2/README.md` before relying on them.
 - `references/frontend.md` - structure, layering rules, data fetching, forms, routing, lint/format/test conventions
 - `references/backend.md` - module anatomy, DTO rules, auth, Prisma workflow, email, config, tests
 - `references/figma-workflow.md` - how to turn a wireframe into code with this repo's kit, token and component mapping
-- `references/figma-map.md` - Figma node IDs, which story uses them, and which shadcn controls are still missing
+- `references/figma-map.md` - Figma node IDs and which story uses them

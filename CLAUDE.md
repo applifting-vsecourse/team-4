@@ -7,7 +7,7 @@ Full-stack teaching template: pnpm monorepo with two apps.
 
 Organize backend features into controllers, DTOs, services, domain models and repositories. Organize frontend features into API schemas, query options, hooks and components. Keep shared infrastructure outside feature folders.
 
-**Before writing or changing any UI, read [`DESIGN.md`](DESIGN.md).** It is a draft extracted from Figma, pending UX approval in issue #79.
+**Before writing or changing any UI, read [`DESIGN.md`](DESIGN.md).** It is the design system: tokens, components, how to add them (issue #79).
 
 For any feature work (UI, route, endpoint, schema, e-mail, sprint story) use the project skill `.claude/skills/akcio-fullstack` (loads on its own; it holds the stack conventions and the Figma workflow). Figma is connected through `.mcp.json`; the wireframes are the file `IxX3hZQjTZcGF381RD7h0w` and their node IDs are listed in the skill's `references/figma-map.md`.
 

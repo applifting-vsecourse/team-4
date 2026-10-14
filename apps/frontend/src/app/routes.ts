@@ -3,4 +3,5 @@ export const ROUTES = {
   dashboard: "/dashboard",
   login: "/login",
   signup: "/signup",
+  designSystem: "/design-system",
 } as const

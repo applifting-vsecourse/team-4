@@ -4,7 +4,7 @@
 
 - Figma MCP server: `https://mcp.figma.com/mcp`, registered for the whole team in the repo's `.mcp.json`. Each developer approves it once in Claude Code and authenticates once with OAuth (`/mcp`, select `figma`, Authenticate). Tools appear as `mcp__figma__*`. Do not also install the Figma plugin (`figma@claude-plugins-official`): it bundles the same MCP server, so you would get it twice, and the server already serves Figma's skills through `get_figma_skill`.
 - Wireframes: file **Wireframy**, file key `IxX3hZQjTZcGF381RD7h0w`, `https://www.figma.com/design/IxX3hZQjTZcGF381RD7h0w/Wireframy`. It has one page ("Page 1"). Frame node IDs are in `figma-map.md`.
-- Design kit attached to that file: the library **shadcn ui kit community edition** (components named `<Component> - Nova`, variables named `shadcn colors/general/*`). A second library named **Design system** with the same Nova components (updated 11 Oct 2026) exists in the account but is not attached to Wireframy; ask which one is canonical before relying on it.
+- Design kit attached to that file: the library **shadcn ui kit community edition** (components named `<Component> - Nova`, variables named `shadcn colors/general/*`). Its colours and fonts are **outdated**. The canonical library is **Design system** (file key `hsSa2s0GRl0UgsT645F2ir`, frame `6002:3` "Design system preview"); its values are already in `global.css` and `DESIGN.md`. Take layout from Wireframy, visual values from `DESIGN.md`.
 - Access is limited to what the signed-in person may open. Limits: Education/Professional Full or Dev seat 200 calls per day and 10 per minute; View/Collab seats 20 calls per month. If a call fails on permissions, run `whoami` and check the seat on the plan that owns the file.
 
 **Code Connect is not available** on these plans (it needs a Dev or Full seat on an Organization or Enterprise plan; `get_code_connect_map` returns that error). Do not call `get_code_connect_*`, `add_code_connect_map` or `send_code_connect_mappings`, and do not write `.figma.ts` files. The mapping tables below take its place and are maintained by hand.
@@ -34,58 +34,13 @@ Treat the code as a non-interactive prototype. Identify what is interactive (sel
 
 ## Component map (Figma kit name -> repo)
 
-`ui/` currently contains: alert, avatar, button, card, dialog, dropdown-menu, form, input, label, separator, skeleton, sonner, textarea.
-
-| Figma component                                                       | Repo component                                                                                                | Status      |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------- |
-| Button - Nova, Icon Button - Nova                                     | `button` (`size="icon"`, `icon-sm`, ...)                                                                      | have        |
-| Input - Nova                                                          | `input`                                                                                                       | have        |
-| Textarea - Nova                                                       | `textarea`                                                                                                    | have        |
-| Card - Nova                                                           | `card`                                                                                                        | have        |
-| Alert - Nova                                                          | `alert`                                                                                                       | have        |
-| Avatar With Image                                                     | `avatar`                                                                                                      | have        |
-| Separator (Oddělovač)                                                 | `separator`                                                                                                   | have        |
-| Popisek pole (field label)                                            | `FormLabel` in `form`                                                                                         | have        |
-| Badge, Označení stavu (status label)                                  | `badge`                                                                                                       | **missing** |
-| Checkbox - Nova                                                       | `checkbox`                                                                                                    | **missing** |
-| Radio - Nova                                                          | `radio-group`                                                                                                 | **missing** |
-| Switch - Nova                                                         | `switch`                                                                                                      | **missing** |
-| Select & Combobox - Nova                                              | `select` (add `command` + `popover` only when the design shows searchable options)                            | **missing** |
-| Tab (segmented) - Nova, Tabs (segmented) - Nova                       | `tabs`                                                                                                        | **missing** |
-| Table Header, Table Cell (the most used components in the wireframes) | `table`                                                                                                       | **missing** |
-| Sidebar Group Label - Nova                                            | `sidebar`                                                                                                     | **missing** |
-| Progress - Nova                                                       | `progress`                                                                                                    | **missing** |
-| Empty - Nova                                                          | `empty` if the registry offers it (check with `pnpm dlx shadcn@latest search`), otherwise compose from `card` | **missing** |
-| Breadcrumb (Drobečková navigace)                                      | `breadcrumb`                                                                                                  | **missing** |
-
-Add several at once, from the repo root:
-`pnpm dlx shadcn@latest add badge checkbox radio-group switch select tabs table sidebar progress breadcrumb --cwd apps/frontend`
-(this repo's `components.json` is style `new-york`, `src/styles/global.css`, aliases `@/components`, `@/lib/utils`). Check the diff afterwards; the `sidebar` component may add CSS variables to `global.css` that need a decision from UX.
+Every Figma kit component (`<Name> - Nova`) has a same-named shadcn component in `src/components/ui/` (Table Header/Cell -> `table`, Select & Combobox -> `select`, or `popover` + `command` when searchable, Radio -> `radio-group`, Tab (segmented) -> `tabs`, Sidebar Group Label -> `sidebar`, Označení stavu -> `badge` with a status variant). The list of what is in the kit and how to add more is in `DESIGN.md` ("Components"); `/design-system` in the dev app shows them all.
 
 Components with Czech names in the Wireframy file ("Informační karta", "Údaj jednotky", "Hlavní cesta", "Výběr", "Vstupní údaj", "Souhrn vybraného pobytu", ...) are not kit components. They are layout compositions drawn for the wireframes. Build them as feature components out of the kit primitives.
 
 ## Token map (Figma variable -> repo token)
 
-Values read from the Figma file with `get_variable_defs`, repo values converted from `global.css` (oklch to sRGB).
-
-| Figma variable             | Figma   | Repo token                   | Repo value | Match                                                                                   |
-| -------------------------- | ------- | ---------------------------- | ---------- | --------------------------------------------------------------------------------------- |
-| general/background         | #ffffff | `background`                 | #ffffff    | yes                                                                                     |
-| general/foreground         | #000000 | `foreground`                 | #0a0a0a    | near (pure black vs near black)                                                         |
-| general/card               | #ffffff | `card`                       | #ffffff    | yes                                                                                     |
-| general/card-foreground    | #0a0a0a | `card-foreground`            | #0a0a0a    | yes                                                                                     |
-| general/primary            | #171717 | `primary`                    | #171717    | yes                                                                                     |
-| general/primary foreground | #ffffff | `primary-foreground`         | #fafafa    | near                                                                                    |
-| general/muted              | #f5f5f5 | `muted`                      | #f5f5f5    | yes                                                                                     |
-| general/muted foreground   | #737373 | `muted-foreground`           | #555555    | **no: repo is darker, and better: Figma's is 4.35:1 on `muted`, below WCAG AA**         |
-| general/border             | #e5e5e5 | `border`                     | #e5e5e5    | yes                                                                                     |
-| general/input              | #e5e5e5 | `input`                      | #e5e5e5    | yes                                                                                     |
-| focus/ring                 | #d4d4d4 | `ring`                       | #737373    | **no: Figma's is 1.48:1 on white, below the 3:1 non-text minimum; keep the repo value** |
-| radius-lg                  | 10 px   | `rounded-lg` (`--radius`)    | 8 px       | **no**                                                                                  |
-| radius-md                  | 8 px    | `rounded-md`                 | 6 px       | **no**                                                                                  |
-| font                       | Geist   | `font-sans` (Geist Variable) | Geist      | yes                                                                                     |
-
-The mismatches are analysed in `DESIGN.md` for the design-system task (#79): keep the repo's `muted-foreground` and `ring` (better contrast), and only the radius is a candidate change. Do not change `global.css` tokens on your own; use the repo token and note the visible difference in your report. Spacing: Figma `3xs/2xs/xs/sm/md` = 2/4/8/12/16 px, the same as the Tailwind scale (`0.5`, `1`, `2`, `3`, `4`).
+Wireframy uses the old kit's variables (`shadcn colors/general/*`, neutral greys, Geist); the repo uses the Design system values. Map by name, not by value: `general/<x>` -> `<x>` token (`bg-<x>`, `text-<x>`), `focus/ring` -> `ring`, `status/success` -> `success`, etc. The full token table, status meanings and contrast rules are in `DESIGN.md`. Never copy hex values from the reference code. Spacing: Figma `3xs/2xs/xs/sm/md` = 2/4/8/12/16 px, the same as the Tailwind scale (`0.5`, `1`, `2`, `3`, `4`).
 
 ## Where the wireframes are behind the decisions
 
@@ -95,12 +50,12 @@ Wireframes are layout references. When a wireframe and the sprint README or stor
 - The adult application form in the wireframe has one "Jméno a příjmení" field and "Registrace zájmu je nezávazná ... nic neplatíte". S2-07 requires separate first name, last name, e-mail, phone and term selection with prices, and S2-08/09 produce a saved application with payment instructions.
 - The child + legal guardian frames are out of sprint scope (adults only).
 - "Rozdělení do pokojů" shows assigning people to rooms. Assigning a person to a room is out of Sprint 2; S2-05 uses the frame only for the room and bed registry.
-- Wireframe controls on mobile are 48 px tall; the repo's `Input` is 36 px and `Button` default/lg are 36/40 px. Do not patch heights screen by screen. Raise it; if told to proceed, add one shared size variant in `components/ui/input.tsx` and `button.tsx`.
+- Wireframe controls on mobile are 48 px tall; the repo's `Input` is 36 px and `Button` default/lg are 36/40 px. This is an open question in `DESIGN.md`. Do not patch heights screen by screen.
 - UX will deliver final copy and updated wireframes later (sprint README, "Zbývající příprava týmu"). Build structure now, keep copy easy to change.
 
 ## Keeping Figma and code in sync
 
 1. `.mcp.json` stays committed; do not replace it with a personal config.
 2. When a frame is added, renamed or replaced, update `figma-map.md` (node IDs are stable unless a frame is deleted and recreated).
-3. When UX changes variables in the kit, re-read them with `get_variable_defs` on a node, update `apps/frontend/src/styles/global.css` and the token table in `DESIGN.md` together.
+3. When UX changes variables in the Design system library, re-read them with `get_variable_defs` on its nodes `6015:442` (Light panel) and `6015:540` (Dark panel) in file `hsSa2s0GRl0UgsT645F2ir`, and update `apps/frontend/src/styles/global.css` and the token table in `DESIGN.md` together.
 4. If agents need the designs without Figma access (for example in unattended or cloud runs where OAuth is not possible), export the key frames as PNG into `docs/design/` and reference them from the stories. This is optional and not set up yet.

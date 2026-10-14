@@ -108,7 +108,7 @@ This repo's `form.tsx` is the react-hook-form variant. If the official shadcn sk
 
 ## UI
 
-- Components come from `@/components/ui/*`. Compose them; do not restyle them per feature. Adding one: `pnpm dlx shadcn@latest add <name> --cwd apps/frontend`, then check `git diff` and keep the generated file as is (it is excluded from lint).
+- Components come from `@/components/ui/*`. Compose them; do not restyle them per feature. Adding one: `pnpm dlx shadcn@latest add <name> --cwd apps/frontend`, then follow the checklist in `DESIGN.md` ("Adding or composing"): the CLI output needs fixing before it is usable.
 - Icons: `lucide-react` only (`import { CalendarCog } from "lucide-react"`).
 - Tokens only (see `DESIGN.md`). Dark mode is the `.dark` class via `next-themes`; use semantic tokens and it follows.
 - Mobile first. The participant flow must work at 360 px without horizontal scroll.
