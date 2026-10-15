@@ -18,8 +18,7 @@ jobs:
         id: slug
         run: |
           REPO_NAME="${GITHUB_REPOSITORY##*/}"
-          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
-          if [ "$REPO_NAME" = "edu-template" ]; then SLUG="$OWNER"; else SLUG="${REPO_NAME,,}"; fi
+          SLUG="${REPO_NAME,,}"
           echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
           echo "url=https://$SLUG.$COURSE_DOMAIN" >> "$GITHUB_OUTPUT"
       - name: Login to registry

@@ -59,3 +59,7 @@ PM schválí rozsah a produktová pravidla, tech lead závislosti/model, UX pokr
 ## Doporučené pořadí
 
 T1 a T2 začít nejdřív, T3 souběžně. T5 připravit před prvními implementačními PR a T6 před rozsáhlou implementací UI. S2-02/03/04 → S2-05/06/07 → S2-08/09 → S2-10/11/12/13/14/15. Landing a UX příprava mohou běžet nezávisle; pořadí odpovídá kontraktům, ne nutně sériové práci na celých stories. Review a QA patří ke každému kroku. Vlastníci a odhady jsou zatím nezadané.
+
+### Upřesnění platební závislosti
+
+S2-04 → S2-09 část A (konfigurace akce) → S2-06 → S2-07/S2-08 → S2-09 část B (výpočet povinnosti přihlášky). S2-06 nečeká na dokončení celé S2-09; ta zůstává otevřená do ověření obou částí.

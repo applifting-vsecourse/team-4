@@ -1,13 +1,13 @@
-# Starter — starter template
+# Agent instructions
 
-Full-stack teaching template: pnpm monorepo with two apps.
+akc.io is an event management product, developed as a pnpm monorepo with two apps.
 
 - `apps/backend` — NestJS + Prisma + Postgres. Auth: BetterAuth (mounted at `/api/auth/*`, treat as a black box). API docs: Swagger at `/api/docs`.
 - `apps/frontend` — React + Vite + TanStack Router/Query, Tailwind + shadcn/ui, `ky` + `zod` API client. Feature folders under `src/features/`.
 
 Organize backend features into controllers, DTOs, services, domain models and repositories. Organize frontend features into API schemas, query options, hooks and components. Keep shared infrastructure outside feature folders.
 
-**Before writing or changing any UI, read [`DESIGN.md`](DESIGN.md).** It is intentionally empty until the new project defines its design requirements.
+**Before writing or changing any UI, read [`DESIGN.md`](DESIGN.md).** It is intentionally empty until akc.io defines its design requirements.
 
 ## Commands
 
@@ -16,9 +16,23 @@ Organize backend features into controllers, DTOs, services, domain models and re
 - `pnpm backend test` / `pnpm frontend test:ci` — unit tests
 - `pnpm backend prisma:migrations:run` — create/apply migrations after schema changes
 
+## Product identity and compatibility
+
+Use `akc.io` as the product name in UI, emails, API metadata and documentation; use `akcio` where a technical identifier cannot contain a dot. This repository implements akc.io and is not a reusable starter.
+
+Do not retain or introduce backward compatibility for previous product names, starter behavior or superseded internal contracts. Remove obsolete aliases, shims, fallback branches and transitional code when replacing them; update all affected callers and configuration to the current contract. Do not rename external resources without verifying their actual identity.
+
 ## Conventions
 
 Deliberately sparse — this file grows as the team learns what it expects from generated code. Add rules here when you find yourself repeating the same review feedback.
+
+### User stories are owned by the PM
+
+User stories are read-only for agents by default. Only David, acting as PM, may explicitly authorize an agent to create, edit, delete, regenerate, import or synchronize user stories. A request to implement a story, fix code, update documentation or complete a feature is not authorization to change the story.
+
+This rule covers local stories in `docs/user-stories/`, their requirements, acceptance criteria, scope, priorities and approval metadata, the source feature workbook, and corresponding GitHub issue titles and bodies. Do not run `docs/user-stories/import.py --execute` without explicit PM authorization, because it writes story content to GitHub.
+
+If implementation reveals a gap or conflict, report it to the PM and propose a change in your response; leave the story unchanged. When the PM explicitly requests story changes, make only the authorized changes. Reading stories and reporting implementation progress remain allowed.
 
 ### UI controls come from the kit
 

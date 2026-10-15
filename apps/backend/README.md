@@ -1,10 +1,10 @@
-# Backend
+# akc.io backend
 
 NestJS with strict TypeScript, Prisma/PostgreSQL, BetterAuth, Swagger and email adapters.
 
 ## Structure
 
-- `src/modules`: feature modules (the starter includes welcome and health endpoints).
+- `src/modules`: feature modules (currently includes welcome and health endpoints).
 - `src/core`: Prisma and email infrastructure.
 - `src/shared`: auth and configuration.
 - `src/scripts/seed`: an empty seed entry point for project-specific data.

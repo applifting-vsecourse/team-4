@@ -47,7 +47,7 @@ function LoginPage() {
       <Seo title="Sign in" />
       <AuthLayout
         title="Sign in"
-        description="Welcome back to Starter."
+        description="Welcome back to akc.io."
         footer={
           <>
             No account?{" "}

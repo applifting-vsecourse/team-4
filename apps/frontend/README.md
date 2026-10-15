@@ -1,11 +1,11 @@
-# Frontend
+# akc.io frontend
 
 React and Vite with TanStack Router/Query, Tailwind, shadcn/ui, Lucide, ky, Zod and BetterAuth.
 
 ## Structure
 
 - `src/routes`: file-based routes, including home, login, signup and an authenticated dashboard placeholder.
-- `src/features`: feature APIs, schemas, hooks and components; authentication is retained.
+- `src/features`: feature APIs, schemas, hooks and components; includes authentication.
 - `src/components`: shared components and the UI kit.
 - `src/styles/global.css`: semantic tokens, neutral light/dark palettes and shared styles.
 - `src/test`: Vitest setup.
@@ -23,4 +23,4 @@ pnpm frontend test:ci
 pnpm frontend build
 ```
 
-The frontend runs at http://localhost:3050 and builds to `build`. See the [root README](../../README.md) for full setup. Browser-visible environment variables use the `VITE_` prefix and are baked in at build time. Define the new project's design requirements in [DESIGN.md](../../DESIGN.md).
+The frontend runs at http://localhost:3050 and builds to `build`. See the [root README](../../README.md) for full setup. Browser-visible environment variables use the `VITE_` prefix and are baked in at build time. Define akc.io design requirements in [DESIGN.md](../../DESIGN.md).

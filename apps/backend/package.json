@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "0.1.0",
-  "description": "NestJS + Prisma + PostgreSQL backend starter",
+  "description": "akc.io API built with NestJS, Prisma and PostgreSQL",
   "private": true,
   "license": "MIT",
   "engines": {

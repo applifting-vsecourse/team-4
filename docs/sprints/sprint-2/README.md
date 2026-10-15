@@ -1,6 +1,6 @@
 # Sprint 2 — návrh backlogu
 
-Připraveno 14. 10. 2026 pro týmovou kontrolu a publikaci v repozitáři. Produktové stories S2-01 až S2-15 zůstávají návrhy v dokumentaci; technické issues #74–#79 jsou publikované a přiřazené do Sprintu 2 se stavem Sprint Backlog. Původní stories a jejich importní manifest nejsou změněné.
+Připraveno 14. 10. 2026 pro týmovou kontrolu a publikaci v repozitáři. Produktové stories S2-01 až S2-15 jsou publikované jako issues #80–#94; technické issues #74–#79 jsou publikované a přiřazené do Sprintu 2 se stavem Sprint Backlog. Původní stories a jejich importní manifest nejsou změněné.
 
 ## Cíl
 
@@ -42,7 +42,7 @@ Zdroj: text „kemp.io · definice MVP · říjen 2026“ dodaný PM v konverzac
 - CZK, účet u akce, unikátní VS přihlášky, bez QR.
 - Organizátor ručně zapisuje částku a datum přijaté platby. Platby jsou společné pro přihlášku.
 - Jedna splatnost celé přihlášky: okamžik automatického potvrzení plus počet dní nastavený organizátorem u akce. Žádné rozdělování plateb mezi termíny.
-- Organizátor se sám zaregistruje, může založit více vlastních organizací a přepínat mezi nimi.
+- Organizátor se sám zaregistruje jménem, e-mailem a heslem a přihlašuje e-mailem a heslem; ověření e-mailu není v tomto sprintu podmínkou. Může založit více vlastních organizací pouze s povinným názvem a přepínat mezi nimi. Účet bez organizací nabízí založení první, po založení/přepnutí se otevře seznam akcí. Přejmenování a mazání organizací mimo sprint.
 - Účastník má aktuální přehled a opakovaný přístup přes magic link na svůj e-mail, bez hesla.
 - Potvrzovací e-mail po uložení: termíny, stavy, cena/částka k úhradě a platební instrukce. Nejde pouze o zprávu na obrazovce.
 
@@ -51,7 +51,7 @@ Zdroj: text „kemp.io · definice MVP · říjen 2026“ dodaný PM v konverzac
 - Značka aplikace je akc.io; kemp.io zachováme pouze v původní citaci PO.
 - Akce: povinný název, popis a místo. Termín: označení, začátek, konec a cena v CZK.
 - Akce začíná jako koncept. Organizátor ručně otevře a zavře přihlašování. Otevření vyžaduje doplněnou akci, termín, účet a počet dní splatnosti. Bez pokojů lze přijímat náhradníky.
-- Od prvního otevření jsou termíny a ceny zamčené, i po pozdějším zavření. Účet a výchozí splatnost lze měnit pro nové přihlášky; existující instrukce se nemění.
+- Termíny používají pouze kalendářní data včetně obou krajních dnů; cena 0 Kč je povolená. Od prvního otevření jsou název, popis, místo, termíny a ceny zamčené, i po pozdějším zavření. Účet a výchozí splatnost lze měnit pro nové přihlášky; existující instrukce se nemění.
 - Podmínky účasti a souhlasy mimo tento sprint; původní #10 zachované pro později.
 - Ubytování je samostatné pro každou akci; termíny jedné akce se nepřekrývají.
 - Ubytování lze upravit, pokud kapacita neklesne pod počet potvrzených. Nová lůžka nevyvolají povýšení existujících náhradníků, ale lze je využít pro nové přihlášky.
@@ -62,11 +62,29 @@ Zdroj: text „kemp.io · definice MVP · říjen 2026“ dodaný PM v konverzac
 - Stejný e-mail může mít obě role; účastnický magic link nepřihlásí organizátora do správy organizací.
 - Magic link platí 15 minut, je jednorázový; účastnická relace 7 dní s možností odhlášení.
 
-## Zbývající příprava týmu
+## Výsledek společné kontroly 15 stories
 
-Produktové otázky položené PM jsou uzavřené. Finální texty a aktualizované wireframy připraví UX/PM. Tech lead ověří autentizaci, navrhne datový model, ochranu proti dvojímu uložení, zabezpečení přístupů a e-mailovou službu. Jedna splatnost se počítá od okamžiku automatického potvrzení, nikoli jako individuální splatnosti termínů ani jako ručně zadané datum. Zobrazení musí jednoznačně uvádět časové pásmo Europe/Prague.
+Produktový rozsah S2-01 až S2-15 byl postupně projit a potvrzen PM. Upřesnění jsou zapsaná přímo v jednotlivých stories; tato kontrola sama neznamená READY ani hotovou implementaci.
 
-Všechny stories zůstávají NÁVRH bez READY: uzavření pravidel samo nenahrazuje UX pokrytí, technickou a QA kontrolu ani odhad kapacity týmu.
+- S2-01: schválené texty a vstupy Přihlášení organizátora / Registrace organizátora / Moje přihlášky.
+- S2-03: všechny vlastní organizace jsou dostupné, cizí nikoli; pro cizí i neexistující záznam stejná zpráva „Záznam není dostupný“.
+- S2-05: pokoj má jedinečné označení v akci, alespoň jedno lůžko a výběr dostupných termínů; počet lůžek je v nich stejný. Přidání, přejmenování, úprava i odstranění jsou možné, pokud kapacita neklesne pod potvrzenou účast.
+- S2-06: koncept veřejně nezobrazuje údaje. Zavřená akce ukáže informace bez formuláře; znovuotevření používá stejný odkaz. U prvního otevření je upozornění na zamčení bez potvrzovacího dialogu.
+- S2-07: před odesláním se neukazuje dostupnost ani počet lůžek. Telefon vyžaduje mezinárodní předvolbu a přijímá i zahraniční čísla.
+- S2-08: jedna přihláška na e-mail a akci; opakované vyplnění nemění původní přihlášku ani kapacitu a nabídne magic link. Opakování téhož požadavku nevytvoří duplikát.
+- S2-09: český účet s volitelným předčíslím a kódem banky, bez IBAN; potvrzené termíny zdarma nevyvolají platbu. Část A konfigurace odblokuje S2-06, část B výpočtu navazuje na S2-08.
+- S2-10: přehled v detailu akce s tlačítkem Aktualizovat.
+- S2-11: seznam v detailu konkrétní akce; seznam i detail mají Aktualizovat se zachováním filtrů. Po zápisu platby se údaje obnoví automaticky.
+- S2-12: kladná částka s nejvýše dvěma desetinnými místy, datum ne v budoucnosti, ochrana před dvojím uložením. Platba bez povinnosti vytvoří přeplatek; opravy mimo sprint.
+- S2-13: po požadavku stejná zpráva pro známý a neznámý e-mail; bez přihlášek nevznikne účet ani se neodešle zpráva. Magic link vede na seznam vlastních přihlášek.
+- S2-14: účastnický seznam/detail mají Aktualizovat a historii plateb. Po odeslání je dostupný jen nový výsledek; opakovaný přístup po zavření stránky vyžaduje magic link.
+- S2-15: potvrzení přes Resend, schválený předmět a úvod, magic link na 15 minut. Selhání se zaznamená bez automatického opakování; lze samostatně vyžádat magic link. Zápis platby neposílá notifikaci.
+
+## Zbývající příprava
+
+Doplnit a ověřit aktuální wireframy, technické kontrakty, testovací scénáře, vlastníky a odhady. Texty pro landing page a potvrzovací e-mail jsou schválené ve stories. Splatnost se zobrazuje jednoznačně v Europe/Prague a počítá od okamžiku automatického potvrzení, nikoli do konce dne.
+
+Všechny stories zůstávají NÁVRH bez READY do ověření podkladů a připravenosti. Produktové stories jsou nyní publikované v GitHubu jako issues #80–#94; odkazy jsou v indexu. Aktuální upřesnění jsou v issue bodies i lokálních story souborech.
 
 ## Mapa pokrytí PO
 
