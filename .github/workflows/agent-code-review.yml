@@ -1,0 +1,57 @@
+name: Agent code review
+
+# Projects v2 has no workflow event for moving a card, so we poll the board.
+# Scheduled workflows only run from the default branch.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Review and log only; post no comments and move no cards
+        type: boolean
+        default: true
+      issue:
+        description: Only process this issue number (empty = all)
+        type: string
+        default: ''
+      force:
+        description: Ignore earlier results for the same commit and review again
+        type: boolean
+        default: false
+
+# One run at a time so two runs never review or move the same card twice.
+concurrency:
+  group: agent-code-review
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # Always the default branch: the rules the agent reviews against come
+      # from main, never from the PR under review, and PR code is never run.
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+
+      - name: Review issues in Ready for Code Review
+        run: node scripts/agent-review/run.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PROJECT_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          PROJECT_OWNER: ${{ github.repository_owner }}
+          PROJECT_NUMBER: 1 # "Kemp.io Team 4"
+          # Scheduled runs are real runs; manual runs default to a dry run.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+          ONLY_ISSUE: ${{ inputs.issue }}
+          FORCE: ${{ inputs.force }}

@@ -45,6 +45,9 @@ jobs:
       - name: Test frontend
         run: pnpm frontend test:ci
 
+      - name: Test agent review script
+        run: pnpm agent-review:test
+
       - name: Build backend
         run: pnpm backend build
 
