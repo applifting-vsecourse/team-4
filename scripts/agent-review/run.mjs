@@ -29,6 +29,12 @@ import {
 
 import { planReview, executeReview } from './batches.mjs';
 
+import {
+  issueRequirements,
+  scopeMarker,
+  scopeHash,
+} from '../delivery/requirements.mjs';
+
 const execFileAsync = promisify(execFile);
 
 const cfg = {
@@ -281,6 +287,17 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
     currentReviews.push(...batch);
     if (batch.length < 100) break;
   }
+  const currentIssue = await api(
+    cfg.githubToken,
+    `/repos/${cfg.repo}/issues/${issue.number}`,
+  );
+  const preflight = issueRequirements(
+    currentIssue,
+    await listComments(issue.number),
+    [{ pr: meta, reviews: currentReviews }],
+  );
+  meta.requirements = preflight.approval;
+  meta.requirementsVersion = preflight.version;
   if (
     meta.state !== 'open' ||
     meta.base.ref !== 'main' ||
@@ -386,6 +403,33 @@ async function processIssue(board, item) {
         throw new Error(`PR #${number} is not open against main`);
       all.push({ pr, reviews });
     }
+    const currentIssue = await api(
+      cfg.githubToken,
+      `/repos/${cfg.repo}/issues/${issue.number}`,
+    );
+    if (scopeHash(currentIssue) !== scopeHash(issue))
+      throw new Error(
+        'Issue scope changed during processing; retry before reviewing',
+      );
+    const scope = issueRequirements(
+      currentIssue,
+      await listComments(issue.number),
+      all,
+    );
+    if (scope.resetRecord)
+      await postComment(
+        issue.number,
+        `${scopeMarker('requirements-reset', scope.resetRecord)}\nRequirements re-review requested. Implementation fixes alone do not revoke scope approval.`,
+      );
+    if (scope.grantRecord)
+      await postComment(
+        issue.number,
+        `${scopeMarker('issue-requirements', scope.grantRecord)}\nRequirements approved by @${scope.grantRecord.reviewer} for the current issue scope. This approval survives implementation commits; use /requirements-rereview when scope changes.`,
+      );
+    for (const entry of all) {
+      entry.pr.requirements = scope.approval;
+      entry.pr.requirementsVersion = scope.version;
+    }
     return all;
   }
   const initial = await snapshots();
@@ -438,7 +482,7 @@ async function processIssue(board, item) {
     if (!record)
       record = await postComment(
         pr.number,
-        `${marker}\n${approval.exempt ? 'Requirements review is exempt because the PR author is darebakdavca' : `Requirements approved by @${reviewersFor(pr.user.login).requirements}`} for commit \`${pr.head.sha}\`. Issue #${issue.number} is eligible for independent code review.`,
+        `${marker}\n${approval.exempt ? 'Requirements review is exempt because the PR author is darebakdavca' : `Issue requirements approved by @${reviewersFor(pr.user.login).requirements}`} for commit \`${pr.head.sha}\`. Issue #${issue.number} is eligible for independent code review.`,
       );
     requirementRecords.set(pr.number, {
       ...record,
@@ -495,8 +539,9 @@ async function processIssue(board, item) {
           )?.id,
     )
   ) {
-    await moveStatus(board, item, 'In Progress');
-    console.log('  -> In Progress: requirements or code changed during review');
+    const next = stillApproved.review ? STATUS_REVIEW : 'In Progress';
+    await moveStatus(board, item, next);
+    console.log(`  -> ${next}: scope or code changed during review`);
     return;
   }
   let moved = false;
@@ -516,7 +561,7 @@ async function processIssue(board, item) {
         ) {
           await postComment(
             r.pr,
-            `${marker}\n${rolesByPr.get(r.pr).requirements === null ? 'Requirements exemption applied; independent agent review passed' : 'Requirements approval and independent agent review passed'} for commit \`${r.sha}\`. Issue #${issue.number} entered **Ready for Testing**. @${rolesByPr.get(r.pr).qa}: test this commit, then submit an approving PR review. New commits require all stages again.`,
+            `${marker}\n${rolesByPr.get(r.pr).requirements === null ? 'Requirements exemption applied; independent agent review passed' : 'Issue requirements approval is valid; independent agent review passed'} for commit \`${r.sha}\`. Issue #${issue.number} entered **Ready for Testing**. @${rolesByPr.get(r.pr).qa}: test this commit, then submit an approving PR review. New commits require fresh agent review and QA; issue requirements approval persists unless scope changes.`,
           );
         }
       }

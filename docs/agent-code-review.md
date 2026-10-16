@@ -4,7 +4,7 @@ Technické zadání: [#78](https://github.com/applifting-vsecourse/team-4/issues
 
 ## Jak to funguje
 
-1. Vývojář nechá issue v **In Progress**, otevře propojený PR a požádá o kontrolu požadavků. Teprve schválení aktuálních commitů všech propojených PR přesune issue automaticky do **Ready for Code Review**.
+1. Vývojář nechá issue v **In Progress**, otevře propojený PR a požádá o kontrolu požadavků. Teprve schválení rozsahu issue přesune issue automaticky do **Ready for Code Review**.
 2. Workflow reaguje na změny PR a odeslaná či zrušená review. Board navíc kontroluje plánovaně každých 5 minut; GitHub může plánované běhy zpozdit. Spouští se důvěryhodný kód z main, nikoli kód z PR.
 3. Pro každou issue v tomto sloupci najde všechny **otevřené PR propojené přes `Closes #N`** v popisu PR a každý z nich zrevidují agentem **GitHub Copilot CLI**. Agent dostane diff PR, text issue a pravidla z `CLAUDE.md` a `DESIGN.md` z větve `main`. Nemá žádné nástroje a nespouští kód z PR.
 4. Výsledek se zapíše jako komentář **u PR** (revidovaný commit, nálezy) a odkaz na něj jako komentář **u issue**.
@@ -26,7 +26,7 @@ Samotné dokončení běhu ani absence komentářů úspěch neznamená.
 ## Opakování a bezpečnost proti chybnému posunu
 
 - Výsledek se ukládá do komentáře s markerem pro konkrétní PR a **commit SHA**; uznává se jen komentář od `github-actions[bot]`. Opakovaný běh pro stejný commit review neopakuje (nevyčerpává kredity).
-- Nový commit zneplatní schválení. Issue se vrátí do In Progress a code review smí pokračovat až po novém schválení požadavků. Zrušení schválení nebo požadavek na změny má stejný účinek. Ruční přesun karty tuto podmínku neobejde.
+- Nový commit vyžaduje nové code review a QA, ale schválení rozsahu issue zůstává platné. Při změně rozsahu požádejte komentářem `/requirements-rereview` o nové schválení. Úprava názvu nebo těla issue zneplatní původní schválení rozsahu. Ruční přesun karty podmínky neobejde.
 - Chyba agenta se pro stejný commit zopakuje nejvýše 3×. Pak pomůže nový commit nebo ruční spuštění s volbou **force**.
 - Těsně před přesunem se znovu načte stav karty i commity PR. Pokud mezitím někdo kartu přesunul, automatizace ji nepřepíše. Pokud se změnil commit, výsledek je zastaralý a karta se nepřesune.
 - Workflow běží s `concurrency`, takže se dva běhy nepřekrývají.
@@ -65,26 +65,15 @@ Nikdy tokeny nevkládejte do issue, PR ani chatu. Workflow komentáře píše ja
 pnpm agent-review:test   # jednotkové testy rozhodovací logiky (běží i v CI)
 ```
 
-## Requirements approval before code review
+## Persistent requirements approval
 
-The automation also requires an approving review by `darebakdavca` on each PR's
-current commit before moving the issue from In Progress to Ready for Code Review
-and before calling Copilot. It posts a trusted
-handoff record for each linked PR and issue. `MatejKrones` tests that commit and
-then approves the PR. The separate required Delivery stages check enforces this
-sequence; a successful agent comment alone does not permit merging. See
-[the delivery workflow](delivery-workflow.md).
-
-PRs authored by `darebakdavca` are explicitly exempt from requirements review;
-the bot records this policy decision and may start code review immediately.
-Matej still approves QA after the testing handoff. For PRs
-authored by Matej, David substitutes for QA. The same substitute must submit a
-separate second approval after the testing handoff. Agent review remains required.
-
-Each requirements handoff records its approval ID and commit. Agent results
-predating that handoff are not reused. QA still needs a later testing handoff and
-approval. Workflow runs may complete successfully while the delivery verdict
-remains blocked.
+Requirements approval is recorded on the issue and survives implementation commits
+and native stale-review dismissal. Only scope edits or an explicit trusted
+`/requirements-rereview` request invalidate that record. David can approve through
+a new PR review or `/requirements-approve` on the issue. His own PRs remain
+exempt. Code review, testing handoffs and QA still apply to the exact current
+commit. See [the delivery workflow](delivery-workflow.md) for commands, reviewer
+roles and merge configuration.
 
 ## Larger diffs and complete coverage
 

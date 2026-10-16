@@ -25,17 +25,23 @@ export function requirementsApproval(pr, reviews) {
   const login = reviewersFor(pr.user.login).requirements;
   if (pr.draft) return null;
   if (login === null)
-    return { id: 'author-exempt', exempt: true, commit_id: pr.head.sha };
+    return {
+      id: pr.requirementsVersion
+        ? `author-exempt:${pr.requirementsVersion}`
+        : 'author-exempt',
+      exempt: true,
+      commit_id: pr.head.sha,
+    };
+  if (Object.hasOwn(pr, 'requirements')) return pr.requirements;
   const ordered = reviews
     .filter((r) => r.user?.login.toLowerCase() === login.toLowerCase())
     .sort((a, b) => a.id - b.id);
-  if (pr.draft || !approved(latestReview(ordered, login), pr.head.sha))
-    return null;
+  if (latestReview(ordered, login)?.state !== 'APPROVED') return null;
   const reset =
     ordered
       .filter((r) => ['CHANGES_REQUESTED', 'DISMISSED'].includes(r.state))
       .at(-1)?.id ?? 0;
-  return ordered.find((r) => r.id > reset && approved(r, pr.head.sha)) ?? null;
+  return ordered.find((r) => r.id > reset && r.state === 'APPROVED') ?? null;
 }
 
 export function requirementsMarker(pr, sha, issue, reviewId) {
@@ -75,17 +81,26 @@ export function evaluate({ pr, issues, reviews, comments }) {
   const reasons = [];
   const sha = pr.head.sha;
   const roles = reviewersFor(pr.user.login);
-  const pm = requirementsApproval(pr, reviews);
   const qa = latestReview(reviews, roles.qa);
   if (pr.draft) reasons.push('PR is still a draft.');
   if (!issues.length) reasons.push('Link at least one issue with Closes #N.');
-  if (!pm?.exempt && !approved(pm, sha))
-    reasons.push(
-      `Requirements approval by ${roles.requirements} is missing for this commit.`,
-    );
   if (!approved(qa, sha))
     reasons.push(`QA approval by ${roles.qa} is missing for this commit.`);
   for (const issue of issues) {
+    const pm = requirementsApproval(
+      Object.hasOwn(issue, 'requirements')
+        ? {
+            ...pr,
+            requirements: issue.requirements,
+            requirementsVersion: issue.requirementsVersion,
+          }
+        : pr,
+      reviews,
+    );
+    if (!pm)
+      reasons.push(
+        `Issue #${issue.number} needs requirements approval by ${roles.requirements}.`,
+      );
     const requirement = pm
       ? comments
           .filter(
