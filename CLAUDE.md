@@ -31,3 +31,9 @@ Use semantic tokens from `apps/frontend/src/styles/global.css` and follow the pr
 Assume the dev servers are up. If something is listening on the app's ports, that is this application: use it. Don't start a second instance, don't restart it, don't run `pnpm dev`.
 
 Don't reach for the browser to check your own work. Tests and type-checks are the evidence; open the running app when asked to, not on your own initiative.
+
+### Every PR links its issue with `Closes #N`
+
+Put `Closes #<issue number>` on its own line in the PR **description** (not the title or a comment) for every issue the PR implements. If a PR belongs to several issues, add one line per issue; if an issue is implemented by several PRs, each PR carries its own line.
+
+The agentic code review ([`docs/agent-code-review.md`](docs/agent-code-review.md)) finds the PRs to review through this link. Without it an issue in **Ready for Code Review** has nothing to review and stays there.
