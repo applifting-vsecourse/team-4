@@ -45,6 +45,9 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
+          # The script has no dependencies; without this setup-node tries to
+          # cache for pnpm (from packageManager) and fails as pnpm isn't installed.
+          package-manager-cache: false
 
       - name: Review issues in Ready for Code Review
         run: node scripts/agent-review/run.mjs
