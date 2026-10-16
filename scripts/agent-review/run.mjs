@@ -22,7 +22,12 @@ import {
   resultsKey,
 } from './lib.mjs';
 
-import { PM, approved, latestReview, readyMarker } from '../delivery/lib.mjs';
+import {
+  reviewersFor,
+  approved,
+  latestReview,
+  readyMarker,
+} from '../delivery/lib.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -369,7 +374,11 @@ async function processIssue(board, item) {
   const decision = decideIssue(results);
   // Requirements approval is independent of technical review, but both must
   // pass before handing this exact code to QA.
+  const rolesByPr = new Map();
   for (const r of results) {
+    const meta = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${r.pr}`);
+    const roles = reviewersFor(meta.user.login);
+    rolesByPr.set(r.pr, roles);
     const reviews = [];
     for (let page = 1; ; page++) {
       const batch = await api(
@@ -379,10 +388,10 @@ async function processIssue(board, item) {
       reviews.push(...batch);
       if (batch.length < 100) break;
     }
-    if (!approved(latestReview(reviews, PM), r.sha)) {
+    if (!approved(latestReview(reviews, roles.requirements), r.sha)) {
       decision.outcome = 'blocked';
       decision.reasons.push(
-        `PR #${r.pr}: chybí schválení požadavků od ${PM} pro aktuální commit.`,
+        `PR #${r.pr}: chybí schválení požadavků od ${roles.requirements} pro aktuální commit.`,
       );
     }
   }
@@ -395,7 +404,7 @@ async function processIssue(board, item) {
         if (!hasBotComment(await listComments(r.pr), marker)) {
           await postComment(
             r.pr,
-            `${marker}\nRequirements approval and independent agent review passed for commit \`${r.sha}\`. Issue #${issue.number} entered **Ready for Testing**. @MatejKrones: test this commit, then submit an approving PR review. New commits require all stages again.`,
+            `${marker}\nRequirements approval and independent agent review passed for commit \`${r.sha}\`. Issue #${issue.number} entered **Ready for Testing**. @${rolesByPr.get(r.pr).qa}: test this commit, then submit an approving PR review. New commits require all stages again.`,
           );
         }
       }

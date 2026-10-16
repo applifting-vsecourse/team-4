@@ -51,6 +51,8 @@ Don't reach for the browser to check your own work. Tests and type-checks are th
 Every implementation PR links its issues with `Closes #N`. Request requirements
 review from `darebakdavca`; independent agent review and requirements approval
 must precede the Ready for Testing handoff. `MatejKrones` approves QA after testing
-the handoff commit. All stages and CI must pass before merging. New code requires
+the handoff commit. On David’s PRs, Matej covers both human stages; on Matej’s
+PRs, David covers both. The substitute approves once for requirements and again
+after the testing handoff for QA. All stages and CI must pass before merging. New code requires
 fresh reviews and QA. See [the delivery workflow](docs/delivery-workflow.md).
 Never manufacture passing gate evidence or bypass merge protection.

@@ -1,6 +1,14 @@
 export const PM = 'darebakdavca';
 export const QA = 'MatejKrones';
 
+export function reviewersFor(author) {
+  const login = author.toLowerCase();
+  return {
+    requirements: login === PM.toLowerCase() ? QA : PM,
+    qa: login === QA.toLowerCase() ? PM : QA,
+  };
+}
+
 export function latestReview(reviews, login) {
   return reviews
     .filter((r) => r.user?.login.toLowerCase() === login.toLowerCase())
@@ -20,20 +28,29 @@ export function readyMarker(pr, sha, issue) {
 export function evaluate({ pr, issues, reviews, comments }) {
   const reasons = [];
   const sha = pr.head.sha;
-  const pm = latestReview(reviews, PM);
-  const qa = latestReview(reviews, QA);
+  const roles = reviewersFor(pr.user.login);
+  const latestPm = latestReview(reviews, roles.requirements);
+  // When the same substitute owns both stages, keep the first requirements
+  // approval and require a separate later approval after the QA handoff.
+  const pm =
+    roles.requirements === roles.qa
+      ? reviews
+          .filter(
+            (r) =>
+              r.user?.login.toLowerCase() ===
+                roles.requirements.toLowerCase() && approved(r, sha),
+          )
+          .sort((a, b) => a.id - b.id)[0]
+      : latestPm;
+  const qa = latestReview(reviews, roles.qa);
   if (pr.draft) reasons.push('PR is still a draft.');
   if (!issues.length) reasons.push('Link at least one issue with Closes #N.');
-  if (pr.user.login.toLowerCase() === PM.toLowerCase()) {
-    reasons.push('The requirements reviewer cannot approve their own PR.');
-  }
-  if (pr.user.login.toLowerCase() === QA.toLowerCase()) {
-    reasons.push('The QA reviewer cannot approve their own PR.');
-  }
-  if (!approved(pm, sha))
-    reasons.push(`Requirements approval by ${PM} is missing for this commit.`);
+  if (!approved(pm, sha) || !approved(latestPm, sha))
+    reasons.push(
+      `Requirements approval by ${roles.requirements} is missing for this commit.`,
+    );
   if (!approved(qa, sha))
-    reasons.push(`QA approval by ${QA} is missing for this commit.`);
+    reasons.push(`QA approval by ${roles.qa} is missing for this commit.`);
   for (const issue of issues) {
     // A fresh, bot-authored readiness record proves requirements and agent
     // review passed together before QA. A board column alone proves nothing.
