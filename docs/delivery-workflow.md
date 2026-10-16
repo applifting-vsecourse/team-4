@@ -6,7 +6,8 @@ It is not permission to skip technical review or QA.
 ## Developer
 
 Open a PR targeting `main`, link every implemented issue with `Closes #N`, request
-`darebakdavca` as reviewer, and move the linked issues to **Ready for Code Review**.
+the requirements reviewer (see substitutes below). Keep the issue **In Progress**
+when opening or updating the PR. Creating a PR or requesting review does not advance it.
 Keep the PR open through review and testing. Do not merge to obtain a QA build:
 QA needs a preview/test environment for the PR commit before merging.
 
@@ -14,8 +15,10 @@ QA needs a preview/test environment for the PR commit before merging.
 
 David (`darebakdavca`) submits an approving GitHub review after checking intent and
 scope. The independent agent reviews each linked issue against the current PR
-commit. These reviews may happen in parallel. Findings or agent errors block the
-handoff. All PRs linked to an issue must pass both reviews before the automation
+commit. Requirements approval comes first: once every linked PR is approved
+for its current commit, the bot moves the issue from In Progress to **Ready for
+Code Review** and records a requirements handoff tied to the approving review.
+Only then may Copilot run. Findings or agent errors keep the issue in code review. All PRs linked to an issue must pass both reviews before the automation
 moves that issue to **Ready for Testing** and posts a handoff record on each PR.
 
 ## QA
@@ -39,14 +42,18 @@ same commit: first requirements, then QA after the testing handoff. One approval
 cannot satisfy both stages. Self-approval never counts. No bypass actors are configured.
 
 Checks refresh on PR changes, completion of agent review, manual dispatch and a
-five-minute schedule (GitHub can delay scheduled runs). Review changes are picked
-up on the next refresh. Until then, do not rely on an old displayed check; native
+five-minute fallback schedule (GitHub can delay scheduled runs). Submitted or
+dismissed PR reviews also trigger both workflows, using trusted code from main. Until then, do not rely on an old displayed check; native
 GitHub review restrictions also apply. A new commit cannot reuse a previous
 commit's successful check.
 
-Moving a board card does not produce a successful check. If code changes after
-an issue leaves Ready for Testing, return it to Ready for Code Review. The bot
-also retries issues still in Ready for Testing to recover transient errors.
+Moving a board card does not produce a successful check or bypass requirements.
+A push, requirements changes requested, dismissal, or a draft PR returns linked
+active issues to **In Progress** until all current heads are approved again.
+New approvals create a fresh handoff cycle; old agent and QA evidence from before
+that cycle cannot pass the gate. The bot also checks issues in Ready for Testing
+and open issues in Done/Accepted by PO to detect invalidated approvals. It
+preserves unrelated manual status changes detected during processing.
 The board's Done/Accepted by PO columns remain reporting stages; no new approval
 requirement is inferred from their names.
 
@@ -83,5 +90,5 @@ pass on GitHub before calling the end-to-end workflow validated.
 | MatejKrones  | darebakdavca        | darebakdavca (second approval) |
 | Anyone else  | darebakdavca        | MatejKrones                    |
 
-The first review checks scope and intent. The second review records completed
+The first review checks scope and intent and unlocks Ready for Code Review. The second review records completed
 QA after the bot's testing handoff; do not combine them into one approval.
