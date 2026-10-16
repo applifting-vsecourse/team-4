@@ -7,7 +7,9 @@ It is not permission to skip technical review or QA.
 
 Open a PR targeting `main`, link every implemented issue with `Closes #N`, request
 the requirements reviewer (see substitutes below). Keep the issue **In Progress**
-when opening or updating the PR. Creating a PR or requesting review does not advance it.
+when opening or updating the PR. Creating a PR or requesting review does not
+advance it, except for PRs authored by `darebakdavca`: their requirements review
+is explicitly exempt, so they may enter Ready for Code Review immediately.
 Keep the PR open through review and testing. Do not merge to obtain a QA build:
 QA needs a preview/test environment for the PR commit before merging.
 
@@ -36,7 +38,8 @@ agent results for every closing issue, and the testing handoff before QA approva
 The required **verify** check covers CI. GitHub also requires at least one approval,
 resolved review threads, and an up-to-date branch. New commits require fresh
 approvals, fresh agent review and a fresh QA handoff. The named requirements and QA approvals are still enforced by Delivery stages
-for ordinary PRs. On David's PRs, Matej covers requirements and QA; on Matej's PRs,
+for ordinary PRs. David's PRs are exempt from requirements review and need only
+Matej's QA approval after independent agent review and the testing handoff. On Matej's PRs,
 David covers both. The substitute submits two separate approving reviews on the
 same commit: first requirements, then QA after the testing handoff. One approval
 cannot satisfy both stages. Self-approval never counts. No bypass actors are configured.
@@ -86,9 +89,21 @@ pass on GitHub before calling the end-to-end workflow validated.
 
 | PR author    | Requirements review | QA after handoff               |
 | ------------ | ------------------- | ------------------------------ |
-| darebakdavca | MatejKrones         | MatejKrones (second approval)  |
+| darebakdavca | Exempt (PR author)  | MatejKrones (after handoff)    |
 | MatejKrones  | darebakdavca        | darebakdavca (second approval) |
 | Anyone else  | darebakdavca        | MatejKrones                    |
 
 The first review checks scope and intent and unlocks Ready for Code Review. The second review records completed
 QA after the bot's testing handoff; do not combine them into one approval.
+
+## Author exemption
+
+Only the actual GitHub PR author `darebakdavca` is exempt from requirements
+review (case-insensitive username comparison). Assignees, commit authors and
+review requests do not grant this exemption. Draft PRs remain blocked. The bot
+records an explicit author exemption for each linked issue and current commit;
+it never manufactures a human approval. Matej must still approve QA after the
+agent pass and testing handoff. New commits require fresh agent review and QA,
+but do not require requirements approval on David-authored PRs. In a multi-PR
+issue, other authors' PRs still need requirements approval before the issue
+advances. GitHub's approval minimum remains one for the required QA reviewer.

@@ -2,7 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 
-function run(status, approved, revokeBeforeReview = false) {
+function run(
+  status,
+  approved,
+  revokeBeforeReview = false,
+  author = 'developer',
+) {
   // Exercise the real runner with an in-memory GitHub API. A deliberately
   // oversized diff prevents any external Copilot call in the approved case.
   const program = `
@@ -14,7 +19,7 @@ function run(status, approved, revokeBeforeReview = false) {
     const calls = [];
     const comments = [];
     const sha = 'a'.repeat(40);
-    const pr = {number: 12, user:{login:'developer'}, head:{sha}, state:'open', base:{ref:'main'}, draft:false};
+    const pr = {number: 12, user:{login:${JSON.stringify(author)}}, head:{sha}, state:'open', base:{ref:'main'}, draft:false};
     globalThis.fetch = async (url, options = {}) => {
       const path = new URL(url).pathname;
       const body = options.body ? JSON.parse(options.body) : {};
@@ -97,5 +102,15 @@ test('real runner rechecks requirements immediately before reviewing and returns
     'status:Ready for Code Review',
     'requirements-record',
     'status:In Progress',
+  ]);
+});
+
+test('real runner records the explicit author exemption and starts review on David PRs without approval', () => {
+  const result = run('In Progress', false, false, 'darebakdavca');
+  assert.equal(result.status, 'Ready for Code Review');
+  assert.deepEqual(result.calls.slice(0, 3), [
+    'status:Ready for Code Review',
+    'requirements-record',
+    'diff',
   ]);
 });

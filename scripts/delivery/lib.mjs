@@ -4,7 +4,7 @@ export const QA = 'MatejKrones';
 export function reviewersFor(author) {
   const login = author.toLowerCase();
   return {
-    requirements: login === PM.toLowerCase() ? QA : PM,
+    requirements: login === PM.toLowerCase() ? null : PM,
     qa: login === QA.toLowerCase() ? PM : QA,
   };
 }
@@ -23,6 +23,9 @@ export function approved(review, sha) {
 
 export function requirementsApproval(pr, reviews) {
   const login = reviewersFor(pr.user.login).requirements;
+  if (pr.draft) return null;
+  if (login === null)
+    return { id: 'author-exempt', exempt: true, commit_id: pr.head.sha };
   const ordered = reviews
     .filter((r) => r.user?.login.toLowerCase() === login.toLowerCase())
     .sort((a, b) => a.id - b.id);
@@ -76,7 +79,7 @@ export function evaluate({ pr, issues, reviews, comments }) {
   const qa = latestReview(reviews, roles.qa);
   if (pr.draft) reasons.push('PR is still a draft.');
   if (!issues.length) reasons.push('Link at least one issue with Closes #N.');
-  if (!approved(pm, sha))
+  if (!pm?.exempt && !approved(pm, sha))
     reasons.push(
       `Requirements approval by ${roles.requirements} is missing for this commit.`,
     );
@@ -91,7 +94,8 @@ export function evaluate({ pr, issues, reviews, comments }) {
               (c.body ?? '').startsWith(
                 requirementsMarker(pr.number, sha, issue.number, pm.id) + '\n',
               ) &&
-              Date.parse(c.created_at) >= Date.parse(pm.submitted_at),
+              (pm.exempt ||
+                Date.parse(c.created_at) >= Date.parse(pm.submitted_at)),
           )
           .at(-1)
       : null;
@@ -151,10 +155,11 @@ export function evaluate({ pr, issues, reviews, comments }) {
       reasons.push(
         `Issue #${issue.number} has not passed requirements and agent review into Ready for Testing.`,
       );
-    } else if (approved(pm, sha) && approved(qa, sha)) {
+    } else if (pm && approved(qa, sha)) {
       if (
         Date.parse(qa.submitted_at) <= Date.parse(ready.created_at) ||
-        Date.parse(qa.submitted_at) <= Date.parse(pm.submitted_at)
+        (!pm.exempt &&
+          Date.parse(qa.submitted_at) <= Date.parse(pm.submitted_at))
       ) {
         reasons.push(
           `QA must approve after requirements and agent review for issue #${issue.number}.`,

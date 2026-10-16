@@ -75,7 +75,9 @@ then approves the PR. The separate required Delivery stages check enforces this
 sequence; a successful agent comment alone does not permit merging. See
 [the delivery workflow](delivery-workflow.md).
 
-For PRs authored by David, Matej substitutes for requirements review. For PRs
+PRs authored by `darebakdavca` are explicitly exempt from requirements review;
+the bot records this policy decision and may start code review immediately.
+Matej still approves QA after the testing handoff. For PRs
 authored by Matej, David substitutes for QA. The same substitute must submit a
 separate second approval after the testing handoff. Agent review remains required.
 

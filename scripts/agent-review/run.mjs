@@ -448,7 +448,7 @@ async function processIssue(board, item) {
     if (!record)
       record = await postComment(
         pr.number,
-        `${marker}\nRequirements approved by @${reviewersFor(pr.user.login).requirements} for commit \`${pr.head.sha}\`. Issue #${issue.number} is eligible for independent code review.`,
+        `${marker}\n${approval.exempt ? 'Requirements review is exempt because the PR author is darebakdavca' : `Requirements approved by @${reviewersFor(pr.user.login).requirements}`} for commit \`${pr.head.sha}\`. Issue #${issue.number} is eligible for independent code review.`,
       );
     requirementRecords.set(pr.number, {
       ...record,
@@ -526,7 +526,7 @@ async function processIssue(board, item) {
         ) {
           await postComment(
             r.pr,
-            `${marker}\nRequirements approval and independent agent review passed for commit \`${r.sha}\`. Issue #${issue.number} entered **Ready for Testing**. @${rolesByPr.get(r.pr).qa}: test this commit, then submit an approving PR review. New commits require all stages again.`,
+            `${marker}\n${rolesByPr.get(r.pr).requirements === null ? 'Requirements exemption applied; independent agent review passed' : 'Requirements approval and independent agent review passed'} for commit \`${r.sha}\`. Issue #${issue.number} entered **Ready for Testing**. @${rolesByPr.get(r.pr).qa}: test this commit, then submit an approving PR review. New commits require all stages again.`,
           );
         }
       }
