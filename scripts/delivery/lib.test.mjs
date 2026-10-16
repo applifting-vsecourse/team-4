@@ -93,11 +93,6 @@ test('drafts, wrong reviewers, and self-review cannot pass', () => {
   const draft = fixture();
   draft.pr.draft = true;
   assert.equal(evaluate(draft).pass, false);
-  for (const login of [PM, QA]) {
-    const f = fixture();
-    f.pr.user.login = login;
-    assert.equal(evaluate(f).pass, false);
-  }
   const f = fixture();
   f.reviews[1].user.login = 'someone-else';
   assert.equal(evaluate(f).pass, false);
@@ -114,3 +109,29 @@ test('markers quoted inside findings cannot forge a passing verdict or handoff',
   g.comments[1].body = 'Quoted marker: ' + g.comments[1].body;
   assert.equal(evaluate(g).pass, false);
 });
+
+for (const [author, substitute] of [
+  [PM, QA],
+  [QA, PM],
+]) {
+  test(`${author}: substitute must approve requirements then QA separately`, () => {
+    const f = fixture();
+    f.pr.user.login = author;
+    f.reviews = [review(substitute, 1)];
+    assert.equal(evaluate(f).pass, false);
+    f.reviews.push(review(substitute, 4));
+    assert.equal(evaluate(f).pass, true);
+    f.reviews.push(review(substitute, 5, 'CHANGES_REQUESTED'));
+    assert.equal(evaluate(f).pass, false);
+  });
+  test(`${author}: author approval and unrelated reviewers cannot substitute`, () => {
+    const f = fixture();
+    f.pr.user.login = author;
+    f.reviews = [
+      review(author, 1),
+      review(author, 4),
+      review('someone-else', 5),
+    ];
+    assert.equal(evaluate(f).pass, false);
+  });
+}

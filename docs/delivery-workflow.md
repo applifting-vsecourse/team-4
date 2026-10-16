@@ -30,11 +30,13 @@ is not QA evidence and cannot unlock merging.
 
 The required **Delivery stages** check validates both named reviewers, independent
 agent results for every closing issue, and the testing handoff before QA approval.
-The required **verify** check covers CI. GitHub also requires two approvals,
+The required **verify** check covers CI. GitHub also requires at least one approval,
 resolved review threads, and an up-to-date branch. New commits require fresh
-approvals, fresh agent review and a fresh QA handoff. A PR authored by either
-named reviewer is blocked: it needs a separately agreed independent substitute,
-not self-approval. No bypass actors are configured.
+approvals, fresh agent review and a fresh QA handoff. The named requirements and QA approvals are still enforced by Delivery stages
+for ordinary PRs. On David's PRs, Matej covers requirements and QA; on Matej's PRs,
+David covers both. The substitute submits two separate approving reviews on the
+same commit: first requirements, then QA after the testing handoff. One approval
+cannot satisfy both stages. Self-approval never counts. No bypass actors are configured.
 
 Checks refresh on PR changes, completion of agent review, manual dispatch and a
 five-minute schedule (GitHub can delay scheduled runs). Review changes are picked
@@ -52,7 +54,8 @@ requirement is inferred from their names.
 
 The stage evaluator and agent run trusted code from `main`; PR code is never
 executed with their write tokens. CI has read-only repository access. CODEOWNERS
-requires David's review for enforcement code and workflow changes. GitHub Actions
+requires David or Matej's review for enforcement code and workflow changes; the
+stage evaluator selects the correct independent reviewer based on the author. GitHub Actions
 (app ID 15368) is the required check source. Repository administrators can still
 edit repository rules; this is protection against merging through the normal
 workflow, not against an administrator deliberately disabling protection.
@@ -71,3 +74,14 @@ It must receive independent setup review and QA. A one-time, explicitly approved
 installation procedure is required; do not silently disable the gate or invent
 passing evidence. After installation, verify a blocked PR and a complete staged
 pass on GitHub before calling the end-to-end workflow validated.
+
+## Reciprocal substitutes
+
+| PR author    | Requirements review | QA after handoff               |
+| ------------ | ------------------- | ------------------------------ |
+| darebakdavca | MatejKrones         | MatejKrones (second approval)  |
+| MatejKrones  | darebakdavca        | darebakdavca (second approval) |
+| Anyone else  | darebakdavca        | MatejKrones                    |
+
+The first review checks scope and intent. The second review records completed
+QA after the bot's testing handoff; do not combine them into one approval.

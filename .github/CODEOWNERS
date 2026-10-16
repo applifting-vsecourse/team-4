@@ -1,4 +1,4 @@
-# Changes to the enforcement boundary require the PM's explicit review.
-/.github/ @darebakdavca
-/scripts/agent-review/ @darebakdavca
-/scripts/delivery/ @darebakdavca
+# Changes to the enforcement boundary require review by David or Matej.
+/.github/ @darebakdavca @MatejKrones
+/scripts/agent-review/ @darebakdavca @MatejKrones
+/scripts/delivery/ @darebakdavca @MatejKrones
