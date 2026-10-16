@@ -171,7 +171,7 @@ test('PR creation stays in progress until the correct current requirements appro
     false,
   );
 });
-test('every linked PR needs requirements approval; stale approvals and drafts reset stages', () => {
+test('every linked PR needs requirements policy satisfied; commits preserve scope approval and drafts block review', () => {
   const f = fixture();
   const other = fixture();
   other.pr = { ...other.pr, number: 13 };
@@ -188,7 +188,7 @@ test('every linked PR needs requirements approval; stale approvals and drafts re
   f.pr.head.sha = 'b'.repeat(40);
   assert.equal(
     requirementsTransition('Ready for Testing', [f]).status,
-    'In Progress',
+    'Ready for Testing',
   );
   const draft = fixture();
   draft.pr.draft = true;

@@ -1,109 +1,98 @@
 # Review, testing and merge
 
-A reviewer request asks David to check whether the developer understood the issue.
-It is not permission to skip technical review or QA.
+Requirements approval accepts the issue's product direction and scope. It is not
+an approval of every subsequent code edit. Code review and QA independently
+check the implementation being merged.
 
-## Developer
+## Requirements
 
-Open a PR targeting `main`, link every implemented issue with `Closes #N`, request
-the requirements reviewer (see substitutes below). Keep the issue **In Progress**
-when opening or updating the PR. Creating a PR or requesting review does not
-advance it, except for PRs authored by `darebakdavca`: their requirements review
-is explicitly exempt, so they may enter Ready for Code Review immediately.
-Keep the PR open through review and testing. Do not merge to obtain a QA build:
-QA needs a preview/test environment for the PR commit before merging.
+Open a PR targeting main, link the issue with `Closes #N`, and leave its card In
+Progress. David (`darebakdavca`) approves requirements through an approving review
+on any linked implementation PR, or by posting `/requirements-approve` on the
+issue. The bot records that approval on the issue, bound to its title/body and
+current scope-review cycle. One issue approval covers its linked implementation
+PRs. David's own PRs are exempt; this exemption never approves other authors'
+PRs by itself.
 
-## Requirements and independent code review
+Once scope approval is recorded, implementation commits, technical review
+findings and GitHub's automatic stale-review dismissal do not invalidate it.
+A developer fixing a color token needs fresh code review, not another PM review.
+Only an active issue with requirements approval can enter Ready for Code Review.
 
-David (`darebakdavca`) submits an approving GitHub review after checking intent and
-scope. The independent agent reviews each linked issue against the current PR
-commit. Requirements approval comes first: once every linked PR is approved
-for its current commit, the bot moves the issue from In Progress to **Ready for
-Code Review** and records a requirements handoff tied to the approving review.
-Only then may Copilot run. Findings or agent errors keep the issue in code review. All PRs linked to an issue must pass both reviews before the automation
-moves that issue to **Ready for Testing** and posts a handoff record on each PR.
+If the solution changes materially, a repository collaborator posts this as a
+standalone issue comment:
 
-## QA
+```text
+/requirements-rereview
+```
 
-Matej (`MatejKrones`) tests the exact commit identified in the handoff comment.
-After a successful test, submit an **Approve** review on that PR. For failures,
-submit **Request changes** and describe the problem. An approval before the
-handoff does not count: approve again after testing. A label or manual board move
-is not QA evidence and cannot unlock merging.
+The bot records the request and returns non-exempt work to In Progress. David
+must submit a new requirements approval or `/requirements-approve` afterward.
+Deleting the request after the bot has processed it cannot resurrect the old
+approval. Editing the issue title/body invalidates its previous scope approval;
+old review IDs and commands already consumed cannot approve the changed scope.
+Outsiders cannot request re-review, and only David can grant scope approval.
 
-## Merge
+Agent findings that indicate a changed product scope should be assessed by the
+team and flagged using the same command. Automation does not infer intent from
+arbitrary code changes. Draft PRs remain blocked.
 
-The required **Delivery stages** check validates both named reviewers, independent
-agent results for every closing issue, and the testing handoff before QA approval.
-The required **verify** check covers CI. GitHub also requires at least one approval,
-resolved review threads, and an up-to-date branch. New commits require fresh
-approvals, fresh agent review and a fresh QA handoff. The named requirements and QA approvals are still enforced by Delivery stages
-for ordinary PRs. David's PRs are exempt from requirements review and need only
-Matej's QA approval after independent agent review and the testing handoff. On Matej's PRs,
-David covers both. The substitute submits two separate approving reviews on the
-same commit: first requirements, then QA after the testing handoff. One approval
-cannot satisfy both stages. Self-approval never counts. No bypass actors are configured.
+## Code review and QA
 
-Checks refresh on PR changes, completion of agent review, manual dispatch and a
-five-minute fallback schedule (GitHub can delay scheduled runs). Submitted or
-dismissed PR reviews also trigger both workflows, using trusted code from main. Until then, do not rely on an old displayed check; native
-GitHub review restrictions also apply. A new commit cannot reuse a previous
-commit's successful check.
+For each current PR commit, the bot records that the issue's requirements policy
+is satisfied, runs independent Copilot review, and moves the issue to Ready for
+Testing only if all linked PRs pass. Each new commit needs fresh agent review and
+QA; a previously tested commit cannot approve a replacement commit. A new commit
+after QA returns the issue to Code Review without requiring another PM approval
+if the issue scope is unchanged.
 
-Moving a board card does not produce a successful check or bypass requirements.
-A push, requirements changes requested, dismissal, or a draft PR returns linked
-active issues to **In Progress** until all current heads are approved again.
-New approvals create a fresh handoff cycle; old agent and QA evidence from before
-that cycle cannot pass the gate. The bot also checks issues in Ready for Testing
-and open issues in Done/Accepted by PO to detect invalidated approvals. It
-preserves unrelated manual status changes detected during processing.
-The board's Done/Accepted by PO columns remain reporting stages; no new approval
-requirement is inferred from their names.
+Matej (`MatejKrones`) tests the exact commit in the testing handoff, then submits
+an approving PR review. For Matej-authored PRs, David substitutes for QA. On
+David-authored PRs, requirements remain exempt but Matej's QA is still required.
+QA must happen after the handoff. A manual board move or early approval is not
+QA evidence. Do not merge to obtain a test build: QA needs the PR version before
+merge.
 
-## Trusted execution and operation
+| PR author    | Requirements                 | QA after testing handoff |
+| ------------ | ---------------------------- | ------------------------ |
+| darebakdavca | Exempt for this PR           | MatejKrones              |
+| MatejKrones  | David's issue-level approval | darebakdavca             |
+| Anyone else  | David's issue-level approval | MatejKrones              |
 
-The stage evaluator and agent run trusted code from `main`; PR code is never
-executed with their write tokens. CI has read-only repository access. CODEOWNERS
-requires David or Matej's review for enforcement code and workflow changes; the
-stage evaluator selects the correct independent reviewer based on the author. GitHub Actions
-(app ID 15368) is the required check source. Repository administrators can still
-edit repository rules; this is protection against merging through the normal
-workflow, not against an administrator deliberately disabling protection.
+When David covers both requirements and QA, he approves the issue scope first
+and the tested current commit afterward. His scope approval survives later
+implementation commits even when GitHub dismisses the old native PR review.
 
-The existing `PROJECT_AUTOMATION_TOKEN` and `COPILOT_GITHUB_TOKEN` secrets are
-required by agent review. Missing secrets, quota failures or API errors must not
-produce a pass. Stage evaluation requires only the workflow's `GITHUB_TOKEN`.
+## Reviewer requests and merge rules
 
-Run `pnpm agent-review:test` for the review and merge-gate decision tests.
+Matej is not automatically requested at PR creation. CODEOWNERS lists David only
+for workflow/enforcement paths; he is not requested on his own PRs. The bot's
+Ready for Testing comment identifies the QA owner; that person may submit QA
+approval without an advance reviewer request.
 
-## Bootstrap
+Disable the native `require_code_owner_review` requirement: otherwise a sole
+code owner authoring a PR can be blocked by a redundant owner-approval gate.
+The named reviewer requirements remain enforced by Delivery stages. GitHub still
+requires one current human approval, dismisses stale reviews on pushes, requires
+last-push approval and resolved review threads, and enforces up-to-date `verify`
+and `Delivery stages` checks from GitHub Actions (app ID 15368). No standing
+bypass actors are configured. Do not disable stale-review dismissal: QA must
+still approve the current commit.
 
-The enforcement rule is enabled before installation, so normal merges are already
-blocked. This setup PR cannot review itself using a workflow absent from main.
-It must receive independent setup review and QA. A one-time, explicitly approved
-installation procedure is required; do not silently disable the gate or invent
-passing evidence. After installation, verify a blocked PR and a complete staged
-pass on GitHub before calling the end-to-end workflow validated.
+Workflows run trusted code from main on relevant PR/review events, human issue
+comments and issue edits, with five-minute polling as a fallback. Bot comments
+are ignored as direct event triggers to avoid self-triggering loops. The stage
+checker publishes a blocking check when scope, agent or QA evidence is missing.
+A green workflow execution is not the same as a green delivery verdict.
 
-## Reciprocal substitutes
+## Configuration and validation
 
-| PR author    | Requirements review | QA after handoff               |
-| ------------ | ------------------- | ------------------------------ |
-| darebakdavca | Exempt (PR author)  | MatejKrones (after handoff)    |
-| MatejKrones  | darebakdavca        | darebakdavca (second approval) |
-| Anyone else  | darebakdavca        | MatejKrones                    |
+`PROJECT_AUTOMATION_TOKEN` is needed for the board; `COPILOT_GITHUB_TOKEN` is needed
+for agent review. The stage checker reads issue scope evidence with its normal
+GITHUB_TOKEN. Neither workflow executes PR code with its write token. API,
+coverage and model failures must not produce a pass.
 
-The first review checks scope and intent and unlocks Ready for Code Review. The second review records completed
-QA after the bot's testing handoff; do not combine them into one approval.
-
-## Author exemption
-
-Only the actual GitHub PR author `darebakdavca` is exempt from requirements
-review (case-insensitive username comparison). Assignees, commit authors and
-review requests do not grant this exemption. Draft PRs remain blocked. The bot
-records an explicit author exemption for each linked issue and current commit;
-it never manufactures a human approval. Matej must still approve QA after the
-agent pass and testing handoff. New commits require fresh agent review and QA,
-but do not require requirements approval on David-authored PRs. In a multi-PR
-issue, other authors' PRs still need requirements approval before the issue
-advances. GitHub's approval minimum remains one for the required QA reviewer.
+Run `pnpm agent-review:test` for automated gate and runner tests. A change to the
+workflow itself still requires installation and live validation before claiming
+end-to-end proof. Administrators can edit repository rules deliberately; there
+is no standing merge bypass for them.
