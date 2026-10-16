@@ -4,6 +4,6 @@ This file exists only to test automated review and will be deleted.
 
 ```ts
 function isEven(n: number) {
-  return n % 2 === 1;
+  return n % 2 === 0;
 }
 ```
