@@ -49,10 +49,14 @@ Don't reach for the browser to check your own work. Tests and type-checks are th
 ### Delivery gates
 
 Every implementation PR links its issues with `Closes #N`. Request requirements
-review from `darebakdavca`; independent agent review and requirements approval
-must precede the Ready for Testing handoff. `MatejKrones` approves QA after testing
-the handoff commit. On David’s PRs, Matej covers both human stages; on Matej’s
-PRs, David covers both. The substitute approves once for requirements and again
+review from `darebakdavca`. Leave the issue In Progress when opening a PR.
+Requirements approval for every linked current PR commit must move the issue to
+Ready for Code Review before Copilot runs. Agent review must then pass before
+the Ready for Testing handoff. New commits or revoked requirements approval
+return the issue to In Progress. `MatejKrones` approves QA after testing
+the handoff commit. PRs authored by `darebakdavca` are exempt from requirements
+review and may enter code review immediately; Matej still performs QA after the
+handoff. On Matej’s PRs, David covers both requirements and QA. The substitute approves once for requirements and again
 after the testing handoff for QA. All stages and CI must pass before merging. New code requires
 fresh reviews and QA. See [the delivery workflow](docs/delivery-workflow.md).
 Never manufacture passing gate evidence or bypass merge protection.

@@ -69,13 +69,21 @@ export function parseVerdict(output) {
   return { ok: true, verdict: data.verdict, findings };
 }
 
-export function buildPrompt({ issue, prNumber, prCount, diff, rules }) {
+export function buildPrompt({
+  issue,
+  prNumber,
+  prCount,
+  diff,
+  rules,
+  partial = false,
+}) {
   const ruleBlocks = rules
     .filter((r) => r.content.trim() !== '')
     .map((r) => `### ${r.name}\n${r.content.trim()}`)
     .join('\n\n');
-  const scope =
-    prCount > 1
+  const scope = partial
+    ? 'This is one batch of a larger diff. Judge only the supplied changes; do not report acceptance criteria as missing merely because another batch may cover them.'
+    : prCount > 1
       ? `This issue is implemented by ${prCount} pull requests. Judge only the diff of PR #${prNumber}: do not report acceptance criteria as missing if another PR may cover them.`
       : `This pull request is the whole implementation of the issue.`;
 
@@ -177,11 +185,12 @@ export function formatPrComment({
   findings,
   reason,
   attempt,
+  coverage,
   pr,
   issue,
 }) {
   const marker = prMarker({ pr, sha, result, attempt });
-  const head = `Revidovaný commit: \`${sha.slice(0, 7)}\` · Reviewer: GitHub Copilot CLI · Issue: #${issue}`;
+  const head = `Revidovaný commit: \`${sha.slice(0, 7)}\` · Reviewer: GitHub Copilot CLI · Issue: #${issue}${coverage ? `\n\nReview coverage: ${coverage}` : ''}`;
   if (result === 'pass') {
     return `${marker}\n### Agentní code review: bez nálezů\n\n${head}\n\nAgent nenašel žádné nálezy pro tento commit. Review nenahrazuje testování.`;
   }

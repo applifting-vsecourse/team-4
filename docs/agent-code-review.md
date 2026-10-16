@@ -4,8 +4,8 @@ Technické zadání: [#78](https://github.com/applifting-vsecourse/team-4/issues
 
 ## Jak to funguje
 
-1. Karta issue se na boardu **Kemp.io Team 4** přesune do **Ready for Code Review**.
-2. Workflow běží každých 5 minut. Projects v2 neumí spustit workflow přesunem karty, proto se board dotazuje pravidelně, takže review začne do několika minut po přesunu.
+1. Vývojář nechá issue v **In Progress**, otevře propojený PR a požádá o kontrolu požadavků. Teprve schválení aktuálních commitů všech propojených PR přesune issue automaticky do **Ready for Code Review**.
+2. Workflow reaguje na změny PR a odeslaná či zrušená review. Board navíc kontroluje plánovaně každých 5 minut; GitHub může plánované běhy zpozdit. Spouští se důvěryhodný kód z main, nikoli kód z PR.
 3. Pro každou issue v tomto sloupci najde všechny **otevřené PR propojené přes `Closes #N`** v popisu PR a každý z nich zrevidují agentem **GitHub Copilot CLI**. Agent dostane diff PR, text issue a pravidla z `CLAUDE.md` a `DESIGN.md` z větve `main`. Nemá žádné nástroje a nespouští kód z PR.
 4. Výsledek se zapíše jako komentář **u PR** (revidovaný commit, nálezy) a odkaz na něj jako komentář **u issue**.
 5. Pokud **všechny** propojené PR prošly bez nálezů pro svůj aktuální commit, karta se přesune do **Ready for Testing**. Jinak zůstává v Ready for Code Review a komentář u issue uvádí důvod.
@@ -17,7 +17,7 @@ Review nenahrazuje testování ani lidského reviewera.
 Úspěch je jen platný verdikt `pass` s prázdným seznamem nálezů pro **aktuální commit** PR. Za neúspěch (karta zůstává) se považuje:
 
 - nálezy (`findings`),
-- chyba agenta: neplatný nebo nesoudržný výstup, vypršený čas, chyba kvóty nebo přihlášení, příliš velký diff (limit ~100 kB promptu),
+- chyba agenta: neplatný nebo nesoudržný výstup, vypršený čas, chyba kvóty nebo přihlášení, neúplný diff, nepodporovaná binární změna nebo překročený limit dávkového review,
 - chybějící propojený PR,
 - commit, který se změnil během review (zastaralý výsledek, review proběhne znovu).
 
@@ -26,7 +26,7 @@ Samotné dokončení běhu ani absence komentářů úspěch neznamená.
 ## Opakování a bezpečnost proti chybnému posunu
 
 - Výsledek se ukládá do komentáře s markerem pro konkrétní PR a **commit SHA**; uznává se jen komentář od `github-actions[bot]`. Opakovaný běh pro stejný commit review neopakuje (nevyčerpává kredity).
-- Po nálezech opravte kód a pushněte nový commit. Nový SHA spustí review při dalším běhu, pokud je issue stále v Ready for Code Review. Pokud jste ji mezitím přesunuli jinam, vraťte ji do Ready for Code Review.
+- Nový commit zneplatní schválení. Issue se vrátí do In Progress a code review smí pokračovat až po novém schválení požadavků. Zrušení schválení nebo požadavek na změny má stejný účinek. Ruční přesun karty tuto podmínku neobejde.
 - Chyba agenta se pro stejný commit zopakuje nejvýše 3×. Pak pomůže nový commit nebo ruční spuštění s volbou **force**.
 - Těsně před přesunem se znovu načte stav karty i commity PR. Pokud mezitím někdo kartu přesunul, automatizace ji nepřepíše. Pokud se změnil commit, výsledek je zastaralý a karta se nepřesune.
 - Workflow běží s `concurrency`, takže se dva běhy nepřekrývají.
@@ -57,7 +57,7 @@ Nikdy tokeny nevkládejte do issue, PR ani chatu. Workflow komentáře píše ja
 - Nativní tlačítko _Copilot → Reviewers_ se nepoužívá: vrací pouze komentářové review bez verdiktu a u osobní licence selhalo na kvótě. CLI vrací strukturovaný verdikt, který workflow vyhodnocuje.
 - Review spotřebovává kredity Copilotu vlastníka `COPILOT_GITHUB_TOKEN`. Když dojdou, agent vrací chybu a karty zůstávají na místě s uvedeným důvodem.
 - Diff, text issue i pravidla jsou pro agenta nedůvěryhodná data. Agent nemá nástroje ani přístup k tokenům, ale i tak je možné, že obsah PR ovlivní verdikt. Proto je následující krok Ready for Testing a lidská kontrola.
-- Pokud jsou k issue propojeny víc než 20 PR, zpracuje se prvních 20.
+- Pokud jsou k issue propojeny více než 20 PR, automatizace odmítne částečné review.
 
 ## Lokální kontrola
 
@@ -65,15 +65,59 @@ Nikdy tokeny nevkládejte do issue, PR ani chatu. Workflow komentáře píše ja
 pnpm agent-review:test   # jednotkové testy rozhodovací logiky (běží i v CI)
 ```
 
-## Requirements approval before QA
+## Requirements approval before code review
 
 The automation also requires an approving review by `darebakdavca` on each PR's
-current commit before moving the issue to Ready for Testing. It posts a trusted
+current commit before moving the issue from In Progress to Ready for Code Review
+and before calling Copilot. It posts a trusted
 handoff record for each linked PR and issue. `MatejKrones` tests that commit and
 then approves the PR. The separate required Delivery stages check enforces this
 sequence; a successful agent comment alone does not permit merging. See
 [the delivery workflow](delivery-workflow.md).
 
-For PRs authored by David, Matej substitutes for requirements review. For PRs
+PRs authored by `darebakdavca` are explicitly exempt from requirements review;
+the bot records this policy decision and may start code review immediately.
+Matej still approves QA after the testing handoff. For PRs
 authored by Matej, David substitutes for QA. The same substitute must submit a
 separate second approval after the testing handoff. Agent review remains required.
+
+Each requirements handoff records its approval ID and commit. Agent results
+predating that handoff are not reused. QA still needs a later testing handoff and
+approval. Workflow runs may complete successfully while the delivery verdict
+remains blocked.
+
+## Larger diffs and complete coverage
+
+The 100,000-byte limit applies to each complete prompt, not to the whole PR.
+Small PRs still get one full-diff review. Larger diffs are grouped into bounded
+batches, preserving whole files where possible and splitting oversized files at
+line boundaries. No changed content is silently truncated or excluded, including
+lockfiles and generated component code. Before any Copilot call, the runner
+compares file and added/deleted-line counts against GitHub's PR metadata. A
+mismatch, binary diff, oversized individual line or excessive context blocks
+review before it starts.
+
+Every batch receives the issue, main-branch repository rules and a complete file
+manifest. It returns findings and a bounded summary of public contracts and
+cross-file interactions. A final review checks these summaries against the issue,
+rules and manifest for integration defects. This last pass uses summaries rather
+than all source at once; it supplements the complete line-by-line batch coverage.
+Any batch finding remains a finding regardless of the final verdict. Every batch
+and the final integration review must complete with valid output before a pass
+can be recorded. Missing/malformed/oversized summaries, model errors and timeouts
+block the PR. Comments record the completed review coverage.
+
+The limit is six diff batches plus one integration pass, with a maximum 2,000-byte
+summary per batch and three minutes per model call. The planner reserves room
+for the integration prompt before spending credits. PRs exceeding these bounds
+still need splitting into coherent review units. More batches increase Copilot
+usage and run time. Batch results are not cached separately: a retry reruns the
+whole PR review so incomplete evidence cannot be mistaken for a pass.
+
+An input-planning failure is reported as **Review not started** and does not
+pretend that Copilot ran three times. Normal error attempts still stop automatic
+retries after three recorded failed review attempts. Earlier cached input errors
+(such as #104's original attempt=3 result) can be replaced after installation:
+run Agent code review for issue `79` with `force=true` and `dry_run=false`.
+Keep the issue in Ready for Code Review; a new implementation commit is not
+required solely to retry review.
