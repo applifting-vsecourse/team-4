@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import {
   buildPrompt,
   decideIssue,
+  formatIssueNote,
   findPriorResults,
   parseVerdict,
   prMarker,
@@ -127,4 +128,22 @@ test('buildPrompt contains issue, rules and diff, and skips empty rules', () => 
   assert.doesNotMatch(prompt, /### DESIGN.md/);
   assert.match(prompt, /implemented by 2 pull requests/);
   assert.match(prompt, /diff --git a\/x b\/x/);
+});
+
+test('formatIssueNote lists each PR once when blocked', () => {
+  const results = [
+    { pr: 1, sha: SHA, status: 'pass', url: 'u1' },
+    { pr: 2, sha: OTHER_SHA, status: 'findings', url: 'u2' },
+  ];
+  const { reasons } = decideIssue(results);
+  const note = formatIssueNote({
+    issue: 5,
+    state: 's',
+    outcome: 'blocked',
+    reasons,
+    results,
+    moved: false,
+  });
+  assert.equal(note.match(/PR #1/g).length, 1);
+  assert.equal(note.match(/PR #2/g).length, 1);
 });

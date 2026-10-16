@@ -3,9 +3,6 @@ name: Agent code review
 # Projects v2 has no workflow event for moving a card, so we poll the board.
 # Scheduled workflows only run from the default branch.
 on:
-  # TEMP: test harness, remove before merging (push runs only touch issue #98)
-  push:
-    branches: [feat/s2-t5-agent-code-review]
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
@@ -59,5 +56,5 @@ jobs:
           PROJECT_NUMBER: 1 # "Kemp.io Team 4"
           # Scheduled runs are real runs; manual runs default to a dry run.
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
-          ONLY_ISSUE: ${{ inputs.issue || (github.event_name == 'push' && '98' || '') }} # TEMP: 98 on push
+          ONLY_ISSUE: ${{ inputs.issue }}
           FORCE: ${{ inputs.force }}

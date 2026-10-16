@@ -218,6 +218,15 @@ export function formatIssueNote({
       : `Issue nebylo přesunuto, protože jeho stav mezitím někdo změnil.`;
     return `${marker}\n### Agentní code review prošlo\n\n${links}\n\n${tail}`;
   }
+  // Failing PRs are already described (with links) in the reasons; list only
+  // the ones that passed so no PR appears twice.
   const why = reasons.map((r) => `- ${r}`).join('\n');
-  return `${marker}\n### Agentní code review neprošlo\n\n${why}\n\n${links ? `${links}\n\n` : ''}Issue zůstává v **${STATUS_REVIEW}**.`;
+  const passed = results
+    .filter((r) => r.status === 'pass')
+    .map(
+      (r) =>
+        `- PR #${r.pr} (\`${r.sha.slice(0, 7)}\`): prošlo${r.url ? ` — [komentář](${r.url})` : ''}`,
+    )
+    .join('\n');
+  return `${marker}\n### Agentní code review neprošlo\n\n${why}\n\n${passed ? `${passed}\n\n` : ''}Issue zůstává v **${STATUS_REVIEW}**.`;
 }
