@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -26,6 +29,9 @@ jobs:
 
       - name: Generate Prisma client
         run: pnpm backend prisma:generate
+
+      - name: Test review and merge gates
+        run: pnpm agent-review:test
 
       - name: Format check
         run: pnpm format:check
