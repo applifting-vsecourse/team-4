@@ -3,6 +3,19 @@ name: Agent code review
 # Projects v2 has no workflow event for moving a card, so we poll the board.
 # Scheduled workflows only run from the default branch.
 on:
+  pull_request_review:
+    types: [submitted, dismissed]
+  pull_request_target:
+    types:
+      [
+        opened,
+        synchronize,
+        reopened,
+        edited,
+        ready_for_review,
+        converted_to_draft,
+      ]
+    branches: [main]
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
@@ -32,12 +45,16 @@ permissions:
 
 jobs:
   review:
+    if: github.event_name != 'pull_request_review' || github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       # Always the default branch: the rules the agent reviews against come
       # from main, never from the PR under review, and PR code is never run.
       - uses: actions/checkout@v5
+        with:
+          ref: main
+          persist-credentials: false
 
       - uses: actions/setup-node@v5
         with:
