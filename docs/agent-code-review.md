@@ -17,7 +17,7 @@ Review nenahrazuje testování ani lidského reviewera.
 Úspěch je jen platný verdikt `pass` s prázdným seznamem nálezů pro **aktuální commit** PR. Za neúspěch (karta zůstává) se považuje:
 
 - nálezy (`findings`),
-- chyba agenta: neplatný nebo nesoudržný výstup, vypršený čas, chyba kvóty nebo přihlášení, příliš velký diff (limit ~100 kB promptu),
+- chyba agenta: neplatný nebo nesoudržný výstup, vypršený čas, chyba kvóty nebo přihlášení, neúplný diff, nepodporovaná binární změna nebo překročený limit dávkového review,
 - chybějící propojený PR,
 - commit, který se změnil během review (zastaralý výsledek, review proběhne znovu).
 
@@ -85,3 +85,39 @@ Each requirements handoff records its approval ID and commit. Agent results
 predating that handoff are not reused. QA still needs a later testing handoff and
 approval. Workflow runs may complete successfully while the delivery verdict
 remains blocked.
+
+## Larger diffs and complete coverage
+
+The 100,000-byte limit applies to each complete prompt, not to the whole PR.
+Small PRs still get one full-diff review. Larger diffs are grouped into bounded
+batches, preserving whole files where possible and splitting oversized files at
+line boundaries. No changed content is silently truncated or excluded, including
+lockfiles and generated component code. Before any Copilot call, the runner
+compares file and added/deleted-line counts against GitHub's PR metadata. A
+mismatch, binary diff, oversized individual line or excessive context blocks
+review before it starts.
+
+Every batch receives the issue, main-branch repository rules and a complete file
+manifest. It returns findings and a bounded summary of public contracts and
+cross-file interactions. A final review checks these summaries against the issue,
+rules and manifest for integration defects. This last pass uses summaries rather
+than all source at once; it supplements the complete line-by-line batch coverage.
+Any batch finding remains a finding regardless of the final verdict. Every batch
+and the final integration review must complete with valid output before a pass
+can be recorded. Missing/malformed/oversized summaries, model errors and timeouts
+block the PR. Comments record the completed review coverage.
+
+The limit is six diff batches plus one integration pass, with a maximum 2,000-byte
+summary per batch and three minutes per model call. The planner reserves room
+for the integration prompt before spending credits. PRs exceeding these bounds
+still need splitting into coherent review units. More batches increase Copilot
+usage and run time. Batch results are not cached separately: a retry reruns the
+whole PR review so incomplete evidence cannot be mistaken for a pass.
+
+An input-planning failure is reported as **Review not started** and does not
+pretend that Copilot ran three times. Normal error attempts still stop automatic
+retries after three recorded failed review attempts. Earlier cached input errors
+(such as #104's original attempt=3 result) can be replaced after installation:
+run Agent code review for issue `79` with `force=true` and `dry_run=false`.
+Keep the issue in Ready for Code Review; a new implementation commit is not
+required solely to retry review.

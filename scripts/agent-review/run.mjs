@@ -8,17 +8,14 @@ import { readFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import {
   MAX_ATTEMPTS,
-  MAX_PROMPT_BYTES,
   STATUS_REVIEW,
   STATUS_TESTING,
-  buildPrompt,
   decideIssue,
   findPriorResults,
   formatIssueNote,
   formatPrComment,
   hasBotComment,
   issueMarker,
-  parseVerdict,
   resultsKey,
 } from './lib.mjs';
 
@@ -29,6 +26,8 @@ import {
   requirementsTransition,
   readyMarker,
 } from '../delivery/lib.mjs';
+
+import { planReview, executeReview } from './batches.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -238,7 +237,7 @@ async function runCopilot(prompt) {
     // No tool permissions are granted and the environment is stripped, so a
     // prompt injected through the diff can neither act nor read our tokens.
     const { stdout } = await execFileAsync('copilot', args, {
-      timeout: 10 * 60 * 1000,
+      timeout: 3 * 60 * 1000,
       maxBuffer: 10 * 1024 * 1024,
       env: {
         PATH: process.env.PATH,
@@ -322,30 +321,20 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
   const diff = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${pr}`, {
     accept: 'application/vnd.github.diff',
   });
-  const prompt = buildPrompt({
-    issue,
-    prNumber: pr,
-    prCount,
-    diff,
-    rules,
-  });
-
+  const context = { issue, prNumber: pr, prCount, diff, rules };
   let outcome;
-  let attempt = prior.errorAttempts + 1;
-  if (Buffer.byteLength(prompt) > MAX_PROMPT_BYTES) {
-    // Deterministic failure: retrying would burn credits for the same result.
-    attempt = MAX_ATTEMPTS;
+  const attempt = prior.errorAttempts + 1;
+  let plan;
+  try {
+    plan = planReview(context, meta);
+  } catch (error) {
     outcome = {
       status: 'error',
-      reason: `diff je příliš velký pro jedno review (limit ${MAX_PROMPT_BYTES} B); rozdělte PR`,
+      reason: `Review not started: ${error.message} Copilot was not called.`,
     };
-  } else {
-    const run = await runCopilot(prompt);
-    const verdict = run.ok ? parseVerdict(run.stdout) : run;
-    outcome = verdict.ok
-      ? { status: verdict.verdict, findings: verdict.findings }
-      : { status: 'error', reason: verdict.reason };
   }
+  if (plan)
+    outcome = await executeReview(plan, context, runCopilot, console.log);
 
   const comment = await postComment(
     pr,
@@ -357,6 +346,7 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
         findings: outcome.findings,
         reason: outcome.reason,
         attempt,
+        coverage: outcome.coverage,
         pr,
         issue: issue.number,
       }),
