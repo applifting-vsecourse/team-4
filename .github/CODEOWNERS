@@ -1,0 +1,4 @@
+# Changes to the enforcement boundary require the PM's explicit review.
+/.github/ @darebakdavca
+/scripts/agent-review/ @darebakdavca
+/scripts/delivery/ @darebakdavca

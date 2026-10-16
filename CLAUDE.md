@@ -45,3 +45,12 @@ Use semantic tokens from `apps/frontend/src/styles/global.css` and follow the pr
 Assume the dev servers are up. If something is listening on the app's ports, that is this application: use it. Don't start a second instance, don't restart it, don't run `pnpm dev`.
 
 Don't reach for the browser to check your own work. Tests and type-checks are the evidence; open the running app when asked to, not on your own initiative.
+
+### Delivery gates
+
+Every implementation PR links its issues with `Closes #N`. Request requirements
+review from `darebakdavca`; independent agent review and requirements approval
+must precede the Ready for Testing handoff. `MatejKrones` approves QA after testing
+the handoff commit. All stages and CI must pass before merging. New code requires
+fresh reviews and QA. See [the delivery workflow](docs/delivery-workflow.md).
+Never manufacture passing gate evidence or bypass merge protection.
