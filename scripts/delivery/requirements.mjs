@@ -42,6 +42,19 @@ export function issueRequirements(issue, comments, snapshots) {
       source: `comment:${c.id}:${date(c)}`,
       at: date(c),
     }));
+  const lastGrant = grants.at(-1);
+  if (lastGrant && lastGrant.scope !== scope) {
+    const source = `scope:${scope}:after:${lastGrant.source}`;
+    // Persist an observation barrier so a historical, unused QA approval
+    // cannot silently approve an edited issue. Subsequent runs reuse it.
+    requests.push(
+      resets.find((r) => r.source === source) ?? {
+        issue: issue.number,
+        source,
+        at: issue.updated_at ?? new Date().toISOString(),
+      },
+    );
+  }
   const reset = [...resets, ...requests]
     .sort((a, b) => Date.parse(a.at) - Date.parse(b.at))
     .at(-1);

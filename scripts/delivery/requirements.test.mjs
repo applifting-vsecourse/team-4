@@ -221,3 +221,27 @@ test('scope changes alter David exemption evidence without requiring human requi
     requirementsApproval({ ...own, requirementsVersion: b.version }, []).id,
   );
 });
+
+test('an unused historical QA approval cannot approve a subsequently edited scope', () => {
+  const { comments } = granted();
+  const changed = { ...issue, body: 'Changed scope', updated_at: at(6) };
+  const pastQA = { ...review, id: 11, submitted_at: at(4) };
+  const blocked = issueRequirements(changed, comments, [
+    { pr, reviews: [review, pastQA] },
+  ]);
+  assert.equal(blocked.approval, null);
+  comments.push(bot('requirements-reset', blocked.resetRecord));
+  assert.equal(
+    issueRequirements({ ...changed, updated_at: at(9) }, comments, [
+      { pr, reviews: [review, pastQA] },
+    ]).approval,
+    null,
+  );
+  const accepted = issueRequirements(changed, comments, [
+    {
+      pr,
+      reviews: [review, pastQA, { ...review, id: 12, submitted_at: at(7) }],
+    },
+  ]);
+  assert.ok(accepted.approval);
+});
