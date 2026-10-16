@@ -18,6 +18,7 @@ function run(
     const revokeBeforeReview = ${revokeBeforeReview};
     const calls = [];
     const comments = [];
+    let resetSent=false;
     const sha = 'a'.repeat(40);
     const pr = {number: 12, user:{login:${JSON.stringify(author)}}, head:{sha}, state:'open', base:{ref:'main'}, draft:false};
     globalThis.fetch = async (url, options = {}) => {
@@ -38,9 +39,15 @@ function run(
           calls.push('diff'); return {ok:true,text:async()=> 'x'.repeat(110000)};
         }
         data=pr;
+      } else if (path.endsWith('/issues/78')) {
+        data={number:78,title:'Task',body:'Task'};
       } else if (path.endsWith('/comments')) {
+        if(path.endsWith('/issues/78/comments') && revokeBeforeReview && reviewReads>1 && !resetSent) {
+          resetSent=true;
+          comments.push({id:99,user:{login:'developer'},author_association:'COLLABORATOR',body:'/requirements-rereview',created_at:new Date(Date.now()+1000).toISOString()});
+        }
         if (options.method === 'POST') {
-          calls.push(body.body.startsWith('<!-- requirements-ready') ? 'requirements-record' : 'comment');
+          calls.push(body.body.startsWith('<!-- requirements-ready') ? 'requirements-record' : body.body.startsWith('<!-- issue-requirements') ? 'scope-grant' : body.body.startsWith('<!-- requirements-reset') ? 'scope-reset' : 'comment');
           const c={user:{login:'github-actions[bot]'},body:body.body,created_at:new Date().toISOString(),html_url:'https://example.test/comment'};
           comments.push(c); data=c;
         } else data=comments;
@@ -88,19 +95,21 @@ test('real runner moves to code review and records requirements before fetching 
   const result = run('In Progress', true);
   assert.equal(result.status, 'Ready for Code Review');
   assert.deepEqual(result.calls.slice(0, 3), [
+    'scope-grant',
     'status:Ready for Code Review',
     'requirements-record',
-    'diff',
   ]);
 });
 
-test('real runner rechecks requirements immediately before reviewing and returns to In Progress on revocation', () => {
+test('real runner stops when scope re-review is explicitly requested before agent review', () => {
   const result = run('In Progress', true, true);
   assert.equal(result.status, 'In Progress');
   assert.equal(result.calls.includes('diff'), false);
   assert.deepEqual(result.calls, [
+    'scope-grant',
     'status:Ready for Code Review',
     'requirements-record',
+    'scope-reset',
     'status:In Progress',
   ]);
 });

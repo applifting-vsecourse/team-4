@@ -48,15 +48,18 @@ Don't reach for the browser to check your own work. Tests and type-checks are th
 
 ### Delivery gates
 
-Every implementation PR links its issues with `Closes #N`. Request requirements
-review from `darebakdavca`. Leave the issue In Progress when opening a PR.
-Requirements approval for every linked current PR commit must move the issue to
-Ready for Code Review before Copilot runs. Agent review must then pass before
-the Ready for Testing handoff. New commits or revoked requirements approval
-return the issue to In Progress. `MatejKrones` approves QA after testing
-the handoff commit. PRs authored by `darebakdavca` are exempt from requirements
-review and may enter code review immediately; Matej still performs QA after the
-handoff. On Matej’s PRs, David covers both requirements and QA. The substitute approves once for requirements and again
-after the testing handoff for QA. All stages and CI must pass before merging. New code requires
-fresh reviews and QA. See [the delivery workflow](docs/delivery-workflow.md).
+Every implementation PR links its issues with `Closes #N`. Leave the issue In
+Progress until its requirements are approved. Record requirements approval once
+on the issue; implementation commits do not invalidate it. The PM may approve
+through a linked PR review or `/requirements-approve` on the issue. A repository
+collaborator may request fresh scope review with `/requirements-rereview`.
+Issue title/body changes also invalidate the recorded scope approval.
+
+PRs authored by `darebakdavca` remain exempt from requirements review. Code review
+and QA always apply to the current commit; new code goes through Code Review
+again without repeating unchanged requirements approval. `MatejKrones` approves
+QA after the testing handoff; on Matej’s PRs, David performs QA. Do not request
+Matej automatically at PR creation. GitHub’s code-owner approval requirement is
+redundant with the named delivery gates and is disabled; CODEOWNERS routes only
+David's requirements requests. See [the delivery workflow](docs/delivery-workflow.md).
 Never manufacture passing gate evidence or bypass merge protection.
