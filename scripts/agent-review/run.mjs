@@ -29,6 +29,11 @@ import {
 
 import { planReview, executeReview } from './batches.mjs';
 import { ensureQaReviewRequest } from './qa-review.mjs';
+import {
+  copilotWaiver,
+  waiverMarker,
+  waiverObservation,
+} from '../delivery/copilot-waiver.mjs';
 
 import {
   issueRequirements,
@@ -312,9 +317,28 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
       reason: 'Requirements or code changed before review',
     };
   }
+  const comments = await listComments(pr);
+  const waiver = copilotWaiver({ pr: meta, comments });
+  if (waiver) {
+    const observation = waiverObservation(meta, waiver);
+    if (
+      !comments.some(
+        (c) =>
+          c.user?.login === 'github-actions[bot]' &&
+          (c.body ?? '').startsWith(observation + '\n'),
+      )
+    ) {
+      await postComment(
+        pr,
+        observation +
+          '\nLatest processed manual Copilot waiver. Removing or invalidating this command must not restore an older waiver.',
+      );
+    }
+    return { pr, sha, status: 'waived', waiver, url: waiver.url };
+  }
   const scopeMarker = `<!-- agent-review-scope issue=${issue.number} -->`;
   const prior = findPriorResults({
-    comments: (await listComments(pr)).filter(
+    comments: comments.filter(
       (c) =>
         (c.body ?? '').startsWith(scopeMarker + '\n') &&
         Date.parse(c.created_at) >= Date.parse(requirements.created_at),
@@ -509,12 +533,11 @@ async function processIssue(board, item) {
   // A push during the review makes the verdict stale: compare against the
   // heads as they are right now, immediately before deciding.
   for (const r of results) {
-    if (r.status !== 'pass') continue;
+    if (!['pass', 'waived'].includes(r.status)) continue;
     const now = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${r.pr}`);
     if (now.head.sha !== r.sha) r.status = 'stale';
   }
 
-  const decision = decideIssue(results);
   // Re-read every head and review after Copilot. Revocation or a push must
   // return the issue to requirements review and must never hand code to QA.
   const current = await snapshots();
@@ -545,12 +568,25 @@ async function processIssue(board, item) {
     console.log(`  -> ${next}: scope or code changed during review`);
     return;
   }
+  // A deleted/edited waiver must not be cached as a successful model review.
+  // Read the native PR comments again immediately before the QA handoff.
+  for (const r of results) {
+    if (r.status !== 'waived') continue;
+    const live = copilotWaiver({
+      pr: current.find(({ pr }) => pr.number === r.pr).pr,
+      comments: await listComments(r.pr),
+    });
+    if (live?.source !== r.waiver.source) r.status = 'stale';
+  }
+  const decision = decideIssue(results);
   let moved = false;
   if (decision.outcome === 'pass') {
     moved = await moveStatus(board, item, STATUS_TESTING);
     if (moved) {
       for (const r of results) {
-        const marker = readyMarker(r.pr, r.sha, issue.number);
+        const marker =
+          readyMarker(r.pr, r.sha, issue.number) +
+          (r.status === 'waived' ? '\n' + waiverMarker(r.waiver) : '');
         if (
           !(await listComments(r.pr)).some(
             (c) =>
@@ -562,7 +598,7 @@ async function processIssue(board, item) {
         ) {
           await postComment(
             r.pr,
-            `${marker}\n${rolesByPr.get(r.pr).requirements === null ? 'Requirements exemption applied; independent agent review passed' : 'Issue requirements approval is valid; independent agent review passed'} for commit \`${r.sha}\`. Issue #${issue.number} entered **Ready for Testing**. @${rolesByPr.get(r.pr).qa}: test this commit, then submit an approving PR review. New commits require fresh agent review and QA; issue requirements approval persists unless scope changes.`,
+            `${marker}\n${r.status === 'waived' ? `Copilot review manually waived by @darebakdavca ([command](${r.waiver.url})). Reason: ${r.waiver.reason}. Requirements policy remains satisfied; this is not a Copilot pass` : rolesByPr.get(r.pr).requirements === null ? 'Requirements exemption applied; independent agent review passed' : 'Issue requirements approval is valid; independent agent review passed'} for commit \`${r.sha}\`. Issue #${issue.number} entered **Ready for Testing**. @${rolesByPr.get(r.pr).qa}: test this commit, then submit an approving PR review. New commits require fresh agent review and QA; issue requirements approval persists unless scope changes.`,
           );
         }
         const snapshot = current.find(({ pr }) => pr.number === r.pr);
@@ -576,9 +612,12 @@ async function processIssue(board, item) {
             requirementsVersion: snapshot.pr.requirementsVersion,
           },
           dryRun: cfg.dryRun,
+          waiver: r.waiver,
         });
       }
     }
+  } else if (item.status.name === STATUS_TESTING) {
+    await moveStatus(board, item, STATUS_REVIEW);
   }
 
   const state = `${decision.outcome === 'pass' ? (moved ? 'moved' : 'skipped') : 'blocked'}|${resultsKey(results) || 'no-pr'}`;

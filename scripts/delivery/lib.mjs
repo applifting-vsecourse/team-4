@@ -1,3 +1,5 @@
+import { copilotWaiver, waiverMarker } from './copilot-waiver.mjs';
+
 export const PM = 'darebakdavca';
 export const QA = 'MatejKrones';
 
@@ -82,6 +84,7 @@ export function evaluate({ pr, issues, reviews, comments }) {
   const sha = pr.head.sha;
   const roles = reviewersFor(pr.user.login);
   const qa = latestReview(reviews, roles.qa);
+  const waiver = copilotWaiver({ pr, comments });
   if (pr.draft) reasons.push('PR is still a draft.');
   if (!issues.length) reasons.push('Link at least one issue with Closes #N.');
   if (!approved(qa, sha))
@@ -97,10 +100,14 @@ export function evaluate({ pr, issues, reviews, comments }) {
         : pr,
       reviews,
     );
-    if (!pm)
+    // Requirements are unconditional. A Copilot waiver cannot substitute for
+    // scope approval or its current-commit code-review handoff record.
+    if (!pm) {
       reasons.push(
         `Issue #${issue.number} needs requirements approval by ${roles.requirements}.`,
       );
+      continue;
+    }
     const requirement = pm
       ? comments
           .filter(
@@ -114,10 +121,12 @@ export function evaluate({ pr, issues, reviews, comments }) {
           )
           .at(-1)
       : null;
-    if (!requirement)
+    if (!requirement) {
       reasons.push(
         `Issue #${issue.number} has not entered code review after current requirements approval.`,
       );
+      continue;
+    }
     // A fresh, bot-authored readiness record proves requirements and agent
     // review passed together before QA. A board column alone proves nothing.
     const ready = comments
@@ -125,7 +134,9 @@ export function evaluate({ pr, issues, reviews, comments }) {
         (c) =>
           c.user?.login === 'github-actions[bot]' &&
           (c.body ?? '').startsWith(
-            readyMarker(pr.number, sha, issue.number) + '\n',
+            readyMarker(pr.number, sha, issue.number) +
+              '\n' +
+              (waiver ? waiverMarker(waiver) + '\n' : ''),
           ),
       )
       .at(-1);
@@ -142,12 +153,12 @@ export function evaluate({ pr, issues, reviews, comments }) {
       )
       .at(-1);
     if (
-      !requirement ||
-      !verdict ||
-      Date.parse(verdict.created_at) < Date.parse(requirement.created_at) ||
-      !(verdict.body ?? '').startsWith(
-        `<!-- agent-review-scope issue=${issue.number} -->\n<!-- agent-review pr=${pr.number} sha=${sha} result=pass `,
-      )
+      !waiver &&
+      (!verdict ||
+        Date.parse(verdict.created_at) < Date.parse(requirement.created_at) ||
+        !(verdict.body ?? '').startsWith(
+          `<!-- agent-review-scope issue=${issue.number} -->\n<!-- agent-review pr=${pr.number} sha=${sha} result=pass `,
+        ))
     ) {
       reasons.push(
         `Independent agent review has not passed for issue #${issue.number} on this commit.`,
@@ -155,11 +166,12 @@ export function evaluate({ pr, issues, reviews, comments }) {
     }
     if (
       approved(qa, sha) &&
-      verdict &&
-      Date.parse(qa.submitted_at) <= Date.parse(verdict.created_at)
+      (waiver || verdict) &&
+      Date.parse(qa.submitted_at) <=
+        Date.parse(waiver?.at ?? verdict.created_at)
     ) {
       reasons.push(
-        `QA must approve after the latest agent review for issue #${issue.number}.`,
+        `QA must approve after the latest agent review or manual waiver for issue #${issue.number}.`,
       );
     }
     if (

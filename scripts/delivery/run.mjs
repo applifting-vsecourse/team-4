@@ -1,5 +1,6 @@
 import { evaluate } from './lib.mjs';
 import { issueRequirements } from './requirements.mjs';
+import { copilotWaiver } from './copilot-waiver.mjs';
 
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
@@ -83,7 +84,9 @@ for (const pr of await list(`/repos/${repo}/pulls?state=open&base=main`)) {
           ? 'All delivery stages passed'
           : 'Delivery stages incomplete',
         summary: result.pass
-          ? 'Requirements and agent review passed before QA approved this commit.'
+          ? copilotWaiver({ pr, comments })
+            ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
+            : 'Requirements and agent review passed before QA approved this commit.'
           : result.reasons.map((r) => `- ${r}`).join('\n'),
       },
     });

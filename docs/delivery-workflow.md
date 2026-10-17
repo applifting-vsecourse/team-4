@@ -63,6 +63,41 @@ When David covers both requirements and QA, he approves the issue scope first
 and the tested current commit afterward. His scope approval survives later
 implementation commits even when GitHub dismisses the old native PR review.
 
+## Manual Copilot waiver
+
+Only David (`darebakdavca`) can waive Copilot review, on any PR, by posting a
+standalone comment on that PR:
+
+```text
+/copilot-waive <full-current-40-character-sha> <reason>
+```
+
+Replace the placeholders with the PR's current full SHA and a non-empty reason
+on the same line. The automation reads the actual GitHub comment author and PR
+container. Commands from other users or bots, quoted commands, issue text and
+short or stale SHAs do not grant a waiver. This is separate from requirements
+approval and does not grant QA approval.
+
+The agent-review workflow rechecks the live command before handing the commit
+to QA. Every linked PR still needs either a valid Copilot pass or its own current
+waiver. The bot records the manual waiver, its reason and command link in the
+QA handoff and issue summary, and requests the normal QA owner. It never writes
+a fake Copilot pass or deletes earlier findings. CI and branch protection remain
+unchanged; QA must approve the exact commit after the waiver and matching handoff.
+
+A new commit requires another full-SHA command or a successful Copilot review.
+Before using a waiver, the bot records the latest processed command identity for
+that PR and SHA. Deleting or invalidating it cannot revive an older command; a
+new explicit command is required. Commands deleted before the automation ever
+observed them cannot be reconstructed from the comments API.
+Editing the command changes its identity and requires a fresh matching handoff
+and later QA. Deleting it (or editing it into an invalid command) revokes it:
+the old bot handoff cannot act as authorization, and normal Copilot review applies
+again. If the cached verdict has findings, the issue returns to Code Review.
+Repeating workflow runs does not duplicate unchanged handoffs or pending review
+requests. Dry runs make no writes. Native comment creation, edits and deletions
+trigger reconciliation; scheduled polling remains the fallback.
+
 ## Reviewer requests and merge rules
 
 Matej is not automatically requested at PR creation. CODEOWNERS lists David only
