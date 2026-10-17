@@ -7,7 +7,7 @@ akc.io is an event management product, developed as a pnpm monorepo with two app
 
 Organize backend features into controllers, DTOs, services, domain models and repositories. Organize frontend features into API schemas, query options, hooks and components. Keep shared infrastructure outside feature folders.
 
-**Before writing or changing any UI, read [`DESIGN.md`](DESIGN.md).** It is intentionally empty until akc.io defines its design requirements.
+**Before writing or changing any UI, read [`DESIGN.md`](DESIGN.md).** It is the akc.io design system: tokens, components and how to add them (#79).
 
 ## Sitemap and story context
 
