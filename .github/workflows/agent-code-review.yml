@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: Review and log only; post no comments and move no cards
+        description: Review and log only; no comments, card moves or review requests
         type: boolean
         default: true
       issue:

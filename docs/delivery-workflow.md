@@ -67,8 +67,14 @@ implementation commits even when GitHub dismisses the old native PR review.
 
 Matej is not automatically requested at PR creation. CODEOWNERS lists David only
 for workflow/enforcement paths; he is not requested on his own PRs. The bot's
-Ready for Testing comment identifies the QA owner; that person may submit QA
-approval without an advance reviewer request.
+Ready for Testing comment identifies the QA owner, then the bot sends that person
+a GitHub review request: MatejKrones, or darebakdavca on Matej-authored PRs.
+Repeated runs preserve an existing request and do not request already-valid QA
+approval again. A request API failure fails the Actions run and is retried on the
+next run, even when the handoff comment and board transition already exist.
+New commits require a new successful review and QA handoff before another request.
+A pending request can remain visible while new code is being reviewed; it is not
+QA evidence. Manually added reviewers are preserved. Dry runs send no requests.
 
 Disable the native `require_code_owner_review` requirement: otherwise a sole
 code owner authoring a PR can be blocked by a redundant owner-approval gate.
