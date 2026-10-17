@@ -65,7 +65,8 @@ PRs authored by `darebakdavca` remain exempt from requirements review. Code revi
 and QA always apply to the current commit; new code goes through Code Review
 again without repeating unchanged requirements approval. `MatejKrones` approves
 QA after the testing handoff; on Matej’s PRs, David performs QA. Do not request
-Matej automatically at PR creation. GitHub’s code-owner approval requirement is
+Matej automatically at PR creation; request the QA owner only after successful
+independent review when handing the current commit to Ready for Testing. GitHub’s code-owner approval requirement is
 redundant with the named delivery gates and is disabled; CODEOWNERS routes only
 David's requirements requests. See [the delivery workflow](docs/delivery-workflow.md).
 Never manufacture passing gate evidence or bypass merge protection.

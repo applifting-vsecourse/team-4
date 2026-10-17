@@ -28,6 +28,7 @@ import {
 } from '../delivery/lib.mjs';
 
 import { planReview, executeReview } from './batches.mjs';
+import { ensureQaReviewRequest } from './qa-review.mjs';
 
 import {
   issueRequirements,
@@ -564,6 +565,18 @@ async function processIssue(board, item) {
             `${marker}\n${rolesByPr.get(r.pr).requirements === null ? 'Requirements exemption applied; independent agent review passed' : 'Issue requirements approval is valid; independent agent review passed'} for commit \`${r.sha}\`. Issue #${issue.number} entered **Ready for Testing**. @${rolesByPr.get(r.pr).qa}: test this commit, then submit an approving PR review. New commits require fresh agent review and QA; issue requirements approval persists unless scope changes.`,
           );
         }
+        const snapshot = current.find(({ pr }) => pr.number === r.pr);
+        await ensureQaReviewRequest({
+          api: (path, options) => api(cfg.githubToken, path, options),
+          repo: cfg.repo,
+          pr: snapshot.pr,
+          issue: {
+            number: issue.number,
+            requirements: snapshot.pr.requirements,
+            requirementsVersion: snapshot.pr.requirementsVersion,
+          },
+          dryRun: cfg.dryRun,
+        });
       }
     }
   }
