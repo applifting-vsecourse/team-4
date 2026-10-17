@@ -1,14 +1,14 @@
 ---
 name: 'User story'
 about: 'Popis uživatelské potřeby s ověřitelnými akceptačními kritérii.'
-title: '[F61] Navigace na přihlášení, registraci a katalog'
+title: '[F61] Navigace do účastnické a organizátorské sekce'
 labels: 'epic: landing page, priority: MVP'
 assignees: ''
 ---
 
 ## User story
 
-Jako návštěvník nebo existující uživatel chci přejít z veřejné stránky na přihlášení, registraci nebo katalog, abych snadno našel potřebnou část systému.
+Jako návštěvník nebo existující uživatel chci z veřejné stránky otevřít Moje přihlášky nebo sekci Organizátor, abych použil správný způsob přihlášení.
 
 ## Kontext
 
@@ -16,11 +16,11 @@ Feature [F61 — Navigace a přihlášení](coverage.md), epic Landing page. Př
 
 ## Akceptační kritéria
 
-- [ ] Ve veřejné navigaci jsou funkční a srozumitelně označené odkazy na přihlášení, registraci a katalog.
+- [ ] Na landing page jsou funkční vstupy „Moje přihlášky“ a „Organizátor“. První otevře zadání e-mailu pro účastnický magic link bez hesla; druhý přihlášení organizátora e-mailem a heslem s možností registrace. Nejde o společný přihlašovací formulář.
 - [ ] Každý odkaz otevře správnou existující cílovou stránku bez neplatného přesměrování.
 - [ ] Existující přihlášený uživatel může z veřejné stránky přejít do své oprávněné části systému.
 - [ ] Navigace je ovladatelná klávesnicí i na mobilu.
-- [ ] I bez akcí v katalogu jsou přihlášení a registrace dostupné; katalog zobrazí vlastní prázdný stav.
+- [ ] I bez akcí v katalogu jsou oba vstupy dostupné. Účastnické přihlášení nezpřístupní správu organizací ani při shodném e-mailu obou rolí.
 
 ## Mimo rozsah
 
@@ -30,8 +30,13 @@ Feature [F61 — Navigace a přihlášení](coverage.md), epic Landing page. Př
 ## Podklady
 
 - [Feature breakdown](../../Akc.io_feature_breakdown_final.xlsx), list `Feature breakdown`, řádek 65.
-- Wireframe: bude doplněn později.
+- Wireframe: [Landing page · desktop 1 440 px](https://www.figma.com/design/IxX3hZQjTZcGF381RD7h0w/Wireframy?node-id=72-7549).
+- Wireframe: [Landing page · mobil 360 px](https://www.figma.com/design/IxX3hZQjTZcGF381RD7h0w/Wireframy?node-id=72-7208).
 
 ## Zdroj
 
 - Tým; feature F61 z feature breakdownu akc.io.
+
+**Upřesnění PM — 17. 10. 2026**
+
+Dva vstupy nahrazují původní přímé odkazy na přihlášení, registraci a katalog. Rozsah katalogu zůstává ve F54-2.

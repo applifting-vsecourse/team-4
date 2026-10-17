@@ -16,11 +16,11 @@ Feature [F58 — Cesty pro organizátora a účastníka](coverage.md), epic Land
 
 ## Akceptační kritéria
 
-- [ ] Na landing page jsou srozumitelně odlišené cesty pořádat akci a účastnit se akce.
-- [ ] CTA pro účastníka otevře veřejný katalog akcí.
-- [ ] CTA pro pořadatele otevře cestu k vytvoření akce nebo registraci organizátora a nevede na neexistující stránku.
+- [ ] Na landing page jsou dva srozumitelně odlišené vstupy „Moje přihlášky“ a „Organizátor“.
+- [ ] „Moje přihlášky“ otevře účastnickou sekci se zadáním e-mailu pro přístup přes magic link bez hesla; nejde o novou přihlášku na akci.
+- [ ] „Organizátor“ otevře organizátorské přihlášení e-mailem a heslem s možností registrace organizátora a nevede na neexistující stránku.
 - [ ] Obě CTA lze použít myší, dotykem i klávesnicí a mají popisek vysvětlující další krok.
-- [ ] Prázdný katalog neblokuje odkaz účastníka: cílový katalog zobrazí svůj prázdný stav.
+- [ ] Prázdný katalog neblokuje žádný ze dvou vstupů; účastnický přístup se řídí F32 a jeho prázdnými stavy.
 
 ## Mimo rozsah
 
@@ -30,8 +30,13 @@ Feature [F58 — Cesty pro organizátora a účastníka](coverage.md), epic Land
 ## Podklady
 
 - [Feature breakdown](../../Akc.io_feature_breakdown_final.xlsx), list `Feature breakdown`, řádek 62.
-- Wireframe: bude doplněn později.
+- Wireframe: [Landing page · desktop 1 440 px](https://www.figma.com/design/IxX3hZQjTZcGF381RD7h0w/Wireframy?node-id=72-7549).
+- Wireframe: [Landing page · mobil 360 px](https://www.figma.com/design/IxX3hZQjTZcGF381RD7h0w/Wireframy?node-id=72-7208).
 
 ## Zdroj
 
 - Tým; feature F58 z feature breakdownu akc.io.
+
+**Upřesnění PM — 17. 10. 2026**
+
+Dva vstupy a oddělené přihlašovací mechanismy nahrazují původní účastnické CTA do katalogu. Katalog zůstává samostatnou funkcí F54-2.
