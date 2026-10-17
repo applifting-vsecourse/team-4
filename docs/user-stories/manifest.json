@@ -930,7 +930,7 @@
     {
       "id": "F61",
       "feature_id": "F61",
-      "title": "[F61] Navigace na přihlášení, registraci a katalog",
+      "title": "[F61] Navigace do účastnické a organizátorské sekce",
       "file": "f61-navigace-na-prihlaseni-registraci-a-katalog.md",
       "labels": ["epic: landing page", "priority: MVP"],
       "priority": "MVP",
