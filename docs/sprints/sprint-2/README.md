@@ -66,7 +66,7 @@ Zdroj: text „kemp.io · definice MVP · říjen 2026“ dodaný PM v konverzac
 
 Produktový rozsah S2-01 až S2-15 byl postupně projit a potvrzen PM. Upřesnění jsou zapsaná přímo v jednotlivých stories; tato kontrola sama neznamená READY ani hotovou implementaci.
 
-- S2-01: schválené texty a vstupy Přihlášení organizátora / Registrace organizátora / Moje přihlášky.
+- S2-01: schválené texty; navigace upřesněna PM 17. 10. 2026 na dva vstupy „Moje přihlášky“ (účastnický magic link bez hesla) a „Organizátor“ (e-mail a heslo, možnost registrace). Toto upřesnění nahrazuje původní tři přímé vstupy.
 - S2-03: všechny vlastní organizace jsou dostupné, cizí nikoli; pro cizí i neexistující záznam stejná zpráva „Záznam není dostupný“.
 - S2-05: pokoj má jedinečné označení v akci, alespoň jedno lůžko a výběr dostupných termínů; počet lůžek je v nich stejný. Přidání, přejmenování, úprava i odstranění jsou možné, pokud kapacita neklesne pod potvrzenou účast.
 - S2-06: koncept veřejně nezobrazuje údaje. Zavřená akce ukáže informace bez formuláře; znovuotevření používá stejný odkaz. U prvního otevření je upozornění na zamčení bez potvrzovacího dialogu.
