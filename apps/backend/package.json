@@ -25,6 +25,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:ci": "jest --ci",
+    "test:db": "jest --setupFiles dotenv/config --testRegex '\\.db-spec\\.ts$' --runInBand",
     "docker:up": "docker compose up",
     "docker:up:wait": "docker compose up -d --wait",
     "docker:up-rebuild": "docker compose down; docker compose up --renew-anon-volumes --build --force-recreate be",

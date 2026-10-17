@@ -2,13 +2,15 @@
 
 Design for **S2-T1 ([#74](https://github.com/applifting-vsecourse/team-4/issues/74))**:
 entities, relations, constraints and sources of truth for Sprint 2, plus how the model
-grows into the full MVP backlog. Status: **proposal for review**. It is not
-implemented and has no migration yet. The Prisma schema in §7 passes `prisma validate`
-against the current auth models. Its generated SQL, together with the hand-written
-constraints in §8, was applied to a scratch Postgres 17 database. Smoke tests confirmed
-that the database rejects overlapping terms, zero-bed rooms, cross-event room
-availability, cross-organization payments, opening without `firstOpenedAt` and a second
-registration per e-mail, and that the VS default comes from the sequence.
+grows into the full MVP backlog. Status: **implemented, in review**. The schema lives in
+`apps/backend/prisma/schema.prisma`, the migration in
+`apps/backend/prisma/migrations/20261017090959_domain_model/`. It was applied to an
+empty Postgres 17 database, seeded twice (idempotent) and checked by the DB test suite
+in §9. `prisma migrate diff` against the migrated database reports no drift.
+
+**Schema ownership.** The schema has one owner during parallel work: the T1 owner
+(JakubHerr). Story branches that need a schema change add a **new** migration in their
+own PR and request the T1 owner's review. Applied migrations are never edited.
 
 Context: [Sprint 2 decisions](../sprints/sprint-2/README.md) ·
 [T1 scope](../sprints/sprint-2/delivery.md#t1--společný-datový-model-a-migrace).
@@ -414,9 +416,9 @@ filtered by `participantAccountId` from the session.
 | `participant_magic_link (participantAccountId, createdAt)` | Rate limiting.                                         |
 | `email_delivery (status, createdAt)`                       | Operator view of failures.                             |
 
-## 7. Prisma schema (draft)
+## 7. Prisma schema
 
-Added on top of the current `schema.prisma`. `User` only gains two back-relation fields,
+Added on top of the BetterAuth models in `schema.prisma`. `User` only gains two back-relation fields,
 and no BetterAuth column changes (R14). Validated with `prisma validate` (Prisma 7.9).
 
 ```prisma
@@ -610,7 +612,7 @@ model Registration {
   eventId              String @db.Uuid
   participantAccountId String @db.Uuid
   submissionKey        String @unique @db.Uuid
-  variableSymbol       String @unique @default(dbgenerated("(nextval('registration_variable_symbol_seq'))::text")) @db.VarChar(10)
+  variableSymbol       String @unique @default(dbgenerated("(nextval('registration_variable_symbol_seq'::regclass))::text")) @db.VarChar(10)
 
   firstName String @db.VarChar(100)
   lastName  String @db.VarChar(100)
@@ -718,9 +720,11 @@ model EmailDelivery {
 
 ## 8. Hand-written migration SQL
 
-Prisma does not generate these statements. Add them to the initial migration with
-`prisma migrate dev --create-only`, then edit. The sequence must be created **before**
-the `registration` table that uses it as a default.
+Prisma does not generate these statements; they are part of the domain migration. The
+extension and the sequence are created **before** the tables, because `registration`
+uses the sequence as a default. The `dbgenerated` default in §7 is written exactly as
+Postgres stores it (`::regclass`), otherwise `prisma migrate dev` sees drift. Prisma
+ignores CHECK and EXCLUDE constraints when diffing, so later migrations keep them.
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS btree_gist;
@@ -748,8 +752,11 @@ ALTER TABLE "room" ADD CONSTRAINT room_bed_count_chk CHECK ("bedCount" > 0);
 
 -- registration
 ALTER TABLE "registration"
-  ADD CONSTRAINT registration_vs_chk       CHECK ("variableSymbol" ~ '^[0-9]{1,10}$'),
-  ADD CONSTRAINT registration_due_days_chk CHECK ("paymentDueDays" > 0);
+  ADD CONSTRAINT registration_vs_chk          CHECK ("variableSymbol" ~ '^[0-9]{1,10}$'),
+  ADD CONSTRAINT registration_due_days_chk    CHECK ("paymentDueDays" > 0),
+  ADD CONSTRAINT registration_bank_code_chk   CHECK ("bankCode" ~ '^[0-9]{4}$'),
+  ADD CONSTRAINT registration_bank_number_chk CHECK ("bankAccountNumber" ~ '^[0-9]{2,10}$'),
+  ADD CONSTRAINT registration_bank_prefix_chk CHECK ("bankAccountPrefix" IS NULL OR "bankAccountPrefix" ~ '^[0-9]{1,6}$');
 ALTER SEQUENCE registration_variable_symbol_seq OWNED BY "registration"."variableSymbol";
 
 -- registration_term / payment
@@ -757,33 +764,42 @@ ALTER TABLE "registration_term" ADD CONSTRAINT registration_term_price_chk CHECK
 ALTER TABLE "payment"           ADD CONSTRAINT payment_amount_chk          CHECK ("amountMinor" > 0);
 ```
 
-Verification for T1: `prisma migrate reset` on an empty database, then a smoke test
-that deliberately violates each constraint (overlapping term, zero beds, cross-event
-availability, cross-organization payment) and expects a database error.
-
 ## 9. Isolated test and seed data
 
 T1 requires a reproducible way to create isolated data.
 
-- **Factories** (`apps/backend/test/factories/`): `createOrganization()`,
-  `createEvent({ terms, rooms })` and `submitRegistration()` go through the real
-  services, so tests exercise the same rules as production. Every factory call uses a
-  unique suffix for names and e-mails, so tests can run in parallel against one
-  database without truncation. Concurrency tests (T4) open separate Prisma clients and
-  fire the submits with `Promise.all`.
+- **Factories** (`apps/backend/src/testing/factories.ts`, excluded from the build):
+  `createOrganizer()`, `createOrganization()`, `createEvent({ terms, rooms })`,
+  `createRegistration({ terms: [{ term, status }] })` and `createPayment()`. Every call
+  uses a unique suffix for names, e-mails and keys, so tests can run in parallel against
+  one database without truncation. There are no domain services yet, so the factories
+  write through Prisma and take the participation outcome as input. When the S2-02,
+  S2-04 and S2-08 services exist, the factories should call them, so tests exercise the
+  same rules as production. Concurrency tests (T4) open separate Prisma clients and fire
+  the submits with `Promise.all`.
+- **Database tests** (`*.db-spec.ts`, currently
+  `src/core/prisma/schema-constraints.db-spec.ts`) check every constraint in §8 and the
+  composite tenant keys of §3.2 against a real database. They are not part of
+  `pnpm backend test`, because CI has no database yet (T4). Run them against a migrated
+  database: `DATABASE_URL=… pnpm backend test:db` (without the variable the backend
+  `.env` is used). Verification for T1: create an empty database, `prisma migrate
+deploy`, `pnpm backend seed` twice, then `pnpm backend test:db`.
 - **Seed** (`src/scripts/seed/seed/seed-database.ts`, used by `pnpm dev` and staging
-  demo data) contains fictional data only. It is idempotent: fixed e-mails, upsert by
-  natural key.
-  - Two organizers, `org-a@example.test` and `org-b@example.test`, each with an
-    organization. Organizer A also has a second organization (for testing the switcher).
-  - Org A event _Letní tábor_ (open): term 1 with two rooms (2 + 3 beds, capacity 5,
-    partly filled), and term 2 with one room of 1 bed, already full. Plus a draft event
-    and a closed event.
-  - Registrations: confirmed-only, waitlisted-only, mixed (confirmed + waitlisted), and
-    free term only. Payments: none, partial, exact and overpaid.
-  - Org B gets its own event with registrations, used to check that nothing leaks.
-  - A participant e-mail that has registrations in both organizations' events, to test
-    the portal across tenants.
+  demo data) contains fictional data only. It is idempotent: organizers are matched by
+  e-mail (created through BetterAuth sign-up, password `akcio-demo-heslo`), participant
+  accounts by e-mail and every other row by a fixed id.
+  - Two organizers, `org-a@example.test` and `org-b@example.test`. A owns _Spolek Jasan_
+    and _Sportovní klub Modrá_ (switcher), B owns _Horský spolek Horizont_.
+  - _Letní tábor 2027_ (open, `/e/demo-letni`): 1. turnus with two rooms (2 + 3 beds,
+    capacity 5, 3 confirmed), 2. turnus with one bed, full, 2 waitlisted, and a free
+    one-day term. Plus a draft event and a closed event, and a draft in the second
+    organization.
+  - Registrations: confirmed only (partial payment), both terms confirmed (paid
+    exactly), mixed confirmed + waitlisted (unpaid), waitlisted only (nothing due),
+    free term only with a payment (overpaid).
+  - Organization B has its own open event with two registrations.
+  - `jana.novakova@example.test` has registrations in both organizations' events, to
+    test the portal across tenants.
 
 ## 10. Open questions for the PM / team
 
