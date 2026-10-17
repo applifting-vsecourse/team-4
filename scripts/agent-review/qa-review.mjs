@@ -1,3 +1,4 @@
+import { copilotWaiver, waiverMarker } from '../delivery/copilot-waiver.mjs';
 import {
   evaluate,
   readyMarker,
@@ -12,6 +13,7 @@ export async function ensureQaReviewRequest({
   pr,
   issue,
   dryRun,
+  waiver,
   log = console.log,
 }) {
   const path = `/repos/${repo}/pulls/${pr.number}`;
@@ -31,6 +33,7 @@ export async function ensureQaReviewRequest({
   current.requirements = issue.requirements;
   current.requirementsVersion = issue.requirementsVersion;
   if (
+    copilotWaiver({ pr: current, comments })?.source !== waiver?.source ||
     current.head.sha !== pr.head.sha ||
     current.state !== 'open' ||
     current.draft ||
@@ -55,7 +58,9 @@ export async function ensureQaReviewRequest({
       (c) =>
         c.user?.login === 'github-actions[bot]' &&
         (c.body ?? '').startsWith(
-          readyMarker(pr.number, pr.head.sha, issue.number) + '\n',
+          readyMarker(pr.number, pr.head.sha, issue.number) +
+            '\n' +
+            (waiver ? waiverMarker(waiver) + '\n' : ''),
         ),
     )
   )

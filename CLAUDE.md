@@ -69,4 +69,9 @@ Matej automatically at PR creation; request the QA owner only after successful
 independent review when handing the current commit to Ready for Testing. GitHub’s code-owner approval requirement is
 redundant with the named delivery gates and is disabled; CODEOWNERS routes only
 David's requirements requests. See [the delivery workflow](docs/delivery-workflow.md).
+Only `darebakdavca` may waive Copilot review with a standalone PR comment
+`/copilot-waive <full-current-SHA> <reason>`. A waiver replaces only Copilot review
+for that PR commit; requirements, CI and post-handoff QA still apply. Preserve
+findings and record a manual waiver, never a fabricated Copilot pass. A new
+commit needs a new waiver or review; recheck edited/deleted commands.
 Never manufacture passing gate evidence or bypass merge protection.

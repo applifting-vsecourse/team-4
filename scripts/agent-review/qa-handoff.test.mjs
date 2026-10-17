@@ -20,6 +20,7 @@ async function scenario(options) {
   const comments = new Map([[78, []]]);
   const prs = (options.authors ?? ['darebakdavca']).map((author, i) => ({
     number: 12 + i,
+    issue_url: `https://api.github.com/repos/owner/repo/issues/${12 + i}`,
     user: { login: author },
     head: { sha },
     state: 'open',
@@ -83,6 +84,25 @@ async function scenario(options) {
             '2003-01-01T00:00:00Z',
           ),
         );
+    }
+    if (options.noVerdict) {
+      comments.set(
+        pr.number,
+        comments
+          .get(pr.number)
+          .filter((c) => !c.body.startsWith('<!-- agent-review-scope')),
+      );
+    }
+    if (options.waiver || options.waiversByPr?.includes(pr.number)) {
+      comments.get(pr.number).push({
+        id: 100 + pr.number,
+        user: { login: options.waiverUser ?? 'darebakdavca', type: 'User' },
+        issue_url: pr.issue_url,
+        body: `/copilot-waive ${options.waiverSha ?? sha} Human accepts these findings`,
+        created_at: '2004-01-01T00:00:00Z',
+        updated_at: '2004-01-01T00:00:00Z',
+        html_url: `https://github.com/owner/repo/pull/${pr.number}#issuecomment-${100 + pr.number}`,
+      });
     }
     requested.set(pr.number, []);
   }
@@ -185,6 +205,14 @@ async function scenario(options) {
       const count = (headReads.get(number) ?? 0) + 1;
       headReads.set(number, count);
       const pr = prs.find((p) => p.number === number);
+      if (options.revokeDuringReview && count === 3) {
+        comments.set(
+          number,
+          comments
+            .get(number)
+            .filter((c) => !c.body.startsWith('/copilot-waive')),
+        );
+      }
       data = {
         ...pr,
         head: {
@@ -198,6 +226,24 @@ async function scenario(options) {
     process.exitCode = 0;
     await import(`./scripts/agent-review/run.mjs?qa-test=${i}`);
     calls.push('exit:' + (process.exitCode ?? 0));
+    if (i === 0 && options.revokeAfterFirst) {
+      for (const pr of prs)
+        comments.set(
+          pr.number,
+          comments
+            .get(pr.number)
+            .filter((c) => !c.body.startsWith('/copilot-waive')),
+        );
+    }
+    if (i === 0 && options.editAfterFirst) {
+      for (const pr of prs)
+        for (const c of comments.get(pr.number)) {
+          if (c.body.startsWith('/copilot-waive')) {
+            c.body += ' Updated reason';
+            c.updated_at = new Date(Date.now() + 1000).toISOString();
+          }
+        }
+    }
   }
   // A simulated API failure is asserted in the result rather than failing the child.
   process.exitCode = 0;
@@ -206,6 +252,12 @@ async function scenario(options) {
       status,
       calls,
       requested: Object.fromEntries(requested),
+      prComments: Object.fromEntries(
+        prs.map((pr) => [
+          pr.number,
+          comments.get(pr.number).map((c) => c.body),
+        ]),
+      ),
       handoffs: prs.map(
         (pr) =>
           comments
@@ -304,6 +356,108 @@ for (const options of [
 
 test('real runner dry run writes no comments, requests or card status', () => {
   const r = run({ dryRun: true });
+  assert.equal(
+    r.calls.some((c) => /^(request|handoff|status|comment):/.test(c)),
+    false,
+  );
+});
+
+test('owner waiver bypasses cached findings and requests QA with an explicit manual handoff', () => {
+  const r = run({
+    authors: ['developer'],
+    waiver: true,
+    verdict: 'findings',
+    runs: 2,
+  });
+  assert.equal(r.status, 'Ready for Testing');
+  assert.deepEqual(r.requested, { 12: ['MatejKrones'] });
+  assert.deepEqual(r.handoffs, [1]);
+  assert.equal(
+    r.prComments[12].filter((c) => c.includes('result=pass')).length,
+    0,
+  );
+  assert.ok(r.prComments[12].some((c) => c.includes('result=findings')));
+  assert.ok(
+    r.prComments[12].some(
+      (c) =>
+        c.startsWith('<!-- delivery-ready') &&
+        c.includes('<!-- copilot-waiver source=') &&
+        c.includes('not a Copilot pass'),
+    ),
+  );
+});
+
+test('owner waiver does not need a model verdict and works for David and Matej PRs', () => {
+  const r = run({
+    authors: ['darebakdavca', 'MatejKrones'],
+    waiver: true,
+    noVerdict: true,
+  });
+  assert.equal(r.status, 'Ready for Testing');
+  assert.deepEqual(r.requested, { 12: ['MatejKrones'], 13: ['darebakdavca'] });
+  assert.ok(
+    Object.values(r.prComments).every(
+      (cs) => !cs.some((c) => c.includes('result=pass')),
+    ),
+  );
+});
+
+for (const options of [
+  { waiverUser: 'MatejKrones' },
+  { waiverSha: 'b'.repeat(40) },
+  { draft: true },
+  { unapproved: true },
+  { pushDuringReview: true },
+  { revokeDuringReview: true },
+]) {
+  test(`waiver does not bypass blocked runner state: ${JSON.stringify(options)}`, () => {
+    const r = run({
+      authors: ['developer'],
+      waiver: true,
+      verdict: 'findings',
+      ...options,
+    });
+    assert.deepEqual(r.requested, { 12: [] });
+    assert.deepEqual(r.handoffs, [0]);
+  });
+}
+
+test('a waiver for one PR does not excuse another linked PR with findings', () => {
+  const r = run({
+    authors: ['darebakdavca', 'MatejKrones'],
+    waiversByPr: [12],
+    verdict: 'findings',
+  });
+  assert.deepEqual(r.requested, { 12: [], 13: [] });
+  assert.deepEqual(r.handoffs, [0, 0]);
+});
+
+test('deleting a waiver returns testing issue to code review rather than using the old handoff', () => {
+  const r = run({
+    waiver: true,
+    verdict: 'findings',
+    revokeAfterFirst: true,
+    runs: 2,
+  });
+  assert.equal(r.status, 'Ready for Code Review');
+  assert.deepEqual(r.handoffs, [1]);
+  assert.equal(r.calls.filter((c) => c === 'request:12').length, 1);
+});
+
+test('editing the waiver creates a new auditable handoff without duplicate pending request', () => {
+  const r = run({
+    waiver: true,
+    verdict: 'findings',
+    editAfterFirst: true,
+    runs: 2,
+  });
+  assert.equal(r.status, 'Ready for Testing');
+  assert.deepEqual(r.handoffs, [2]);
+  assert.equal(r.calls.filter((c) => c === 'request:12').length, 1);
+});
+
+test('waived dry run writes no fabricated verdict, handoff or request', () => {
+  const r = run({ waiver: true, noVerdict: true, dryRun: true });
   assert.equal(
     r.calls.some((c) => /^(request|handoff|status|comment):/.test(c)),
     false,
