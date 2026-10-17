@@ -231,13 +231,11 @@ async function scenario(options) {
         const old = comments
           .get(pr.number)
           .find((c) => c.body.startsWith('/copilot-waive'));
-        comments
-          .get(pr.number)
-          .push({
-            ...old,
-            id: old.id + 1000,
-            updated_at: new Date(Date.now() + 1000).toISOString(),
-          });
+        comments.get(pr.number).push({
+          ...old,
+          id: old.id + 1000,
+          updated_at: new Date(Date.now() + 1000).toISOString(),
+        });
       }
     }
     if (i === 1 && options.deleteNewestAfterSecond) {
