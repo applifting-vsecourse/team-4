@@ -33,6 +33,7 @@ export async function ensureQaReviewRequest({
   if (
     current.head.sha !== pr.head.sha ||
     current.state !== 'open' ||
+    current.draft ||
     current.base.ref !== 'main' ||
     !requirementsApproval(current, reviews)
   ) {

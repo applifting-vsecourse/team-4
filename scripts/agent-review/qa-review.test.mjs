@@ -185,3 +185,18 @@ for (const options of [
     );
   });
 }
+
+// The PR may be converted to draft after the runner's final scope snapshot.
+test('final draft check rejects stored scope approval and handoff without reading or posting requests', async () => {
+  const f = fixture({
+    author: 'developer',
+    approval: true,
+    current: { draft: true },
+  });
+  assert.equal(await f.run(), 'stale');
+  assert.equal(
+    f.calls.some((c) => c.path.includes('requested_reviewers')),
+    false,
+  );
+  assert.deepEqual(f.requests, []);
+});
