@@ -44,6 +44,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-overlay: var(--overlay);
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
@@ -124,6 +125,7 @@
   --sidebar-accent-foreground: #f9fafb;
   --sidebar-border: #1f2937;
   --sidebar-ring: #60a5fa;
+  --overlay: rgb(0 0 0 / 0.5);
   --radius: 0.625rem;
   --shadow-2xs: 0px 2px 10px 0px hsl(0 0% 0% / 0.05);
   --shadow-xs: 0px 2px 10px 0px hsl(0 0% 0% / 0.05);
@@ -169,6 +171,7 @@
   --sidebar-accent-foreground: #f9fafb;
   --sidebar-border: #1f2937;
   --sidebar-ring: #60a5fa;
+  --overlay: rgb(0 0 0 / 0.5);
 }
 
 @layer base {

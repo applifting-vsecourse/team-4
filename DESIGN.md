@@ -77,6 +77,7 @@ Values come from the Figma library Design system (modes Light and Dark). Utility
 | `warning` / `warning-subtle`                | `#c2410c` / `#fff7ed`                                 | `#fb923c` / `#431407` | Waitlisted (náhradník), partially paid          |
 | `sidebar*`                                  | dark navy surface with lime active item in both modes |                       | Organizer navigation                            |
 | `chart-1` … `chart-5`                       | blue, lime, green, orange, gray                       | same                  | Charts only                                     |
+| `overlay`                                   | black at 50 % opacity                                 | same                  | Scrim behind dialogs and sheets                 |
 
 Status meaning, used consistently across the app:
 
@@ -87,7 +88,7 @@ Status meaning, used consistently across the app:
 | Overdue payment, failed, error          | `destructive-subtle`     |
 | Neutral / informational                 | `secondary` or `outline` |
 
-Values not given by the Figma library and filled in by convention: `popover-foreground`, `accent-foreground`, `destructive-foreground`, `sidebar-foreground`, `sidebar-accent-foreground`, `sidebar-border`, `sidebar-ring`.
+Values not given by the Figma library and filled in by convention: `popover-foreground`, `accent-foreground`, `destructive-foreground`, `sidebar-foreground`, `sidebar-accent-foreground`, `sidebar-border`, `sidebar-ring`, `overlay`.
 
 ### Contrast rules (checked against WCAG 2.2 AA)
 
