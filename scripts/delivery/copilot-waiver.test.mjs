@@ -439,3 +439,34 @@ test('forged, quoted and malformed observations cannot change authorization', ()
     assert.equal(copilotWaiver(f).commentId, 10);
   }
 });
+
+test('waiver plus QA and handoffs still requires an actual scope approval', () => {
+  const f = fixture();
+  assert.ok(copilotWaiver(f));
+  assert.equal(evaluate(f).pass, true);
+  f.issues[0].requirements = null;
+  const result = evaluate(f);
+  assert.equal(result.pass, false);
+  assert.ok(
+    result.reasons.includes(
+      'Issue #78 needs requirements approval by darebakdavca.',
+    ),
+  );
+});
+
+test('waiver cannot replace a missing or stale requirements handoff record', () => {
+  for (const stale of [false, true]) {
+    const f = fixture();
+    if (stale)
+      f.comments[1].body =
+        requirementsMarker(12, sha, 78, 'obsolete-grant') + '\n';
+    else f.comments.splice(1, 1);
+    const result = evaluate(f);
+    assert.equal(result.pass, false);
+    assert.ok(
+      result.reasons.includes(
+        'Issue #78 has not entered code review after current requirements approval.',
+      ),
+    );
+  }
+});

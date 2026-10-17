@@ -100,10 +100,14 @@ export function evaluate({ pr, issues, reviews, comments }) {
         : pr,
       reviews,
     );
-    if (!pm)
+    // Requirements are unconditional. A Copilot waiver cannot substitute for
+    // scope approval or its current-commit code-review handoff record.
+    if (!pm) {
       reasons.push(
         `Issue #${issue.number} needs requirements approval by ${roles.requirements}.`,
       );
+      continue;
+    }
     const requirement = pm
       ? comments
           .filter(
@@ -117,10 +121,12 @@ export function evaluate({ pr, issues, reviews, comments }) {
           )
           .at(-1)
       : null;
-    if (!requirement)
+    if (!requirement) {
       reasons.push(
         `Issue #${issue.number} has not entered code review after current requirements approval.`,
       );
+      continue;
+    }
     // A fresh, bot-authored readiness record proves requirements and agent
     // review passed together before QA. A board column alone proves nothing.
     const ready = comments
@@ -148,8 +154,7 @@ export function evaluate({ pr, issues, reviews, comments }) {
       .at(-1);
     if (
       !waiver &&
-      (!requirement ||
-        !verdict ||
+      (!verdict ||
         Date.parse(verdict.created_at) < Date.parse(requirement.created_at) ||
         !(verdict.body ?? '').startsWith(
           `<!-- agent-review-scope issue=${issue.number} -->\n<!-- agent-review pr=${pr.number} sha=${sha} result=pass `,
