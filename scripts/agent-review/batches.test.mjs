@@ -167,3 +167,40 @@ test('cross-file failure or findings block an otherwise clean diff', async () =>
     assert.equal(count, plan.prompts.length + 1);
   }
 });
+
+test('notes in any batch or the cross-file pass never block', async () => {
+  const { input, meta } = context();
+  const plan = planReview(input, meta);
+  const noteOnly = () => ({
+    ok: true,
+    stdout: JSON.stringify({
+      verdict: 'findings',
+      findings: [{ severity: 'note', file: 'file0.ts', line: 1, issue: 'nit' }],
+      summary: 'Exports component props and consumes shared tokens.',
+    }),
+  });
+  const result = await executeReview(plan, input, async () => noteOnly());
+  assert.equal(result.status, 'pass');
+  assert.ok(result.findings.length > 0);
+  assert.ok(result.findings.every((f) => f.severity === 'note'));
+});
+
+test('a blocker among notes still fails the review', async () => {
+  const { input, meta } = context();
+  const plan = planReview(input, meta);
+  let count = 0;
+  const result = await executeReview(plan, input, async () => ({
+    ok: true,
+    stdout: JSON.stringify({
+      verdict: 'findings',
+      findings: [
+        { severity: 'note', file: 'file0.ts', line: 1, issue: 'nit' },
+        ...(count++ === 1
+          ? [{ severity: 'blocker', file: 'file1.ts', line: 2, issue: 'crash' }]
+          : []),
+      ],
+      summary: 'Exports component props and consumes shared tokens.',
+    }),
+  }));
+  assert.equal(result.status, 'findings');
+});
