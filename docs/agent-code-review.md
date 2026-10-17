@@ -7,16 +7,21 @@ Technické zadání: [#78](https://github.com/applifting-vsecourse/team-4/issues
 1. Vývojář nechá issue v **In Progress**, otevře propojený PR a požádá o kontrolu požadavků. Teprve schválení rozsahu issue přesune issue automaticky do **Ready for Code Review**.
 2. Workflow reaguje na změny PR a odeslaná či zrušená review. Board navíc kontroluje plánovaně každých 5 minut; GitHub může plánované běhy zpozdit. Spouští se důvěryhodný kód z main, nikoli kód z PR.
 3. Pro každou issue v tomto sloupci najde všechny **otevřené PR propojené přes `Closes #N`** v popisu PR a každý z nich zrevidují agentem **GitHub Copilot CLI**. Agent dostane diff PR, text issue a pravidla z `CLAUDE.md` a `DESIGN.md` z větve `main`. Nemá žádné nástroje a nespouští kód z PR.
-4. Výsledek se zapíše jako komentář **u PR** (revidovaný commit, nálezy) a odkaz na něj jako komentář **u issue**.
-5. Pokud **všechny** propojené PR prošly bez nálezů pro svůj aktuální commit, karta se přesune do **Ready for Testing**. Bot zveřejní předání do QA a odešle GitHub žádost o review uživateli `MatejKrones`; u Matějových PR uživateli `darebakdavca`. Jinak karta zůstává v Ready for Code Review a komentář u issue uvádí důvod.
+4. Výsledek se zapíše jako komentář **u PR** (revidovaný commit, blokující nálezy a poznámky) a odkaz na něj jako komentář **u issue**.
+5. Pokud **všechny** propojené PR prošly bez **blokujících** nálezů pro svůj aktuální commit, karta se přesune do **Ready for Testing**. Bot zveřejní předání do QA a odešle GitHub žádost o review uživateli `MatejKrones`; u Matějových PR uživateli `darebakdavca`. Jinak karta zůstává v Ready for Code Review a komentář u issue uvádí důvod.
 
 Review nenahrazuje testování ani lidského reviewera.
 
 ## Co se považuje za úspěch
 
-Úspěch je jen platný verdikt `pass` s prázdným seznamem nálezů pro **aktuální commit** PR. Za neúspěch (karta zůstává) se považuje:
+Agent každý nález zařadí jako **`blocker`** nebo **`note`**:
 
-- nálezy (`findings`),
+- **`blocker`** je kód, který by aplikaci skutečně rozbil: pád nebo neošetřená chyba za běhu, selhání buildu, type-checku nebo testů, chybné chování či ztráta dat v implementovaném toku, bezpečnostní díra, selhávající migrace nebo přímý rozpor s kritériem issue, takže funkce nefunguje. Agent musí umět popsat konkrétní scénář selhání.
+- **`note`** je vše ostatní: přístupnost (sémantika), porušení pravidel designu a stylu, pojmenování, struktura, údržba, chybějící testy a dokumentace, poznámky k výkonu, hypotetická nebo nejistá rizika. Při pochybnosti agent volí `note`.
+
+Poznámky se zapíšou do komentáře u PR, ale **review neblokují**. Úspěch je platný verdikt bez `blocker` nálezu pro **aktuální commit** PR (`pass`, případně se seznamem poznámek). Rozhoduje přítomnost `blocker`, ne verdikt, který agent napsal: nález bez výslovného `note` se bere jako `blocker`, a `pass` s uvedeným `blocker` tedy blokuje. Za neúspěch (karta zůstává) se považuje:
+
+- blokující nález (`blocker`),
 - chyba agenta: neplatný nebo nesoudržný výstup, vypršený čas, chyba kvóty nebo přihlášení, neúplný diff, nepodporovaná binární změna nebo překročený limit dávkového review,
 - chybějící propojený PR,
 - commit, který se změnil během review (zastaralý výsledek, review proběhne znovu).
