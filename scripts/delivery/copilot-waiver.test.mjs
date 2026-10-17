@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { copilotWaiver, waiverMarker } from './copilot-waiver.mjs';
+import {
+  copilotWaiver,
+  waiverMarker,
+  waiverObservation,
+} from './copilot-waiver.mjs';
 import { evaluate, readyMarker, requirementsMarker } from './lib.mjs';
 
 const sha = 'a'.repeat(40);
@@ -348,3 +352,90 @@ for (const mode of ['valid', 'no-qa', 'forged', 'deleted']) {
       );
   });
 }
+
+test('deleting the latest processed waiver cannot revive an older valid command', () => {
+  const f = fixture();
+  const newest = {
+    ...f.comments[0],
+    id: 11,
+    created_at: at(6),
+    updated_at: at(6),
+  };
+  f.comments.push(newest);
+  const waiver = copilotWaiver(f);
+  f.comments.push({
+    user: { login: 'github-actions[bot]' },
+    body: waiverObservation(f.pr, waiver) + '\nObserved',
+    created_at: at(7),
+  });
+  f.comments = f.comments.filter((c) => c !== newest);
+  assert.equal(copilotWaiver(f), null);
+  assert.equal(evaluate(f).pass, false);
+});
+
+test('invalidating the newest command blocks fallback before and after deleting it', () => {
+  const f = fixture();
+  const newest = {
+    ...f.comments[0],
+    id: 11,
+    created_at: at(6),
+    updated_at: at(6),
+  };
+  f.comments.push(newest);
+  const waiver = copilotWaiver(f);
+  f.comments.push({
+    user: { login: 'github-actions[bot]' },
+    body: waiverObservation(f.pr, waiver) + '\nObserved',
+  });
+  newest.body = 'Withdrawn';
+  newest.updated_at = at(8);
+  assert.equal(copilotWaiver(f), null);
+  f.comments = f.comments.filter((c) => c !== newest);
+  assert.equal(copilotWaiver(f), null);
+  f.comments.push({
+    ...newest,
+    id: 12,
+    body: `/copilot-waive ${sha} New explicit authorization`,
+    updated_at: at(9),
+  });
+  assert.equal(copilotWaiver(f).commentId, 12);
+});
+
+test('a newer invalid command cannot silently select an older still-valid one', () => {
+  const f = fixture();
+  f.comments.push({
+    ...f.comments[0],
+    id: 11,
+    body: `/copilot-waive ${sha}`,
+    updated_at: at(6),
+  });
+  assert.equal(copilotWaiver(f), null);
+});
+
+test('forged, quoted and malformed observations cannot change authorization', () => {
+  for (const kind of [
+    'forged',
+    'quoted',
+    'malformed',
+    'other-pr',
+    'other-sha',
+  ]) {
+    const f = fixture();
+    const newer = { ...copilotWaiver(f), commentId: 99, at: at(9) };
+    const recordPr =
+      kind === 'other-pr'
+        ? { ...f.pr, number: 99 }
+        : kind === 'other-sha'
+          ? { ...f.pr, head: { sha: 'b'.repeat(40) } }
+          : f.pr;
+    let body = waiverObservation(recordPr, newer) + '\nObserved';
+    if (kind === 'quoted') body = '> ' + body;
+    if (kind === 'malformed')
+      body = '<!-- copilot-waiver-observed invalid -->\n';
+    f.comments.push({
+      user: { login: kind === 'forged' ? 'developer' : 'github-actions[bot]' },
+      body,
+    });
+    assert.equal(copilotWaiver(f).commentId, 10);
+  }
+});

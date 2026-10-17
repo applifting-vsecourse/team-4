@@ -226,6 +226,31 @@ async function scenario(options) {
     process.exitCode = 0;
     await import(`./scripts/agent-review/run.mjs?qa-test=${i}`);
     calls.push('exit:' + (process.exitCode ?? 0));
+    if (i === 0 && options.replaceAfterFirst) {
+      for (const pr of prs) {
+        const old = comments
+          .get(pr.number)
+          .find((c) => c.body.startsWith('/copilot-waive'));
+        comments
+          .get(pr.number)
+          .push({
+            ...old,
+            id: old.id + 1000,
+            updated_at: new Date(Date.now() + 1000).toISOString(),
+          });
+      }
+    }
+    if (i === 1 && options.deleteNewestAfterSecond) {
+      for (const pr of prs)
+        comments.set(
+          pr.number,
+          comments
+            .get(pr.number)
+            .filter(
+              (c) => !(c.body.startsWith('/copilot-waive') && c.id > 1000),
+            ),
+        );
+    }
     if (i === 0 && options.revokeAfterFirst) {
       for (const pr of prs)
         comments.set(
@@ -462,4 +487,22 @@ test('waived dry run writes no fabricated verdict, handoff or request', () => {
     r.calls.some((c) => /^(request|handoff|status|comment):/.test(c)),
     false,
   );
+});
+
+test('real runner persists the latest waiver so deleting it cannot resurrect the earlier command', () => {
+  const r = run({
+    waiver: true,
+    verdict: 'findings',
+    replaceAfterFirst: true,
+    deleteNewestAfterSecond: true,
+    runs: 3,
+  });
+  assert.equal(r.status, 'Ready for Code Review');
+  assert.deepEqual(r.handoffs, [2]);
+  assert.equal(
+    r.prComments[12].filter((c) => c.startsWith('<!-- copilot-waiver-observed'))
+      .length,
+    2,
+  );
+  assert.equal(r.calls.filter((c) => c === 'request:12').length, 1);
 });

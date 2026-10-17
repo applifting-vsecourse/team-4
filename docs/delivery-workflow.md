@@ -86,6 +86,10 @@ a fake Copilot pass or deletes earlier findings. CI and branch protection remain
 unchanged; QA must approve the exact commit after the waiver and matching handoff.
 
 A new commit requires another full-SHA command or a successful Copilot review.
+Before using a waiver, the bot records the latest processed command identity for
+that PR and SHA. Deleting or invalidating it cannot revive an older command; a
+new explicit command is required. Commands deleted before the automation ever
+observed them cannot be reconstructed from the comments API.
 Editing the command changes its identity and requires a fresh matching handoff
 and later QA. Deleting it (or editing it into an invalid command) revokes it:
 the old bot handoff cannot act as authorization, and normal Copilot review applies

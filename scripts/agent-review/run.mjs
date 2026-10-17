@@ -29,7 +29,11 @@ import {
 
 import { planReview, executeReview } from './batches.mjs';
 import { ensureQaReviewRequest } from './qa-review.mjs';
-import { copilotWaiver, waiverMarker } from '../delivery/copilot-waiver.mjs';
+import {
+  copilotWaiver,
+  waiverMarker,
+  waiverObservation,
+} from '../delivery/copilot-waiver.mjs';
 
 import {
   issueRequirements,
@@ -315,7 +319,23 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
   }
   const comments = await listComments(pr);
   const waiver = copilotWaiver({ pr: meta, comments });
-  if (waiver) return { pr, sha, status: 'waived', waiver, url: waiver.url };
+  if (waiver) {
+    const observation = waiverObservation(meta, waiver);
+    if (
+      !comments.some(
+        (c) =>
+          c.user?.login === 'github-actions[bot]' &&
+          (c.body ?? '').startsWith(observation + '\n'),
+      )
+    ) {
+      await postComment(
+        pr,
+        observation +
+          '\nLatest processed manual Copilot waiver. Removing or invalidating this command must not restore an older waiver.',
+      );
+    }
+    return { pr, sha, status: 'waived', waiver, url: waiver.url };
+  }
   const scopeMarker = `<!-- agent-review-scope issue=${issue.number} -->`;
   const prior = findPriorResults({
     comments: comments.filter(
