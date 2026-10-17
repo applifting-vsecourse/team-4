@@ -9,6 +9,12 @@ Organize backend features into controllers, DTOs, services, domain models and re
 
 **Before writing or changing any UI, read [`DESIGN.md`](DESIGN.md).** It is intentionally empty until akc.io defines its design requirements.
 
+## Sitemap and story context
+
+Before implementing a story, read [the sitemap](docs/sitemap.md), the story and its sprint decisions. Identify the access area (public, participant, organization or event), data scope, existing destination and entry/exit paths before choosing routes or adding screens. The sitemap describes the target structure; the story defines the implementation scope. Do not implement deferred branches just because they appear in the map.
+
+Reuse the relevant existing page. Report conflicts or proposed structural changes to the PM before changing the navigation structure. Keep the FigJam source, text sitemap and story navigation context aligned for explicitly authorized changes; follow the ownership and maintenance rules in the sitemap. When working from a GitHub issue, also read the matching local story and its navigation context.
+
 ## Commands
 
 - `pnpm dev` — everything: env files, Postgres (Docker), migrate, run the seed entry point, both dev servers
