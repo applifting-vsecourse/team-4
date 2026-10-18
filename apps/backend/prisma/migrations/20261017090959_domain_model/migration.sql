@@ -374,3 +374,10 @@ ALTER SEQUENCE "registration_variable_symbol_seq" OWNED BY "registration"."varia
 -- registration_term / payment: money in haléře.
 ALTER TABLE "registration_term" ADD CONSTRAINT "registration_term_price_chk" CHECK ("priceMinor" >= 0);
 ALTER TABLE "payment" ADD CONSTRAINT "payment_amount_chk" CHECK ("amountMinor" > 0);
+
+-- email_delivery: each type points at what it is about. A registration
+-- confirmation may also carry the participant account (it contains a magic link).
+ALTER TABLE "email_delivery" ADD CONSTRAINT "email_delivery_target_chk" CHECK (
+  ("type" <> 'registration_confirmation' OR "registrationId" IS NOT NULL) AND
+  ("type" <> 'participant_magic_link' OR "participantAccountId" IS NOT NULL)
+);

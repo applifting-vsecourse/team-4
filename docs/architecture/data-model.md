@@ -302,6 +302,9 @@ hundreds of registrations, do not justify stored totals.
   added later from Resend webhooks (F50).
 - The e-mail body is **not stored**, because it contains the magic-link token.
 - The registration result never depends on this table (R13, S2-15).
+- `email_delivery_target_chk`: a `registration_confirmation` row has a `registrationId`,
+  a `participant_magic_link` row has a `participantAccountId`. A confirmation may set
+  both, because it carries a magic link.
 
 ### 3.12 Conventions
 
@@ -786,6 +789,12 @@ ALTER SEQUENCE registration_variable_symbol_seq OWNED BY "registration"."variabl
 -- registration_term / payment
 ALTER TABLE "registration_term" ADD CONSTRAINT registration_term_price_chk CHECK ("priceMinor" >= 0);
 ALTER TABLE "payment"           ADD CONSTRAINT payment_amount_chk          CHECK ("amountMinor" > 0);
+
+-- email_delivery (§3.11)
+ALTER TABLE "email_delivery" ADD CONSTRAINT email_delivery_target_chk CHECK (
+  ("type" <> 'registration_confirmation' OR "registrationId" IS NOT NULL) AND
+  ("type" <> 'participant_magic_link' OR "participantAccountId" IS NOT NULL)
+);
 ```
 
 ## 9. Isolated test and seed data
@@ -810,8 +819,11 @@ T1 requires a reproducible way to create isolated data.
 deploy`, `pnpm backend seed` twice, then `pnpm backend test:db`.
 - **Seed** (`src/scripts/seed/seed/seed-database.ts`, used by `pnpm dev` and staging
   demo data) contains fictional data only. It is idempotent: organizers are matched by
-  e-mail (created through BetterAuth sign-up, password `akcio-demo-heslo`), participant
-  accounts by e-mail and every other row by a fixed id.
+  e-mail (created through BetterAuth sign-up), participant accounts by e-mail and every
+  other row by a fixed id. Organizer password: `SEED_PASSWORD`; only with
+  `NODE_ENV=development` or `test` it falls back to `akcio-demo-heslo`. Elsewhere
+  (staging) the seed refuses to run without it, so the public demo password never
+  opens a deployed environment.
   - Two organizers, `org-a@example.test` and `org-b@example.test`. A owns _Spolek Jasan_
     and _Sportovní klub Modrá_ (switcher), B owns _Horský spolek Horizont_.
   - _Letní tábor 2027_ (open, `/e/demo-letni`): 1. turnus with two rooms (2 + 3 beds,

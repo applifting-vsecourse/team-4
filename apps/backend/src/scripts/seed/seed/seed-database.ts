@@ -11,7 +11,22 @@ import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 // events; organizer B owns a third organization for isolation checks. One
 // participant has registrations in both A's and B's events.
 
-export const SEED_PASSWORD = 'akcio-demo-heslo';
+// The well-known demo password is only for local development and tests. Any
+// other environment (staging) must supply SEED_PASSWORD, otherwise anyone who
+// reads this file could sign in as a seeded organizer.
+const LOCAL_SEED_PASSWORD = 'akcio-demo-heslo';
+const LOCAL_ENVIRONMENTS = ['development', 'test'];
+
+const seedPassword = (): string => {
+  const password = process.env.SEED_PASSWORD;
+  if (password) return password;
+  if (LOCAL_ENVIRONMENTS.includes(process.env.NODE_ENV ?? '')) {
+    return LOCAL_SEED_PASSWORD;
+  }
+  throw new Error(
+    'SEED_PASSWORD is required outside NODE_ENV=development/test.',
+  );
+};
 
 const id = (n: number): string =>
   `00000000-0000-7000-8000-${n.toString().padStart(12, '0')}`;
@@ -25,13 +40,14 @@ const DUE_DAYS = 14;
 const ensureOrganizer = async (
   prisma: PrismaService,
   auth: BetterAuth,
+  password: string,
   name: string,
   email: string,
 ): Promise<string> => {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return existing.id;
   const { user } = await auth.api.signUpEmail({
-    body: { name, email, password: SEED_PASSWORD },
+    body: { name, email, password },
   });
   return user.id;
 };
@@ -216,15 +232,18 @@ export const seedDatabase = async (
   prisma: PrismaService,
   auth: BetterAuth,
 ): Promise<void> => {
+  const password = seedPassword();
   const organizerA = await ensureOrganizer(
     prisma,
     auth,
+    password,
     'Alena Pořadatelová',
     'org-a@example.test',
   );
   const organizerB = await ensureOrganizer(
     prisma,
     auth,
+    password,
     'Bohumil Organizátor',
     'org-b@example.test',
   );
@@ -484,6 +503,6 @@ export const seedDatabase = async (
   }
 
   console.log(
-    `Seeded demo data. Organizers org-a@example.test and org-b@example.test, password "${SEED_PASSWORD}".`,
+    'Seeded demo data. Organizers org-a@example.test and org-b@example.test.',
   );
 };

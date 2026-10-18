@@ -362,3 +362,43 @@ describe('payment', () => {
     ).rejects.toThrow(/Foreign key constraint/);
   });
 });
+
+describe('email_delivery', () => {
+  it('requires the target that matches the type', async () => {
+    const { event, terms } = await createEvent(prisma, {
+      organizationId: (await createOrganization(prisma)).id,
+      terms: SUMMER,
+    });
+    const registration = await createRegistration(prisma, {
+      event,
+      terms: [{ term: terms[0], status: 'confirmed' }],
+    });
+    const recipientEmail = registration.email;
+
+    await expect(
+      prisma.emailDelivery.create({
+        data: { type: 'registration_confirmation', recipientEmail },
+      }),
+    ).rejects.toThrow(/email_delivery_target_chk/);
+    await expect(
+      prisma.emailDelivery.create({
+        data: {
+          type: 'participant_magic_link',
+          recipientEmail,
+          registrationId: registration.id,
+        },
+      }),
+    ).rejects.toThrow(/email_delivery_target_chk/);
+
+    await expect(
+      prisma.emailDelivery.create({
+        data: {
+          type: 'registration_confirmation',
+          recipientEmail,
+          registrationId: registration.id,
+          participantAccountId: registration.participantAccountId,
+        },
+      }),
+    ).resolves.toBeDefined();
+  });
+});
