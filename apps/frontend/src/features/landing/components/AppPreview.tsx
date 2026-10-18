@@ -2,10 +2,10 @@ import {
   BedDouble,
   CalendarCog,
   LayoutDashboard,
-  type LucideIcon,
   Plus,
   Users,
   WalletCards,
+  type LucideIcon,
 } from "lucide-react"
 
 import logoUrl from "@/assets/akcio-logo.png"

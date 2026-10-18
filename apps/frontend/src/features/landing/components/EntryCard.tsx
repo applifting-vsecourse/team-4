@@ -1,5 +1,5 @@
-import type { LucideIcon } from "lucide-react"
 import type { ReactNode } from "react"
+import type { LucideIcon } from "lucide-react"
 
 import { Card } from "@/components/ui/card"
 
