@@ -126,6 +126,18 @@ are ignored as direct event triggers to avoid self-triggering loops. The stage
 checker publishes a blocking check when scope, agent or QA evidence is missing.
 A green workflow execution is not the same as a green delivery verdict.
 
+## Releases and the stage
+
+https://team-4.vsepractical.applifting.dev is the stage; there is no separate
+production. Every push to `main` deploys it (`deploy.yml`) and publishes a
+GitHub Release (`release.yml`). The release bumps the patch of the highest
+`vX.Y.Z` tag, lists the issues the merged PR closes and links the Build & Deploy
+workflow. To put any released version on the stage, run that workflow with
+**Use workflow from → Tags → vX.Y.Z**. To bump minor or major, publish the
+higher tag by hand; the next merge continues from it.
+
+Redeploying an older version does not roll back database migrations.
+
 ## Configuration and validation
 
 `PROJECT_AUTOMATION_TOKEN` is needed for the board; `COPILOT_GITHUB_TOKEN` is needed
