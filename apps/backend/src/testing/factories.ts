@@ -120,14 +120,18 @@ export const createEvent = async (
           eventId: event.id,
           label: room.label ?? `Room ${index + 1}`,
           bedCount: room.bedCount,
-          availabilities: {
-            create: room.termIndexes.map((termIndex) => ({
-              termId: terms[termIndex].id,
-            })),
-          },
         },
       }),
     );
+    // Not a nested `create`: Prisma cannot fill the composite (roomId, eventId)
+    // key of the child row and fails with a 500-style error.
+    await prisma.roomTermAvailability.createMany({
+      data: room.termIndexes.map((termIndex) => ({
+        roomId: rooms[index].id,
+        termId: terms[termIndex].id,
+        eventId: event.id,
+      })),
+    });
   }
 
   return { event, terms, rooms };
