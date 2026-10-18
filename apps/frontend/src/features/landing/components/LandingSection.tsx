@@ -13,9 +13,11 @@ export function LandingSection({ children, labelledBy, isMuted = false }: Landin
   return (
     <section
       aria-labelledby={labelledBy}
-      className={cn("py-10 md:py-14", isMuted && "bg-muted")}
+      className={cn("py-12 md:py-24", isMuted && "bg-muted")}
     >
-      <div className="mx-auto flex w-full max-w-280 flex-col gap-6 px-4 md:px-8">{children}</div>
+      <div className="mx-auto flex w-full max-w-280 flex-col gap-6 px-4 md:gap-10 md:px-8">
+        {children}
+      </div>
     </section>
   )
 }
