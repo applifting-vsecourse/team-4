@@ -7,7 +7,13 @@ akc.io is an event management product, developed as a pnpm monorepo with two app
 
 Organize backend features into controllers, DTOs, services, domain models and repositories. Organize frontend features into API schemas, query options, hooks and components. Keep shared infrastructure outside feature folders.
 
-**Before writing or changing any UI, read [`DESIGN.md`](DESIGN.md).** It is intentionally empty until akc.io defines its design requirements.
+**Before writing or changing any UI, read [`DESIGN.md`](DESIGN.md).** It is the akc.io design system: tokens, components and how to add them (#79).
+
+## Sitemap and story context
+
+Before implementing a story, read [the sitemap](docs/sitemap.md), the story and its sprint decisions. Identify the access area (public, participant, organization or event), data scope, existing destination and entry/exit paths before choosing routes or adding screens. The sitemap describes the target structure; the story defines the implementation scope. Do not implement deferred branches just because they appear in the map.
+
+Reuse the relevant existing page. Report conflicts or proposed structural changes to the PM before changing the navigation structure. Keep the FigJam source, text sitemap and story navigation context aligned for explicitly authorized changes; follow the ownership and maintenance rules in the sitemap. When working from a GitHub issue, also read the matching local story and its navigation context.
 
 ## Commands
 
@@ -48,11 +54,24 @@ Don't reach for the browser to check your own work. Tests and type-checks are th
 
 ### Delivery gates
 
-Every implementation PR links its issues with `Closes #N`. Request requirements
-review from `darebakdavca`; independent agent review and requirements approval
-must precede the Ready for Testing handoff. `MatejKrones` approves QA after testing
-the handoff commit. On David’s PRs, Matej covers both human stages; on Matej’s
-PRs, David covers both. The substitute approves once for requirements and again
-after the testing handoff for QA. All stages and CI must pass before merging. New code requires
-fresh reviews and QA. See [the delivery workflow](docs/delivery-workflow.md).
+Every implementation PR links its issues with `Closes #N`. Leave the issue In
+Progress until its requirements are approved. Record requirements approval once
+on the issue; implementation commits do not invalidate it. The PM may approve
+through a linked PR review or `/requirements-approve` on the issue. A repository
+collaborator may request fresh scope review with `/requirements-rereview`.
+Issue title/body changes also invalidate the recorded scope approval.
+
+PRs authored by `darebakdavca` remain exempt from requirements review. Code review
+and QA always apply to the current commit; new code goes through Code Review
+again without repeating unchanged requirements approval. `MatejKrones` approves
+QA after the testing handoff; on Matej’s PRs, David performs QA. Do not request
+Matej automatically at PR creation; request the QA owner only after successful
+independent review when handing the current commit to Ready for Testing. GitHub’s code-owner approval requirement is
+redundant with the named delivery gates and is disabled; CODEOWNERS routes only
+David's requirements requests. See [the delivery workflow](docs/delivery-workflow.md).
+Only `darebakdavca` may waive Copilot review with a standalone PR comment
+`/copilot-waive <full-current-SHA> <reason>`. A waiver replaces only Copilot review
+for that PR commit; requirements, CI and post-handoff QA still apply. Preserve
+findings and record a manual waiver, never a fabricated Copilot pass. A new
+commit needs a new waiver or review; recheck edited/deleted commands.
 Never manufacture passing gate evidence or bypass merge protection.

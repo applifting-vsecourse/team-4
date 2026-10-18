@@ -1,5 +1,7 @@
 # Mapa sprint stories
 
+Před implementací čti [sitemapu](../../sitemap.md) a navigační kontext v příslušné lokální story. Cílová struktura nenahrazuje [rozsah sprintu](README.md).
+
 | Story                                                                                       | Název                                                  | Původní issues                                                                                                                                                                                                                                                     |
 | ------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [S2-01](stories/s2-01.md) · [#80](https://github.com/applifting-vsecourse/team-4/issues/80) | Landing page s přechodem na přihlášení                 | [#67](https://github.com/applifting-vsecourse/team-4/issues/67), [#69](https://github.com/applifting-vsecourse/team-4/issues/69), [#71](https://github.com/applifting-vsecourse/team-4/issues/71), [#72](https://github.com/applifting-vsecourse/team-4/issues/72) |

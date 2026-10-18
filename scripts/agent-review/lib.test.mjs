@@ -5,6 +5,7 @@ import {
   decideIssue,
   formatIssueNote,
   findPriorResults,
+  formatPrComment,
   parseVerdict,
   prMarker,
 } from './lib.mjs';
@@ -30,7 +31,7 @@ test('parseVerdict accepts findings, including fenced JSON', () => {
   assert.equal(v.ok, true);
   assert.equal(v.verdict, 'findings');
   assert.deepEqual(v.findings, [
-    { file: 'a.ts', line: 8, issue: 'off by one' },
+    { severity: 'blocker', file: 'a.ts', line: 8, issue: 'off by one' },
   ]);
 });
 
@@ -47,13 +48,101 @@ test('parseVerdict rejects output that is not a verdict', () => {
   }
 });
 
-test('parseVerdict rejects inconsistent verdicts', () => {
-  assert.equal(
-    parseVerdict('{"verdict":"pass","findings":[{"issue":"x"}]}').ok,
-    false,
-  );
+test('parseVerdict rejects unusable verdicts', () => {
   assert.equal(parseVerdict('{"verdict":"findings","findings":[]}').ok, false);
   assert.equal(parseVerdict('{"verdict":"pass"}').ok, false);
+  assert.equal(
+    parseVerdict('{"verdict":"pass","findings":[{"severity":"note"}]}').ok,
+    false,
+  );
+});
+
+test('notes alone never block, whatever verdict the agent states', () => {
+  const finding = '{"severity":"note","file":"a.tsx","issue":"use a heading"}';
+  for (const verdict of ['pass', 'findings']) {
+    const v = parseVerdict(`{"verdict":"${verdict}","findings":[${finding}]}`);
+    assert.equal(v.ok, true, verdict);
+    assert.equal(v.verdict, 'pass', verdict);
+    assert.equal(v.findings.length, 1);
+  }
+});
+
+test('a blocker blocks even when the agent says pass', () => {
+  const v = parseVerdict(
+    '{"verdict":"pass","findings":[{"severity":"blocker","issue":"crashes"},{"severity":"note","issue":"nit"}]}',
+  );
+  assert.equal(v.verdict, 'findings');
+});
+
+test('a finding without an explicit severity is treated as a blocker', () => {
+  for (const f of ['{"issue":"x"}', '{"severity":"minor","issue":"x"}']) {
+    const v = parseVerdict(`{"verdict":"pass","findings":[${f}]}`);
+    assert.equal(v.verdict, 'findings', f);
+    assert.equal(v.findings[0].severity, 'blocker', f);
+  }
+});
+
+test('the prompt tells the agent that only app-breaking defects block', () => {
+  const prompt = buildPrompt({
+    issue: { number: 1, title: 't', body: '' },
+    prNumber: 2,
+    prCount: 1,
+    diff: 'd',
+    rules: [],
+  });
+  assert.match(
+    prompt,
+    /"blocker": code that, as written, would actually break/,
+  );
+  assert.match(prompt, /"note": everything else/);
+  assert.match(
+    prompt,
+    /Use "findings" only if at least one finding is a "blocker"/,
+  );
+});
+
+test('formatPrComment shows notes on a pass without blocking sections', () => {
+  const body = formatPrComment({
+    sha: SHA,
+    result: 'pass',
+    findings: [
+      { severity: 'note', file: 'a.tsx', line: 3, issue: 'use a heading' },
+    ],
+    attempt: 1,
+    pr: 7,
+    issue: 5,
+  });
+  assert.match(body, /result=pass/);
+  assert.match(body, /bez blokujících nálezů/);
+  assert.match(
+    body,
+    /Poznámky \(neblokují\):\*\*\n- `a.tsx:3` — use a heading/,
+  );
+  assert.doesNotMatch(body, /Blokující nálezy:/);
+});
+
+test('formatPrComment separates blockers from notes and bounds the list', () => {
+  const notes = Array.from({ length: 25 }, (_, i) => ({
+    severity: 'note',
+    file: null,
+    line: null,
+    issue: `note ${i}`,
+  }));
+  const body = formatPrComment({
+    sha: SHA,
+    result: 'findings',
+    findings: [
+      { severity: 'blocker', file: 'b.ts', line: null, issue: 'crashes' },
+      ...notes,
+    ],
+    attempt: 1,
+    pr: 7,
+    issue: 5,
+  });
+  assert.match(body, /Blokující nálezy:\*\*\n- `b.ts` — crashes/);
+  assert.match(body, /Poznámky \(neblokují\)/);
+  assert.match(body, /a dalších 5/);
+  assert.equal(body.match(/note \d+/g).length, 20);
 });
 
 test('findPriorResults only trusts bot comments for the exact commit', () => {

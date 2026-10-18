@@ -1,4 +1,6 @@
 import { evaluate } from './lib.mjs';
+import { issueRequirements } from './requirements.mjs';
+import { copilotWaiver } from './copilot-waiver.mjs';
 
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
@@ -59,6 +61,16 @@ for (const pr of await list(`/repos/${repo}/pulls?state=open&base=main`)) {
     const issues = await issuesFor(pr);
     const reviews = await list(`/repos/${repo}/pulls/${pr.number}/reviews`);
     const comments = await list(`/repos/${repo}/issues/${pr.number}/comments`);
+    for (const issue of issues) {
+      const content = await api(`/repos/${repo}/issues/${issue.number}`);
+      const scope = issueRequirements(
+        content,
+        await list(`/repos/${repo}/issues/${issue.number}/comments`),
+        [{ pr, reviews }],
+      );
+      issue.requirements = scope.approval;
+      issue.requirementsVersion = scope.version;
+    }
     const result = evaluate({ pr, issues, reviews, comments });
     // Never report a pass on a head which moved while reading evidence.
     const current = await api(`/repos/${repo}/pulls/${pr.number}`);
@@ -72,7 +84,9 @@ for (const pr of await list(`/repos/${repo}/pulls?state=open&base=main`)) {
           ? 'All delivery stages passed'
           : 'Delivery stages incomplete',
         summary: result.pass
-          ? 'Requirements and agent review passed before QA approved this commit.'
+          ? copilotWaiver({ pr, comments })
+            ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
+            : 'Requirements and agent review passed before QA approved this commit.'
           : result.reasons.map((r) => `- ${r}`).join('\n'),
       },
     });

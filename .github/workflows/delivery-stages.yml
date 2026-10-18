@@ -1,6 +1,12 @@
 name: Delivery stage enforcement
 
 on:
+  issues:
+    types: [edited]
+  issue_comment:
+    types: [created, edited, deleted]
+  pull_request_review:
+    types: [submitted, dismissed]
   pull_request_target:
     types:
       [
@@ -31,6 +37,7 @@ concurrency:
 
 jobs:
   enforce:
+    if: github.event_name != 'issue_comment' || github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

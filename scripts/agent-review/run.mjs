@@ -8,26 +8,38 @@ import { readFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import {
   MAX_ATTEMPTS,
-  MAX_PROMPT_BYTES,
   STATUS_REVIEW,
   STATUS_TESTING,
-  buildPrompt,
   decideIssue,
   findPriorResults,
   formatIssueNote,
   formatPrComment,
   hasBotComment,
   issueMarker,
-  parseVerdict,
   resultsKey,
 } from './lib.mjs';
 
 import {
   reviewersFor,
-  approved,
-  latestReview,
+  requirementsApproval,
+  requirementsMarker,
+  requirementsTransition,
   readyMarker,
 } from '../delivery/lib.mjs';
+
+import { planReview, executeReview } from './batches.mjs';
+import { ensureQaReviewRequest } from './qa-review.mjs';
+import {
+  copilotWaiver,
+  waiverMarker,
+  waiverObservation,
+} from '../delivery/copilot-waiver.mjs';
+
+import {
+  issueRequirements,
+  scopeMarker,
+  scopeHash,
+} from '../delivery/requirements.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -178,19 +190,15 @@ async function currentStatus(itemId) {
   return data.node?.status?.name ?? null;
 }
 
-/** Moves the card unless a human changed its status since we started. */
-async function moveToTesting(board, item) {
+/** Change only the status observed at the start; preserve concurrent human edits. */
+async function moveStatus(board, item, target) {
   const status = await currentStatus(item.id);
-  if (status === STATUS_TESTING) return true;
-  if (status !== STATUS_REVIEW) return false;
-  const option = board.project.field.options.find(
-    (o) => o.name === STATUS_TESTING,
-  );
-  if (!option) throw new Error(`Status option "${STATUS_TESTING}" not found`);
+  if (status !== item.status?.name) return false;
+  if (status === target) return true;
+  const option = board.project.field.options.find((o) => o.name === target);
+  if (!option) throw new Error(`Status option "${target}" not found`);
   if (cfg.dryRun) {
-    console.log(
-      `[dry-run] would move #${item.content.number} to ${STATUS_TESTING}`,
-    );
+    console.log(`[dry-run] would move #${item.content.number} to ${target}`);
     return true;
   }
   await graphql(
@@ -241,7 +249,7 @@ async function runCopilot(prompt) {
     // No tool permissions are granted and the environment is stripped, so a
     // prompt injected through the diff can neither act nor read our tokens.
     const { stdout } = await execFileAsync('copilot', args, {
-      timeout: 10 * 60 * 1000,
+      timeout: 3 * 60 * 1000,
       maxBuffer: 10 * 1024 * 1024,
       env: {
         PATH: process.env.PATH,
@@ -273,13 +281,67 @@ async function readRules() {
   return rules;
 }
 
-async function reviewPr({ pr, issue, prCount, rules }) {
+async function reviewPr({ pr, issue, prCount, rules, requirements }) {
   const meta = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${pr}`);
   const sha = meta.head.sha;
+  const currentReviews = [];
+  for (let page = 1; ; page++) {
+    const batch = await api(
+      cfg.githubToken,
+      `/repos/${cfg.repo}/pulls/${pr}/reviews?per_page=100&page=${page}`,
+    );
+    currentReviews.push(...batch);
+    if (batch.length < 100) break;
+  }
+  const currentIssue = await api(
+    cfg.githubToken,
+    `/repos/${cfg.repo}/issues/${issue.number}`,
+  );
+  const preflight = issueRequirements(
+    currentIssue,
+    await listComments(issue.number),
+    [{ pr: meta, reviews: currentReviews }],
+  );
+  meta.requirements = preflight.approval;
+  meta.requirementsVersion = preflight.version;
+  if (
+    meta.state !== 'open' ||
+    meta.base.ref !== 'main' ||
+    sha !== requirements.sha ||
+    requirementsApproval(meta, currentReviews)?.id !== requirements.reviewId
+  ) {
+    return {
+      pr,
+      sha,
+      status: 'stale',
+      reason: 'Requirements or code changed before review',
+    };
+  }
+  const comments = await listComments(pr);
+  const waiver = copilotWaiver({ pr: meta, comments });
+  if (waiver) {
+    const observation = waiverObservation(meta, waiver);
+    if (
+      !comments.some(
+        (c) =>
+          c.user?.login === 'github-actions[bot]' &&
+          (c.body ?? '').startsWith(observation + '\n'),
+      )
+    ) {
+      await postComment(
+        pr,
+        observation +
+          '\nLatest processed manual Copilot waiver. Removing or invalidating this command must not restore an older waiver.',
+      );
+    }
+    return { pr, sha, status: 'waived', waiver, url: waiver.url };
+  }
   const scopeMarker = `<!-- agent-review-scope issue=${issue.number} -->`;
   const prior = findPriorResults({
-    comments: (await listComments(pr)).filter((c) =>
-      (c.body ?? '').startsWith(scopeMarker + '\n'),
+    comments: comments.filter(
+      (c) =>
+        (c.body ?? '').startsWith(scopeMarker + '\n') &&
+        Date.parse(c.created_at) >= Date.parse(requirements.created_at),
     ),
     pr,
     sha,
@@ -301,30 +363,20 @@ async function reviewPr({ pr, issue, prCount, rules }) {
   const diff = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${pr}`, {
     accept: 'application/vnd.github.diff',
   });
-  const prompt = buildPrompt({
-    issue,
-    prNumber: pr,
-    prCount,
-    diff,
-    rules,
-  });
-
+  const context = { issue, prNumber: pr, prCount, diff, rules };
   let outcome;
-  let attempt = prior.errorAttempts + 1;
-  if (Buffer.byteLength(prompt) > MAX_PROMPT_BYTES) {
-    // Deterministic failure: retrying would burn credits for the same result.
-    attempt = MAX_ATTEMPTS;
+  const attempt = prior.errorAttempts + 1;
+  let plan;
+  try {
+    plan = planReview(context, meta);
+  } catch (error) {
     outcome = {
       status: 'error',
-      reason: `diff je příliš velký pro jedno review (limit ${MAX_PROMPT_BYTES} B); rozdělte PR`,
+      reason: `Review not started: ${error.message} Copilot was not called.`,
     };
-  } else {
-    const run = await runCopilot(prompt);
-    const verdict = run.ok ? parseVerdict(run.stdout) : run;
-    outcome = verdict.ok
-      ? { status: verdict.verdict, findings: verdict.findings }
-      : { status: 'error', reason: verdict.reason };
   }
+  if (plan)
+    outcome = await executeReview(plan, context, runCopilot, console.log);
 
   const comment = await postComment(
     pr,
@@ -336,6 +388,7 @@ async function reviewPr({ pr, issue, prCount, rules }) {
         findings: outcome.findings,
         reason: outcome.reason,
         attempt,
+        coverage: outcome.coverage,
         pr,
         issue: issue.number,
       }),
@@ -355,60 +408,216 @@ async function processIssue(board, item) {
     )
     .map((p) => p.number);
 
+  async function snapshots() {
+    const all = [];
+    for (const number of prNumbers) {
+      const pr = await api(
+        cfg.githubToken,
+        `/repos/${cfg.repo}/pulls/${number}`,
+      );
+      const reviews = [];
+      for (let page = 1; ; page++) {
+        const batch = await api(
+          cfg.githubToken,
+          `/repos/${cfg.repo}/pulls/${number}/reviews?per_page=100&page=${page}`,
+        );
+        reviews.push(...batch);
+        if (batch.length < 100) break;
+      }
+      if (pr.state !== 'open' || pr.base.ref !== 'main')
+        throw new Error(`PR #${number} is not open against main`);
+      all.push({ pr, reviews });
+    }
+    const currentIssue = await api(
+      cfg.githubToken,
+      `/repos/${cfg.repo}/issues/${issue.number}`,
+    );
+    if (scopeHash(currentIssue) !== scopeHash(issue))
+      throw new Error(
+        'Issue scope changed during processing; retry before reviewing',
+      );
+    const scope = issueRequirements(
+      currentIssue,
+      await listComments(issue.number),
+      all,
+    );
+    if (scope.resetRecord)
+      await postComment(
+        issue.number,
+        `${scopeMarker('requirements-reset', scope.resetRecord)}\nRequirements re-review requested. Implementation fixes alone do not revoke scope approval.`,
+      );
+    if (scope.grantRecord)
+      await postComment(
+        issue.number,
+        `${scopeMarker('issue-requirements', scope.grantRecord)}\nRequirements approved by @${scope.grantRecord.reviewer} for the current issue scope. This approval survives implementation commits; use /requirements-rereview when scope changes.`,
+      );
+    for (const entry of all) {
+      entry.pr.requirements = scope.approval;
+      entry.pr.requirementsVersion = scope.version;
+    }
+    return all;
+  }
+  const initial = await snapshots();
+  const transition = requirementsTransition(item.status?.name, initial);
+  if (transition.review && item.status?.name === STATUS_TESTING) {
+    for (const { pr, reviews } of initial) {
+      const approval = requirementsApproval(pr, reviews);
+      const marker = requirementsMarker(
+        pr.number,
+        pr.head.sha,
+        issue.number,
+        approval.id,
+      );
+      if (
+        !(await listComments(pr.number)).some(
+          (c) =>
+            c.user?.login === 'github-actions[bot]' &&
+            (c.body ?? '').startsWith(marker + '\n'),
+        )
+      ) {
+        transition.status = STATUS_REVIEW;
+        break;
+      }
+    }
+  }
+  if (!(await moveStatus(board, item, transition.status))) return;
+  item = { ...item, status: { name: transition.status } };
+  if (!transition.review) {
+    console.log(
+      `  -> ${transition.status}: waiting for current requirements approval`,
+    );
+    return;
+  }
+  const requirementRecords = new Map();
+  for (const { pr, reviews } of initial) {
+    const approval = requirementsApproval(pr, reviews);
+    const marker = requirementsMarker(
+      pr.number,
+      pr.head.sha,
+      issue.number,
+      approval.id,
+    );
+    let record = (await listComments(pr.number))
+      .filter(
+        (c) =>
+          c.user?.login === 'github-actions[bot]' &&
+          (c.body ?? '').startsWith(marker + '\n'),
+      )
+      .at(-1);
+    if (!record)
+      record = await postComment(
+        pr.number,
+        `${marker}\n${approval.exempt ? 'Requirements review is exempt because the PR author is darebakdavca' : `Issue requirements approved by @${reviewersFor(pr.user.login).requirements}`} for commit \`${pr.head.sha}\`. Issue #${issue.number} is eligible for independent code review.`,
+      );
+    requirementRecords.set(pr.number, {
+      ...record,
+      created_at: record.created_at ?? new Date().toISOString(),
+      sha: pr.head.sha,
+      reviewId: approval.id,
+    });
+  }
   const rules = await readRules();
   const results = [];
   for (const pr of prNumbers) {
     results.push(
-      await reviewPr({ pr, issue, prCount: prNumbers.length, rules }),
+      await reviewPr({
+        pr,
+        issue,
+        prCount: prNumbers.length,
+        rules,
+        requirements: requirementRecords.get(pr),
+      }),
     );
   }
 
   // A push during the review makes the verdict stale: compare against the
   // heads as they are right now, immediately before deciding.
   for (const r of results) {
-    if (r.status !== 'pass') continue;
+    if (!['pass', 'waived'].includes(r.status)) continue;
     const now = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${r.pr}`);
     if (now.head.sha !== r.sha) r.status = 'stale';
   }
 
-  const decision = decideIssue(results);
-  // Requirements approval is independent of technical review, but both must
-  // pass before handing this exact code to QA.
-  const rolesByPr = new Map();
-  for (const r of results) {
-    const meta = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${r.pr}`);
-    const roles = reviewersFor(meta.user.login);
-    rolesByPr.set(r.pr, roles);
-    const reviews = [];
-    for (let page = 1; ; page++) {
-      const batch = await api(
-        cfg.githubToken,
-        `/repos/${cfg.repo}/pulls/${r.pr}/reviews?per_page=100&page=${page}`,
-      );
-      reviews.push(...batch);
-      if (batch.length < 100) break;
-    }
-    if (!approved(latestReview(reviews, roles.requirements), r.sha)) {
-      decision.outcome = 'blocked';
-      decision.reasons.push(
-        `PR #${r.pr}: chybí schválení požadavků od ${roles.requirements} pro aktuální commit.`,
-      );
-    }
+  // Re-read every head and review after Copilot. Revocation or a push must
+  // return the issue to requirements review and must never hand code to QA.
+  const current = await snapshots();
+  const rolesByPr = new Map(
+    current.map(({ pr }) => [pr.number, reviewersFor(pr.user.login)]),
+  );
+  const stillApproved = requirementsTransition(item.status.name, current);
+  if (
+    !stillApproved.review ||
+    current.some(
+      ({ pr }) =>
+        pr.head.sha !==
+          initial.find((s) => s.pr.number === pr.number).pr.head.sha ||
+        pr.state !== 'open' ||
+        pr.base.ref !== 'main' ||
+        requirementsApproval(
+          pr,
+          current.find((s) => s.pr.number === pr.number).reviews,
+        )?.id !==
+          requirementsApproval(
+            initial.find((s) => s.pr.number === pr.number).pr,
+            initial.find((s) => s.pr.number === pr.number).reviews,
+          )?.id,
+    )
+  ) {
+    const next = stillApproved.review ? STATUS_REVIEW : 'In Progress';
+    await moveStatus(board, item, next);
+    console.log(`  -> ${next}: scope or code changed during review`);
+    return;
   }
+  // A deleted/edited waiver must not be cached as a successful model review.
+  // Read the native PR comments again immediately before the QA handoff.
+  for (const r of results) {
+    if (r.status !== 'waived') continue;
+    const live = copilotWaiver({
+      pr: current.find(({ pr }) => pr.number === r.pr).pr,
+      comments: await listComments(r.pr),
+    });
+    if (live?.source !== r.waiver.source) r.status = 'stale';
+  }
+  const decision = decideIssue(results);
   let moved = false;
   if (decision.outcome === 'pass') {
-    moved = await moveToTesting(board, item);
+    moved = await moveStatus(board, item, STATUS_TESTING);
     if (moved) {
       for (const r of results) {
-        const marker = readyMarker(r.pr, r.sha, issue.number);
-        if (!hasBotComment(await listComments(r.pr), marker)) {
+        const marker =
+          readyMarker(r.pr, r.sha, issue.number) +
+          (r.status === 'waived' ? '\n' + waiverMarker(r.waiver) : '');
+        if (
+          !(await listComments(r.pr)).some(
+            (c) =>
+              c.user?.login === 'github-actions[bot]' &&
+              (c.body ?? '').startsWith(marker + '\n') &&
+              Date.parse(c.created_at) >=
+                Date.parse(requirementRecords.get(r.pr).created_at),
+          )
+        ) {
           await postComment(
             r.pr,
-            `${marker}\nRequirements approval and independent agent review passed for commit \`${r.sha}\`. Issue #${issue.number} entered **Ready for Testing**. @${rolesByPr.get(r.pr).qa}: test this commit, then submit an approving PR review. New commits require all stages again.`,
+            `${marker}\n${r.status === 'waived' ? `Copilot review manually waived by @darebakdavca ([command](${r.waiver.url})). Reason: ${r.waiver.reason}. Requirements policy remains satisfied; this is not a Copilot pass` : rolesByPr.get(r.pr).requirements === null ? 'Requirements exemption applied; independent agent review passed' : 'Issue requirements approval is valid; independent agent review passed'} for commit \`${r.sha}\`. Issue #${issue.number} entered **Ready for Testing**. @${rolesByPr.get(r.pr).qa}: test this commit, then submit an approving PR review. New commits require fresh agent review and QA; issue requirements approval persists unless scope changes.`,
           );
         }
+        const snapshot = current.find(({ pr }) => pr.number === r.pr);
+        await ensureQaReviewRequest({
+          api: (path, options) => api(cfg.githubToken, path, options),
+          repo: cfg.repo,
+          pr: snapshot.pr,
+          issue: {
+            number: issue.number,
+            requirements: snapshot.pr.requirements,
+            requirementsVersion: snapshot.pr.requirementsVersion,
+          },
+          dryRun: cfg.dryRun,
+          waiver: r.waiver,
+        });
       }
     }
+  } else if (item.status.name === STATUS_TESTING) {
+    await moveStatus(board, item, STATUS_REVIEW);
   }
 
   const state = `${decision.outcome === 'pass' ? (moved ? 'moved' : 'skipped') : 'blocked'}|${resultsKey(results) || 'no-pr'}`;
@@ -434,13 +643,19 @@ if (!board.project.field) throw new Error('Status field not found');
 
 const candidates = board.items.filter(
   (i) =>
-    [STATUS_REVIEW, STATUS_TESTING].includes(i.status?.name) &&
+    [
+      'In Progress',
+      STATUS_REVIEW,
+      STATUS_TESTING,
+      'Done',
+      'Accepted by PO',
+    ].includes(i.status?.name) &&
     i.content?.state === 'OPEN' &&
     i.content.repository?.nameWithOwner === cfg.repo &&
     (!cfg.onlyIssue || i.content.number === cfg.onlyIssue),
 );
 console.log(
-  `${candidates.length} issue(s) in "${STATUS_REVIEW}"${cfg.dryRun ? ' [dry-run]' : ''}`,
+  `${candidates.length} issue(s) in active delivery stages${cfg.dryRun ? ' [dry-run]' : ''}`,
 );
 
 for (const item of candidates) {
