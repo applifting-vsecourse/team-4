@@ -71,21 +71,317 @@ model Verification {
 }
 
 model User {
-  id              String    @id
-  name            String
-  email           String
-  emailVerified   Boolean
-  image           String?   @db.Text
-  createdAt       DateTime
-  updatedAt       DateTime
-  sessions        Session[]
-  accounts        Account[]
-  role            UserRole  @default(user)
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?   @db.Text
+  createdAt     DateTime
+  updatedAt     DateTime
+  sessions      Session[]
+  accounts      Account[]
+  role          UserRole  @default(user)
 
   username        String? @db.VarChar(50)
   displayUsername String? @db.VarChar(50)
 
+  organizationMemberships OrganizationMember[]
+  recordedPayments        Payment[]
+
   @@unique([email])
   @@unique([username])
   @@map("user")
+}
+
+// akc.io domain model. Design, constraints and sources of truth:
+// docs/architecture/data-model.md. CHECK and EXCLUDE constraints and the
+// variable-symbol sequence are not expressible in Prisma; they live in the
+// migration SQL and are covered by src/**/*.db-spec.ts.
+
+// ─── Organizations & tenancy ────────────────────────────────────────────────
+
+enum OrganizationRole {
+  owner
+
+  @@map("organization_role")
+}
+
+model Organization {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String   @db.VarChar(200)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  members       OrganizationMember[]
+  events        Event[]
+  registrations Registration[]
+  payments      Payment[]
+
+  @@map("organization")
+}
+
+model OrganizationMember {
+  organizationId String           @db.Uuid
+  userId         String
+  role           OrganizationRole @default(owner)
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@id([organizationId, userId])
+  @@index([userId])
+  @@map("organization_member")
+}
+
+// ─── Events, terms, accommodation ───────────────────────────────────────────
+
+enum EventStatus {
+  draft
+  open
+  closed
+
+  @@map("event_status")
+}
+
+model Event {
+  id             String      @id @default(uuid(7)) @db.Uuid
+  organizationId String      @db.Uuid
+  publicId       String      @unique @db.VarChar(16)
+  name           String      @db.VarChar(200)
+  description    String      @db.Text
+  location       String      @db.VarChar(300)
+  status         EventStatus @default(draft)
+  firstOpenedAt  DateTime?   @db.Timestamptz(3)
+
+  bankAccountPrefix String? @db.VarChar(6)
+  bankAccountNumber String? @db.VarChar(10)
+  bankCode          String? @db.Char(4)
+  paymentDueDays    Int?
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  organization       Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  terms              EventTerm[]
+  rooms              Room[]
+  roomAvailabilities RoomTermAvailability[]
+  registrations      Registration[]
+  registrationTerms  RegistrationTerm[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId, createdAt])
+  @@map("event")
+}
+
+model EventTerm {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  eventId    String   @db.Uuid
+  label      String   @db.VarChar(100)
+  startDate  DateTime @db.Date
+  endDate    DateTime @db.Date
+  priceMinor Int
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  event              Event                  @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  roomAvailabilities RoomTermAvailability[]
+  registrationTerms  RegistrationTerm[]
+
+  @@unique([id, eventId])
+  @@index([eventId, startDate])
+  @@map("event_term")
+}
+
+model Room {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  eventId   String   @db.Uuid
+  label     String   @db.VarChar(100)
+  bedCount  Int
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  event          Event                  @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  availabilities RoomTermAvailability[]
+
+  @@unique([id, eventId])
+  @@unique([eventId, label])
+  @@map("room")
+}
+
+model RoomTermAvailability {
+  roomId  String @db.Uuid
+  termId  String @db.Uuid
+  eventId String @db.Uuid
+
+  room  Room      @relation(fields: [roomId, eventId], references: [id, eventId], onDelete: Cascade)
+  term  EventTerm @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Cascade)
+  event Event     @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  @@id([roomId, termId])
+  @@index([termId])
+  @@map("room_term_availability")
+}
+
+// ─── Participants & access ──────────────────────────────────────────────────
+
+model ParticipantAccount {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  email     String   @unique @db.VarChar(320) // normalized: trimmed + lower-case
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  registrations Registration[]
+  magicLinks    ParticipantMagicLink[]
+  sessions      ParticipantSession[]
+  emails        EmailDelivery[]
+
+  @@map("participant_account")
+}
+
+model ParticipantMagicLink {
+  id                   String    @id @default(uuid(7)) @db.Uuid
+  participantAccountId String    @db.Uuid
+  tokenHash            String    @unique @db.Char(64) // SHA-256 hex
+  expiresAt            DateTime  @db.Timestamptz(3)
+  consumedAt           DateTime? @db.Timestamptz(3)
+  createdAt            DateTime  @default(now()) @db.Timestamptz(3)
+
+  participantAccount ParticipantAccount @relation(fields: [participantAccountId], references: [id], onDelete: Cascade)
+
+  @@index([participantAccountId, createdAt])
+  @@map("participant_magic_link")
+}
+
+model ParticipantSession {
+  id                   String    @id @default(uuid(7)) @db.Uuid
+  participantAccountId String    @db.Uuid
+  tokenHash            String    @unique @db.Char(64)
+  expiresAt            DateTime  @db.Timestamptz(3)
+  revokedAt            DateTime? @db.Timestamptz(3)
+  createdAt            DateTime  @default(now()) @db.Timestamptz(3)
+
+  participantAccount ParticipantAccount @relation(fields: [participantAccountId], references: [id], onDelete: Cascade)
+
+  @@index([participantAccountId])
+  @@map("participant_session")
+}
+
+// ─── Registrations ──────────────────────────────────────────────────────────
+
+enum ParticipationStatus {
+  confirmed
+  waitlisted
+
+  @@map("participation_status")
+}
+
+model Registration {
+  id                   String @id @default(uuid(7)) @db.Uuid
+  organizationId       String @db.Uuid
+  eventId              String @db.Uuid
+  participantAccountId String @db.Uuid
+  submissionKey        String @unique @db.Uuid
+  variableSymbol       String @unique @default(dbgenerated("(nextval('registration_variable_symbol_seq'::regclass))::text")) @db.VarChar(10)
+
+  firstName String @db.VarChar(100)
+  lastName  String @db.VarChar(100)
+  email     String @db.VarChar(320) // as submitted
+  phone     String @db.VarChar(16) // E.164
+
+  receivedAt   DateTime  @default(now()) @db.Timestamptz(3)
+  paymentDueAt DateTime? @db.Timestamptz(3)
+
+  // snapshot of event payment settings at receipt
+  bankAccountPrefix String? @db.VarChar(6)
+  bankAccountNumber String  @db.VarChar(10)
+  bankCode          String  @db.Char(4)
+  paymentDueDays    Int
+
+  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  event              Event              @relation(fields: [eventId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  participantAccount ParticipantAccount @relation(fields: [participantAccountId], references: [id], onDelete: Restrict)
+  terms              RegistrationTerm[]
+  payments           Payment[]
+  emails             EmailDelivery[]
+
+  @@unique([eventId, participantAccountId])
+  @@unique([id, eventId])
+  @@unique([id, organizationId])
+  @@index([eventId, receivedAt])
+  @@index([participantAccountId])
+  @@map("registration")
+}
+
+model RegistrationTerm {
+  registrationId String              @db.Uuid
+  termId         String              @db.Uuid
+  eventId        String              @db.Uuid
+  status         ParticipationStatus
+  priceMinor     Int
+  decidedAt      DateTime            @db.Timestamptz(3)
+
+  registration Registration @relation(fields: [registrationId, eventId], references: [id, eventId], onDelete: Restrict)
+  term         EventTerm    @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Restrict)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  @@id([registrationId, termId])
+  @@index([termId, status])
+  @@map("registration_term")
+}
+
+// ─── Payments ───────────────────────────────────────────────────────────────
+
+model Payment {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @db.Uuid
+  registrationId String   @db.Uuid
+  submissionKey  String   @unique @db.Uuid
+  amountMinor    Int
+  receivedOn     DateTime @db.Date
+  recordedById   String
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  registration Registration @relation(fields: [registrationId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  recordedBy   User         @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([registrationId])
+  @@map("payment")
+}
+
+// ─── Outbound e-mail log ────────────────────────────────────────────────────
+
+enum EmailType {
+  registration_confirmation
+  participant_magic_link
+
+  @@map("email_type")
+}
+
+enum EmailDeliveryStatus {
+  pending
+  accepted
+  failed
+
+  @@map("email_delivery_status")
+}
+
+model EmailDelivery {
+  id                   String              @id @default(uuid(7)) @db.Uuid
+  type                 EmailType
+  status               EmailDeliveryStatus @default(pending)
+  recipientEmail       String              @db.VarChar(320)
+  registrationId       String?             @db.Uuid
+  participantAccountId String?             @db.Uuid
+  providerMessageId    String?             @db.VarChar(100)
+  errorMessage         String?             @db.VarChar(1000) // sanitized, never contains tokens
+  createdAt            DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime            @updatedAt @db.Timestamptz(3)
+
+  registration       Registration?       @relation(fields: [registrationId], references: [id], onDelete: Restrict)
+  participantAccount ParticipantAccount? @relation(fields: [participantAccountId], references: [id], onDelete: Restrict)
+
+  @@index([registrationId])
+  @@index([status, createdAt])
+  @@map("email_delivery")
 }
