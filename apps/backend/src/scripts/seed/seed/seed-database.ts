@@ -60,7 +60,7 @@ const ensureOrganization = async (
 ): Promise<void> => {
   await prisma.organization.upsert({
     where: { id: organizationId },
-    create: { id: organizationId, name },
+    create: { id: organizationId, name, ownerId },
     update: {},
   });
   await prisma.organizationMember.upsert({

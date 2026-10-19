@@ -338,6 +338,7 @@ hundreds of registrations, do not justify stored totals.
 | Field                                          | Type                   | Notes                                                                                              |
 | ---------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------------------- |
 | `organization.name`                            | varchar(200), required | The only attribute in Sprint 2. No rename or delete.                                               |
+| `organization.ownerId`                         | text FK `user`         | Creator. Unique with `lower(name)`; names are stored trimmed (CHECK) (S2-02).                      |
 | `organization_member.(organizationId, userId)` | PK                     | Membership is the authorization check.                                                             |
 | `organization_member.role`                     | enum `owner`           | The creator becomes `owner` in the same transaction as the organization. More roles come with F42. |
 

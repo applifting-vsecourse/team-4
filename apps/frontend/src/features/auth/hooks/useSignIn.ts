@@ -1,8 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { authKeys } from "@/lib/auth-keys"
-
 import { authClient } from "@/features/auth/lib/auth-client"
+import { signInFailure } from "@/features/auth/lib/auth-errors"
 
 type SignInInput = {
   email: string
@@ -16,10 +15,9 @@ export function useSignIn() {
   return useMutation({
     mutationFn: async ({ email, password, rememberMe = false }: SignInInput) => {
       const { error } = await authClient.signIn.email({ email, password, rememberMe })
-      if (error) throw new Error(error.message ?? "Sign in failed")
+      if (error) throw signInFailure(error)
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: authKeys.session() })
-    },
+    // Drop everything cached for the previous account (organizations included).
+    onSuccess: () => queryClient.clear(),
   })
 }

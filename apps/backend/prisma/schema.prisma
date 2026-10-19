@@ -86,6 +86,7 @@ model User {
   displayUsername String? @db.VarChar(50)
 
   organizationMemberships OrganizationMember[]
+  ownedOrganizations      Organization[]       @relation("OrganizationOwner")
   recordedPayments        Payment[]
 
   @@unique([email])
@@ -109,14 +110,19 @@ enum OrganizationRole {
 model Organization {
   id        String   @id @default(uuid(7)) @db.Uuid
   name      String   @db.VarChar(200)
+  // Creator and owner. Together with the lower-cased, trimmed name it is unique
+  // (hand-written index in the migration, S2-02).
+  ownerId   String
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
+  owner         User                 @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   members       OrganizationMember[]
   events        Event[]
   registrations Registration[]
   payments      Payment[]
 
+  @@index([ownerId])
   @@map("organization")
 }
 
