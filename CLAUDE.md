@@ -11,9 +11,9 @@ Organize backend features into controllers, DTOs, services, domain models and re
 
 ## Sitemap and story context
 
-Before implementing a story, read [the sitemap](docs/sitemap.md), the story and its sprint decisions. Identify the access area (public, participant, organization or event), data scope, existing destination and entry/exit paths before choosing routes or adding screens. The sitemap describes the target structure; the story defines the implementation scope. Do not implement deferred branches just because they appear in the map.
+Before implementing a story, read [the sitemap](docs/sitemap.md), the GitHub issue and its sprint decisions. Identify the access area (public, participant, organization or event), data scope, existing destination and entry/exit paths before choosing routes or adding screens. The sitemap describes the target structure; the story defines the implementation scope. Do not implement deferred branches just because they appear in the map.
 
-Reuse the relevant existing page. Report conflicts or proposed structural changes to the PM before changing the navigation structure. Keep the FigJam source, text sitemap and story navigation context aligned for explicitly authorized changes; follow the ownership and maintenance rules in the sitemap. When working from a GitHub issue, also read the matching local story and its navigation context.
+Reuse the relevant existing page. Report conflicts or proposed structural changes to the PM before changing the navigation structure. Keep the FigJam source, text sitemap and story navigation context aligned for explicitly authorized changes; follow the ownership and maintenance rules in the sitemap. GitHub issue titles and bodies are the single source of truth for user stories, including navigation context. Local Markdown copies are private PM working material, ignored by Git; they are not required for implementation and must not override the issue.
 
 ## Commands
 
@@ -36,7 +36,7 @@ Deliberately sparse — this file grows as the team learns what it expects from 
 
 User stories are read-only for agents by default. Only David, acting as PM, may explicitly authorize an agent to create, edit, delete, regenerate, import or synchronize user stories. A request to implement a story, fix code, update documentation or complete a feature is not authorization to change the story.
 
-This rule covers local stories in `docs/user-stories/`, their requirements, acceptance criteria, scope, priorities and approval metadata, the source feature workbook, and corresponding GitHub issue titles and bodies. Do not run `docs/user-stories/import.py --execute` without explicit PM authorization, because it writes story content to GitHub.
+This rule covers private local stories in `docs/user-stories/` and `docs/sprints/*/stories/`, their requirements, acceptance criteria, scope, priorities and approval metadata, the source feature workbook, and corresponding GitHub issue titles and bodies. Do not run `docs/user-stories/import.py --execute` without explicit PM authorization, because it writes story content to GitHub.
 
 If implementation reveals a gap or conflict, report it to the PM and propose a change in your response; leave the story unchanged. When the PM explicitly requests story changes, make only the authorized changes. Reading stories and reporting implementation progress remain allowed.
 

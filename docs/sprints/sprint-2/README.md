@@ -1,5 +1,7 @@
 # Sprint 2 — návrh backlogu
 
+> Historický plán sprintu. Jediným aktuálním zdrojem požadavků a akceptačních kritérií jsou [GitHub issues v indexu](story-index.md); při rozdílu má přednost příslušné issue. Lokální Markdown stories jsou soukromé pracovní kopie PM a nejsou součástí repozitáře.
+
 Připraveno 14. 10. 2026 pro týmovou kontrolu a publikaci v repozitáři. Produktové stories S2-01 až S2-15 jsou publikované jako issues #80–#94; technické issues #74–#79 jsou publikované a přiřazené do Sprintu 2 se stavem Sprint Backlog. Původní stories a jejich importní manifest nejsou změněné.
 
 ## Cíl
@@ -84,7 +86,7 @@ Produktový rozsah S2-01 až S2-15 byl postupně projit a potvrzen PM. Upřesně
 
 Doplnit a ověřit aktuální wireframy, technické kontrakty, testovací scénáře, vlastníky a odhady. Texty pro landing page a potvrzovací e-mail jsou schválené ve stories. Splatnost se zobrazuje jednoznačně v Europe/Prague a počítá od okamžiku automatického potvrzení, nikoli do konce dne.
 
-Všechny stories zůstávají NÁVRH bez READY do ověření podkladů a připravenosti. Produktové stories jsou nyní publikované v GitHubu jako issues #80–#94; odkazy jsou v indexu. Aktuální upřesnění jsou v issue bodies i lokálních story souborech.
+Všechny stories zůstávají NÁVRH bez READY do ověření podkladů a připravenosti. Produktové stories jsou nyní publikované v GitHubu jako issues #80–#94; odkazy jsou v indexu. Aktuální upřesnění jsou v issue bodies.
 
 ## Mapa pokrytí PO
 
