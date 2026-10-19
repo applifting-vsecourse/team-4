@@ -15,28 +15,16 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 
-const schema = z
-  .object({
-    email: z.string().trim().min(1, "Email is required").email("Invalid email"),
-    name: z.string().trim().min(1, "Name is required"),
-    username: z.string().trim().min(1, "Username is required"),
-    password: z.string().trim().min(8, "Password must be at least 8 characters"),
-    passwordConfirmation: z.string().trim().min(1, "Password confirmation is required"),
-  })
-  .refine((values) => values.password === values.passwordConfirmation, {
-    message: "Passwords must match",
-    path: ["passwordConfirmation"],
-  })
+// Exactly three inputs (S2-02): no username, no password confirmation.
+const schema = z.object({
+  name: z.string().trim().min(1, "Zadejte jméno."),
+  email: z.string().trim().min(1, "Zadejte e-mail.").email("Zadejte e-mail ve správném tvaru."),
+  password: z.string().min(8, "Heslo musí mít alespoň 8 znaků."),
+})
 
 type FormValues = z.infer<typeof schema>
 
-const defaultValues: FormValues = {
-  email: "",
-  name: "",
-  username: "",
-  password: "",
-  passwordConfirmation: "",
-}
+const defaultValues: FormValues = { name: "", email: "", password: "" }
 
 type SignUpFormProps = {
   isLoading: boolean
@@ -68,7 +56,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel>Jméno</FormLabel>
               <FormControl>
                 <Input
                   autoComplete="name"
@@ -82,31 +70,14 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
 
         <FormField
           control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <FormControl>
-                <Input
-                  autoComplete="username"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>E-mail</FormLabel>
               <FormControl>
                 <Input
                   type="email"
-                  placeholder="e.g. john@doe.com"
+                  placeholder="jan@novak.cz"
                   autoComplete="email"
                   {...field}
                 />
@@ -121,25 +92,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input
-                  type="password"
-                  autoComplete="new-password"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="passwordConfirmation"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Confirm password</FormLabel>
+              <FormLabel>Heslo</FormLabel>
               <FormControl>
                 <Input
                   type="password"
@@ -159,7 +112,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
           disabled={isLoading}
         >
           {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}
-          Sign up
+          Zaregistrovat se
         </Button>
       </form>
     </Form>

@@ -21,13 +21,13 @@ export const Route = createFileRoute("/login")({
   loader: async ({ context }) => {
     const session = await context.queryClient.ensureQueryData(authSessionQueryOptions())
     if (!session) return
-    throw redirect({ to: ROUTES.dashboard })
+    throw redirect({ to: ROUTES.organizations })
   },
 })
 
 function LoginPage() {
   const { from } = Route.useSearch()
-  const redirectTo = from ? decodeRedirectUri(from) : ROUTES.dashboard
+  const redirectTo = from ? decodeRedirectUri(from) : ROUTES.organizations
   const navigate = useNavigate()
   const signIn = useSignIn()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -38,24 +38,24 @@ function LoginPage() {
       await signIn.mutateAsync(values)
       await navigate({ to: redirectTo })
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Sign in failed")
+      setErrorMessage(error instanceof Error ? error.message : "Přihlášení se nezdařilo.")
     }
   }
 
   return (
     <>
-      <Seo title="Sign in" />
+      <Seo title="Přihlášení organizátora" />
       <AuthLayout
-        title="Sign in"
-        description="Welcome back to akc.io."
+        title="Přihlášení organizátora"
+        description="Přihlaste se e-mailem a heslem ke svým organizacím."
         footer={
           <>
-            No account?{" "}
+            Nemáte účet?{" "}
             <Link
               to={ROUTES.signup}
               className="font-medium text-foreground underline underline-offset-4"
             >
-              Sign up
+              Registrovat organizátora
             </Link>
           </>
         }

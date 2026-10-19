@@ -8,7 +8,6 @@ export type SessionUser = {
   id: string
   email: string
   name: string
-  username: string
   role?: string
 }
 
@@ -25,7 +24,6 @@ export const authSessionQueryOptions = () =>
       if (!data?.user) return null
 
       const user = data.user as typeof data.user & {
-        username?: string | null
         role?: string | null
       }
 
@@ -34,7 +32,6 @@ export const authSessionQueryOptions = () =>
           id: user.id,
           email: user.email,
           name: user.name,
-          username: user.username ?? "",
           role: user.role ?? undefined,
         },
       }

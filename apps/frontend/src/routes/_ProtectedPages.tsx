@@ -7,6 +7,7 @@ import { Seo } from "@/components/Seo"
 import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOptions"
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 import { encodeRedirectUri } from "@/features/auth/lib/redirect"
+import { OrganizationSwitcher } from "@/features/organizations/components/OrganizationSwitcher"
 
 export const Route = createFileRoute("/_ProtectedPages")({
   loader: async ({ context, location }) => {
@@ -25,7 +26,14 @@ function Layout() {
   return (
     <>
       <Seo />
-      <Header userMenu={<HeaderMenu />} />
+      <Header
+        userMenu={
+          <>
+            <OrganizationSwitcher />
+            <HeaderMenu />
+          </>
+        }
+      />
       <main className="min-h-svh">
         <Outlet />
       </main>

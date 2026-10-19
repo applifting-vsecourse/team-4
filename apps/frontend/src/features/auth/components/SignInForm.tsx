@@ -16,8 +16,8 @@ import {
 import { Input } from "@/components/ui/input"
 
 const schema = z.object({
-  email: z.string().trim().min(1, "Email is required").email("Invalid email"),
-  password: z.string().trim().min(1, "Password is required"),
+  email: z.string().trim().min(1, "Zadejte e-mail.").email("Zadejte e-mail ve správném tvaru."),
+  password: z.string().trim().min(1, "Zadejte heslo."),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -54,11 +54,11 @@ export function SignInForm({ isLoading, errorMessage, onSubmit }: SignInFormProp
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>E-mail</FormLabel>
               <FormControl>
                 <Input
                   type="email"
-                  placeholder="e.g. john@doe.com"
+                  placeholder="jan@novak.cz"
                   autoComplete="email"
                   {...field}
                 />
@@ -73,7 +73,7 @@ export function SignInForm({ isLoading, errorMessage, onSubmit }: SignInFormProp
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>Heslo</FormLabel>
               <FormControl>
                 <Input
                   type="password"
@@ -93,7 +93,7 @@ export function SignInForm({ isLoading, errorMessage, onSubmit }: SignInFormProp
           disabled={isLoading}
         >
           {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}
-          Sign in
+          Přihlásit se
         </Button>
       </form>
     </Form>

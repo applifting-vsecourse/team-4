@@ -14,7 +14,9 @@ import { Route as ProtectedPagesRouteImport } from './routes/_ProtectedPages'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
-import { Route as ProtectedPagesDashboardRouteImport } from './routes/_ProtectedPages/dashboard'
+import { Route as ProtectedPagesOrganizationsIndexRouteImport } from './routes/_ProtectedPages/organizations/index'
+import { Route as ProtectedPagesOrganizationsNewRouteImport } from './routes/_ProtectedPages/organizations/new'
+import { Route as ProtectedPagesOrganizationsOrganizationIdIndexRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,25 +42,42 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProtectedPagesDashboardRoute = ProtectedPagesDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => ProtectedPagesRoute,
-} as any)
+const ProtectedPagesOrganizationsIndexRoute =
+  ProtectedPagesOrganizationsIndexRouteImport.update({
+    id: '/organizations/',
+    path: '/organizations/',
+    getParentRoute: () => ProtectedPagesRoute,
+  } as any)
+const ProtectedPagesOrganizationsNewRoute =
+  ProtectedPagesOrganizationsNewRouteImport.update({
+    id: '/organizations/new',
+    path: '/organizations/new',
+    getParentRoute: () => ProtectedPagesRoute,
+  } as any)
+const ProtectedPagesOrganizationsOrganizationIdIndexRoute =
+  ProtectedPagesOrganizationsOrganizationIdIndexRouteImport.update({
+    id: '/organizations/$organizationId/',
+    path: '/organizations/$organizationId/',
+    getParentRoute: () => ProtectedPagesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/design-system': typeof DesignSystemRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/dashboard': typeof ProtectedPagesDashboardRoute
+  '/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
+  '/organizations/': typeof ProtectedPagesOrganizationsIndexRoute
+  '/organizations/$organizationId/': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/design-system': typeof DesignSystemRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/dashboard': typeof ProtectedPagesDashboardRoute
+  '/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
+  '/organizations': typeof ProtectedPagesOrganizationsIndexRoute
+  '/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -67,13 +86,29 @@ export interface FileRoutesById {
   '/design-system': typeof DesignSystemRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/_ProtectedPages/dashboard': typeof ProtectedPagesDashboardRoute
+  '/_ProtectedPages/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
+  '/_ProtectedPages/organizations/': typeof ProtectedPagesOrganizationsIndexRoute
+  '/_ProtectedPages/organizations/$organizationId/': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/design-system' | '/login' | '/signup' | '/dashboard'
+  fullPaths:
+    | '/'
+    | '/design-system'
+    | '/login'
+    | '/signup'
+    | '/organizations/new'
+    | '/organizations/'
+    | '/organizations/$organizationId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/design-system' | '/login' | '/signup' | '/dashboard'
+  to:
+    | '/'
+    | '/design-system'
+    | '/login'
+    | '/signup'
+    | '/organizations/new'
+    | '/organizations'
+    | '/organizations/$organizationId'
   id:
     | '__root__'
     | '/'
@@ -81,7 +116,9 @@ export interface FileRouteTypes {
     | '/design-system'
     | '/login'
     | '/signup'
-    | '/_ProtectedPages/dashboard'
+    | '/_ProtectedPages/organizations/new'
+    | '/_ProtectedPages/organizations/'
+    | '/_ProtectedPages/organizations/$organizationId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -129,22 +166,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_ProtectedPages/dashboard': {
-      id: '/_ProtectedPages/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof ProtectedPagesDashboardRouteImport
+    '/_ProtectedPages/organizations/': {
+      id: '/_ProtectedPages/organizations/'
+      path: '/organizations'
+      fullPath: '/organizations/'
+      preLoaderRoute: typeof ProtectedPagesOrganizationsIndexRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
+    '/_ProtectedPages/organizations/new': {
+      id: '/_ProtectedPages/organizations/new'
+      path: '/organizations/new'
+      fullPath: '/organizations/new'
+      preLoaderRoute: typeof ProtectedPagesOrganizationsNewRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
+    '/_ProtectedPages/organizations/$organizationId/': {
+      id: '/_ProtectedPages/organizations/$organizationId/'
+      path: '/organizations/$organizationId'
+      fullPath: '/organizations/$organizationId/'
+      preLoaderRoute: typeof ProtectedPagesOrganizationsOrganizationIdIndexRouteImport
       parentRoute: typeof ProtectedPagesRoute
     }
   }
 }
 
 interface ProtectedPagesRouteChildren {
-  ProtectedPagesDashboardRoute: typeof ProtectedPagesDashboardRoute
+  ProtectedPagesOrganizationsNewRoute: typeof ProtectedPagesOrganizationsNewRoute
+  ProtectedPagesOrganizationsIndexRoute: typeof ProtectedPagesOrganizationsIndexRoute
+  ProtectedPagesOrganizationsOrganizationIdIndexRoute: typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
 }
 
 const ProtectedPagesRouteChildren: ProtectedPagesRouteChildren = {
-  ProtectedPagesDashboardRoute: ProtectedPagesDashboardRoute,
+  ProtectedPagesOrganizationsNewRoute: ProtectedPagesOrganizationsNewRoute,
+  ProtectedPagesOrganizationsIndexRoute: ProtectedPagesOrganizationsIndexRoute,
+  ProtectedPagesOrganizationsOrganizationIdIndexRoute:
+    ProtectedPagesOrganizationsOrganizationIdIndexRoute,
 }
 
 const ProtectedPagesRouteWithChildren = ProtectedPagesRoute._addFileChildren(

@@ -25,7 +25,7 @@ export function HeaderMenu() {
         asChild
         size="sm"
       >
-        <Link to="/login">Sign in</Link>
+        <Link to="/login">Přihlásit se</Link>
       </Button>
     )
   }
@@ -43,7 +43,7 @@ export function HeaderMenu() {
         <Button
           variant="ghost"
           size="icon"
-          aria-label="User menu"
+          aria-label="Uživatelské menu"
           className="rounded-full"
         >
           <Avatar className="size-8">
@@ -58,7 +58,7 @@ export function HeaderMenu() {
         <DropdownMenuLabel>
           <div className="flex flex-col">
             <span className="text-sm leading-none font-medium">{user.name}</span>
-            <span className="mt-1 text-xs text-muted-foreground">@{user.username}</span>
+            <span className="mt-1 text-xs text-muted-foreground">{user.email}</span>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -67,7 +67,7 @@ export function HeaderMenu() {
           disabled={signOut.isPending}
         >
           <LogOut className="size-4" />
-          Sign out
+          Odhlásit se
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
