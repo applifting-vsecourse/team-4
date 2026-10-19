@@ -1,26 +1,19 @@
 import { Link } from "@tanstack/react-router"
-import { CalendarX } from "lucide-react"
+import { CalendarCog, Plus } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
+import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 
+// Wireframy O5: an organization without events.
 export function EventsEmptyState({ organizationId }: { organizationId: string }) {
   return (
-    <Empty>
+    <Empty className="border border-dashed">
       <EmptyHeader>
         <EmptyMedia variant="icon">
-          <CalendarX />
+          <CalendarCog />
         </EmptyMedia>
         <EmptyTitle>Zatím žádné akce</EmptyTitle>
-        <EmptyDescription>Tato organizace zatím nemá žádnou akci.</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
         <Button asChild>
@@ -28,6 +21,7 @@ export function EventsEmptyState({ organizationId }: { organizationId: string })
             to={ROUTES.newEvent}
             params={{ organizationId }}
           >
+            <Plus />
             Nová akce
           </Link>
         </Button>

@@ -1,8 +1,10 @@
-import { useSuspenseQuery } from "@tanstack/react-query"
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Pencil } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { PageHeader } from "@/components/PageHeader"
+import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 
@@ -10,7 +12,6 @@ import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventLockedAlert } from "@/features/events/components/EventLockedAlert"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
-import { EventUnavailable } from "@/features/events/components/EventUnavailable"
 import { TermsSection } from "@/features/events/components/TermsSection"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 
@@ -33,55 +34,82 @@ function EventPage() {
   const { data: event } = useSuspenseQuery(eventQueryOptions(organizationId, eventId))
 
   return (
-    <section className="mx-auto w-full max-w-5xl px-4 py-12">
+    <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
       <Seo title={event.name} />
-      <EventBreadcrumb
-        organizationId={organizationId}
-        organizationName={organization.name}
-        current={event.name}
-      />
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-h2 break-words">{event.name}</h1>
-            <EventStatusBadge status={event.status} />
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">{event.location}</p>
-        </div>
-        {event.isLocked ? null : (
-          <Button
-            asChild
-            variant="outline"
-          >
-            <Link
-              to={ROUTES.editEvent}
-              params={{ organizationId, eventId }}
+      <PageHeader
+        breadcrumb={
+          <EventBreadcrumb
+            organizationId={organizationId}
+            organizationName={organization.name}
+            event={event}
+            current="Termíny"
+          />
+        }
+        title={event.name}
+        badge={<EventStatusBadge status={event.status} />}
+        description={event.location}
+        actions={
+          event.isLocked ? null : (
+            <Button
+              asChild
+              variant="outline"
             >
-              <Pencil />
-              Upravit akci
-            </Link>
-          </Button>
-        )}
-      </div>
-      <p className="mt-4 max-w-prose text-sm whitespace-pre-line">{event.description}</p>
+              <Link
+                to={ROUTES.editEvent}
+                params={{ organizationId, eventId }}
+              >
+                <Pencil />
+                Upravit akci
+              </Link>
+            </Button>
+          )
+        }
+      />
+      {/* Not in the wireframe: without it a locked event's description would
+          be visible nowhere, and S2-04 keeps locked data visible. */}
+      <p className="-mt-4 mb-8 max-w-prose text-sm whitespace-pre-line">{event.description}</p>
 
       {event.isLocked ? (
-        <div className="mt-6">
+        <div className="mb-8">
           <EventLockedAlert status={event.status} />
         </div>
       ) : null}
 
-      <div className="mt-8">
-        <TermsSection
-          organizationId={organizationId}
-          event={event}
-        />
-      </div>
+      <TermsSection
+        organizationId={organizationId}
+        event={event}
+      />
     </section>
   )
 }
 
+// A foreign and a missing event look the same (S2-03, Wireframy N1).
 function Unavailable() {
   const { organizationId } = Route.useParams()
-  return <EventUnavailable organizationId={organizationId} />
+  const { data: organization } = useQuery(organizationQueryOptions(organizationId))
+  return (
+    <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
+      <PageHeader
+        breadcrumb={
+          <EventBreadcrumb
+            organizationId={organizationId}
+            organizationName={organization?.name}
+          />
+        }
+        title="Akce a turnusy"
+      />
+      <RecordUnavailable
+        action={
+          <Button asChild>
+            <Link
+              to={ROUTES.organization}
+              params={{ organizationId }}
+            >
+              Zpět na přehled akcí
+            </Link>
+          </Button>
+        }
+      />
+    </section>
+  )
 }

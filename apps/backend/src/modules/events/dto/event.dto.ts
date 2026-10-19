@@ -57,6 +57,9 @@ export class EventSummaryDto {
   name!: string;
 
   @ApiProperty()
+  description!: string;
+
+  @ApiProperty()
   location!: string;
 
   @ApiProperty({ enum: STATUSES })
@@ -76,6 +79,7 @@ export class EventSummaryDto {
     return {
       id: model.id,
       name: model.name,
+      description: model.description,
       location: model.location,
       status: model.status,
       termCount: model.termCount,

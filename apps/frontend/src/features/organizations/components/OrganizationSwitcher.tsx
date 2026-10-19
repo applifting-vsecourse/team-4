@@ -1,8 +1,7 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router"
-import { Check, ChevronsUpDown, Plus } from "lucide-react"
+import { Building2, Check, ChevronsUpDown, Plus } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
-import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 
 import { useOrganizations } from "@/features/organizations/hooks/useOrganizations"
 
@@ -21,53 +21,56 @@ export function OrganizationSwitcher() {
   const { organizationId } = useParams({ strict: false })
   const active = organizations.find((organization) => organization.id === organizationId)
 
-  if (organizations.length === 0) return null
-
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          aria-label="Přepnout organizaci"
-          className="max-w-40 sm:max-w-56"
-        >
-          <span className="truncate">{active?.name ?? "Organizace"}</span>
-          <ChevronsUpDown aria-hidden />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="w-64"
-      >
-        <DropdownMenuLabel>Vaše organizace</DropdownMenuLabel>
-        {organizations.map((organization) => (
-          <DropdownMenuItem
-            key={organization.id}
-            onSelect={() =>
-              void navigate({
-                to: "/organizations/$organizationId",
-                params: { organizationId: organization.id },
-              })
-            }
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton
+              variant="outline"
+              aria-label="Přepnout organizaci"
+              className="justify-center"
+            >
+              <Building2 aria-hidden />
+              <span className="truncate">{active?.name ?? "Organizace"}</span>
+              <ChevronsUpDown aria-hidden />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56"
           >
-            <span className="truncate">{organization.name}</span>
-            {organization.id === active?.id ? (
-              <Check
-                aria-label="Aktivní organizace"
-                className="ml-auto size-4"
-              />
-            ) : null}
-          </DropdownMenuItem>
-        ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to={ROUTES.newOrganization}>
-            <Plus aria-hidden />
-            Založit organizaci
-          </Link>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+            <DropdownMenuLabel>Moje organizace</DropdownMenuLabel>
+            {organizations.map((organization) => (
+              <DropdownMenuItem
+                key={organization.id}
+                onSelect={() =>
+                  void navigate({
+                    to: ROUTES.organization,
+                    params: { organizationId: organization.id },
+                  })
+                }
+              >
+                <Building2 aria-hidden />
+                <span className="truncate">{organization.name}</span>
+                {organization.id === active?.id ? (
+                  <Check
+                    aria-label="Aktivní organizace"
+                    className="ml-auto size-4"
+                  />
+                ) : null}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to={ROUTES.newOrganization}>
+                <Plus aria-hidden />
+                Založit organizaci
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
   )
 }

@@ -121,6 +121,7 @@ describe('creating and editing an event', () => {
     expect(list.body).toEqual([
       expect.objectContaining({
         name: BASICS.name,
+        description: BASICS.description,
         status: 'draft',
         termCount: 0,
         period: null,

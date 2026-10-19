@@ -1,9 +1,11 @@
 import { useState } from "react"
-import { useSuspenseQuery } from "@tanstack/react-query"
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { ROUTES } from "@/app/routes"
+import { PageHeader } from "@/components/PageHeader"
+import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,7 +15,6 @@ import { type EventInput } from "@/features/events/api/eventSchemas"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventForm } from "@/features/events/components/EventForm"
 import { EventLockedAlert } from "@/features/events/components/EventLockedAlert"
-import { EventUnavailable } from "@/features/events/components/EventUnavailable"
 import { useRefreshEvent, useUpdateEvent } from "@/features/events/hooks/useEventMutations"
 import { readApiError } from "@/features/events/lib/apiError"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
@@ -65,17 +66,21 @@ function EditEventPage() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-xl px-4 py-12">
+    <section className="mx-auto w-full max-w-xl px-4 py-8 md:py-12">
       <Seo title={`Upravit akci ${event.name}`} />
-      <EventBreadcrumb
-        organizationId={organizationId}
-        organizationName={organization.name}
-        event={event}
-        current="Upravit akci"
+      <PageHeader
+        breadcrumb={
+          <EventBreadcrumb
+            organizationId={organizationId}
+            organizationName={organization.name}
+            event={event}
+            current="Upravit akci"
+          />
+        }
+        title="Upravit akci"
       />
-      <h1 className="text-h2">Upravit akci</h1>
       {event.isLocked ? (
-        <div className="mt-6 space-y-4">
+        <div className="space-y-4">
           <EventLockedAlert status={event.status} />
           <Button
             asChild
@@ -90,7 +95,7 @@ function EditEventPage() {
           </Button>
         </div>
       ) : (
-        <Card className="mt-6">
+        <Card>
           <CardContent>
             <EventForm
               initialValues={initialValues}
@@ -107,7 +112,33 @@ function EditEventPage() {
   )
 }
 
+// A foreign and a missing event look the same (S2-03, Wireframy N1).
 function Unavailable() {
   const { organizationId } = Route.useParams()
-  return <EventUnavailable organizationId={organizationId} />
+  const { data: organization } = useQuery(organizationQueryOptions(organizationId))
+  return (
+    <section className="mx-auto w-full max-w-xl px-4 py-8 md:py-12">
+      <PageHeader
+        breadcrumb={
+          <EventBreadcrumb
+            organizationId={organizationId}
+            organizationName={organization?.name}
+          />
+        }
+        title="Upravit akci"
+      />
+      <RecordUnavailable
+        action={
+          <Button asChild>
+            <Link
+              to={ROUTES.organization}
+              params={{ organizationId }}
+            >
+              Zpět na přehled akcí
+            </Link>
+          </Button>
+        }
+      />
+    </section>
+  )
 }

@@ -14,6 +14,7 @@ export const eventTermSchema = z.object({
 export const eventSummarySchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
+  description: z.string(),
   location: z.string(),
   status: eventStatusSchema,
   termCount: z.number().int(),

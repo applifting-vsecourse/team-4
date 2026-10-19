@@ -114,6 +114,7 @@ export class EventsRepository {
           select: {
             id: true,
             name: true,
+            description: true,
             location: true,
             status: true,
             terms: { select: { startDate: true, endDate: true } },
@@ -128,6 +129,7 @@ export class EventsRepository {
       return new EventSummaryModel(
         event.id,
         event.name,
+        event.description,
         event.location,
         event.status,
         event.terms.length,

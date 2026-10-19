@@ -1,9 +1,12 @@
 import { useState } from "react"
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
+import { PageHeader } from "@/components/PageHeader"
+import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 import { type EventInput } from "@/features/events/api/eventSchemas"
@@ -12,13 +15,13 @@ import { EventForm } from "@/features/events/components/EventForm"
 import { useCreateEvent } from "@/features/events/hooks/useEventMutations"
 import { readApiError } from "@/features/events/lib/apiError"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
-import { OrganizationUnavailable } from "@/features/organizations/components/OrganizationUnavailable"
 
+// Wireframy E1, E2.
 export const Route = createFileRoute("/_ProtectedPages/organizations/$organizationId/events/new")({
   loader: ({ context, params }) =>
     context.queryClient.ensureQueryData(organizationQueryOptions(params.organizationId)),
   component: NewEventPage,
-  errorComponent: OrganizationUnavailable,
+  errorComponent: Unavailable,
 })
 
 function NewEventPage() {
@@ -44,16 +47,20 @@ function NewEventPage() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-xl px-4 py-12">
+    <section className="mx-auto w-full max-w-xl px-4 py-8 md:py-12">
       <Seo title="Nová akce" />
-      <EventBreadcrumb
-        organizationId={organizationId}
-        organizationName={organization.name}
-        current="Nová akce"
+      <PageHeader
+        breadcrumb={
+          <EventBreadcrumb
+            organizationId={organizationId}
+            organizationName={organization.name}
+            current="Nová akce"
+          />
+        }
+        title="Nová akce"
+        description="Termíny přidáte po uložení akce."
       />
-      <h1 className="text-h2">Nová akce</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Termíny přidáte po uložení akce.</p>
-      <Card className="mt-6">
+      <Card>
         <CardContent>
           <EventForm
             submitLabel="Vytvořit akci"
@@ -64,6 +71,21 @@ function NewEventPage() {
           />
         </CardContent>
       </Card>
+    </section>
+  )
+}
+
+function Unavailable() {
+  return (
+    <section className="mx-auto w-full max-w-xl px-4 py-8 md:py-12">
+      <PageHeader title="Nová akce" />
+      <RecordUnavailable
+        action={
+          <Button asChild>
+            <Link to={ROUTES.organizations}>Zpět na moje organizace</Link>
+          </Button>
+        }
+      />
     </section>
   )
 }
