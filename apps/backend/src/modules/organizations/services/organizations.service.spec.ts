@@ -5,8 +5,8 @@ import { OrganizationsService } from './organizations.service';
 
 describe('OrganizationsService', () => {
   const repository = {
-    findAllByMember: jest.fn(),
-    findByMember: jest.fn(),
+    findAllByOwner: jest.fn(),
+    findByOwner: jest.fn(),
     createWithOwner: jest.fn(),
   };
   const service = new OrganizationsService(
@@ -17,20 +17,20 @@ describe('OrganizationsService', () => {
 
   it('lists organizations of the caller only', async () => {
     const own = [new OrganizationModel('a', 'Alfa')];
-    repository.findAllByMember.mockResolvedValue(own);
+    repository.findAllByOwner.mockResolvedValue(own);
     await expect(service.list('user-1')).resolves.toBe(own);
-    expect(repository.findAllByMember).toHaveBeenCalledWith('user-1');
+    expect(repository.findAllByOwner).toHaveBeenCalledWith('user-1');
   });
 
   it('returns an own organization', async () => {
     const own = new OrganizationModel('a', 'Alfa');
-    repository.findByMember.mockResolvedValue(own);
+    repository.findByOwner.mockResolvedValue(own);
     await expect(service.get('a', 'user-1')).resolves.toBe(own);
-    expect(repository.findByMember).toHaveBeenCalledWith('a', 'user-1');
+    expect(repository.findByOwner).toHaveBeenCalledWith('a', 'user-1');
   });
 
   it('hides a foreign or missing organization behind the same 404', async () => {
-    repository.findByMember.mockResolvedValue(null);
+    repository.findByOwner.mockResolvedValue(null);
     await expect(service.get('x', 'user-1')).rejects.toEqual(
       new NotFoundException('Záznam není dostupný'),
     );

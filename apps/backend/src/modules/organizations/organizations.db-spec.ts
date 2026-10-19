@@ -1,8 +1,8 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { OrganizationsRepository } from '@/modules/organizations/repositories/organizations.repository';
 import { OrganizationsService } from '@/modules/organizations/services/organizations.service';
-import { createOrganizer } from '@/testing/factories';
-import { ConflictException } from '@nestjs/common';
+import { createOrganization, createOrganizer } from '@/testing/factories';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 
 // Name uniqueness per owner against a real database (S2-02): the service maps
 // the unique index violation, the index itself is the safety net under it.
@@ -66,5 +66,24 @@ describe('organization name uniqueness', () => {
         prisma.organization.create({ data: { name, ownerId: owner.id } }),
       ).rejects.toThrow();
     }
+  });
+});
+
+describe('organization access', () => {
+  it('exposes only organizations owned by the caller, not ones they are a member of', async () => {
+    const [owner, member] = [
+      await createOrganizer(prisma),
+      await createOrganizer(prisma),
+    ];
+    const foreign = await createOrganization(prisma, { ownerId: owner.id });
+    await prisma.organizationMember.create({
+      data: { organizationId: foreign.id, userId: member.id, role: 'owner' },
+    });
+
+    expect(await service.list(member.id)).toEqual([]);
+    await expect(service.get(foreign.id, member.id)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(await service.list(owner.id)).toHaveLength(1);
   });
 });

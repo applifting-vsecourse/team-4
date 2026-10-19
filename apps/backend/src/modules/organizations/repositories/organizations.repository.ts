@@ -7,21 +7,21 @@ import { Injectable } from '@nestjs/common';
 export class OrganizationsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAllByMember(userId: string): Promise<OrganizationModel[]> {
+  async findAllByOwner(userId: string): Promise<OrganizationModel[]> {
     const rows = await this.prisma.organization.findMany({
-      where: { members: { some: { userId } } },
+      where: { ownerId: userId },
       orderBy: { name: 'asc' },
       select: { id: true, name: true },
     });
     return rows.map((row) => new OrganizationModel(row.id, row.name));
   }
 
-  async findByMember(
+  async findByOwner(
     organizationId: string,
     userId: string,
   ): Promise<OrganizationModel | null> {
     const row = await this.prisma.organization.findFirst({
-      where: { id: organizationId, members: { some: { userId } } },
+      where: { id: organizationId, ownerId: userId },
       select: { id: true, name: true },
     });
     return row ? new OrganizationModel(row.id, row.name) : null;

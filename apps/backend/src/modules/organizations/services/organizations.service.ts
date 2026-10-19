@@ -11,7 +11,7 @@ export class OrganizationsService {
   constructor(private readonly repository: OrganizationsRepository) {}
 
   list(userId: string): Promise<OrganizationModel[]> {
-    return this.repository.findAllByMember(userId);
+    return this.repository.findAllByOwner(userId);
   }
 
   /** A missing and a foreign organization are indistinguishable (S2-03). */
@@ -19,7 +19,7 @@ export class OrganizationsService {
     organizationId: string,
     userId: string,
   ): Promise<OrganizationModel> {
-    const organization = await this.repository.findByMember(
+    const organization = await this.repository.findByOwner(
       organizationId,
       userId,
     );
