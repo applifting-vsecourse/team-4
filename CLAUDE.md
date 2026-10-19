@@ -52,6 +52,10 @@ Assume the dev servers are up. If something is listening on the app's ports, tha
 
 Don't reach for the browser to check your own work. Tests and type-checks are the evidence; open the running app when asked to, not on your own initiative.
 
+### Run `pnpm check-all` before handing work back
+
+Before you hand work to the developer (report it done, commit, push or open a PR), run `pnpm check-all` from the repo root and fix every failure. It is the same gate as CI; running single checks or Prettier from the root is not enough, because each app has its own Prettier config.
+
 ### Delivery gates
 
 Every implementation PR links its issues with `Closes #N`. Leave the issue In
