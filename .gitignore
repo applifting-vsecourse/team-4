@@ -28,3 +28,8 @@ yarn-error.log*
 
 # Private local notes (not shared)
 /docs/notes/
+
+# PM-only local story copies; GitHub issues are authoritative
+/docs/user-stories/f*.md
+/docs/user-stories/coverage.md
+/docs/sprints/*/stories/
