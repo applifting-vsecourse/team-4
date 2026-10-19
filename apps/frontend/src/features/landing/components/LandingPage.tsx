@@ -1,11 +1,20 @@
 import { Link } from "@tanstack/react-router"
-import { ArrowRight, BedDouble, Building2, CalendarCog, Users, WalletCards } from "lucide-react"
+import {
+  ArrowRight,
+  BedDouble,
+  Building2,
+  CalendarCog,
+  Menu,
+  Users,
+  WalletCards,
+} from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import logoUrl from "@/assets/akcio-logo.png"
 import { ThemeSwitcher } from "@/components/Header/ThemeSwitcher"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 
 import { AppPreview } from "./AppPreview"
@@ -60,11 +69,11 @@ export function LandingPage() {
             to={ROUTES.home}
             className="rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
-            <BrandMark />
+            <BrandMark isLarge />
           </Link>
           <nav
             aria-label="Vstup do aplikace"
-            className="flex items-center gap-1 md:gap-2"
+            className="hidden items-center gap-2 md:flex"
           >
             <MyRegistrationsButton
               variant="ghost"
@@ -73,6 +82,7 @@ export function LandingPage() {
             <OrganizerButton size="sm" />
             <ThemeSwitcher />
           </nav>
+          <MobileMenu />
         </div>
       </header>
 
@@ -216,16 +226,55 @@ export function LandingPage() {
   )
 }
 
-// Decorative: the "akc.io" text next to it is the accessible name.
-function BrandMark() {
+// Below md the header entries collapse into one menu button (PR #117 review).
+function MobileMenu() {
   return (
-    <span className="flex items-center gap-2 text-sm font-medium">
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Otevřít menu"
+          className="md:hidden"
+        >
+          <Menu aria-hidden />
+        </Button>
+      </SheetTrigger>
+      <SheetContent
+        lang="cs"
+        aria-describedby={undefined}
+      >
+        <SheetHeader>
+          <SheetTitle>Menu</SheetTitle>
+        </SheetHeader>
+        <nav
+          aria-label="Vstup do aplikace"
+          className="flex flex-col gap-2 px-4"
+        >
+          <OrganizerButton />
+          <MyRegistrationsButton />
+        </nav>
+        <div className="flex items-center justify-between px-4">
+          <span className="text-sm text-muted-foreground">Motiv</span>
+          <ThemeSwitcher />
+        </div>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+// Decorative: the "akc.io" text next to it is the accessible name.
+function BrandMark({ isLarge = false }: { isLarge?: boolean }) {
+  return (
+    <span
+      className={cn("flex items-center font-medium", isLarge ? "gap-2.5 text-xl" : "gap-2 text-sm")}
+    >
       <img
         src={logoUrl}
         alt=""
-        width={24}
-        height={24}
-        className="size-6"
+        width={isLarge ? 36 : 24}
+        height={isLarge ? 36 : 24}
+        className={isLarge ? "size-9" : "size-6"}
       />
       akc.io
     </span>
