@@ -4,19 +4,40 @@ import { EventTermsController } from '@/modules/events/controllers/event-terms.c
 import { EventsController } from '@/modules/events/controllers/events.controller';
 import { EventsRepository } from '@/modules/events/repositories/events.repository';
 import { EventsService } from '@/modules/events/services/events.service';
-import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import {
   createEvent,
   createOrganization,
   createOrganizer,
 } from '@/testing/factories';
-import { ExecutionContext, INestApplication } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
 // S2-04 through the HTTP API against a real database: controllers, validation,
 // service rules, the event row lock and the constraints together. Only the
 // BetterAuth session is replaced: the `x-test-user` header names the caller.
 // Needs a migrated Postgres in DATABASE_URL: `pnpm backend test:db`.
+
+// The real guard pulls in BetterAuth, which is ESM-only and cannot load under
+// Jest's CommonJS runtime, so the whole guard module is replaced (jest.mock is
+// hoisted above the imports).
+jest.mock('@/shared/auth/guards/authenticated-user.guard', () => ({
+  AuthenticatedUserGuard: class {
+    canActivate(context: {
+      switchToHttp: () => {
+        getRequest: () => {
+          headers: Record<string, unknown>;
+          session?: { user: { id: string } };
+        };
+      };
+    }): boolean {
+      const request = context.switchToHttp().getRequest();
+      const id = request.headers['x-test-user'];
+      if (typeof id !== 'string') return false;
+      request.session = { user: { id } };
+      return true;
+    }
+  },
+}));
 
 let app: INestApplication;
 let baseUrl: string;
@@ -27,18 +48,7 @@ beforeAll(async () => {
     imports: [PrismaModule],
     controllers: [EventsController, EventTermsController],
     providers: [EventsService, EventsRepository],
-  })
-    .overrideGuard(AuthenticatedUserGuard)
-    .useValue({
-      canActivate: (context: ExecutionContext): boolean => {
-        const request = context.switchToHttp().getRequest();
-        const id = request.headers['x-test-user'];
-        if (typeof id !== 'string') return false;
-        request.session = { user: { id } };
-        return true;
-      },
-    })
-    .compile();
+  }).compile();
   app = moduleRef.createNestApplication();
   await app.listen(0);
   baseUrl = await app.getUrl();
