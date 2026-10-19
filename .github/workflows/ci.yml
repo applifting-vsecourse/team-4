@@ -11,6 +11,22 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: akcio
+          POSTGRES_PASSWORD: akcio
+          POSTGRES_DB: akcio_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U akcio -d akcio_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://akcio:akcio@localhost:5432/akcio_ci
     steps:
       - uses: actions/checkout@v5
 
@@ -29,6 +45,12 @@ jobs:
 
       - name: Generate Prisma client
         run: pnpm backend prisma:generate
+
+      - name: Apply migrations to clean database
+        run: pnpm backend migrate
+
+      - name: Test database constraints
+        run: pnpm backend test:db --passWithNoTests=false
 
       - name: Test review and merge gates
         run: pnpm agent-review:test
