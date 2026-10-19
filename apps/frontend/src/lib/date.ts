@@ -6,3 +6,25 @@ export function formatDate(date: string | number | Date) {
   }
   return format(date, "dd-MM-yyyy H:mm")
 }
+
+// Calendar dates (`yyyy-MM-dd`) have no time and no zone, so they are
+// formatted from their parts and never converted through a time zone.
+function calendarParts(value: string) {
+  const [year = "", month = "", day = ""] = value.split("-")
+  return { year, month: String(Number(month)), day: String(Number(day)) }
+}
+
+/** "1. 7. 2027" */
+export function formatCalendarDate(value: string) {
+  const { year, month, day } = calendarParts(value)
+  return `${day}. ${month}. ${year}`
+}
+
+/** Inclusive range: "1. 7. – 7. 7. 2027", or one date for a one-day term. */
+export function formatCalendarRange(startDate: string, endDate: string) {
+  if (startDate === endDate) return formatCalendarDate(startDate)
+  const start = calendarParts(startDate)
+  const end = formatCalendarDate(endDate)
+  if (start.year === calendarParts(endDate).year) return `${start.day}. ${start.month}. – ${end}`
+  return `${formatCalendarDate(startDate)} – ${end}`
+}

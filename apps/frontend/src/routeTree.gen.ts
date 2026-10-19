@@ -17,6 +17,9 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ProtectedPagesOrganizationsIndexRouteImport } from './routes/_ProtectedPages/organizations/index'
 import { Route as ProtectedPagesOrganizationsNewRouteImport } from './routes/_ProtectedPages/organizations/new'
 import { Route as ProtectedPagesOrganizationsOrganizationIdIndexRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/index'
+import { Route as ProtectedPagesOrganizationsOrganizationIdEventsNewRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/events/new'
+import { Route as ProtectedPagesOrganizationsOrganizationIdEventsEventIdIndexRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/events/$eventId/index'
+import { Route as ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/events/$eventId/edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -60,6 +63,26 @@ const ProtectedPagesOrganizationsOrganizationIdIndexRoute =
     path: '/organizations/$organizationId/',
     getParentRoute: () => ProtectedPagesRoute,
   } as any)
+const ProtectedPagesOrganizationsOrganizationIdEventsNewRoute =
+  ProtectedPagesOrganizationsOrganizationIdEventsNewRouteImport.update({
+    id: '/organizations/$organizationId/events/new',
+    path: '/organizations/$organizationId/events/new',
+    getParentRoute: () => ProtectedPagesRoute,
+  } as any)
+const ProtectedPagesOrganizationsOrganizationIdEventsEventIdIndexRoute =
+  ProtectedPagesOrganizationsOrganizationIdEventsEventIdIndexRouteImport.update(
+    {
+      id: '/organizations/$organizationId/events/$eventId/',
+      path: '/organizations/$organizationId/events/$eventId/',
+      getParentRoute: () => ProtectedPagesRoute,
+    } as any,
+  )
+const ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute =
+  ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRouteImport.update({
+    id: '/organizations/$organizationId/events/$eventId/edit',
+    path: '/organizations/$organizationId/events/$eventId/edit',
+    getParentRoute: () => ProtectedPagesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -69,6 +92,9 @@ export interface FileRoutesByFullPath {
   '/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
   '/organizations/': typeof ProtectedPagesOrganizationsIndexRoute
   '/organizations/$organizationId/': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
+  '/organizations/$organizationId/events/new': typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRoute
+  '/organizations/$organizationId/events/$eventId/edit': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute
+  '/organizations/$organizationId/events/$eventId/': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +104,9 @@ export interface FileRoutesByTo {
   '/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
   '/organizations': typeof ProtectedPagesOrganizationsIndexRoute
   '/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
+  '/organizations/$organizationId/events/new': typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRoute
+  '/organizations/$organizationId/events/$eventId/edit': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute
+  '/organizations/$organizationId/events/$eventId': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +118,9 @@ export interface FileRoutesById {
   '/_ProtectedPages/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
   '/_ProtectedPages/organizations/': typeof ProtectedPagesOrganizationsIndexRoute
   '/_ProtectedPages/organizations/$organizationId/': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
+  '/_ProtectedPages/organizations/$organizationId/events/new': typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRoute
+  '/_ProtectedPages/organizations/$organizationId/events/$eventId/edit': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute
+  '/_ProtectedPages/organizations/$organizationId/events/$eventId/': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,6 +132,9 @@ export interface FileRouteTypes {
     | '/organizations/new'
     | '/organizations/'
     | '/organizations/$organizationId/'
+    | '/organizations/$organizationId/events/new'
+    | '/organizations/$organizationId/events/$eventId/edit'
+    | '/organizations/$organizationId/events/$eventId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -109,6 +144,9 @@ export interface FileRouteTypes {
     | '/organizations/new'
     | '/organizations'
     | '/organizations/$organizationId'
+    | '/organizations/$organizationId/events/new'
+    | '/organizations/$organizationId/events/$eventId/edit'
+    | '/organizations/$organizationId/events/$eventId'
   id:
     | '__root__'
     | '/'
@@ -119,6 +157,9 @@ export interface FileRouteTypes {
     | '/_ProtectedPages/organizations/new'
     | '/_ProtectedPages/organizations/'
     | '/_ProtectedPages/organizations/$organizationId/'
+    | '/_ProtectedPages/organizations/$organizationId/events/new'
+    | '/_ProtectedPages/organizations/$organizationId/events/$eventId/edit'
+    | '/_ProtectedPages/organizations/$organizationId/events/$eventId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -187,6 +228,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedPagesOrganizationsOrganizationIdIndexRouteImport
       parentRoute: typeof ProtectedPagesRoute
     }
+    '/_ProtectedPages/organizations/$organizationId/events/new': {
+      id: '/_ProtectedPages/organizations/$organizationId/events/new'
+      path: '/organizations/$organizationId/events/new'
+      fullPath: '/organizations/$organizationId/events/new'
+      preLoaderRoute: typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
+    '/_ProtectedPages/organizations/$organizationId/events/$eventId/': {
+      id: '/_ProtectedPages/organizations/$organizationId/events/$eventId/'
+      path: '/organizations/$organizationId/events/$eventId'
+      fullPath: '/organizations/$organizationId/events/$eventId/'
+      preLoaderRoute: typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdIndexRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
+    '/_ProtectedPages/organizations/$organizationId/events/$eventId/edit': {
+      id: '/_ProtectedPages/organizations/$organizationId/events/$eventId/edit'
+      path: '/organizations/$organizationId/events/$eventId/edit'
+      fullPath: '/organizations/$organizationId/events/$eventId/edit'
+      preLoaderRoute: typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRouteImport
+      parentRoute: typeof ProtectedPagesRoute
+    }
   }
 }
 
@@ -194,6 +256,9 @@ interface ProtectedPagesRouteChildren {
   ProtectedPagesOrganizationsNewRoute: typeof ProtectedPagesOrganizationsNewRoute
   ProtectedPagesOrganizationsIndexRoute: typeof ProtectedPagesOrganizationsIndexRoute
   ProtectedPagesOrganizationsOrganizationIdIndexRoute: typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
+  ProtectedPagesOrganizationsOrganizationIdEventsNewRoute: typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRoute
+  ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute: typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute
+  ProtectedPagesOrganizationsOrganizationIdEventsEventIdIndexRoute: typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdIndexRoute
 }
 
 const ProtectedPagesRouteChildren: ProtectedPagesRouteChildren = {
@@ -201,6 +266,12 @@ const ProtectedPagesRouteChildren: ProtectedPagesRouteChildren = {
   ProtectedPagesOrganizationsIndexRoute: ProtectedPagesOrganizationsIndexRoute,
   ProtectedPagesOrganizationsOrganizationIdIndexRoute:
     ProtectedPagesOrganizationsOrganizationIdIndexRoute,
+  ProtectedPagesOrganizationsOrganizationIdEventsNewRoute:
+    ProtectedPagesOrganizationsOrganizationIdEventsNewRoute,
+  ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute:
+    ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute,
+  ProtectedPagesOrganizationsOrganizationIdEventsEventIdIndexRoute:
+    ProtectedPagesOrganizationsOrganizationIdEventsEventIdIndexRoute,
 }
 
 const ProtectedPagesRouteWithChildren = ProtectedPagesRoute._addFileChildren(

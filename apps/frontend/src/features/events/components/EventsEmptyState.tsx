@@ -1,5 +1,7 @@
+import { Link } from "@tanstack/react-router"
 import { CalendarX } from "lucide-react"
 
+import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import {
   Empty,
@@ -10,8 +12,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 
-// Creating events is S2-04; the button stays disabled until that route exists.
-export function EventsEmptyState() {
+export function EventsEmptyState({ organizationId }: { organizationId: string }) {
   return (
     <Empty>
       <EmptyHeader>
@@ -22,7 +23,14 @@ export function EventsEmptyState() {
         <EmptyDescription>Tato organizace zatím nemá žádnou akci.</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button disabled>Nová akce</Button>
+        <Button asChild>
+          <Link
+            to={ROUTES.newEvent}
+            params={{ organizationId }}
+          >
+            Nová akce
+          </Link>
+        </Button>
       </EmptyContent>
     </Empty>
   )
