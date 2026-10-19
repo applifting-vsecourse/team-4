@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { issueRequirements, scopeMarker } from './requirements.mjs';
+import { issueRequirements, scopeMarker, scopeHash } from './requirements.mjs';
 import {
   requirementsApproval,
   requirementsMarker,
@@ -244,4 +244,75 @@ test('an unused historical QA approval cannot approve a subsequently edited scop
     },
   ]);
   assert.ok(accepted.approval);
+});
+
+test('progress checkboxes and completion evidence preserve approval and review identity', () => {
+  const original = {
+    ...issue,
+    body: '## Podmínky dokončení\n- [ ] Isolated data\n\n## Evidence dokončení\nPending\n\n## Mimo rozsah\nRoles',
+  };
+  const first = issueRequirements(original, [], snapshots);
+  const comments = [bot('issue-requirements', first.grantRecord)];
+  const updated = {
+    ...original,
+    body: original.body
+      .replace('[ ]', '[x]')
+      .replace('Pending', 'Test report: https://example.test/report'),
+  };
+  const after = issueRequirements(updated, comments, snapshots);
+  assert.deepEqual(after.approval, first.approval);
+  assert.equal(after.version, first.version);
+  assert.equal(after.resetRecord, null);
+  assert.equal(scopeHash(updated), scopeHash(original));
+  for (const body of [
+    updated.body.replace('Isolated data', 'Shared data'),
+    updated.body.replace('Roles', 'Payments'),
+  ]) {
+    assert.equal(
+      issueRequirements({ ...updated, body }, comments, snapshots).approval,
+      null,
+    );
+  }
+});
+test('requirements links and headings in code blocks remain scope', () => {
+  assert.notEqual(
+    scopeHash({ ...issue, body: 'https://example.test/a' }),
+    scopeHash({ ...issue, body: 'https://example.test/b' }),
+  );
+  const body = '```md\n## Evidence dokončení\nRequirement\n```';
+  assert.notEqual(
+    scopeHash({ ...issue, body }),
+    scopeHash({ ...issue, body: body.replace('Requirement', 'Changed') }),
+  );
+});
+
+test('evidence exclusion ends before the next requirement section', () => {
+  const body =
+    '## Scope\n- [ ] Required\n## Evidence dokončení\nreport\n### Details\nreport detail\n## Acceptance\nMust work';
+  assert.equal(
+    scopeHash({ ...issue, body }),
+    scopeHash({ ...issue, body: body.replace('report detail', 'new report') }),
+  );
+  assert.notEqual(
+    scopeHash({ ...issue, body }),
+    scopeHash({
+      ...issue,
+      body: body.replace('Must work', 'Different requirement'),
+    }),
+  );
+});
+test('fenced examples cannot hide requirements after a short inner fence', () => {
+  const body =
+    '````md\n```\n## Evidence dokončení\nRequired\n````\n## Other\nText';
+  assert.notEqual(
+    scopeHash({ ...issue, body }),
+    scopeHash({ ...issue, body: body.replace('Required', 'Changed') }),
+  );
+});
+
+test('issues with no body have a stable empty scope', () => {
+  assert.equal(
+    scopeHash({ ...issue, body: null }),
+    scopeHash({ ...issue, body: '' }),
+  );
 });
