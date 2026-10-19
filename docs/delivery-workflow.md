@@ -129,9 +129,9 @@ A green workflow execution is not the same as a green delivery verdict.
 ## Releases and the stage
 
 https://team-4.vsepractical.applifting.dev is the stage; there is no separate
-production. Every push to `main` deploys it (`deploy.yml`) and publishes a
-GitHub Release (`release.yml`). The release bumps the patch of the highest
-`vX.Y.Z` tag, lists the issues the merged PR closes and links the Build & Deploy
+production. Every push to `main` deploys it (`deploy.yml`); once CI passes on
+that commit, `release.yml` publishes a GitHub Release. The release bumps the
+patch of the highest `vX.Y.Z` tag, lists the issues the merged PR closes and links the Build & Deploy
 workflow. To put any released version on the stage, run that workflow with
 **Use workflow from → Tags → vX.Y.Z**. To bump minor or major, publish the
 higher tag by hand; the next merge continues from it.
