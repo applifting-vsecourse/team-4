@@ -29,7 +29,7 @@ standalone issue comment:
 The bot records the request and returns non-exempt work to In Progress. David
 must submit a new requirements approval or `/requirements-approve` afterward.
 Deleting the request after the bot has processed it cannot resurrect the old
-approval. Editing the issue title/body invalidates its previous scope approval;
+approval. Editing the issue title or requirement text invalidates its previous scope approval;
 old review IDs and commands already consumed cannot approve the changed scope.
 Outsiders cannot request re-review, and only David can grant scope approval.
 
@@ -149,3 +149,29 @@ Run `pnpm agent-review:test` for automated gate and runner tests. A change to th
 workflow itself still requires installation and live validation before claiming
 end-to-end proof. Administrators can edit repository rules deliberately; there
 is no standing merge bypass for them.
+
+## Progress updates and evidence reuse
+
+Checking or unchecking task boxes does not change the requirements text. The
+contents of the `Evidence dokončení` section (a level-one or level-two heading)
+are completion tracking, excluded from the requirements hash. Requirements,
+checklist text, supporting links elsewhere and all other sections remain scope.
+Put completion links and test reports in that evidence section; do not put new
+requirements there.
+
+Progress-only edits preserve the same scope approval, cached agent verdict and
+QA handoff. Repeated polling or duplicate events therefore do not call the model,
+post another handoff or request already-valid QA again. New code commits require
+fresh review and QA. A changed requirement or `/requirements-rereview` invalidates
+scope approval and requires fresh review against the approved scope. A forced
+agent rerun can change the verdict and requires QA after that latest review.
+
+Existing approvals made with the old full-body hash may need one fresh approval
+when this policy is installed. Never reinterpret an old hash as approval of a
+new scope: the originally approved body is not stored.
+
+CI applies migrations to a clean PostgreSQL 17 database and runs the database
+constraint suite. A missing or failing suite blocks CI; ordinary unit tests do
+not substitute for database validation. The existing commit-specific manual
+Copilot waiver can resolve a false positive with a recorded reason, but never
+waives scope approval, QA, CI or GitHub branch protections.

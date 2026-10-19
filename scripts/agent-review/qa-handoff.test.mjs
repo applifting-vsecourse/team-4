@@ -11,7 +11,13 @@ async function scenario(options) {
   const { requirementsApproval, requirementsMarker, readyMarker } =
     await import('./scripts/delivery/lib.mjs');
   const sha = 'a'.repeat(40);
-  const issue = { number: 78, title: 'Task', body: 'Scope' };
+  const issue = {
+    number: 78,
+    title: 'Task',
+    body: options.progressEdit
+      ? '## Scope\n- [ ] Isolate data\n\n## Evidence dokončení\nPending'
+      : 'Scope',
+  };
   let status = options.existingHandoff
     ? 'Ready for Testing'
     : 'Ready for Code Review';
@@ -105,6 +111,20 @@ async function scenario(options) {
       });
     }
     requested.set(pr.number, []);
+  }
+  if (options.progressEdit) {
+    issue.body = issue.body
+      .replace('[ ]', '[x]')
+      .replace('Pending', 'Tests: https://example.test/report');
+    issue.updated_at = '2005-01-01T00:00:00Z';
+    if (options.qaApproved)
+      reviews.push({
+        id: 2,
+        user: { login: 'MatejKrones' },
+        state: 'APPROVED',
+        commit_id: sha,
+        submitted_at: '2004-01-01T00:00:00Z',
+      });
   }
   let failed = false;
   const headReads = new Map();
@@ -503,4 +523,36 @@ test('real runner persists the latest waiver so deleting it cannot resurrect the
     2,
   );
   assert.equal(r.calls.filter((c) => c === 'request:12').length, 1);
+});
+
+test('progress-only issue edits reuse agent review and handoff across repeated events', () => {
+  const r = run({
+    authors: ['developer'],
+    progressEdit: true,
+    existingHandoff: true,
+    runs: 2,
+  });
+  assert.equal(r.status, 'Ready for Testing');
+  assert.deepEqual(r.handoffs, [1]);
+  assert.equal(r.calls.filter((c) => c === 'request:12').length, 1);
+  assert.equal(
+    r.calls.some((c) => c === 'comment:12'),
+    false,
+  );
+});
+test('progress edits after QA preserve approval without duplicate requests or handoff', () => {
+  const r = run({
+    authors: ['developer'],
+    progressEdit: true,
+    qaApproved: true,
+    existingHandoff: true,
+    runs: 2,
+  });
+  assert.equal(r.status, 'Ready for Testing');
+  assert.deepEqual(r.handoffs, [1]);
+  assert.deepEqual(r.requested, { 12: [] });
+  assert.equal(
+    r.calls.some((c) => c === 'comment:12'),
+    false,
+  );
 });
