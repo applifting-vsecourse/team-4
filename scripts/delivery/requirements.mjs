@@ -2,9 +2,40 @@ import { createHash } from 'node:crypto';
 import { PM } from './lib.mjs';
 
 const BOT = 'github-actions[bot]';
+// Only explicit delivery evidence is excluded. Requirement text, links and
+// section titles remain scope, including text on completed checklist items.
+export function scopeBody(body = '') {
+  const result = [];
+  let evidence = false;
+  let fence = null;
+  for (const line of (body ?? '').replace(/\r\n/g, '\n').split('\n')) {
+    const marker = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    const inFence = fence !== null;
+    if (marker) {
+      if (!fence) fence = marker[1];
+      else if (
+        marker[1][0] === fence[0] &&
+        marker[1].length >= fence.length &&
+        marker[2].trim() === ''
+      )
+        fence = null;
+    }
+    const heading =
+      !inFence && !marker && /^(#{1,2})\s+(.+?)\s*#*\s*$/.exec(line);
+    if (heading) evidence = heading[2] === 'Evidence dokončení';
+    if (!evidence) {
+      result.push(
+        inFence || marker
+          ? line
+          : line.replace(/^(\s*[-*+]\s+)\[[ xX]\](?=\s)/, '$1[ ]').trimEnd(),
+      );
+    }
+  }
+  return result.join('\n').trim();
+}
 export const scopeHash = (issue) =>
   createHash('sha256')
-    .update(JSON.stringify([issue.title, issue.body ?? '']))
+    .update(JSON.stringify([issue.title, scopeBody(issue.body)]))
     .digest('hex');
 export const scopeMarker = (kind, data) =>
   `<!-- ${kind} ${JSON.stringify(data)} -->`;

@@ -59,7 +59,8 @@ Progress until its requirements are approved. Record requirements approval once
 on the issue; implementation commits do not invalidate it. The PM may approve
 through a linked PR review or `/requirements-approve` on the issue. A repository
 collaborator may request fresh scope review with `/requirements-rereview`.
-Issue title/body changes also invalidate the recorded scope approval.
+Changes to requirement text or the issue title invalidate scope approval.
+Checking completion boxes and updating the `Evidence dokončení` section do not.
 
 PRs authored by `darebakdavca` remain exempt from requirements review. Code review
 and QA always apply to the current commit; new code goes through Code Review

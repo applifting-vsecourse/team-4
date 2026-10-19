@@ -98,6 +98,8 @@ export function buildPrompt({
 Review pull request #${prNumber} against the issue it implements and the repository rules. Your job is to stop changes that would break the application and to pass everything else, with notes.
 ${scope}
 
+For a blocker, name the concrete trigger, affected code and resulting failure. You have not executed code: never claim a migration or test failed unless execution evidence is supplied. An uncertain external API or database restriction is a note, not a blocker. Do not confuse a sequence's own numeric data type with the type of a column referenced by OWNED BY. Executable CI checks validate migrations and database constraints.
+
 Classify every finding with a severity:
 - "blocker": code that, as written, would actually break the application. That means a crash or unhandled runtime error, a build, type-check or test failure, wrong behaviour or lost or corrupted data in a flow the PR implements, a security vulnerability (authentication or authorization bypass, injection, exposed secret), a failing migration, or an acceptance criterion of the issue that is directly contradicted so the feature does not work. You must be able to name the concrete scenario in which it fails.
 - "note": everything else. For example accessibility semantics, violations of design or styling rules, naming, structure, maintainability, missing tests or documentation, performance remarks, minor deviations from repository rules, and any risk that is hypothetical or that you are not sure about.
