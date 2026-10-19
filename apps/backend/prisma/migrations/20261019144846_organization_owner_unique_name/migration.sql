@@ -23,16 +23,40 @@ ALTER TABLE "organization" ADD CONSTRAINT "organization_ownerId_fkey" FOREIGN KE
 UPDATE "organization" SET "name" = btrim("name");
 
 -- Existing duplicates (same owner, same name ignoring case) keep the oldest
--- row's name; later ones get a " (2)", " (3)" suffix so the index can be built.
-UPDATE "organization" o
-SET "name" = left(o."name", 190) || ' (' || d.rn || ')'
-FROM (
-  SELECT "id", row_number() OVER (
-    PARTITION BY "ownerId", lower("name") ORDER BY "createdAt", "id"
-  ) AS rn
-  FROM "organization"
-) d
-WHERE d."id" = o."id" AND d.rn > 1;
+-- row's name. Every later one is renamed one by one to "<name> (n)" with the
+-- smallest n >= 2 that no other row of that owner uses (renames made earlier in
+-- the loop count), so the repair can never collide, e.g. with a row that is
+-- already called "Foo (2)".
+DO $$
+DECLARE
+  dup RECORD;
+  suffix INTEGER;
+BEGIN
+  FOR dup IN
+    SELECT "id", "ownerId", "name"
+    FROM (
+      SELECT "id", "ownerId", "name", row_number() OVER (
+        PARTITION BY "ownerId", lower("name") ORDER BY "createdAt", "id"
+      ) AS rn
+      FROM "organization"
+    ) ranked
+    WHERE rn > 1
+    ORDER BY "ownerId", "id"
+  LOOP
+    suffix := 2;
+    WHILE EXISTS (
+      SELECT 1 FROM "organization" o
+      WHERE o."ownerId" = dup."ownerId"
+        AND o."id" <> dup."id"
+        AND lower(o."name") = lower(left(dup."name", 190) || ' (' || suffix || ')')
+    ) LOOP
+      suffix := suffix + 1;
+    END LOOP;
+    UPDATE "organization"
+    SET "name" = left(dup."name", 190) || ' (' || suffix || ')'
+    WHERE "id" = dup."id";
+  END LOOP;
+END $$;
 
 ALTER TABLE "organization"
   ADD CONSTRAINT "organization_name_trimmed_check"
