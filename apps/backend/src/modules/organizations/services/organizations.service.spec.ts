@@ -1,6 +1,6 @@
 import { OrganizationModel } from '@/modules/organizations/domain/organization';
 import { OrganizationsRepository } from '@/modules/organizations/repositories/organizations.repository';
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { OrganizationsService } from './organizations.service';
 
 describe('OrganizationsService', () => {
@@ -36,10 +36,17 @@ describe('OrganizationsService', () => {
     );
   });
 
-  it('creates the organization owned by the caller', async () => {
+  it('creates the organization owned by the caller with a trimmed name', async () => {
     const created = new OrganizationModel('b', 'Beta');
     repository.createWithOwner.mockResolvedValue(created);
-    await expect(service.create('Beta', 'user-1')).resolves.toBe(created);
+    await expect(service.create('  Beta ', 'user-1')).resolves.toBe(created);
     expect(repository.createWithOwner).toHaveBeenCalledWith('Beta', 'user-1');
+  });
+
+  it('rejects a duplicate name with a conflict', async () => {
+    repository.createWithOwner.mockResolvedValue(null);
+    await expect(service.create('Beta', 'user-1')).rejects.toEqual(
+      new ConflictException('Organizace s tímto názvem už existuje.'),
+    );
   });
 });

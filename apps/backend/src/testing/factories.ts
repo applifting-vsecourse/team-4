@@ -44,6 +44,7 @@ export const createOrganization = async (
   return prisma.organization.create({
     data: {
       name: `Organization ${suffix()}`,
+      ownerId,
       members: { create: { userId: ownerId, role: 'owner' } },
     },
   });

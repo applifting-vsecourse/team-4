@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { Prisma } from '@/generated/prisma/client';
 import { OrganizationModel } from '@/modules/organizations/domain/organization';
 import { Injectable } from '@nestjs/common';
 
@@ -26,15 +27,33 @@ export class OrganizationsRepository {
     return row ? new OrganizationModel(row.id, row.name) : null;
   }
 
-  /** The organization and its owner membership are written together. */
+  /**
+   * The organization and its owner membership are written together. Returns
+   * `null` when the owner already has an organization of that name (unique
+   * index on owner + lower-cased name), which also holds under concurrency.
+   */
   async createWithOwner(
     name: string,
     ownerId: string,
-  ): Promise<OrganizationModel> {
-    const row = await this.prisma.organization.create({
-      data: { name, members: { create: { userId: ownerId, role: 'owner' } } },
-      select: { id: true, name: true },
-    });
-    return new OrganizationModel(row.id, row.name);
+  ): Promise<OrganizationModel | null> {
+    try {
+      const row = await this.prisma.organization.create({
+        data: {
+          name,
+          ownerId,
+          members: { create: { userId: ownerId, role: 'owner' } },
+        },
+        select: { id: true, name: true },
+      });
+      return new OrganizationModel(row.id, row.name);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return null;
+      }
+      throw error;
+    }
   }
 }

@@ -1,6 +1,10 @@
 import { OrganizationModel } from '@/modules/organizations/domain/organization';
 import { OrganizationsRepository } from '@/modules/organizations/repositories/organizations.repository';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 @Injectable()
 export class OrganizationsService {
@@ -23,7 +27,12 @@ export class OrganizationsService {
     return organization;
   }
 
-  create(name: string, userId: string): Promise<OrganizationModel> {
-    return this.repository.createWithOwner(name, userId);
+  /** `name` is trimmed here too, so callers other than the DTO cannot skip it. */
+  async create(name: string, userId: string): Promise<OrganizationModel> {
+    const created = await this.repository.createWithOwner(name.trim(), userId);
+    if (!created) {
+      throw new ConflictException('Organizace s tímto názvem už existuje.');
+    }
+    return created;
   }
 }

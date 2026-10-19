@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
@@ -28,15 +29,27 @@ type FormValues = z.infer<typeof schema>
 type OrganizationFormProps = {
   isLoading: boolean
   errorMessage?: string | null
+  // Server-side rejection of the name (duplicate), shown at the field.
+  nameError?: string | null
   onSubmit: (values: FormValues) => void | Promise<void>
 }
 
 // The name stays filled in after a failed attempt: the form is never reset.
-export function OrganizationForm({ isLoading, errorMessage, onSubmit }: OrganizationFormProps) {
+export function OrganizationForm({
+  isLoading,
+  errorMessage,
+  nameError,
+  onSubmit,
+}: OrganizationFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { name: "" },
   })
+  const { setError } = form
+
+  useEffect(() => {
+    if (nameError) setError("name", { type: "server", message: nameError })
+  }, [nameError, setError])
 
   return (
     <Form {...form}>

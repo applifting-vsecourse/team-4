@@ -2,6 +2,7 @@ import { useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
 import { Seo } from "@/components/Seo"
+import { HTTPError } from "@/lib/api-client"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { OrganizationForm } from "@/features/organizations/components/OrganizationForm"
@@ -17,9 +18,11 @@ function NewOrganizationPage() {
   const { user } = useSession()
   const createOrganization = useCreateOrganization()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [nameError, setNameError] = useState<string | null>(null)
 
   const handleSubmit = async (values: { name: string }) => {
     setErrorMessage(null)
+    setNameError(null)
     try {
       const organization = await createOrganization.mutateAsync(values)
       if (user) rememberOrganization(user.id, organization.id)
@@ -27,7 +30,11 @@ function NewOrganizationPage() {
         to: "/organizations/$organizationId",
         params: { organizationId: organization.id },
       })
-    } catch {
+    } catch (error) {
+      if (error instanceof HTTPError && error.response.status === 409) {
+        setNameError("Organizace s tímto názvem už existuje.")
+        return
+      }
       setErrorMessage("Organizaci se nepodařilo založit. Zkuste to prosím znovu.")
     }
   }
@@ -43,6 +50,7 @@ function NewOrganizationPage() {
         <OrganizationForm
           isLoading={createOrganization.isPending}
           errorMessage={errorMessage}
+          nameError={nameError}
           onSubmit={handleSubmit}
         />
       </div>
