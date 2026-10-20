@@ -19,8 +19,9 @@ export const MAX_PAYMENT_DUE_DAYS = 2_147_483_647;
 
 export type AccountField = 'bankAccountPrefix' | 'bankAccountNumber';
 
-// Weights of the ČNB mod-11 check, from the rightmost digit. The prefix is
-// checked as a 6-digit number with the same weights.
+// Weights of the ČNB mod-11 check, from the rightmost digit: the last digit
+// always has weight 1, so a shorter number is the same as one padded with
+// leading zeros (123457 = 0000123457). The prefix is checked the same way.
 const WEIGHTS = [1, 2, 4, 8, 5, 10, 9, 7, 3, 6];
 
 const hasValidChecksum = (digits: string): boolean => {
