@@ -46,7 +46,7 @@ describe("PaymentSettingsForm", () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
-  it.each(["0", "1.5", "-3", "abc", "1000001"])("rejects %s due days", async (days) => {
+  it.each(["0", "1.5", "-3", "abc", "2147483648"])("rejects %s due days", async (days) => {
     const { onSubmit } = renderForm({ ...SAVED, paymentDueDays: days })
     await save()
     expect(await screen.findByText(/splatnost/i, { selector: "p" })).toBeInTheDocument()

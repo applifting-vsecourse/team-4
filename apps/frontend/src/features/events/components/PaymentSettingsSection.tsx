@@ -35,8 +35,6 @@ export function PaymentSettingsSection({ organizationId, event }: PaymentSetting
   const refreshEvent = useRefreshEvent(organizationId, event.id)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [fieldError, setFieldError] = useState<PaymentFieldError | null>(null)
-  // Captured once: a refetch must not overwrite what the organizer is typing.
-  const [initialValues] = useState(() => toFormValues(event.paymentSettings))
 
   const handleSubmit = async (settings: PaymentSettings) => {
     setErrorMessage(null)
@@ -78,7 +76,7 @@ export function PaymentSettingsSection({ organizationId, event }: PaymentSetting
             </Alert>
           ) : null}
           <PaymentSettingsForm
-            initialValues={initialValues}
+            initialValues={toFormValues(event.paymentSettings)}
             isLoading={update.isPending}
             errorMessage={errorMessage}
             fieldError={fieldError}

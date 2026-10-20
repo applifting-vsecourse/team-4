@@ -18,6 +18,9 @@ import { Input } from "@/components/ui/input"
 
 import { type PaymentSettings } from "@/features/events/api/paymentSettingsSchemas"
 
+// The largest value the stored 32-bit column holds; no business limit (S2-09).
+const MAX_PAYMENT_DUE_DAYS = 2_147_483_647
+
 // Format only: the account checksum is enforced by the server (S2-09).
 const schema = z.object({
   bankAccountPrefix: z
@@ -40,7 +43,10 @@ const schema = z.object({
     .min(1, "Vyplňte splatnost ve dnech.")
     .regex(/^[0-9]+$/, "Splatnost zadejte jako celý počet dní.")
     .refine((value) => Number(value) >= 1, "Splatnost musí být alespoň 1 den.")
-    .refine((value) => Number(value) <= 1_000_000, "Zadejte menší počet dní splatnosti."),
+    .refine(
+      (value) => Number(value) <= MAX_PAYMENT_DUE_DAYS,
+      "Zadejte menší počet dní splatnosti.",
+    ),
 })
 
 export type PaymentSettingsFormValues = z.infer<typeof schema>
@@ -86,7 +92,14 @@ export function PaymentSettingsForm({
     resolver: zodResolver(schema),
     defaultValues: initialValues,
   })
-  const { setError } = form
+  const { setError, reset } = form
+
+  // Follow the persisted settings when they change. A refetch with the same
+  // data keeps the key, so it never overwrites what is being typed.
+  const savedKey = JSON.stringify(initialValues)
+  useEffect(() => {
+    reset(JSON.parse(savedKey) as PaymentSettingsFormValues)
+  }, [savedKey, reset])
 
   useEffect(() => {
     if (fieldError) {
