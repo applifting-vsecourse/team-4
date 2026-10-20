@@ -1,6 +1,6 @@
 # Mapa sprint stories
 
-Před implementací čti [sitemapu](../../sitemap.md) a navigační kontext v příslušném GitHub issue. Cílová struktura nenahrazuje [rozsah sprintu](README.md).
+Před implementací čti [sitemapu](../../sitemap.md) a příslušné GitHub issue; issue je zdrojem rozsahu a akceptačních kritérií.
 
 | Story                                                                   | Název                                                  | Původní issues                                                                                                                                                                                                                                                     |
 | ----------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
