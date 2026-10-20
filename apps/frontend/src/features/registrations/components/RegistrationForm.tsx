@@ -11,7 +11,6 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -114,7 +113,7 @@ export function RegistrationForm({
         noValidate
         aria-label="Přihláška na akci"
         onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-6"
+        className="space-y-7"
       >
         <FormField
           control={form.control}
@@ -122,13 +121,13 @@ export function RegistrationForm({
           render={({ field }) => (
             <FormItem>
               <fieldset className="space-y-2">
-                <legend className="mb-3 text-h4">Termíny</legend>
+                <legend className="mb-2 text-h4">Termíny</legend>
                 {terms.map((term) => {
                   const id = `registration-term-${term.id}`
                   return (
                     <div
                       key={term.id}
-                      className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
+                      className="relative flex items-center gap-3 rounded-lg border border-border bg-card p-3 has-data-[state=checked]:border-foreground"
                     >
                       <Checkbox
                         id={id}
@@ -143,15 +142,15 @@ export function RegistrationForm({
                       />
                       <Label
                         htmlFor={id}
-                        className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
+                        className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1 after:absolute after:inset-0 after:rounded-lg"
                       >
                         <span className="min-w-0 break-words">
                           {term.label}
-                          <span className="block font-normal text-muted-foreground">
+                          <span className="mt-0.5 block font-normal text-muted-foreground">
                             {formatCalendarRange(term.startDate, term.endDate)}
                           </span>
                         </span>
-                        <span className="font-mono">{formatCzk(term.priceMinor)}</span>
+                        <span className="tabular-nums">{formatCzk(term.priceMinor)}</span>
                       </Label>
                     </div>
                   )
@@ -162,41 +161,28 @@ export function RegistrationForm({
           )}
         />
 
-        <section
-          aria-labelledby="registration-total-heading"
-          aria-live="polite"
-          className="rounded-lg bg-muted p-4"
-        >
-          <div className="flex items-baseline justify-between gap-3">
-            <h3
+        <div className="space-y-2">
+          <section
+            aria-labelledby="registration-total-heading"
+            aria-live="polite"
+            className="flex items-center gap-3 rounded-lg bg-muted p-3"
+          >
+            <p
               id="registration-total-heading"
-              className="text-sm font-medium"
+              className="min-w-0 flex-1 text-sm font-medium"
             >
               Cena vybraných termínů
-            </h3>
-            <span className="font-mono text-base font-medium">{formatCzk(totalMinor)}</span>
-          </div>
-          {selected.length > 0 ? (
-            <ul className="mt-2 space-y-1 text-sm">
-              {selected.map((term) => (
-                <li
-                  key={term.id}
-                  className="flex justify-between gap-3"
-                >
-                  <span className="min-w-0 break-words">{term.label}</span>
-                  <span className="font-mono">{formatCzk(term.priceMinor)}</span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <p className="mt-2 text-sm">
+            </p>
+            <span className="text-base font-semibold tabular-nums">{formatCzk(totalMinor)}</span>
+          </section>
+          <p className="text-sm text-muted-foreground">
             Nejde o částku k úhradě. Potvrzení účasti v jednotlivých termínech a částku k úhradě
             uvidíte po odeslání.
           </p>
-        </section>
+        </div>
 
         <fieldset className="space-y-4">
-          <legend className="mb-3 text-h4">Kontaktní údaje</legend>
+          <legend className="mb-4 text-h4">Kontaktní údaje</legend>
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
@@ -263,7 +249,6 @@ export function RegistrationForm({
                     {...field}
                   />
                 </FormControl>
-                <FormDescription>S mezinárodní předvolbou, např. +420 777 123 456.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}

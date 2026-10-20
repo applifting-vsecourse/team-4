@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { CalendarX } from "lucide-react"
+import { CalendarX, MapPin } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -53,19 +53,19 @@ export function PublicEventView({
   return (
     <article>
       <h1 className="text-h2 break-words">{event.name}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{event.location}</p>
+      <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+        <MapPin
+          aria-hidden
+          className="size-4 shrink-0"
+        />
+        <span className="min-w-0 break-words">{event.location}</span>
+      </p>
       <p className="mt-6 max-w-prose text-sm whitespace-pre-line">{event.description}</p>
 
       <section
-        aria-labelledby="public-registration-heading"
-        className="mt-8 max-w-2xl"
+        aria-label="Přihláška"
+        className="mt-7 max-w-2xl"
       >
-        <h2
-          id="public-registration-heading"
-          className="mb-4 text-h3"
-        >
-          Přihláška
-        </h2>
         {registration}
       </section>
     </article>
