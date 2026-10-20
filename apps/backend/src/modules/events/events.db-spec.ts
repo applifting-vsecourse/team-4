@@ -1,5 +1,6 @@
 import { PrismaModule } from '@/core/prisma/prisma.module';
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { Prisma } from '@/generated/prisma/client';
 import { EventPaymentSettingsController } from '@/modules/events/controllers/event-payment-settings.controller';
 import { EventTermsController } from '@/modules/events/controllers/event-terms.controller';
 import { EventsController } from '@/modules/events/controllers/events.controller';
@@ -732,6 +733,68 @@ describe('opening registration', () => {
         .firstOpenedAt,
     ).toEqual(first);
   });
+
+  it.each([
+    [
+      'its last term is removed',
+      'terms',
+      (tx: Prisma.TransactionClient, eventId: string): Promise<unknown> =>
+        tx.eventTerm.deleteMany({ where: { eventId } }),
+    ],
+    [
+      'its payment settings are cleared',
+      'paymentSettings',
+      (tx: Prisma.TransactionClient, eventId: string): Promise<unknown> =>
+        tx.event.update({
+          where: { id: eventId },
+          data: {
+            bankAccountPrefix: null,
+            bankAccountNumber: null,
+            bankCode: null,
+            paymentDueDays: null,
+          },
+        }),
+    ],
+  ])(
+    'waits for a concurrent change and refuses when %s meanwhile',
+    async (_name, blocker, change) => {
+      const { ownerId, path, eventId } = await readyEvent();
+      let release!: () => void;
+      const released = new Promise<void>((resolve) => (release = resolve));
+      let locked!: () => void;
+      const hasLock = new Promise<void>((resolve) => (locked = resolve));
+
+      // Another writer holds the event row lock and has made its change, but
+      // has not committed yet.
+      const writer = prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT 1 FROM "event" WHERE "id" = ${eventId}::uuid FOR UPDATE`;
+        await change(tx, eventId);
+        locked();
+        await released;
+      });
+      await hasLock;
+
+      let settled = false;
+      const opening = call(ownerId, 'POST', `${path}/open-registration`).then(
+        (answer) => {
+          settled = true;
+          return answer;
+        },
+      );
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      expect(settled).toBe(false);
+
+      release();
+      await writer;
+      const answer = await opening;
+      expect(answer.status).toBe(409);
+      expect(answer.body.blockers).toEqual([blocker]);
+      expect(
+        (await prisma.event.findUniqueOrThrow({ where: { id: eventId } }))
+          .status,
+      ).toBe('draft');
+    },
+  );
 
   it('does not open a closed event again', async () => {
     const { ownerId, path, eventId } = await readyEvent();
