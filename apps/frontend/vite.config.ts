@@ -20,6 +20,9 @@ export default defineConfig(({ mode }) => {
         eslint: {
           useFlatConfig: true,
           lintCommand: "eslint './src/**/*.{ts,tsx,js,cjs,mjs}'",
+          // Legacy shadcn/lint findings are warnings (SHADCN_LEGACY_FILES);
+          // only errors belong in the dev terminal.
+          dev: { logLevel: ["error"] },
         },
         overlay: { initialIsOpen: false },
       }),

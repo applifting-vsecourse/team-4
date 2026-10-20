@@ -45,6 +45,7 @@
     "@eslint/js": "catalog:lint",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@parcel/watcher": "^2.6.0",
+    "@shadcn/lint": "catalog:lint",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/eslint-plugin-query": "catalog:lint",
     "@tanstack/eslint-plugin-router": "catalog:lint",
