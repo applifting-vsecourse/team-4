@@ -74,19 +74,9 @@ export function PaymentSettingsSection({ organizationId, event }: PaymentSetting
           {event.paymentSettings === null ? (
             <Alert>
               <TriangleAlert />
-              <AlertTitle>Platební nastavení chybí</AlertTitle>
-              <AlertDescription>
-                Bez platebního nastavení nelze otevřít přihlašování.
-              </AlertDescription>
+              <AlertTitle>Bez platebního nastavení nelze otevřít přihlašování</AlertTitle>
             </Alert>
           ) : null}
-          <Alert>
-            <Info />
-            <AlertDescription>
-              Změna platí jen pro nové přihlášky. Přihlášky, které už akce přijala, si ponechávají
-              původní účet a splatnost.
-            </AlertDescription>
-          </Alert>
           <PaymentSettingsForm
             initialValues={initialValues}
             isLoading={update.isPending}
@@ -94,6 +84,13 @@ export function PaymentSettingsSection({ organizationId, event }: PaymentSetting
             fieldError={fieldError}
             onSubmit={handleSubmit}
           />
+          <Alert>
+            <Info />
+            <AlertTitle>Změna platí jen pro nové přihlášky</AlertTitle>
+            <AlertDescription>
+              Přihlášky, které už akce přijala, si ponechávají původní účet a splatnost.
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     </section>

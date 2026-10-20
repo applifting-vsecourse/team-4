@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -115,69 +114,72 @@ export function PaymentSettingsForm({
           </Alert>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-[1fr_2fr_1fr]">
-          <FormField
-            control={form.control}
-            name="bankAccountPrefix"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Předčíslí (nepovinné)</FormLabel>
-                <FormControl>
-                  <Input
-                    inputMode="numeric"
-                    autoComplete="off"
-                    placeholder="např. 19"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="bankAccountNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Číslo účtu</FormLabel>
-                <FormControl>
-                  <Input
-                    inputMode="numeric"
-                    autoComplete="off"
-                    placeholder="např. 2000145399"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="bankCode"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Kód banky</FormLabel>
-                <FormControl>
-                  <Input
-                    inputMode="numeric"
-                    autoComplete="off"
-                    placeholder="např. 0800"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">Bankovní účet</legend>
+          <div className="grid gap-4 sm:grid-cols-[1fr_2fr_1fr]">
+            <FormField
+              control={form.control}
+              name="bankAccountPrefix"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Předčíslí (nepovinné)</FormLabel>
+                  <FormControl>
+                    <Input
+                      inputMode="numeric"
+                      autoComplete="off"
+                      placeholder="např. 19"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="bankAccountNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Číslo účtu</FormLabel>
+                  <FormControl>
+                    <Input
+                      inputMode="numeric"
+                      autoComplete="off"
+                      placeholder="např. 2000145399"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="bankCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Kód banky</FormLabel>
+                  <FormControl>
+                    <Input
+                      inputMode="numeric"
+                      autoComplete="off"
+                      placeholder="např. 0800"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </fieldset>
 
         <FormField
           control={form.control}
           name="paymentDueDays"
           render={({ field }) => (
-            <FormItem className="sm:max-w-xs">
-              <FormLabel>Splatnost (dní)</FormLabel>
+            <FormItem className="sm:max-w-sm">
+              <FormLabel>Splatnost (dní od potvrzení přihlášky)</FormLabel>
               <FormControl>
                 <Input
                   inputMode="numeric"
@@ -186,7 +188,6 @@ export function PaymentSettingsForm({
                   {...field}
                 />
               </FormControl>
-              <FormDescription>Počet dní od potvrzení přihlášky do splatnosti.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
