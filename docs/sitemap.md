@@ -87,7 +87,7 @@ Dashboard má v mapě přechody do Přihlášek, Ubytování a Plateb. „Detail
 
 ## Výřez pro Sprint 2
 
-Autoritou rozsahu jsou GitHub issues odkazované v [indexu stories](sprints/sprint-2/story-index.md). [Plán Sprintu 2](sprints/sprint-2/README.md) je historický kontext; při rozdílu má přednost příslušné issue. Jejich navigační kontext popisuje umístění funkce, nepřidává další obrazovky ani akceptační kritéria.
+Rozsah a akceptační kritéria jsou v příslušných GitHub issues odkazovaných v [indexu stories](sprints/sprint-2/story-index.md). Tato sitemap popisuje cílové umístění a navigační kontext; sama nepřidává další obrazovky ani akceptační kritéria.
 
 - Landing page nabízí dva vstupy: „Moje přihlášky“ a „Organizátor“. „Moje přihlášky“ vede na účastnický přístup pomocí magic linku bez hesla; „Organizátor“ na přihlášení e-mailem a heslem s možností registrace organizátora. Nejde o společný přihlašovací formulář. Účastník se dostává na formulář přímým odkazem od organizátora; veřejný katalog je mimo sprint.
 - Organizátor zakládá a přepíná vlastní organizace. Po založení nebo přepnutí otevře seznam akcí dané organizace; účet bez organizací nabízí založení první.

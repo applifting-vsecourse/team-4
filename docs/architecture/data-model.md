@@ -12,8 +12,8 @@ in §9. `prisma migrate diff` against the migrated database reports no drift.
 (JakubHerr). Story branches that need a schema change add a **new** migration in their
 own PR and request the T1 owner's review. Applied migrations are never edited.
 
-Context: [Sprint 2 decisions](../sprints/sprint-2/README.md) ·
-[T1 scope](../sprints/sprint-2/delivery.md#t1--společný-datový-model-a-migrace).
+Context: [T1 issue #74](https://github.com/applifting-vsecourse/team-4/issues/74) ·
+[T1 delivery notes](../sprints/sprint-2/delivery.md#t1--společný-datový-model-a-migrace).
 
 ## 1. Requirements the model must satisfy
 
