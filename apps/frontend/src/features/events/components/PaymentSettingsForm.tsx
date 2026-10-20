@@ -93,6 +93,11 @@ export function PaymentSettingsForm({
     defaultValues: initialValues,
   })
   const { setError, reset } = form
+  // Without saved settings the first save is always possible (an empty form
+  // then shows what is missing). With them, saving needs a change; a failed
+  // save leaves the form dirty, so it can be repeated.
+  const hasSavedSettings = initialValues.bankAccountNumber !== ""
+  const canSave = !hasSavedSettings || form.formState.isDirty
 
   // Follow the persisted settings when they change. A refetch with the same
   // data keeps the key, so it never overwrites what is being typed.
@@ -210,7 +215,7 @@ export function PaymentSettingsForm({
         <div className="flex justify-end">
           <Button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || !canSave}
           >
             {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}
             Uložit platební nastavení

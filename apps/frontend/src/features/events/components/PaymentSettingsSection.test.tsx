@@ -91,6 +91,27 @@ describe("PaymentSettingsSection", () => {
     expect(field(/Splatnost/)).toHaveValue("14")
   })
 
+  it("disables the button after a successful save and keeps it active after a failed one", async () => {
+    renderPage({ ...EVENT, paymentSettings: SAVED })
+    const button = screen.getByRole("button", { name: "Uložit platební nastavení" })
+    expect(button).toBeDisabled()
+
+    put.mockReturnValueOnce({ json: () => Promise.reject(new Error("offline")) })
+    await userEvent.clear(field(/Splatnost/))
+    await userEvent.type(field(/Splatnost/), "30")
+    await userEvent.click(button)
+    expect(await screen.findByText(/nepodařilo uložit/)).toBeVisible()
+    expect(field(/Splatnost/)).toHaveValue("30")
+    expect(button).toBeEnabled()
+
+    put.mockReturnValueOnce({
+      json: () => Promise.resolve({ ...EVENT, paymentSettings: { ...SAVED, paymentDueDays: 30 } }),
+    })
+    await userEvent.click(button)
+    await vi.waitFor(() => expect(button).toBeDisabled())
+    expect(field(/Splatnost/)).toHaveValue("30")
+  })
+
   it("starts from the persisted settings and lets them be edited", async () => {
     renderPage({ ...EVENT, paymentSettings: SAVED })
     expect(field("Číslo účtu")).toHaveValue("2000145399")

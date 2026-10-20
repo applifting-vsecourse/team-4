@@ -46,36 +46,47 @@ describe("PaymentSettingsForm", () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
+  // Saved settings can only be saved after a change, so each case edits a field.
+  const changeDays = async (days: string) => {
+    const field = screen.getByLabelText(/Splatnost/)
+    await userEvent.clear(field)
+    await userEvent.type(field, days)
+  }
+
   it.each(["0", "1.5", "-3", "abc", "2147483648"])("rejects %s due days", async (days) => {
-    const { onSubmit } = renderForm({ ...SAVED, paymentDueDays: days })
+    const { onSubmit } = renderForm(SAVED)
+    await changeDays(days)
     await save()
     expect(await screen.findByText(/splatnost/i, { selector: "p" })).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
-  it("submits the saved values as numbers and strings", async () => {
+  it("submits the changed values as numbers and strings", async () => {
     const { onSubmit } = renderForm(SAVED)
+    await changeDays("30")
     await save()
     await vi.waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith({
         bankAccountPrefix: "19",
         bankAccountNumber: "2000145399",
         bankCode: "0800",
-        paymentDueDays: 14,
+        paymentDueDays: 30,
       }),
     )
   })
 
   it("accepts a due period of more than a year", async () => {
-    const { onSubmit } = renderForm({ ...SAVED, paymentDueDays: "366" })
+    const { onSubmit } = renderForm(SAVED)
+    await changeDays("366")
     await save()
     await vi.waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ paymentDueDays: 366 })),
     )
   })
 
-  it("sends an empty prefix as none", async () => {
-    const { onSubmit } = renderForm({ ...SAVED, bankAccountPrefix: "" })
+  it("sends a cleared prefix as none", async () => {
+    const { onSubmit } = renderForm(SAVED)
+    await userEvent.clear(screen.getByLabelText("Předčíslí (nepovinné)"))
     await save()
     await vi.waitFor(() =>
       expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ bankAccountPrefix: null })),
@@ -106,6 +117,32 @@ describe("PaymentSettingsForm", () => {
       bankAccountNumber: "123457",
       bankCode: "0100",
       paymentDueDays: "7",
+    })
+  })
+  describe("save button", () => {
+    const saveButton = () => screen.getByRole("button", { name: "Uložit platební nastavení" })
+
+    it("is active on the first setup, even with an empty form", () => {
+      renderForm(EMPTY_PAYMENT_SETTINGS)
+      expect(saveButton()).toBeEnabled()
+    })
+
+    it("is disabled for saved settings until a value changes", async () => {
+      renderForm(SAVED)
+      expect(saveButton()).toBeDisabled()
+      await userEvent.type(screen.getByLabelText(/Splatnost/), "0")
+      expect(saveButton()).toBeEnabled()
+    })
+
+    it("is disabled again when the original values are restored", async () => {
+      renderForm(SAVED)
+      const days = screen.getByLabelText(/Splatnost/)
+      await userEvent.clear(days)
+      await userEvent.type(days, "30")
+      expect(saveButton()).toBeEnabled()
+      await userEvent.clear(days)
+      await userEvent.type(days, "14")
+      expect(saveButton()).toBeDisabled()
     })
   })
 })
