@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react"
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router"
+import { createFileRoute, Link, Outlet, useParams } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 import { BrandMark } from "@/components/BrandMark"
@@ -7,6 +7,7 @@ import { ThemeSwitcher } from "@/components/Header/ThemeSwitcher"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 
 import { SidebarAccount } from "@/features/auth/components/SidebarAccount"
+import { EventNavigation } from "@/features/events/components/EventNavigation"
 import { organizationsQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { OrganizationSidebar } from "@/features/organizations/components/OrganizationSidebar"
 
@@ -22,10 +23,20 @@ const SIDEBAR_STYLE = { "--sidebar-width": "14rem" } as CSSProperties
 
 function OrganizationShell() {
   const { organizationId } = Route.useParams()
+  const { eventId } = useParams({ strict: false })
 
   return (
     <SidebarProvider style={SIDEBAR_STYLE}>
       <OrganizationSidebar
+        eventNavigation={
+          eventId ? (
+            <EventNavigation
+              organizationId={organizationId}
+              eventId={eventId}
+              isSidebar
+            />
+          ) : null
+        }
         organizationId={organizationId}
         footer={
           <div className="flex items-center gap-1">

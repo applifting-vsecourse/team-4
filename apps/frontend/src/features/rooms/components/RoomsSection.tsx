@@ -66,7 +66,8 @@ export function RoomsSection({ organizationId, eventId, overview, onChanged }: R
             <AlertDescription>
               Akce zatím nemá žádné termíny, pokoje tedy nemají kde být dostupné.{" "}
               <Link
-                to={ROUTES.event}
+                to={ROUTES.eventSettings}
+                hash="terms-heading"
                 params={{ organizationId, eventId }}
                 className="text-foreground underline"
               >
@@ -119,10 +120,10 @@ export function RoomsSection({ organizationId, eventId, overview, onChanged }: R
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-4">Označení</TableHead>
+                  <TableHead>Označení</TableHead>
                   <TableHead>Lůžka</TableHead>
                   <TableHead>Dostupné termíny</TableHead>
-                  <TableHead className="pr-4">
+                  <TableHead>
                     <span className="sr-only">Akce</span>
                   </TableHead>
                 </TableRow>
@@ -130,7 +131,7 @@ export function RoomsSection({ organizationId, eventId, overview, onChanged }: R
               <TableBody>
                 {rooms.map((room) => (
                   <TableRow key={room.id}>
-                    <TableCell className="pl-4 font-medium">{room.label}</TableCell>
+                    <TableCell className="font-medium">{room.label}</TableCell>
                     <TableCell>{room.bedCount}</TableCell>
                     <TableCell>
                       {room.termIds.length === 0 ? (
@@ -152,7 +153,7 @@ export function RoomsSection({ organizationId, eventId, overview, onChanged }: R
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="pr-4 text-right">
+                    <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <RoomDialog
                           organizationId={organizationId}

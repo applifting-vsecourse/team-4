@@ -1,9 +1,10 @@
 import type { ReactNode } from "react"
-import { Link, useMatchRoute } from "@tanstack/react-router"
-import { CalendarCog } from "lucide-react"
+import { Link, useParams } from "@tanstack/react-router"
+import { BarChart3, CalendarCog } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { BrandMark } from "@/components/BrandMark"
+import { Badge } from "@/components/ui/badge"
 import {
   Sidebar,
   SidebarContent,
@@ -19,19 +20,19 @@ import {
 import { OrganizationSwitcher } from "@/features/organizations/components/OrganizationSwitcher"
 
 type OrganizationSidebarProps = {
+  eventNavigation: ReactNode
   organizationId: string
   /** Signed-in organizer and sign-out, from the auth feature. */
   footer: ReactNode
 }
 
-// Navigation of one organization (Wireframy "Navigace"). Only items with a
-// screen are listed; the wireframe's other items arrive with their stories.
-export function OrganizationSidebar({ organizationId, footer }: OrganizationSidebarProps) {
-  const matchRoute = useMatchRoute()
-  // Event pages belong under "Akce a turnusy" too (Wireframy E1–E7).
-  const isEventsActive = Boolean(
-    matchRoute({ to: ROUTES.organization, params: { organizationId }, fuzzy: true }),
-  )
+export function OrganizationSidebar({
+  organizationId,
+  footer,
+  eventNavigation,
+}: OrganizationSidebarProps) {
+  const { eventId } = useParams({ strict: false })
+  const isEventsActive = !eventId
 
   return (
     <Sidebar>
@@ -63,8 +64,26 @@ export function OrganizationSidebar({ organizationId, footer }: OrganizationSide
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton disabled>
+                <BarChart3 aria-hidden />
+                <span>Reporty</span>
+                <Badge
+                  variant="secondary"
+                  className="ml-auto"
+                >
+                  Připravujeme
+                </Badge>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
+        {eventId ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Akce</SidebarGroupLabel>
+            {eventNavigation}
+          </SidebarGroup>
+        ) : null}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">{footer}</SidebarFooter>

@@ -11,8 +11,8 @@ export function EventLockedAlert({ status }: { status: EventStatus }) {
       <Lock />
       <AlertTitle>
         {status === "closed"
-          ? "Akci nelze upravovat ani po zavření přihlašování"
-          : "Od otevření přihlašování nelze akci upravovat"}
+          ? "Název, popis, místo, termíny a ceny zůstávají zamčené i po zavření přihlašování"
+          : "Od otevření přihlašování jsou název, popis, místo, termíny a ceny zamčené"}
       </AlertTitle>
     </Alert>
   )

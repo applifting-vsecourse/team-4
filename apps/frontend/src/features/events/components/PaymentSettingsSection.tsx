@@ -57,15 +57,12 @@ export function PaymentSettingsSection({ organizationId, event }: PaymentSetting
   }
 
   return (
-    <section
-      aria-labelledby="payments-heading"
-      className="mt-8"
-    >
+    <section aria-labelledby="payments-heading">
       <h2
         id="payments-heading"
         className="mb-4 text-h4"
       >
-        Platby
+        Platební údaje
       </h2>
       <Card>
         <CardContent className="space-y-4">

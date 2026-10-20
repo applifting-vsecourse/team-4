@@ -1,6 +1,5 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { BedDouble, Pencil } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { PageHeader } from "@/components/PageHeader"
@@ -10,11 +9,8 @@ import { Button } from "@/components/ui/button"
 
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
-import { EventLockedAlert } from "@/features/events/components/EventLockedAlert"
+import { EventNavigation } from "@/features/events/components/EventNavigation"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
-import { PaymentSettingsSection } from "@/features/events/components/PaymentSettingsSection"
-import { RegistrationSection } from "@/features/events/components/RegistrationSection"
-import { TermsSection } from "@/features/events/components/TermsSection"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 
 // Management of one event: its details, terms (S2-04), rooms (S2-05) and payments (S2-09).
@@ -44,66 +40,16 @@ function EventPage() {
             organizationId={organizationId}
             organizationName={organization.name}
             event={event}
-            current="Termíny"
+            current="Přehled"
           />
         }
         title={event.name}
         badge={<EventStatusBadge status={event.status} />}
         description={event.location}
-        actions={
-          <>
-            <Button
-              asChild
-              variant="outline"
-            >
-              <Link
-                to={ROUTES.eventRooms}
-                params={{ organizationId, eventId }}
-              >
-                <BedDouble />
-                Pokoje a lůžka
-              </Link>
-            </Button>
-            {event.isLocked ? null : (
-              <Button
-                asChild
-                variant="outline"
-              >
-                <Link
-                  to={ROUTES.editEvent}
-                  params={{ organizationId, eventId }}
-                >
-                  <Pencil />
-                  Upravit akci
-                </Link>
-              </Button>
-            )}
-          </>
-        }
       />
-      {/* Not in the wireframe: without it a locked event's description would
-          be visible nowhere, and S2-04 keeps locked data visible. */}
-      <p className="-mt-4 mb-8 max-w-prose text-sm whitespace-pre-line">{event.description}</p>
-
-      {event.isLocked ? (
-        <div className="mb-8">
-          <EventLockedAlert status={event.status} />
-        </div>
-      ) : null}
-
-      <RegistrationSection
+      <EventNavigation
         organizationId={organizationId}
-        event={event}
-      />
-
-      <TermsSection
-        organizationId={organizationId}
-        event={event}
-      />
-
-      <PaymentSettingsSection
-        organizationId={organizationId}
-        event={event}
+        eventId={eventId}
       />
     </section>
   )

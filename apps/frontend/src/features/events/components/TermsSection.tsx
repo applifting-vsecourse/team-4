@@ -17,6 +17,7 @@ import { formatCzk } from "@/lib/money"
 
 import { type EventDetail } from "@/features/events/api/eventSchemas"
 import { DeleteTermDialog } from "@/features/events/components/DeleteTermDialog"
+import { EventLockedAlert } from "@/features/events/components/EventLockedAlert"
 import { TermDialog } from "@/features/events/components/TermDialog"
 
 type TermsSectionProps = {
@@ -48,11 +49,16 @@ export function TermsSection({ organizationId, event }: TermsSectionProps) {
           id="terms-heading"
           className="text-h4"
         >
-          Termíny
+          Termíny a ceny
         </h2>
         {canEdit && event.terms.length > 0 ? addButton : null}
       </div>
 
+      {event.isLocked ? (
+        <div className="mb-4">
+          <EventLockedAlert status={event.status} />
+        </div>
+      ) : null}
       {event.terms.length === 0 ? (
         <Empty className="border border-dashed">
           <EmptyHeader>

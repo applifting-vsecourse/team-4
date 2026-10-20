@@ -17,7 +17,8 @@ export function BrandMark({ isLarge = false }: { isLarge?: boolean }) {
         height={36}
         className="size-[1.8em] shrink-0"
       />
-      akc.io
+      {/* Align the visible letters with the icon, compensating for the font's line-box metrics. */}
+      <span className="translate-y-[0.08em] leading-none">akc.io</span>
     </span>
   )
 }
