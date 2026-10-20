@@ -64,7 +64,7 @@ export function PublicEventView({
 
       <section
         aria-label="Přihláška"
-        className="mt-7 max-w-2xl"
+        className="mt-7"
       >
         {registration}
       </section>
