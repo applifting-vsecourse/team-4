@@ -10,7 +10,7 @@ export type PaymentSettings = {
   paymentDueDays: number;
 };
 
-export const MAX_PAYMENT_DUE_DAYS = 3650;
+export const MAX_PAYMENT_DUE_DAYS = 365;
 
 export type AccountField = 'bankAccountPrefix' | 'bankAccountNumber';
 

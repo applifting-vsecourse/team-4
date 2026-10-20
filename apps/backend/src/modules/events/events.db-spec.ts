@@ -477,6 +477,7 @@ describe('payment settings', () => {
     ['bankCode', { bankCode: '80' }],
     ['paymentDueDays', { paymentDueDays: 0 }],
     ['paymentDueDays', { paymentDueDays: -3 }],
+    ['paymentDueDays', { paymentDueDays: 366 }],
     ['paymentDueDays', { paymentDueDays: 1.5 }],
     ['paymentDueDays', { paymentDueDays: '14' }],
   ])(

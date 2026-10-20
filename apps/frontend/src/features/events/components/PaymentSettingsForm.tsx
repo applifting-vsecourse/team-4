@@ -39,7 +39,8 @@ const schema = z.object({
     .trim()
     .min(1, "Vyplňte splatnost ve dnech.")
     .regex(/^[0-9]+$/, "Splatnost zadejte jako celý počet dní.")
-    .refine((value) => Number(value) >= 1, "Splatnost musí být alespoň 1 den."),
+    .refine((value) => Number(value) >= 1, "Splatnost musí být alespoň 1 den.")
+    .refine((value) => Number(value) <= 365, "Splatnost může být nejvýše 365 dní."),
 })
 
 export type PaymentSettingsFormValues = z.infer<typeof schema>
