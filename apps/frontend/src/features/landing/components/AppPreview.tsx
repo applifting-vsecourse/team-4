@@ -8,7 +8,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
-import logoUrl from "@/assets/akcio-logo.png"
+import { BrandMark } from "@/components/BrandMark"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -84,16 +84,9 @@ export function AppPreview() {
       className="hidden h-113 w-full overflow-hidden rounded-xl border bg-background text-left select-none lg:flex"
     >
       <nav className="flex w-44 shrink-0 flex-col gap-5 border-r bg-sidebar p-2.5 text-sidebar-foreground">
-        <p className="flex items-center gap-2 p-1.5 text-base">
-          <img
-            src={logoUrl}
-            alt=""
-            width={20}
-            height={20}
-            className="size-5"
-          />
-          akc.io
-        </p>
+        <div className="p-1.5">
+          <BrandMark />
+        </div>
         <NavGroup
           label="Správa akce"
           items={EVENT_NAV}

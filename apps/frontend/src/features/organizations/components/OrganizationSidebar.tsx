@@ -3,6 +3,7 @@ import { Link, useMatchRoute } from "@tanstack/react-router"
 import { CalendarCog } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { BrandMark } from "@/components/BrandMark"
 import {
   Sidebar,
   SidebarContent,
@@ -34,16 +35,12 @@ export function OrganizationSidebar({ organizationId, footer }: OrganizationSide
 
   return (
     <Sidebar>
-      <SidebarHeader className="gap-4 p-4">
+      <SidebarHeader className="gap-6 p-4">
         <Link
           to={ROUTES.home}
-          className="flex items-center gap-2 text-lg font-medium tracking-tight"
+          className="rounded-sm tracking-tight outline-none focus-visible:ring-[3px] focus-visible:ring-sidebar-ring/50"
         >
-          <CalendarCog
-            aria-hidden
-            className="size-5"
-          />
-          akc.io
+          <BrandMark isLarge />
         </Link>
         <OrganizationSwitcher />
       </SidebarHeader>

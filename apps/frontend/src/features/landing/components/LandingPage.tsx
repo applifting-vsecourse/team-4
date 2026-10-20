@@ -10,7 +10,7 @@ import {
 } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
-import logoUrl from "@/assets/akcio-logo.png"
+import { BrandMark } from "@/components/BrandMark"
 import { ThemeSwitcher } from "@/components/Header/ThemeSwitcher"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -260,24 +260,6 @@ function MobileMenu() {
         </div>
       </SheetContent>
     </Sheet>
-  )
-}
-
-// Decorative: the "akc.io" text next to it is the accessible name.
-function BrandMark({ isLarge = false }: { isLarge?: boolean }) {
-  return (
-    <span
-      className={cn("flex items-center font-medium", isLarge ? "gap-2.5 text-xl" : "gap-2 text-sm")}
-    >
-      <img
-        src={logoUrl}
-        alt=""
-        width={isLarge ? 36 : 24}
-        height={isLarge ? 36 : 24}
-        className={isLarge ? "size-9" : "size-6"}
-      />
-      akc.io
-    </span>
   )
 }
 

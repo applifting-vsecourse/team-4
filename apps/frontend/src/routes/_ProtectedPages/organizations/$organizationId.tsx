@@ -2,6 +2,7 @@ import type { CSSProperties } from "react"
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
+import { BrandMark } from "@/components/BrandMark"
 import { ThemeSwitcher } from "@/components/Header/ThemeSwitcher"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 
@@ -40,9 +41,9 @@ function OrganizationShell() {
           <SidebarTrigger aria-label="Otevřít menu" />
           <Link
             to={ROUTES.home}
-            className="font-medium tracking-tight"
+            className="rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
-            akc.io
+            <BrandMark />
           </Link>
         </div>
         <Outlet />
