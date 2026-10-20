@@ -202,6 +202,8 @@ model EventTerm {
 model Room {
   id        String   @id @default(uuid(7)) @db.Uuid
   eventId   String   @db.Uuid
+  // Trimmed, and unique per event ignoring case (hand-written index in the
+  // migration, S2-05).
   label     String   @db.VarChar(100)
   bedCount  Int
   createdAt DateTime @default(now()) @db.Timestamptz(3)
@@ -211,7 +213,6 @@ model Room {
   availabilities RoomTermAvailability[]
 
   @@unique([id, eventId])
-  @@unique([eventId, label])
   @@map("room")
 }
 

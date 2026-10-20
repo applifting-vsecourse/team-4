@@ -11,13 +11,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { formatBeds } from "@/lib/beds"
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 
 import { type EventDetail } from "@/features/events/api/eventSchemas"
 import { DeleteTermDialog } from "@/features/events/components/DeleteTermDialog"
 import { TermDialog } from "@/features/events/components/TermDialog"
-import { formatBeds } from "@/features/events/lib/beds"
 
 type TermsSectionProps = {
   organizationId: string

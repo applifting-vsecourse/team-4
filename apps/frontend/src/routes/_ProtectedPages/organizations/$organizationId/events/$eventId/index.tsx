@@ -1,6 +1,6 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Pencil } from "lucide-react"
+import { BedDouble, Pencil } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { PageHeader } from "@/components/PageHeader"
@@ -17,7 +17,7 @@ import { RegistrationSection } from "@/features/events/components/RegistrationSe
 import { TermsSection } from "@/features/events/components/TermsSection"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 
-// Management of one event: its details, terms (S2-04) and payments (S2-09).
+// Management of one event: its details, terms (S2-04), rooms (S2-05) and payments (S2-09).
 export const Route = createFileRoute(
   "/_ProtectedPages/organizations/$organizationId/events/$eventId/",
 )({
@@ -51,20 +51,34 @@ function EventPage() {
         badge={<EventStatusBadge status={event.status} />}
         description={event.location}
         actions={
-          event.isLocked ? null : (
+          <>
             <Button
               asChild
               variant="outline"
             >
               <Link
-                to={ROUTES.editEvent}
+                to={ROUTES.eventRooms}
                 params={{ organizationId, eventId }}
               >
-                <Pencil />
-                Upravit akci
+                <BedDouble />
+                Pokoje a lůžka
               </Link>
             </Button>
-          )
+            {event.isLocked ? null : (
+              <Button
+                asChild
+                variant="outline"
+              >
+                <Link
+                  to={ROUTES.editEvent}
+                  params={{ organizationId, eventId }}
+                >
+                  <Pencil />
+                  Upravit akci
+                </Link>
+              </Button>
+            )}
+          </>
         }
       />
       {/* Not in the wireframe: without it a locked event's description would

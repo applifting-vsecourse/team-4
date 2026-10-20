@@ -8,12 +8,12 @@ import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { readApiError } from "@/lib/apiError"
 
 import { type EventInput } from "@/features/events/api/eventSchemas"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventForm } from "@/features/events/components/EventForm"
 import { useCreateEvent } from "@/features/events/hooks/useEventMutations"
-import { readApiError } from "@/features/events/lib/apiError"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 
 // Wireframy E1, E2.
@@ -37,7 +37,7 @@ function NewEventPage() {
       const event = await createEvent.mutateAsync(values)
       await navigate({ to: ROUTES.event, params: { organizationId, eventId: event.id } })
     } catch (error) {
-      const apiError = await readApiError(error)
+      const apiError = readApiError(error)
       setErrorMessage(
         apiError.status === 400 && apiError.message
           ? apiError.message

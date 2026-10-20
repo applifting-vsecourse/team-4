@@ -49,7 +49,7 @@ export function DeleteTermDialog({
       setIsOpen(false)
       toast.success("Termín byl odstraněn.")
     } catch (error) {
-      const described = await describeTermError(
+      const described = describeTermError(
         error,
         "Termín se nepodařilo odstranit. Zkuste to prosím znovu.",
       )

@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { readApiError } from "@/lib/apiError"
 
 import { type EventDetail, type OpeningBlocker } from "@/features/events/api/eventSchemas"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { useRefreshEvent } from "@/features/events/hooks/useEventMutations"
 import { useOpenRegistration } from "@/features/events/hooks/useOpenRegistration"
-import { readApiError } from "@/features/events/lib/apiError"
 import { publicEventUrl } from "@/features/events/lib/publicLink"
 
 type Condition = { blocker: OpeningBlocker; label: string; fixIn: "edit" | "terms" | "payments" }
@@ -51,7 +51,7 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
     try {
       await open.mutateAsync()
     } catch (error) {
-      const apiError = await readApiError(error)
+      const apiError = readApiError(error)
       // The server has the last word: show what it found missing now.
       if (apiError.status === 404 || apiError.status === 409) await refreshEvent()
       setOpenError(
