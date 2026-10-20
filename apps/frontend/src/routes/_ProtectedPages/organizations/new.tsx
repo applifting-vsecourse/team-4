@@ -4,10 +4,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Seo } from "@/components/Seo"
 import { HTTPError } from "@/lib/api-client"
 
-import { useSession } from "@/features/auth/hooks/useSession"
 import { OrganizationForm } from "@/features/organizations/components/OrganizationForm"
 import { useCreateOrganization } from "@/features/organizations/hooks/useCreateOrganization"
-import { rememberOrganization } from "@/features/organizations/lib/lastOrganization"
 
 export const Route = createFileRoute("/_ProtectedPages/organizations/new")({
   component: NewOrganizationPage,
@@ -15,7 +13,6 @@ export const Route = createFileRoute("/_ProtectedPages/organizations/new")({
 
 function NewOrganizationPage() {
   const navigate = useNavigate()
-  const { user } = useSession()
   const createOrganization = useCreateOrganization()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [nameError, setNameError] = useState<string | null>(null)
@@ -25,7 +22,6 @@ function NewOrganizationPage() {
     setNameError(null)
     try {
       const organization = await createOrganization.mutateAsync(values)
-      if (user) rememberOrganization(user.id, organization.id)
       await navigate({
         to: "/organizations/$organizationId",
         params: { organizationId: organization.id },

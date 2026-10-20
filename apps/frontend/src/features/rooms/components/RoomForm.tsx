@@ -155,7 +155,8 @@ export function RoomForm({
                     Akce zatím nemá žádné termíny. Pokoj můžete uložit bez dostupnosti a termíny
                     přiřadit později.{" "}
                     <Link
-                      to={ROUTES.event}
+                      to={ROUTES.eventSettings}
+                      hash="terms-heading"
                       params={{ organizationId, eventId }}
                       className="text-foreground underline"
                     >

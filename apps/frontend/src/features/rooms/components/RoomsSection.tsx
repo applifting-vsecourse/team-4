@@ -66,7 +66,8 @@ export function RoomsSection({ organizationId, eventId, overview, onChanged }: R
             <AlertDescription>
               Akce zatím nemá žádné termíny, pokoje tedy nemají kde být dostupné.{" "}
               <Link
-                to={ROUTES.event}
+                to={ROUTES.eventSettings}
+                hash="terms-heading"
                 params={{ organizationId, eventId }}
                 className="text-foreground underline"
               >

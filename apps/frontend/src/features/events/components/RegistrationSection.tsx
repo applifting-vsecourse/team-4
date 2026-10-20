@@ -79,10 +79,7 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
   }
 
   return (
-    <section
-      aria-labelledby="registration-heading"
-      className="mb-8"
-    >
+    <section aria-labelledby="registration-heading">
       <h2
         id="registration-heading"
         className="mb-4 text-h4"
@@ -224,7 +221,7 @@ function ConditionRow({ condition, isMissing, organizationId, eventId }: Conditi
             </Link>
           ) : (
             <Link
-              to={ROUTES.event}
+              to={ROUTES.eventSettings}
               params={{ organizationId, eventId }}
               hash={condition.fixIn === "terms" ? "terms-heading" : "payments-heading"}
             >

@@ -1,4 +1,3 @@
-import { useEffect } from "react"
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Plus } from "lucide-react"
@@ -9,13 +8,11 @@ import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 
-import { useSession } from "@/features/auth/hooks/useSession"
 import { eventsQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventsEmptyState } from "@/features/events/components/EventsEmptyState"
 import { EventsTable } from "@/features/events/components/EventsTable"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
-import { rememberOrganization } from "@/features/organizations/lib/lastOrganization"
 
 // "Akce a turnusy": the events of one own organization (Wireframy O5, W02).
 export const Route = createFileRoute("/_ProtectedPages/organizations/$organizationId/")({
@@ -32,11 +29,6 @@ function OrganizationEventsPage() {
   const { organizationId } = Route.useParams()
   const { data: organization } = useSuspenseQuery(organizationQueryOptions(organizationId))
   const { data: events } = useSuspenseQuery(eventsQueryOptions(organizationId))
-  const { user } = useSession()
-
-  useEffect(() => {
-    if (user) rememberOrganization(user.id, organization.id)
-  }, [user, organization.id])
 
   return (
     <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">

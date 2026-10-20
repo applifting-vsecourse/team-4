@@ -46,14 +46,15 @@ function EditEventPage() {
     description: event.description,
   }))
 
-  const backToEvent = () => navigate({ to: ROUTES.event, params: { organizationId, eventId } })
+  const backToSettings = () =>
+    navigate({ to: ROUTES.eventSettings, params: { organizationId, eventId } })
 
   const handleSubmit = async (values: EventInput) => {
     setErrorMessage(null)
     try {
       await updateEvent.mutateAsync(values)
       toast.success("Změny akce byly uloženy.")
-      await backToEvent()
+      await backToSettings()
     } catch (error) {
       const apiError = readApiError(error)
       if (apiError.code === "event_locked") await refreshEvent()
@@ -87,10 +88,10 @@ function EditEventPage() {
             variant="outline"
           >
             <Link
-              to={ROUTES.event}
+              to={ROUTES.eventSettings}
               params={{ organizationId, eventId }}
             >
-              Zpět na akci
+              Zpět na nastavení
             </Link>
           </Button>
         </div>
@@ -103,7 +104,7 @@ function EditEventPage() {
               isLoading={updateEvent.isPending}
               errorMessage={errorMessage}
               onSubmit={handleSubmit}
-              onCancel={backToEvent}
+              onCancel={backToSettings}
             />
           </CardContent>
         </Card>
