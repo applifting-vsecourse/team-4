@@ -3,6 +3,8 @@ import {
   EventDetailModel,
   EventInput,
   EventSummaryModel,
+  findOpeningBlockers,
+  PublicEventModel,
   TermInput,
 } from '@/modules/events/domain/event';
 import {
@@ -97,6 +99,48 @@ export class EventsService {
     );
     if (!outcome.found) throw notAvailable();
     return this.get(scope);
+  }
+
+  /**
+   * Draft → open for the whole event (S2-06). The preconditions are read under
+   * the event row lock, which every write to the terms, the basics and the
+   * payment settings also takes, so nothing changes between check and update.
+   * Opening an open event again is a no-op, so a retry after a lost answer is
+   * safe.
+   */
+  async openRegistration(scope: EventScope): Promise<EventDetailModel> {
+    const outcome = await this.repository.withLockedEvent(
+      scope,
+      async (event) => {
+        if (event.status === 'open') return;
+        if (event.status !== 'draft') {
+          throw new ConflictException({
+            statusCode: 409,
+            code: 'event_not_draft',
+            message: 'Přihlašování nelze znovu otevřít.',
+          });
+        }
+        const blockers = findOpeningBlockers(await event.openingInput());
+        if (blockers.length > 0) {
+          throw new ConflictException({
+            statusCode: 409,
+            code: 'opening_conditions_not_met',
+            blockers,
+            message: 'Přihlašování nelze otevřít, doplňte chybějící údaje.',
+          });
+        }
+        await event.open();
+      },
+    );
+    if (!outcome.found) throw notAvailable();
+    return this.get(scope);
+  }
+
+  /** Null-safe for the public link: anything but an open event is unavailable. */
+  async getPublic(publicId: string): Promise<PublicEventModel> {
+    const event = await this.repository.findOpenByPublicId(publicId);
+    if (!event) throw notAvailable();
+    return event;
   }
 
   async addTerm(

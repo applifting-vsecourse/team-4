@@ -6,8 +6,11 @@ import {
   capacityFromBeds,
   EventDetailModel,
   EventInput,
+  EventStatus,
   EventSummaryModel,
   EventTermModel,
+  OpeningInput,
+  PublicEventModel,
   TermInput,
 } from '@/modules/events/domain/event';
 import { PaymentSettings } from '@/modules/events/domain/payment-settings';
@@ -37,7 +40,40 @@ export class LockedEvent {
     private readonly tx: Prisma.TransactionClient,
     public readonly eventId: string,
     public readonly isLocked: boolean,
+    public readonly status: EventStatus,
   ) {}
+
+  /** What the opening preconditions are checked against, read under the lock. */
+  async openingInput(): Promise<OpeningInput> {
+    const event = await this.tx.event.findUniqueOrThrow({
+      where: { id: this.eventId },
+      select: {
+        name: true,
+        description: true,
+        location: true,
+        bankAccountPrefix: true,
+        bankAccountNumber: true,
+        bankCode: true,
+        paymentDueDays: true,
+        _count: { select: { terms: true } },
+      },
+    });
+    return {
+      name: event.name,
+      description: event.description,
+      location: event.location,
+      termCount: event._count.terms,
+      paymentSettings: toPaymentSettings(event),
+    };
+  }
+
+  /** The first opening also stamps `firstOpenedAt`, which locks the event. */
+  async open(): Promise<void> {
+    await this.tx.event.update({
+      where: { id: this.eventId },
+      data: { status: 'open', firstOpenedAt: new Date() },
+    });
+  }
 
   async terms(): Promise<StoredTerm[]> {
     const rows = await this.tx.eventTerm.findMany({
@@ -102,6 +138,23 @@ const termData = (
   priceMinor: input.priceMinor,
 });
 
+const toPaymentSettings = (event: {
+  bankAccountPrefix: string | null;
+  bankAccountNumber: string | null;
+  bankCode: string | null;
+  paymentDueDays: number | null;
+}): PaymentSettings | null =>
+  event.bankAccountNumber !== null &&
+  event.bankCode !== null &&
+  event.paymentDueDays !== null
+    ? {
+        bankAccountPrefix: event.bankAccountPrefix,
+        bankAccountNumber: event.bankAccountNumber,
+        bankCode: event.bankCode,
+        paymentDueDays: event.paymentDueDays,
+      }
+    : null;
+
 // 9 random bytes are 12 URL-safe characters for the public link /e/:publicId.
 const newPublicId = (): string => randomBytes(9).toString('base64url');
 
@@ -160,6 +213,7 @@ export class EventsRepository {
       },
       select: {
         id: true,
+        publicId: true,
         name: true,
         description: true,
         location: true,
@@ -207,16 +261,8 @@ export class EventsRepository {
             ),
           ),
       ),
-      event.bankAccountNumber !== null &&
-        event.bankCode !== null &&
-        event.paymentDueDays !== null
-        ? {
-            bankAccountPrefix: event.bankAccountPrefix,
-            bankAccountNumber: event.bankAccountNumber,
-            bankCode: event.bankCode,
-            paymentDueDays: event.paymentDueDays,
-          }
-        : null,
+      toPaymentSettings(event),
+      event.publicId,
     );
   }
 
@@ -244,8 +290,10 @@ export class EventsRepository {
     work: (event: LockedEvent) => Promise<T>,
   ): Promise<{ found: true; result: T } | { found: false }> {
     return this.prisma.$transaction(async (tx) => {
-      const rows = await tx.$queryRaw<{ firstOpenedAt: Date | null }[]>`
-        SELECT e."firstOpenedAt"
+      const rows = await tx.$queryRaw<
+        { firstOpenedAt: Date | null; status: EventStatus }[]
+      >`
+        SELECT e."firstOpenedAt", e."status"
         FROM "event" e
         JOIN "organization" o ON o."id" = e."organizationId"
         WHERE e."id" = ${scope.eventId}::uuid
@@ -255,9 +303,52 @@ export class EventsRepository {
       const row = rows[0];
       if (!row) return { found: false };
       const result = await work(
-        new LockedEvent(tx, scope.eventId, row.firstOpenedAt !== null),
+        new LockedEvent(
+          tx,
+          scope.eventId,
+          row.firstOpenedAt !== null,
+          row.status,
+        ),
       );
       return { found: true, result };
     });
+  }
+
+  /**
+   * Only an open event is public. A draft, a closed and a missing event all
+   * give null, so the link reveals nothing about which of them it is.
+   */
+  async findOpenByPublicId(publicId: string): Promise<PublicEventModel | null> {
+    const event = await this.prisma.event.findFirst({
+      where: { publicId, status: 'open' },
+      select: {
+        name: true,
+        description: true,
+        location: true,
+        terms: {
+          orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            label: true,
+            startDate: true,
+            endDate: true,
+            priceMinor: true,
+          },
+        },
+      },
+    });
+    if (!event) return null;
+    return new PublicEventModel(
+      event.name,
+      event.description,
+      event.location,
+      event.terms.map((term) => ({
+        id: term.id,
+        label: term.label,
+        startDate: fromDate(term.startDate),
+        endDate: fromDate(term.endDate),
+        priceMinor: term.priceMinor,
+      })),
+    );
   }
 }

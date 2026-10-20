@@ -21,6 +21,7 @@ const detail = new EventDetailModel(
   false,
   [],
   null,
+  'public12chars',
 );
 
 const term = (overrides: Partial<TermInput> = {}): TermInput => ({
@@ -43,6 +44,9 @@ const JULY: StoredTerm[] = [
 describe('EventsService', () => {
   const event = {
     isLocked: false,
+    status: 'draft',
+    openingInput: jest.fn(),
+    open: jest.fn(),
     terms: jest.fn(),
     updateBasics: jest.fn(),
     updatePaymentSettings: jest.fn(),
@@ -55,12 +59,14 @@ describe('EventsService', () => {
     findDetail: jest.fn(),
     create: jest.fn(),
     withLockedEvent: jest.fn(),
+    findOpenByPublicId: jest.fn(),
   };
   const service = new EventsService(repository as unknown as EventsRepository);
 
   beforeEach(() => {
     jest.resetAllMocks();
     event.isLocked = false;
+    event.status = 'draft';
     event.terms.mockResolvedValue(JULY);
     event.updateTerm.mockResolvedValue(true);
     event.deleteTerm.mockResolvedValue(true);
@@ -250,6 +256,70 @@ describe('EventsService', () => {
       await expect(
         service.updatePaymentSettings(scope, settings),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('opening registration', () => {
+    const ready = {
+      name: 'A',
+      description: 'B',
+      location: 'C',
+      termCount: 1,
+      paymentSettings: {
+        bankAccountPrefix: '19',
+        bankAccountNumber: '2000145399',
+        bankCode: '0800',
+        paymentDueDays: 14,
+      },
+    };
+
+    it('opens a ready draft', async () => {
+      event.openingInput.mockResolvedValue(ready);
+      await service.openRegistration(scope);
+      expect(event.open).toHaveBeenCalledTimes(1);
+    });
+
+    it('opens nothing and names what is missing', async () => {
+      event.openingInput.mockResolvedValue({
+        ...ready,
+        termCount: 0,
+        paymentSettings: null,
+      });
+      await expect(service.openRegistration(scope)).rejects.toMatchObject({
+        response: {
+          code: 'opening_conditions_not_met',
+          blockers: ['terms', 'paymentSettings'],
+        },
+      });
+      expect(event.open).not.toHaveBeenCalled();
+    });
+
+    it('does not open an open event twice', async () => {
+      event.status = 'open';
+      await service.openRegistration(scope);
+      expect(event.openingInput).not.toHaveBeenCalled();
+      expect(event.open).not.toHaveBeenCalled();
+    });
+
+    it('refuses a closed event', async () => {
+      event.status = 'closed';
+      await expect(service.openRegistration(scope)).rejects.toMatchObject({
+        response: { code: 'event_not_draft' },
+      });
+    });
+
+    it('hides a foreign or missing event behind the same 404', async () => {
+      repository.withLockedEvent.mockResolvedValue({ found: false });
+      await expect(service.openRegistration(scope)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('gives a draft or unknown public link the same 404', async () => {
+      repository.findOpenByPublicId.mockResolvedValue(null);
+      await expect(service.getPublic('abc')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
     });
   });
 });

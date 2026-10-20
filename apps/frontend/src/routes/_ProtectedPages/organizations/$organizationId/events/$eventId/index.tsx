@@ -13,6 +13,7 @@ import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventLockedAlert } from "@/features/events/components/EventLockedAlert"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { PaymentSettingsSection } from "@/features/events/components/PaymentSettingsSection"
+import { RegistrationSection } from "@/features/events/components/RegistrationSection"
 import { TermsSection } from "@/features/events/components/TermsSection"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 
@@ -75,6 +76,11 @@ function EventPage() {
           <EventLockedAlert status={event.status} />
         </div>
       ) : null}
+
+      <RegistrationSection
+        organizationId={organizationId}
+        event={event}
+      />
 
       <TermsSection
         organizationId={organizationId}

@@ -14,6 +14,7 @@ import { Route as ProtectedPagesRouteImport } from './routes/_ProtectedPages'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as EPublicIdRouteImport } from './routes/e/$publicId'
 import { Route as ProtectedPagesOrganizationsIndexRouteImport } from './routes/_ProtectedPages/organizations/index'
 import { Route as ProtectedPagesOrganizationsOrganizationIdRouteImport } from './routes/_ProtectedPages/organizations/$organizationId'
 import { Route as ProtectedPagesOrganizationsNewRouteImport } from './routes/_ProtectedPages/organizations/new'
@@ -44,6 +45,11 @@ const LoginRoute = LoginRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EPublicIdRoute = EPublicIdRouteImport.update({
+  id: '/e/$publicId',
+  path: '/e/$publicId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProtectedPagesOrganizationsIndexRoute =
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/design-system': typeof DesignSystemRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/e/$publicId': typeof EPublicIdRoute
   '/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdRouteWithChildren
   '/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
   '/organizations/': typeof ProtectedPagesOrganizationsIndexRoute
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/design-system': typeof DesignSystemRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/e/$publicId': typeof EPublicIdRoute
   '/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
   '/organizations': typeof ProtectedPagesOrganizationsIndexRoute
   '/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/design-system': typeof DesignSystemRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/e/$publicId': typeof EPublicIdRoute
   '/_ProtectedPages/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdRouteWithChildren
   '/_ProtectedPages/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
   '/_ProtectedPages/organizations/': typeof ProtectedPagesOrganizationsIndexRoute
@@ -138,6 +147,7 @@ export interface FileRouteTypes {
     | '/design-system'
     | '/login'
     | '/signup'
+    | '/e/$publicId'
     | '/organizations/$organizationId'
     | '/organizations/new'
     | '/organizations/'
@@ -151,6 +161,7 @@ export interface FileRouteTypes {
     | '/design-system'
     | '/login'
     | '/signup'
+    | '/e/$publicId'
     | '/organizations/new'
     | '/organizations'
     | '/organizations/$organizationId'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/design-system'
     | '/login'
     | '/signup'
+    | '/e/$publicId'
     | '/_ProtectedPages/organizations/$organizationId'
     | '/_ProtectedPages/organizations/new'
     | '/_ProtectedPages/organizations/'
@@ -179,6 +191,7 @@ export interface RootRouteChildren {
   DesignSystemRoute: typeof DesignSystemRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  EPublicIdRoute: typeof EPublicIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -216,6 +229,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/e/$publicId': {
+      id: '/e/$publicId'
+      path: '/e/$publicId'
+      fullPath: '/e/$publicId'
+      preLoaderRoute: typeof EPublicIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_ProtectedPages/organizations/': {
@@ -317,6 +337,7 @@ const rootRouteChildren: RootRouteChildren = {
   DesignSystemRoute: DesignSystemRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  EPublicIdRoute: EPublicIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

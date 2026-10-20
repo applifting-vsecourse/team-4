@@ -1,8 +1,10 @@
 import { PrismaModule } from '@/core/prisma/prisma.module';
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { Prisma } from '@/generated/prisma/client';
 import { EventPaymentSettingsController } from '@/modules/events/controllers/event-payment-settings.controller';
 import { EventTermsController } from '@/modules/events/controllers/event-terms.controller';
 import { EventsController } from '@/modules/events/controllers/events.controller';
+import { PublicEventsController } from '@/modules/events/controllers/public-events.controller';
 import { EventsRepository } from '@/modules/events/repositories/events.repository';
 import { EventsService } from '@/modules/events/services/events.service';
 import {
@@ -14,7 +16,7 @@ import {
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
-// S2-04 through the HTTP API against a real database: controllers, validation,
+// S2-04, S2-06 and S2-09 through the HTTP API against a real database: controllers, validation,
 // service rules, the event row lock and the constraints together. Only the
 // BetterAuth session is replaced: the `x-test-user` header names the caller.
 // Needs a migrated Postgres in DATABASE_URL: `pnpm backend test:db`.
@@ -52,6 +54,7 @@ beforeAll(async () => {
       EventsController,
       EventTermsController,
       EventPaymentSettingsController,
+      PublicEventsController,
     ],
     providers: [EventsService, EventsRepository],
   }).compile();
@@ -603,5 +606,265 @@ describe('organization isolation', () => {
       `organizations/${otherOrganization.id}/events/${eventId}`,
     );
     expect(response.status).toBe(404);
+  });
+});
+
+// S2-06: opening registration and the public link.
+
+/** A draft with one term (free is fine) and the account, ready to open. */
+const readyEvent = async (): Promise<
+  Awaited<ReturnType<typeof draftEvent>> & { eventId: string }
+> => {
+  const draft = await draftEvent();
+  await call(draft.ownerId, 'POST', `${draft.path}/terms`, {
+    ...FIRST,
+    priceMinor: 0,
+  });
+  await call(draft.ownerId, 'PUT', `${draft.path}/payment-settings`, ACCOUNT);
+  return { ...draft, eventId: draft.path.split('/').pop() as string };
+};
+
+const publicCall = async (publicId: string): Promise<Call> => {
+  const response = await fetch(`${baseUrl}/public/events/${publicId}`);
+  return { status: response.status, body: await response.json() };
+};
+
+describe('opening registration', () => {
+  it('lists everything missing on a new draft and refuses to open it', async () => {
+    const { ownerId, path } = await draftEvent();
+    const eventId = path.split('/').pop();
+    const draft = await call(ownerId, 'GET', path);
+    expect(draft.body.openingBlockers).toEqual(['terms', 'paymentSettings']);
+
+    const refused = await call(ownerId, 'POST', `${path}/open-registration`);
+    expect(refused.status).toBe(409);
+    expect(refused.body).toMatchObject({
+      code: 'opening_conditions_not_met',
+      blockers: ['terms', 'paymentSettings'],
+    });
+    const stored = await prisma.event.findUniqueOrThrow({
+      where: { id: eventId },
+    });
+    expect(stored).toMatchObject({ status: 'draft', firstOpenedAt: null });
+  });
+
+  it.each([
+    ['name', { name: '' }],
+    ['description', { description: ' ' }],
+    ['location', { location: '' }],
+    ['paymentSettings', { bankAccountNumber: '2000145398' }],
+  ])(
+    'refuses to open when %s is missing or invalid, checked by the server',
+    async (blocker, change) => {
+      const { ownerId, path, eventId } = await readyEvent();
+      await prisma.event.update({ where: { id: eventId }, data: change });
+
+      const refused = await call(ownerId, 'POST', `${path}/open-registration`);
+      expect(refused.status).toBe(409);
+      expect(refused.body.blockers).toEqual([blocker]);
+      expect(
+        (await prisma.event.findUniqueOrThrow({ where: { id: eventId } }))
+          .status,
+      ).toBe('draft');
+    },
+  );
+
+  it('opens an event without rooms and with a free term, and keeps it open', async () => {
+    const { ownerId, path, eventId } = await readyEvent();
+    const before = await call(ownerId, 'GET', path);
+    expect(before.body.openingBlockers).toEqual([]);
+    expect(before.body.terms).toEqual([
+      expect.objectContaining({ priceMinor: 0, capacity: 0 }),
+    ]);
+
+    const opened = await call(ownerId, 'POST', `${path}/open-registration`);
+    expect(opened.status).toBe(200);
+    expect(opened.body).toMatchObject({ status: 'open', isLocked: true });
+
+    const stored = await prisma.event.findUniqueOrThrow({
+      where: { id: eventId },
+    });
+    expect(stored.status).toBe('open');
+    expect(stored.firstOpenedAt).not.toBeNull();
+    expect((await call(ownerId, 'GET', path)).body).toMatchObject({
+      status: 'open',
+      isLocked: true,
+    });
+  });
+
+  it('locks the data from the first opening and keeps the public link', async () => {
+    const { ownerId, path } = await readyEvent();
+    const publicId = (await call(ownerId, 'GET', path)).body.publicId;
+    expect(publicId).toMatch(/^[A-Za-z0-9_-]{12}$/);
+    await call(ownerId, 'PUT', path, { ...BASICS, name: 'Přejmenováno' });
+    expect((await call(ownerId, 'GET', path)).body.publicId).toBe(publicId);
+
+    await call(ownerId, 'POST', `${path}/open-registration`);
+
+    expect((await call(ownerId, 'GET', path)).body.publicId).toBe(publicId);
+    const attempts = [
+      await call(ownerId, 'PUT', path, BASICS),
+      await call(ownerId, 'POST', `${path}/terms`, {
+        ...FIRST,
+        startDate: '2027-08-01',
+        endDate: '2027-08-02',
+      }),
+    ];
+    for (const attempt of attempts) {
+      expect(attempt.status).toBe(409);
+      expect(attempt.body.code).toBe('event_locked');
+    }
+  });
+
+  it('opens once when asked twice at the same time', async () => {
+    const { ownerId, path, eventId } = await readyEvent();
+    const answers = await Promise.all([
+      call(ownerId, 'POST', `${path}/open-registration`),
+      call(ownerId, 'POST', `${path}/open-registration`),
+    ]);
+    expect(answers.map((answer) => answer.status)).toEqual([200, 200]);
+
+    const first = (
+      await prisma.event.findUniqueOrThrow({ where: { id: eventId } })
+    ).firstOpenedAt;
+    await call(ownerId, 'POST', `${path}/open-registration`);
+    expect(
+      (await prisma.event.findUniqueOrThrow({ where: { id: eventId } }))
+        .firstOpenedAt,
+    ).toEqual(first);
+  });
+
+  it.each([
+    [
+      'its last term is removed',
+      'terms',
+      (tx: Prisma.TransactionClient, eventId: string): Promise<unknown> =>
+        tx.eventTerm.deleteMany({ where: { eventId } }),
+    ],
+    [
+      'its payment settings are cleared',
+      'paymentSettings',
+      (tx: Prisma.TransactionClient, eventId: string): Promise<unknown> =>
+        tx.event.update({
+          where: { id: eventId },
+          data: {
+            bankAccountPrefix: null,
+            bankAccountNumber: null,
+            bankCode: null,
+            paymentDueDays: null,
+          },
+        }),
+    ],
+  ])(
+    'waits for a concurrent change and refuses when %s meanwhile',
+    async (_name, blocker, change) => {
+      const { ownerId, path, eventId } = await readyEvent();
+      let release!: () => void;
+      const released = new Promise<void>((resolve) => (release = resolve));
+      let locked!: () => void;
+      const hasLock = new Promise<void>((resolve) => (locked = resolve));
+
+      // Another writer holds the event row lock and has made its change, but
+      // has not committed yet.
+      const writer = prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT 1 FROM "event" WHERE "id" = ${eventId}::uuid FOR UPDATE`;
+        await change(tx, eventId);
+        locked();
+        await released;
+      });
+      await hasLock;
+
+      let settled = false;
+      const opening = call(ownerId, 'POST', `${path}/open-registration`).then(
+        (answer) => {
+          settled = true;
+          return answer;
+        },
+      );
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      expect(settled).toBe(false);
+
+      release();
+      await writer;
+      const answer = await opening;
+      expect(answer.status).toBe(409);
+      expect(answer.body.blockers).toEqual([blocker]);
+      expect(
+        (await prisma.event.findUniqueOrThrow({ where: { id: eventId } }))
+          .status,
+      ).toBe('draft');
+    },
+  );
+
+  it('does not open a closed event again', async () => {
+    const { ownerId, path, eventId } = await readyEvent();
+    await call(ownerId, 'POST', `${path}/open-registration`);
+    await prisma.event.update({
+      where: { id: eventId },
+      data: { status: 'closed' },
+    });
+    const refused = await call(ownerId, 'POST', `${path}/open-registration`);
+    expect(refused.status).toBe(409);
+    expect(refused.body.code).toBe('event_not_draft');
+  });
+
+  it('answers 404 to another organizer and changes nothing', async () => {
+    const { path, eventId } = await readyEvent();
+    const stranger = await createOrganizer(prisma);
+    const refused = await call(
+      stranger.id,
+      'POST',
+      `${path}/open-registration`,
+    );
+    expect(refused.status).toBe(404);
+    expect(
+      (await prisma.event.findUniqueOrThrow({ where: { id: eventId } })).status,
+    ).toBe('draft');
+  });
+});
+
+describe('public event page', () => {
+  it('shows nothing of a draft, the same as an unknown link', async () => {
+    const { ownerId, path } = await readyEvent();
+    const publicId = (await call(ownerId, 'GET', path)).body.publicId;
+
+    const draft = await publicCall(publicId);
+    const unknown = await publicCall('nonexistent12');
+    expect(draft.status).toBe(404);
+    expect(draft.body).toEqual(unknown.body);
+    expect(JSON.stringify(draft.body)).not.toContain(BASICS.name);
+    expect((await publicCall('x y/z')).status).toBe(404);
+  });
+
+  it('shows only the public content of an open event, without signing in', async () => {
+    const { ownerId, path } = await readyEvent();
+    await call(ownerId, 'POST', `${path}/open-registration`);
+    const publicId = (await call(ownerId, 'GET', path)).body.publicId;
+
+    const response = await publicCall(publicId);
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      ...BASICS,
+      terms: [
+        {
+          id: expect.any(String),
+          label: FIRST.label,
+          startDate: FIRST.startDate,
+          endDate: FIRST.endDate,
+          priceMinor: 0,
+        },
+      ],
+    });
+  });
+
+  it('does not show a closed event', async () => {
+    const { ownerId, path, eventId } = await readyEvent();
+    await call(ownerId, 'POST', `${path}/open-registration`);
+    const publicId = (await call(ownerId, 'GET', path)).body.publicId;
+    await prisma.event.update({
+      where: { id: eventId },
+      data: { status: 'closed' },
+    });
+    expect((await publicCall(publicId)).status).toBe(404);
   });
 });

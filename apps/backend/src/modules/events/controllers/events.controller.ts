@@ -11,6 +11,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Post,
@@ -67,6 +68,31 @@ export class EventsController {
   ): Promise<EventDetailDto> {
     return EventDetailDto.from(
       await this.events.get({ organizationId, ownerId: user.id, eventId }),
+    );
+  }
+
+  @Post(':eventId/open-registration')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Open registration for the whole event',
+    description:
+      'Draft → open, once and without a confirmation step. From then on name, ' +
+      'description, location and terms are locked. 409 ' +
+      '`opening_conditions_not_met` with `blockers` when something is missing; ' +
+      'nothing is saved then. Opening an open event again changes nothing. ' +
+      'Returns the event.',
+  })
+  async openRegistration(
+    @User() user: Identity,
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+  ): Promise<EventDetailDto> {
+    return EventDetailDto.from(
+      await this.events.openRegistration({
+        organizationId,
+        ownerId: user.id,
+        eventId,
+      }),
     );
   }
 
