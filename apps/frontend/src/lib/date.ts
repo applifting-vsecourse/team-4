@@ -28,3 +28,17 @@ export function formatCalendarRange(startDate: string, endDate: string) {
   if (start.year === calendarParts(endDate).year) return `${start.day}. ${start.month}. – ${end}`
   return `${formatCalendarDate(startDate)} – ${end}`
 }
+
+const pragueDateTime = new Intl.DateTimeFormat("cs-CZ", {
+  timeZone: "Europe/Prague",
+  day: "numeric",
+  month: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+})
+
+/** A server timestamp as Prague wall-clock time: "20. 10. 2026 14:03". */
+export function formatPragueDateTime(value: string) {
+  return pragueDateTime.format(new Date(value))
+}

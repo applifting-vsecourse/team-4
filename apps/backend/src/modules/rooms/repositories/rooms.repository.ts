@@ -11,7 +11,8 @@ import {
 } from '@/modules/rooms/domain/room';
 import { Injectable } from '@nestjs/common';
 
-const termsWithBeds = {
+/** A term with what holds its beds, shared by every capacity write (§3.6). */
+export const termsWithBeds = {
   orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
   select: {
     id: true,
@@ -25,9 +26,9 @@ const termsWithBeds = {
   },
 } satisfies Prisma.Event$termsArgs;
 
-type TermWithBeds = Prisma.EventTermGetPayload<typeof termsWithBeds>;
+export type TermWithBeds = Prisma.EventTermGetPayload<typeof termsWithBeds>;
 
-const toTermCapacity = (term: TermWithBeds): TermCapacity =>
+export const toTermCapacity = (term: TermWithBeds): TermCapacity =>
   termCapacity(
     {
       id: term.id,
