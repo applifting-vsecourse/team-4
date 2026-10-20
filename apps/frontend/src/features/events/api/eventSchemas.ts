@@ -2,6 +2,15 @@ import { z } from "zod"
 
 import { paymentSettingsSchema } from "@/features/events/api/paymentSettingsSchemas"
 
+// What is still missing before registration can be opened (S2-06).
+export const openingBlockerSchema = z.enum([
+  "name",
+  "description",
+  "location",
+  "terms",
+  "paymentSettings",
+])
+
 export const eventStatusSchema = z.enum(["draft", "open", "closed"])
 
 export const eventTermSchema = z.object({
@@ -34,8 +43,11 @@ export const eventDetailSchema = z.object({
   isLocked: z.boolean(),
   terms: z.array(eventTermSchema),
   paymentSettings: paymentSettingsSchema.nullable(),
+  publicId: z.string(),
+  openingBlockers: z.array(openingBlockerSchema),
 })
 
+export type OpeningBlocker = z.infer<typeof openingBlockerSchema>
 export type EventStatus = z.infer<typeof eventStatusSchema>
 export type EventTerm = z.infer<typeof eventTermSchema>
 export type EventSummary = z.infer<typeof eventSummarySchema>

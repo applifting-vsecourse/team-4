@@ -26,6 +26,8 @@ const EVENT: EventDetail = {
   isLocked: false,
   terms: [],
   paymentSettings: null,
+  publicId: "abcdefghijkl",
+  openingBlockers: ["terms", "paymentSettings"],
 }
 
 const SAVED = {

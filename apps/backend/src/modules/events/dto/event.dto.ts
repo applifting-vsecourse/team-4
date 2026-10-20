@@ -3,11 +3,20 @@ import {
   EventStatus,
   EventSummaryModel,
   EventTermModel,
+  OpeningBlocker,
+  PublicEventModel,
 } from '@/modules/events/domain/event';
 import { PaymentSettings } from '@/modules/events/domain/payment-settings';
 import { ApiProperty } from '@nestjs/swagger';
 
 const STATUSES: EventStatus[] = ['draft', 'open', 'closed'];
+const BLOCKERS: OpeningBlocker[] = [
+  'name',
+  'description',
+  'location',
+  'terms',
+  'paymentSettings',
+];
 
 export class EventTermDto {
   @ApiProperty({ format: 'uuid' })
@@ -149,6 +158,20 @@ export class EventDetailDto {
   })
   paymentSettings!: PaymentSettingsDto | null;
 
+  @ApiProperty({
+    description: 'Part of the public link `/e/:publicId`; never changes.',
+  })
+  publicId!: string;
+
+  @ApiProperty({
+    enum: BLOCKERS,
+    isArray: true,
+    description:
+      'What is still missing before registration can be opened; empty when ' +
+      'it can be. The server checks it again when opening.',
+  })
+  openingBlockers!: OpeningBlocker[];
+
   static from(model: EventDetailModel): EventDetailDto {
     return {
       id: model.id,
@@ -161,6 +184,55 @@ export class EventDetailDto {
       paymentSettings: model.paymentSettings
         ? PaymentSettingsDto.from(model.paymentSettings)
         : null,
+      publicId: model.publicId,
+      openingBlockers: model.openingBlockers,
+    };
+  }
+}
+
+export class PublicEventTermDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty()
+  label!: string;
+
+  @ApiProperty({ format: 'date' })
+  startDate!: string;
+
+  @ApiProperty({ format: 'date' })
+  endDate!: string;
+
+  @ApiProperty({ description: 'Price in haléře (CZK × 100).' })
+  priceMinor!: number;
+}
+
+/** No ids of the organization, no capacity, no payment settings. */
+export class PublicEventDto {
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty()
+  description!: string;
+
+  @ApiProperty()
+  location!: string;
+
+  @ApiProperty({ type: [PublicEventTermDto], description: 'By start date.' })
+  terms!: PublicEventTermDto[];
+
+  static from(model: PublicEventModel): PublicEventDto {
+    return {
+      name: model.name,
+      description: model.description,
+      location: model.location,
+      terms: model.terms.map((term) => ({
+        id: term.id,
+        label: term.label,
+        startDate: term.startDate,
+        endDate: term.endDate,
+        priceMinor: term.priceMinor,
+      })),
     };
   }
 }
