@@ -4,6 +4,7 @@ import {
   EventSummaryModel,
   EventTermModel,
 } from '@/modules/events/domain/event';
+import { PaymentSettings } from '@/modules/events/domain/payment-settings';
 import { ApiProperty } from '@nestjs/swagger';
 
 const STATUSES: EventStatus[] = ['draft', 'open', 'closed'];
@@ -90,6 +91,29 @@ export class EventSummaryDto {
   }
 }
 
+export class PaymentSettingsDto {
+  @ApiProperty({ type: String, nullable: true, example: '19' })
+  bankAccountPrefix!: string | null;
+
+  @ApiProperty({ example: '2000145399' })
+  bankAccountNumber!: string;
+
+  @ApiProperty({ example: '0800' })
+  bankCode!: string;
+
+  @ApiProperty({ description: 'Days from confirmation to the due date.' })
+  paymentDueDays!: number;
+
+  static from(model: PaymentSettings): PaymentSettingsDto {
+    return {
+      bankAccountPrefix: model.bankAccountPrefix,
+      bankAccountNumber: model.bankAccountNumber,
+      bankCode: model.bankCode,
+      paymentDueDays: model.paymentDueDays,
+    };
+  }
+}
+
 export class EventDetailDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
@@ -116,6 +140,15 @@ export class EventDetailDto {
   @ApiProperty({ type: [EventTermDto], description: 'Sorted by start date.' })
   terms!: EventTermDto[];
 
+  @ApiProperty({
+    type: PaymentSettingsDto,
+    nullable: true,
+    description:
+      'Account and due days applied to registrations received from now on; ' +
+      'null until completed. Existing registrations keep their own copy.',
+  })
+  paymentSettings!: PaymentSettingsDto | null;
+
   static from(model: EventDetailModel): EventDetailDto {
     return {
       id: model.id,
@@ -125,6 +158,9 @@ export class EventDetailDto {
       status: model.status,
       isLocked: model.isLocked,
       terms: model.terms.map(EventTermDto.from),
+      paymentSettings: model.paymentSettings
+        ? PaymentSettingsDto.from(model.paymentSettings)
+        : null,
     };
   }
 }

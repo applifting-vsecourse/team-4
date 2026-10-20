@@ -12,7 +12,16 @@ import {
 import { EventsService } from './events.service';
 
 const scope = { organizationId: 'org', ownerId: 'user-1', eventId: 'event' };
-const detail = new EventDetailModel('event', 'A', 'B', 'C', 'draft', false, []);
+const detail = new EventDetailModel(
+  'event',
+  'A',
+  'B',
+  'C',
+  'draft',
+  false,
+  [],
+  null,
+);
 
 const term = (overrides: Partial<TermInput> = {}): TermInput => ({
   label: '2. turnus',
@@ -36,6 +45,7 @@ describe('EventsService', () => {
     isLocked: false,
     terms: jest.fn(),
     updateBasics: jest.fn(),
+    updatePaymentSettings: jest.fn(),
     insertTerm: jest.fn(),
     updateTerm: jest.fn(),
     deleteTerm: jest.fn(),
@@ -183,5 +193,63 @@ describe('EventsService', () => {
     expect(event.insertTerm).not.toHaveBeenCalled();
     expect(event.updateTerm).not.toHaveBeenCalled();
     expect(event.deleteTerm).not.toHaveBeenCalled();
+  });
+
+  describe('payment settings', () => {
+    const settings = {
+      bankAccountPrefix: '19',
+      bankAccountNumber: '2000145399',
+      bankCode: '0800',
+      paymentDueDays: 14,
+    };
+
+    it('saves a valid account, also on a locked event', async () => {
+      event.isLocked = true;
+      await service.updatePaymentSettings(scope, settings);
+      expect(event.updatePaymentSettings).toHaveBeenCalledWith(settings);
+    });
+
+    it('stores an empty prefix as none', async () => {
+      await service.updatePaymentSettings(scope, {
+        ...settings,
+        bankAccountPrefix: '',
+        bankAccountNumber: '123457',
+      });
+      expect(event.updatePaymentSettings).toHaveBeenCalledWith({
+        ...settings,
+        bankAccountPrefix: null,
+        bankAccountNumber: '123457',
+      });
+    });
+
+    it('rejects a number with a bad checksum at its field', async () => {
+      await expect(
+        service.updatePaymentSettings(scope, {
+          ...settings,
+          bankAccountNumber: '2000145398',
+        }),
+      ).rejects.toMatchObject({
+        response: { code: 'bank_account_invalid', field: 'bankAccountNumber' },
+      });
+      expect(repository.withLockedEvent).not.toHaveBeenCalled();
+    });
+
+    it('rejects a prefix with a bad checksum at its field', async () => {
+      await expect(
+        service.updatePaymentSettings(scope, {
+          ...settings,
+          bankAccountPrefix: '20',
+        }),
+      ).rejects.toMatchObject({
+        response: { code: 'bank_account_invalid', field: 'bankAccountPrefix' },
+      });
+    });
+
+    it('hides a foreign or missing event behind the same 404', async () => {
+      repository.withLockedEvent.mockResolvedValue({ found: false });
+      await expect(
+        service.updatePaymentSettings(scope, settings),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
   });
 });

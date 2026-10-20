@@ -6,6 +6,10 @@ import {
   TermInput,
 } from '@/modules/events/domain/event';
 import {
+  findInvalidAccountField,
+  PaymentSettings,
+} from '@/modules/events/domain/payment-settings';
+import {
   EventScope,
   EventsRepository,
   LockedEvent,
@@ -78,6 +82,23 @@ export class EventsService {
     return this.get(scope);
   }
 
+  /**
+   * Unlike the other writes this stays open after the first opening (R3). The
+   * event row lock serializes it with the opening, which reads the settings.
+   * Registrations already received keep their own copy of the old settings.
+   */
+  async updatePaymentSettings(
+    scope: EventScope,
+    input: PaymentSettings,
+  ): Promise<EventDetailModel> {
+    const settings = validPaymentSettings(input);
+    const outcome = await this.repository.withLockedEvent(scope, (event) =>
+      event.updatePaymentSettings(settings),
+    );
+    if (!outcome.found) throw notAvailable();
+    return this.get(scope);
+  }
+
   async addTerm(
     scope: EventScope,
     input: TermInput,
@@ -134,6 +155,30 @@ const trimEvent = (input: EventInput): EventInput => ({
   description: input.description.trim(),
   location: input.location.trim(),
 });
+
+/** Shape is the DTO's job; the checksum needs the digits together. */
+const validPaymentSettings = (input: PaymentSettings): PaymentSettings => {
+  const settings = {
+    ...input,
+    bankAccountPrefix: input.bankAccountPrefix || null,
+  };
+  const invalid = findInvalidAccountField(
+    settings.bankAccountPrefix,
+    settings.bankAccountNumber,
+  );
+  if (invalid) {
+    throw new BadRequestException({
+      statusCode: 400,
+      code: 'bank_account_invalid',
+      field: invalid,
+      message:
+        invalid === 'bankAccountPrefix'
+          ? 'Předčíslí není platné, zkontrolujte ho.'
+          : 'Číslo účtu není platné, zkontrolujte ho.',
+    });
+  }
+  return settings;
+};
 
 /** One-day terms are valid; the database CHECK is the safety net. */
 const validTerm = (input: TermInput): TermInput => {

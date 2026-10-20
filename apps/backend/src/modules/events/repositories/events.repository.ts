@@ -10,6 +10,7 @@ import {
   EventTermModel,
   TermInput,
 } from '@/modules/events/domain/event';
+import { PaymentSettings } from '@/modules/events/domain/payment-settings';
 import { Injectable } from '@nestjs/common';
 
 /** Every lookup carries the organization and its owner (data-model.md §3.2). */
@@ -55,6 +56,13 @@ export class LockedEvent {
     await this.tx.event.update({
       where: { id: this.eventId },
       data: input,
+    });
+  }
+
+  async updatePaymentSettings(settings: PaymentSettings): Promise<void> {
+    await this.tx.event.update({
+      where: { id: this.eventId },
+      data: settings,
     });
   }
 
@@ -157,6 +165,10 @@ export class EventsRepository {
         location: true,
         status: true,
         firstOpenedAt: true,
+        bankAccountPrefix: true,
+        bankAccountNumber: true,
+        bankCode: true,
+        paymentDueDays: true,
         terms: {
           orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
           select: {
@@ -195,6 +207,16 @@ export class EventsRepository {
             ),
           ),
       ),
+      event.bankAccountNumber !== null &&
+        event.bankCode !== null &&
+        event.paymentDueDays !== null
+        ? {
+            bankAccountPrefix: event.bankAccountPrefix,
+            bankAccountNumber: event.bankAccountNumber,
+            bankCode: event.bankCode,
+            paymentDueDays: event.paymentDueDays,
+          }
+        : null,
     );
   }
 

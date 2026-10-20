@@ -1,5 +1,6 @@
 import { PrismaModule } from '@/core/prisma/prisma.module';
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { EventPaymentSettingsController } from '@/modules/events/controllers/event-payment-settings.controller';
 import { EventTermsController } from '@/modules/events/controllers/event-terms.controller';
 import { EventsController } from '@/modules/events/controllers/events.controller';
 import { EventsRepository } from '@/modules/events/repositories/events.repository';
@@ -8,6 +9,7 @@ import {
   createEvent,
   createOrganization,
   createOrganizer,
+  createRegistration,
 } from '@/testing/factories';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -46,7 +48,11 @@ let prisma: PrismaService;
 beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({
     imports: [PrismaModule],
-    controllers: [EventsController, EventTermsController],
+    controllers: [
+      EventsController,
+      EventTermsController,
+      EventPaymentSettingsController,
+    ],
     providers: [EventsService, EventsRepository],
   }).compile();
   app = moduleRef.createNestApplication();
@@ -419,6 +425,148 @@ describe('locking after the first opening', () => {
     });
     const path = `organizations/${organization.id}/events/${event.id}`;
     expect((await call(owner.id, 'PUT', path, BASICS)).status).toBe(409);
+  });
+});
+
+const ACCOUNT = {
+  bankAccountPrefix: '19',
+  bankAccountNumber: '2000145399',
+  bankCode: '0800',
+  paymentDueDays: 14,
+};
+
+describe('payment settings', () => {
+  it('starts empty and keeps the saved values after reloading', async () => {
+    const { ownerId, path } = await draftEvent();
+    expect((await call(ownerId, 'GET', path)).body.paymentSettings).toBeNull();
+
+    const saved = await call(
+      ownerId,
+      'PUT',
+      `${path}/payment-settings`,
+      ACCOUNT,
+    );
+    expect(saved.status).toBe(200);
+    expect(saved.body.paymentSettings).toEqual(ACCOUNT);
+    expect((await call(ownerId, 'GET', path)).body.paymentSettings).toEqual(
+      ACCOUNT,
+    );
+  });
+
+  it('accepts a due period of more than a year', async () => {
+    const { ownerId, path } = await draftEvent();
+    const saved = await call(ownerId, 'PUT', `${path}/payment-settings`, {
+      ...ACCOUNT,
+      paymentDueDays: 366,
+    });
+    expect(saved.status).toBe(200);
+    expect(saved.body.paymentSettings.paymentDueDays).toBe(366);
+  });
+
+  it('accepts the largest value the column holds', async () => {
+    const { ownerId, path } = await draftEvent();
+    const saved = await call(ownerId, 'PUT', `${path}/payment-settings`, {
+      ...ACCOUNT,
+      paymentDueDays: 2_147_483_647,
+    });
+    expect(saved.status).toBe(200);
+    expect(saved.body.paymentSettings.paymentDueDays).toBe(2_147_483_647);
+  });
+
+  it('accepts an account without a prefix', async () => {
+    const { ownerId, path } = await draftEvent();
+    const saved = await call(ownerId, 'PUT', `${path}/payment-settings`, {
+      ...ACCOUNT,
+      bankAccountPrefix: '',
+      bankAccountNumber: '123457',
+    });
+    expect(saved.status).toBe(200);
+    expect(saved.body.paymentSettings).toEqual({
+      ...ACCOUNT,
+      bankAccountPrefix: null,
+      bankAccountNumber: '123457',
+    });
+  });
+
+  it.each([
+    ['bankAccountNumber', { bankAccountNumber: '2000145398' }],
+    ['bankAccountNumber', { bankAccountNumber: '12a' }],
+    ['bankAccountNumber', { bankAccountNumber: '' }],
+    ['bankAccountPrefix', { bankAccountPrefix: '20' }],
+    ['bankAccountPrefix', { bankAccountPrefix: '1234567' }],
+    ['bankCode', { bankCode: '80' }],
+    ['paymentDueDays', { paymentDueDays: 0 }],
+    ['paymentDueDays', { paymentDueDays: -3 }],
+    ['paymentDueDays', { paymentDueDays: 2_147_483_648 }],
+    ['paymentDueDays', { paymentDueDays: 1.5 }],
+    ['paymentDueDays', { paymentDueDays: '14' }],
+  ])(
+    'refuses an invalid %s and keeps the stored settings',
+    async (field, change) => {
+      const { ownerId, path } = await draftEvent();
+      await call(ownerId, 'PUT', `${path}/payment-settings`, ACCOUNT);
+
+      const attempt = await call(ownerId, 'PUT', `${path}/payment-settings`, {
+        ...ACCOUNT,
+        ...change,
+      });
+      expect(attempt.status).toBe(400);
+      expect(attempt.body).toMatchObject({ field });
+      expect(typeof attempt.body.message).toBe('string');
+      expect((await call(ownerId, 'GET', path)).body.paymentSettings).toEqual(
+        ACCOUNT,
+      );
+    },
+  );
+
+  it('changes the settings after opening without touching existing registrations', async () => {
+    const owner = await createOrganizer(prisma);
+    const organization = await createOrganization(prisma, {
+      ownerId: owner.id,
+    });
+    const { event, terms } = await createEvent(prisma, {
+      organizationId: organization.id,
+      status: 'open',
+      terms: [{ startDate: '2027-07-01', endDate: '2027-07-07' }],
+    });
+    const registration = await createRegistration(prisma, {
+      event,
+      terms: [{ term: terms[0], status: 'confirmed' }],
+    });
+    const path = `organizations/${organization.id}/events/${event.id}`;
+
+    const changed = await call(
+      owner.id,
+      'PUT',
+      `${path}/payment-settings`,
+      ACCOUNT,
+    );
+    expect(changed.status).toBe(200);
+    expect(changed.body.isLocked).toBe(true);
+    expect(changed.body.paymentSettings).toEqual(ACCOUNT);
+
+    const stored = await prisma.registration.findUniqueOrThrow({
+      where: { id: registration.id },
+    });
+    expect(stored).toMatchObject({
+      bankAccountPrefix: null,
+      bankAccountNumber: '123457',
+      bankCode: '0100',
+      paymentDueDays: 14,
+    });
+  });
+
+  it('answers 404 to another organizer', async () => {
+    const { path } = await draftEvent();
+    const stranger = await createOrganizer(prisma);
+    const attempt = await call(
+      stranger.id,
+      'PUT',
+      `${path}/payment-settings`,
+      ACCOUNT,
+    );
+    expect(attempt.status).toBe(404);
+    expect(attempt.body.message).toBe('Záznam není dostupný');
   });
 });
 
