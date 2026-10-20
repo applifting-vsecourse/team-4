@@ -4,6 +4,7 @@ import { toast } from "sonner"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardContent } from "@/components/ui/card"
+import { readApiError } from "@/lib/apiError"
 
 import { type EventDetail } from "@/features/events/api/eventSchemas"
 import { type PaymentSettings } from "@/features/events/api/paymentSettingsSchemas"
@@ -14,7 +15,6 @@ import {
 } from "@/features/events/components/PaymentSettingsForm"
 import { useRefreshEvent } from "@/features/events/hooks/useEventMutations"
 import { useUpdatePaymentSettings } from "@/features/events/hooks/useUpdatePaymentSettings"
-import { readApiError } from "@/features/events/lib/apiError"
 
 const FIELDS: PaymentFieldError["field"][] = [
   "bankAccountPrefix",
@@ -43,7 +43,7 @@ export function PaymentSettingsSection({ organizationId, event }: PaymentSetting
       await update.mutateAsync(settings)
       toast.success("Platební nastavení bylo uloženo.")
     } catch (error) {
-      const apiError = await readApiError(error)
+      const apiError = readApiError(error)
       const field = FIELDS.find((name) => name === apiError.field)
       if (apiError.status === 400 && field && apiError.message) {
         setFieldError({ field, message: apiError.message })

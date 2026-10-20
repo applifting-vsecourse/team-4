@@ -9,6 +9,7 @@ import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { readApiError } from "@/lib/apiError"
 
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { type EventInput } from "@/features/events/api/eventSchemas"
@@ -16,7 +17,6 @@ import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventForm } from "@/features/events/components/EventForm"
 import { EventLockedAlert } from "@/features/events/components/EventLockedAlert"
 import { useRefreshEvent, useUpdateEvent } from "@/features/events/hooks/useEventMutations"
-import { readApiError } from "@/features/events/lib/apiError"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 
 export const Route = createFileRoute(
@@ -55,7 +55,7 @@ function EditEventPage() {
       toast.success("Změny akce byly uloženy.")
       await backToEvent()
     } catch (error) {
-      const apiError = await readApiError(error)
+      const apiError = readApiError(error)
       if (apiError.code === "event_locked") await refreshEvent()
       setErrorMessage(
         (apiError.status === 400 || apiError.code === "event_locked") && apiError.message

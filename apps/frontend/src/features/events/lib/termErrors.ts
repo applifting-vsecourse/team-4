@@ -1,4 +1,4 @@
-import { readApiError } from "@/features/events/lib/apiError"
+import { readApiError } from "@/lib/apiError"
 
 export type TermSaveError = {
   fieldError: { field: "startDate" | "endDate"; message: string } | null
@@ -8,8 +8,8 @@ export type TermSaveError = {
 }
 
 /** Maps a refused term write to the field or the form-level message. */
-export async function describeTermError(error: unknown, fallback: string): Promise<TermSaveError> {
-  const apiError = await readApiError(error)
+export function describeTermError(error: unknown, fallback: string): TermSaveError {
+  const apiError = readApiError(error)
   const field = apiError.field
   if (
     (apiError.code === "term_overlap" || apiError.code === "term_dates") &&

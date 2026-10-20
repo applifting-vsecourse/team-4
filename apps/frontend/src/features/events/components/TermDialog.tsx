@@ -55,7 +55,7 @@ export function TermDialog({ organizationId, eventId, term, trigger }: TermDialo
       setIsOpen(false)
       toast.success(term ? "Termín byl upraven." : "Termín byl přidán.")
     } catch (error) {
-      const described = await describeTermError(
+      const described = describeTermError(
         error,
         "Termín se nepodařilo uložit. Zkuste to prosím znovu.",
       )
