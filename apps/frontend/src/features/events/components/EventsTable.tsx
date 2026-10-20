@@ -28,12 +28,12 @@ export function EventsTable({ organizationId, events }: EventsTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="pl-4">Akce</TableHead>
+            <TableHead>Akce</TableHead>
             <TableHead>Místo</TableHead>
             <TableHead>Období</TableHead>
             <TableHead>Termíny</TableHead>
             <TableHead>Stav</TableHead>
-            <TableHead className="pr-4">
+            <TableHead>
               <span className="sr-only">Otevřít</span>
             </TableHead>
           </TableRow>
@@ -41,7 +41,7 @@ export function EventsTable({ organizationId, events }: EventsTableProps) {
         <TableBody>
           {events.map((event) => (
             <TableRow key={event.id}>
-              <TableCell className="max-w-72 py-3 pl-4">
+              <TableCell className="max-w-72 py-3">
                 <span className="block truncate font-medium">{event.name}</span>
                 <span className="block truncate text-xs text-muted-foreground">
                   {event.description}
@@ -57,7 +57,7 @@ export function EventsTable({ organizationId, events }: EventsTableProps) {
               <TableCell>
                 <EventStatusBadge status={event.status} />
               </TableCell>
-              <TableCell className="pr-4 text-right">
+              <TableCell className="text-right">
                 <Button
                   asChild
                   variant="ghost"

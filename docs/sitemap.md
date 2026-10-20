@@ -2,7 +2,7 @@
 
 ## Zdroj a platnost
 
-[Schválená cílová struktura ve FigJamu](https://www.figma.com/board/OA9rJWigqEqyMFAuFYXJNk/Sitemapa?node-id=0-1). Textový přepis uzlů a vazeb ověřen 17. 10. 2026.
+[Schválená cílová struktura ve FigJamu](https://www.figma.com/board/OA9rJWigqEqyMFAuFYXJNk/Sitemapa?node-id=0-1). Textový přepis uzlů a vazeb aktualizován 20. 10. 2026 podle #133.
 
 FigJam určuje cílovou strukturu, tento dokument je její textový přepis pro agenty. Rozsah implementace určují schválené stories a rozhodnutí příslušného sprintu. Přítomnost uzlu v mapě neznamená hotovou funkci ani požadavek implementovat ji v aktuální story. Strom neurčuje URL, podobu menu ani to, zda je uzel samostatná stránka, záložka nebo část pohledu.
 
@@ -41,8 +41,9 @@ Veřejný přístup zpřístupňuje informace a přihlášku podle stavu akce, n
 
 [Organizace](https://www.figma.com/board/OA9rJWigqEqyMFAuFYXJNk/Sitemapa?node-id=30-18) vymezuje data a oprávnění pro zvolenou organizaci:
 
-- Seznam akcí
+- Akce a turnusy
   - Nová akce
+- Reporty
 - Tým
   - Pozvání člena
 - Role a oprávnění
@@ -53,8 +54,8 @@ Výběrem konkrétní akce se přechází do její správy. Tento přechod vych�
 
 [Správa akce](https://www.figma.com/board/OA9rJWigqEqyMFAuFYXJNk/Sitemapa?node-id=30-24) pracuje s jednou akcí v oprávněné organizaci:
 
-- Dashboard
-- Nastavení akce
+- Přehled
+- Nastavení
   - Termíny a kapacita
   - Ceny a typy účastníků
   - Otevření registrace
@@ -83,14 +84,16 @@ Výběrem konkrétní akce se přechází do její správy. Tento přechod vych�
   - Upomínky
   - Upozornění
 
-Dashboard má v mapě přechody do Přihlášek, Ubytování a Plateb. „Detail účastníka“ je v této větvi pořadatelský pohled; účastnický „Detail přihlášky“ patří do jiné přístupové oblasti.
+Přehled má v mapě přechody do Nastavení, Přihlášek, Plateb, Ubytování a Komunikace. „Detail účastníka“ je v této větvi pořadatelský pohled; účastnický „Detail přihlášky“ patří do jiné přístupové oblasti.
 
 ## Výřez pro Sprint 2
 
 Rozsah a akceptační kritéria jsou v příslušných GitHub issues odkazovaných v [indexu stories](sprints/sprint-2/story-index.md). Tato sitemap popisuje cílové umístění a navigační kontext; sama nepřidává další obrazovky ani akceptační kritéria.
 
 - Landing page nabízí dva vstupy: „Moje přihlášky“ a „Organizátor“. „Moje přihlášky“ vede na účastnický přístup pomocí magic linku bez hesla; „Organizátor“ na přihlášení e-mailem a heslem s možností registrace organizátora. Nejde o společný přihlašovací formulář. Účastník se dostává na formulář přímým odkazem od organizátora; veřejný katalog je mimo sprint.
+- Kontextová navigace [#133](https://github.com/applifting-vsecourse/team-4/issues/133): po přihlášení se jediná organizace otevře přímo, při více organizacích se zobrazí výběr. Organizační sidebar obsahuje Akce a turnusy a Reporty; výběr akce otevře Přehled a doplní její části při zachování organizačních položek. Neimplementované části zůstávají neaktivní s označením „Připravujeme“. Přechod na organizační stránku nebo přepnutí organizace ukončí kontext akce.
 - Organizátor zakládá a přepíná vlastní organizace. Po založení nebo přepnutí otevře seznam akcí dané organizace; účet bez organizací nabízí založení první.
+- Nastavení akce tvoří v tomto pořadí Základní údaje, Termíny a ceny, Platební údaje a Přihlašování. Úprava základních údajů se vrací do Nastavení; odkazy na chybějící termíny a platební údaje vedou přímo na odpovídající sekce. Pokoje se spravují v Ubytování.
 - Správa konkrétní akce pokrývá údaje, termíny a ceny, pokoje a lůžka, otevření registrace, platební konfiguraci, obsazenost a seznam/detail přihlášek. Zápis přijaté platby je v detailu přihlášky; cílová větev Platby nevyžaduje další samostatnou stránku.
 - Po odeslání formuláře účastník vidí pouze výsledek nové přihlášky. Opakovaný přístup přes magic link vede na seznam vlastních přihlášek a jejich detaily, včetně platebních údajů a historie. Samostatné Moje platby ani QR nejsou tímto přepisem zadány.
 - Týmové role a pozvánky, samoobslužné změny a storna, souhlasy, konkrétní rozdělení do pokojů, ruční schvalování, povyšování náhradníků, duplicity, bankovní import/párování a upomínky zůstávají mimo sprint podle stories. E-mailové potvrzení S2-15 samo nezadává editor šablon.

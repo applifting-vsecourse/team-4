@@ -14,9 +14,22 @@ vi.mock("@/lib/api-client", () => ({
   HTTPError: class HTTPError extends Error {},
 }))
 
-// The links need a router; the tests only look at their text.
+// Render route destinations so prerequisite links are covered without mounting the router.
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children }: { children: React.ReactNode }) => <a href="#test">{children}</a>,
+  Link: ({
+    children,
+    to,
+    params,
+    hash,
+  }: {
+    children: React.ReactNode
+    to: string
+    params: Record<string, string>
+    hash?: string
+  }) => {
+    const path = to.replace(/\$(\w+)/g, (_, key: string) => params[key] ?? "")
+    return <a href={`${path}${hash ? `#${hash}` : ""}`}>{children}</a>
+  },
 }))
 
 const ORGANIZATION_ID = "0190c0de-0000-7000-8000-000000000001"
@@ -71,7 +84,16 @@ describe("RegistrationSection", () => {
 
     expect(screen.getByRole("button", { name: "Otevřít přihlašování" })).toBeDisabled()
     expect(screen.getByText(/Alespoň jeden termín s cenou/)).toBeInTheDocument()
-    expect(screen.getAllByRole("link", { name: "Doplnit" })).toHaveLength(2)
+    const links = screen.getAllByRole("link", { name: "Doplnit" })
+    expect(links).toHaveLength(2)
+    expect(links[0]).toHaveAttribute(
+      "href",
+      `/organizations/${ORGANIZATION_ID}/events/${EVENT_ID}/settings#terms-heading`,
+    )
+    expect(links[1]).toHaveAttribute(
+      "href",
+      `/organizations/${ORGANIZATION_ID}/events/${EVENT_ID}/settings#payments-heading`,
+    )
     expect(
       screen.getByText("Otevřením přihlašování zamknete název, popis, místo, termíny a ceny."),
     ).toBeInTheDocument()
