@@ -61,23 +61,24 @@ Hooks used by shadcn components live in `src/hooks/` with the repo's naming (`us
 
 Values come from the Figma library Design system (modes Light and Dark). Utility class = `bg-`/`text-`/`border-` + token name.
 
-| Token                                       | Light                                                 | Dark                  | Use for                                         |
-| ------------------------------------------- | ----------------------------------------------------- | --------------------- | ----------------------------------------------- |
-| `background` / `foreground`                 | `#f9fafb` / `#111827`                                 | `#030712` / `#f9fafb` | Page                                            |
-| `card` / `card-foreground`                  | `#ffffff` / `#111827`                                 | `#111827` / `#f9fafb` | Cards, tables, panels                           |
-| `popover` / `popover-foreground`            | `#ffffff` / `#111827`                                 | `#1f2937` / `#f9fafb` | Menus, popovers, select lists                   |
-| `primary` / `primary-foreground`            | `#bef264` / `#111827`                                 | same                  | Main action, active state (lime with dark text) |
-| `secondary`, `muted`, `accent`              | `#f3f4f6`                                             | `#1f2937`             | Secondary buttons, subdued surfaces, hover      |
-| `muted-foreground`                          | `#6b7280`                                             | `#9ca3af`             | Secondary text, descriptions                    |
-| `border` / `input`                          | `#e5e7eb`                                             | `#1f2937` / `#374151` | Borders, input outlines                         |
-| `ring`                                      | `#2563eb`                                             | `#60a5fa`             | Focus ring                                      |
-| `destructive`                               | `#dc2626`                                             | `#ef4444`             | Destructive actions, form errors                |
-| `destructive-subtle` / `-subtle-foreground` | `#fef2f2` / `#b91c1c`                                 | `#450a0a` / `#f87171` | Overdue, failed, error status                   |
-| `success` / `success-subtle`                | `#15803d` / `#f0fdf4`                                 | `#4ade80` / `#052e16` | Confirmed, paid                                 |
-| `warning` / `warning-subtle`                | `#c2410c` / `#fff7ed`                                 | `#fb923c` / `#431407` | Waitlisted (náhradník), partially paid          |
-| `sidebar*`                                  | dark navy surface with lime active item in both modes |                       | Organizer navigation                            |
-| `chart-1` … `chart-5`                       | blue, lime, green, orange, gray                       | same                  | Charts only                                     |
-| `overlay`                                   | black at 50 % opacity                                 | same                  | Scrim behind dialogs and sheets                 |
+| Token                                       | Light                                   | Dark                           | Use for                                              |
+| ------------------------------------------- | --------------------------------------- | ------------------------------ | ---------------------------------------------------- |
+| `background` / `foreground`                 | `#f9fafb` / `#111827`                   | `#030712` / `#f9fafb`          | Page                                                 |
+| `card` / `card-foreground`                  | `#ffffff` / `#111827`                   | `#111827` / `#f9fafb`          | Cards, tables, panels                                |
+| `popover` / `popover-foreground`            | `#ffffff` / `#111827`                   | `#1f2937` / `#f9fafb`          | Menus, popovers, select lists                        |
+| `primary` / `primary-foreground`            | `#bef264` / `#111827`                   | same                           | Main action, active state (lime with dark text)      |
+| `secondary`, `muted`                        | `#f3f4f6`                               | `#1f2937`                      | Secondary buttons, subdued surfaces, hover           |
+| `accent` / `accent-foreground`              | `#f3f4f6` / `#111827`                   | `#374151` / `#f9fafb`          | Hover and keyboard highlight, distinct from popovers |
+| `muted-foreground`                          | `#6b7280`                               | `#9ca3af`                      | Secondary text, descriptions                         |
+| `border` / `input`                          | `#e5e7eb`                               | `#1f2937` / `#374151`          | Borders, input outlines                              |
+| `ring`                                      | `#2563eb`                               | `#60a5fa`                      | Focus ring                                           |
+| `destructive`                               | `#dc2626`                               | `#ef4444`                      | Destructive actions, form errors                     |
+| `destructive-subtle` / `-subtle-foreground` | `#fef2f2` / `#b91c1c`                   | `#450a0a` / `#f87171`          | Overdue, failed, error status                        |
+| `success` / `success-subtle`                | `#15803d` / `#f0fdf4`                   | `#4ade80` / `#052e16`          | Confirmed, paid                                      |
+| `warning` / `warning-subtle`                | `#c2410c` / `#fff7ed`                   | `#fb923c` / `#431407`          | Waitlisted (náhradník), partially paid               |
+| `sidebar*`                                  | page surface and text; lime active item | dark surface; lime active item | Organizer navigation                                 |
+| `chart-1` … `chart-5`                       | blue, lime, green, orange, gray         | same                           | Charts only                                          |
+| `overlay`                                   | black at 50 % opacity                   | same                           | Scrim behind dialogs and sheets                      |
 
 Status meaning, used consistently across the app:
 
