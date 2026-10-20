@@ -10,7 +10,11 @@ export type PaymentSettings = {
   paymentDueDays: number;
 };
 
-export const MAX_PAYMENT_DUE_DAYS = 365;
+/**
+ * Not a business rule (the story sets no upper bound). It keeps the value far
+ * inside the Int column and keeps "confirmation + N days" a valid date for S2-16.
+ */
+export const MAX_PAYMENT_DUE_DAYS = 1_000_000;
 
 export type AccountField = 'bankAccountPrefix' | 'bankAccountNumber';
 

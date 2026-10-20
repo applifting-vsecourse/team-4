@@ -46,10 +46,10 @@ describe("PaymentSettingsForm", () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
-  it.each(["0", "1.5", "-3", "abc", "366"])("rejects %s due days", async (days) => {
+  it.each(["0", "1.5", "-3", "abc", "1000001"])("rejects %s due days", async (days) => {
     const { onSubmit } = renderForm({ ...SAVED, paymentDueDays: days })
     await save()
-    expect(await screen.findByText(/Splatnost/, { selector: "p" })).toBeInTheDocument()
+    expect(await screen.findByText(/splatnost/i, { selector: "p" })).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
@@ -63,6 +63,14 @@ describe("PaymentSettingsForm", () => {
         bankCode: "0800",
         paymentDueDays: 14,
       }),
+    )
+  })
+
+  it("accepts a due period of more than a year", async () => {
+    const { onSubmit } = renderForm({ ...SAVED, paymentDueDays: "366" })
+    await save()
+    await vi.waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ paymentDueDays: 366 })),
     )
   })
 

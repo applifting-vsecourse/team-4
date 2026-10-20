@@ -60,7 +60,7 @@ export class PaymentSettingsInputDto {
   @IsInt({ message: 'Splatnost zadejte jako celý počet dní.' })
   @Min(1, { message: 'Splatnost musí být alespoň 1 den.' })
   @Max(MAX_PAYMENT_DUE_DAYS, {
-    message: `Splatnost může být nejvýše ${MAX_PAYMENT_DUE_DAYS} dní.`,
+    message: 'Zadejte menší počet dní splatnosti.',
   })
   paymentDueDays!: number;
 }

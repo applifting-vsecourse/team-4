@@ -453,6 +453,16 @@ describe('payment settings', () => {
     );
   });
 
+  it('accepts a due period of more than a year', async () => {
+    const { ownerId, path } = await draftEvent();
+    const saved = await call(ownerId, 'PUT', `${path}/payment-settings`, {
+      ...ACCOUNT,
+      paymentDueDays: 366,
+    });
+    expect(saved.status).toBe(200);
+    expect(saved.body.paymentSettings.paymentDueDays).toBe(366);
+  });
+
   it('accepts an account without a prefix', async () => {
     const { ownerId, path } = await draftEvent();
     const saved = await call(ownerId, 'PUT', `${path}/payment-settings`, {
@@ -477,7 +487,7 @@ describe('payment settings', () => {
     ['bankCode', { bankCode: '80' }],
     ['paymentDueDays', { paymentDueDays: 0 }],
     ['paymentDueDays', { paymentDueDays: -3 }],
-    ['paymentDueDays', { paymentDueDays: 366 }],
+    ['paymentDueDays', { paymentDueDays: 1_000_001 }],
     ['paymentDueDays', { paymentDueDays: 1.5 }],
     ['paymentDueDays', { paymentDueDays: '14' }],
   ])(
