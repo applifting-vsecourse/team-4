@@ -83,7 +83,7 @@ export function AppPreview() {
       inert
       className="hidden h-113 w-full overflow-hidden rounded-xl border bg-background text-left select-none lg:flex"
     >
-      <nav className="flex w-44 shrink-0 flex-col gap-5 border-r bg-sidebar p-2.5 text-sidebar-foreground">
+      <nav className="flex w-44 shrink-0 flex-col gap-5 border-r border-sidebar-border bg-sidebar p-2.5 text-sidebar-foreground">
         <div className="p-1.5">
           <BrandMark />
         </div>
@@ -175,7 +175,7 @@ function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
             key={itemLabel}
             className={cn(
               "flex h-7 items-center gap-2 rounded-md px-2 text-xs",
-              isActive && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
+              isActive && "bg-sidebar-primary font-medium text-sidebar-primary-foreground",
             )}
           >
             <Icon className="size-4" />

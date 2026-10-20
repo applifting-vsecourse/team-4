@@ -117,14 +117,14 @@
   --chart-3: #4ade80;
   --chart-4: #fb923c;
   --chart-5: #6b7280;
-  --sidebar: #111827;
-  --sidebar-foreground: #f9fafb;
+  --sidebar: var(--background);
+  --sidebar-foreground: var(--foreground);
   --sidebar-primary: #bef264;
   --sidebar-primary-foreground: #111827;
-  --sidebar-accent: #1f2937;
-  --sidebar-accent-foreground: #f9fafb;
-  --sidebar-border: #1f2937;
-  --sidebar-ring: #60a5fa;
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
   --overlay: rgb(0 0 0 / 0.5);
   --radius: 0.625rem;
   --shadow-2xs: 0px 2px 10px 0px hsl(0 0% 0% / 0.05);
@@ -150,7 +150,7 @@
   --secondary-foreground: #f9fafb;
   --muted: #1f2937;
   --muted-foreground: #9ca3af;
-  --accent: #1f2937;
+  --accent: #374151;
   --accent-foreground: #f9fafb;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
@@ -177,6 +177,15 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  /* Native links and composed triggers share the same interaction affordance. */
+  :where(button, a[href], [role="button"], [role="menuitem"], [role="option"], summary):not(
+      :disabled
+    ):not([aria-disabled="true"]):not([data-disabled]):not([inert]) {
+    cursor: pointer;
+  }
+  :where(button, input, textarea, select):disabled {
+    cursor: not-allowed;
   }
   body {
     @apply bg-background text-foreground antialiased;
