@@ -1,4 +1,5 @@
 import { DateRange } from '@/modules/events/domain/calendar-date';
+import { PaymentSettings } from '@/modules/events/domain/payment-settings';
 
 export type EventStatus = 'draft' | 'open' | 'closed';
 
@@ -49,6 +50,8 @@ export class EventDetailModel {
     /** Set from the first opening on, and never cleared (data-model.md §3.3). */
     public readonly isLocked: boolean,
     public readonly terms: EventTermModel[],
+    /** For registrations received from now on; null until completed (S2-09). */
+    public readonly paymentSettings: PaymentSettings | null,
   ) {}
 }
 

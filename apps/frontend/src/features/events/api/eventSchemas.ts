@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+import { paymentSettingsSchema } from "@/features/events/api/paymentSettingsSchemas"
+
 export const eventStatusSchema = z.enum(["draft", "open", "closed"])
 
 export const eventTermSchema = z.object({
@@ -31,6 +33,7 @@ export const eventDetailSchema = z.object({
   status: eventStatusSchema,
   isLocked: z.boolean(),
   terms: z.array(eventTermSchema),
+  paymentSettings: paymentSettingsSchema.nullable(),
 })
 
 export type EventStatus = z.infer<typeof eventStatusSchema>

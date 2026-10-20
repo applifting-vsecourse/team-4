@@ -12,10 +12,11 @@ import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventLockedAlert } from "@/features/events/components/EventLockedAlert"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
+import { PaymentSettingsSection } from "@/features/events/components/PaymentSettingsSection"
 import { TermsSection } from "@/features/events/components/TermsSection"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 
-// Management of one event: its details and terms (S2-04).
+// Management of one event: its details, terms (S2-04) and payments (S2-09).
 export const Route = createFileRoute(
   "/_ProtectedPages/organizations/$organizationId/events/$eventId/",
 )({
@@ -76,6 +77,11 @@ function EventPage() {
       ) : null}
 
       <TermsSection
+        organizationId={organizationId}
+        event={event}
+      />
+
+      <PaymentSettingsSection
         organizationId={organizationId}
         event={event}
       />

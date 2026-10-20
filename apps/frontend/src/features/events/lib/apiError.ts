@@ -1,6 +1,11 @@
 import { HTTPError } from "@/lib/api-client"
 
-export type ApiErrorCode = "event_locked" | "term_overlap" | "term_dates"
+export type ApiErrorCode =
+  | "event_locked"
+  | "term_overlap"
+  | "term_dates"
+  | "bank_account_invalid"
+  | "payment_settings_invalid"
 
 export type ApiError = {
   status: number | null
