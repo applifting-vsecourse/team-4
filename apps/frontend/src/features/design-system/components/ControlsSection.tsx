@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Plus, Trash2 } from "lucide-react"
 import { useForm } from "react-hook-form"
@@ -6,6 +7,7 @@ import { z } from "zod"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { DatePicker } from "@/components/ui/date-picker"
 import {
   Form,
   FormControl,
@@ -144,6 +146,20 @@ function ValidationForm() {
         <Button type="submit">Odeslat přihlášku</Button>
       </form>
     </Form>
+  )
+}
+
+function DatePickerDemo() {
+  const [value, setValue] = useState("")
+  return (
+    <>
+      <Label htmlFor="ds-date">Začátek</Label>
+      <DatePicker
+        id="ds-date"
+        value={value}
+        onChange={setValue}
+      />
+    </>
   )
 }
 
@@ -309,6 +325,9 @@ export function ControlsSection() {
               />
               <Label htmlFor="ds-switch-disabled">Zakázané</Label>
             </div>
+          </ShowcaseItem>
+          <ShowcaseItem label="DatePicker">
+            <DatePickerDemo />
           </ShowcaseItem>
         </div>
       </ShowcaseSection>

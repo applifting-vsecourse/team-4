@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router"
+import { createFileRoute, Outlet, redirect, useMatch } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 import { Header } from "@/components/Header/Header"
@@ -7,7 +7,6 @@ import { Seo } from "@/components/Seo"
 import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOptions"
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
 import { encodeRedirectUri } from "@/features/auth/lib/redirect"
-import { OrganizationSwitcher } from "@/features/organizations/components/OrganizationSwitcher"
 
 export const Route = createFileRoute("/_ProtectedPages")({
   loader: async ({ context, location }) => {
@@ -23,17 +22,25 @@ export const Route = createFileRoute("/_ProtectedPages")({
 })
 
 function Layout() {
+  // Pages of one organization have their own shell with the sidebar.
+  const organizationShell = useMatch({
+    from: "/_ProtectedPages/organizations/$organizationId",
+    shouldThrow: false,
+  })
+
+  if (organizationShell) {
+    return (
+      <>
+        <Seo />
+        <Outlet />
+      </>
+    )
+  }
+
   return (
     <>
       <Seo />
-      <Header
-        userMenu={
-          <>
-            <OrganizationSwitcher />
-            <HeaderMenu />
-          </>
-        }
-      />
+      <Header userMenu={<HeaderMenu />} />
       <main className="min-h-svh">
         <Outlet />
       </main>
