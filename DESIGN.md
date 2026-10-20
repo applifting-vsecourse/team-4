@@ -76,7 +76,7 @@ Values come from the Figma library Design system (modes Light and Dark). Utility
 | `destructive-subtle` / `-subtle-foreground` | `#fef2f2` / `#b91c1c`                   | `#450a0a` / `#f87171`          | Overdue, failed, error status                        |
 | `success` / `success-subtle`                | `#15803d` / `#f0fdf4`                   | `#4ade80` / `#052e16`          | Confirmed, paid                                      |
 | `warning` / `warning-subtle`                | `#c2410c` / `#fff7ed`                   | `#fb923c` / `#431407`          | Waitlisted (náhradník), partially paid               |
-| `sidebar*`                                  | page surface and text; lime active item | dark surface; lime active item | Organizer navigation                                 |
+| `sidebar*`                                  | page surface and text; gray active item | dark surface; gray active item | Organizer navigation                                 |
 | `chart-1` … `chart-5`                       | blue, lime, green, orange, gray         | same                           | Charts only                                          |
 | `overlay`                                   | black at 50 % opacity                   | same                           | Scrim behind dialogs and sheets                      |
 
