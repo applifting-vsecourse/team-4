@@ -20,7 +20,7 @@ const FIELDS: PaymentFieldError["field"][] = [
   "bankAccountPrefix",
   "bankAccountNumber",
   "bankCode",
-  "paymentDueDays",
+  "paymentReminderDays",
 ]
 
 type PaymentSettingsSectionProps = {
@@ -83,7 +83,8 @@ export function PaymentSettingsSection({ organizationId, event }: PaymentSetting
             <Info />
             <AlertTitle>Změna platí jen pro nové přihlášky</AlertTitle>
             <AlertDescription>
-              Přihlášky, které už akce přijala, si ponechávají původní účet a splatnost.
+              Přihlášky, které už akce přijala, si ponechávají původní účet, počet dní i datum
+              připomenutí platby.
             </AlertDescription>
           </Alert>
         </CardContent>

@@ -160,10 +160,10 @@ model Event {
   status         EventStatus @default(draft)
   firstOpenedAt  DateTime?   @db.Timestamptz(3)
 
-  bankAccountPrefix String? @db.VarChar(6)
-  bankAccountNumber String? @db.VarChar(10)
-  bankCode          String? @db.Char(4)
-  paymentDueDays    Int?
+  bankAccountPrefix   String? @db.VarChar(6)
+  bankAccountNumber   String? @db.VarChar(10)
+  bankCode            String? @db.Char(4)
+  paymentReminderDays Int?
 
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
@@ -295,14 +295,14 @@ model Registration {
   email     String @db.VarChar(320) // as submitted
   phone     String @db.VarChar(16) // E.164
 
-  receivedAt   DateTime  @default(now()) @db.Timestamptz(3)
-  paymentDueAt DateTime? @db.Timestamptz(3)
+  receivedAt        DateTime  @default(now()) @db.Timestamptz(3)
+  paymentReminderAt DateTime? @db.Timestamptz(3)
 
   // snapshot of event payment settings at receipt
-  bankAccountPrefix String? @db.VarChar(6)
-  bankAccountNumber String  @db.VarChar(10)
-  bankCode          String  @db.Char(4)
-  paymentDueDays    Int
+  bankAccountPrefix   String? @db.VarChar(6)
+  bankAccountNumber   String  @db.VarChar(10)
+  bankCode            String  @db.Char(4)
+  paymentReminderDays Int
 
   organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   event              Event              @relation(fields: [eventId, organizationId], references: [id, organizationId], onDelete: Restrict)

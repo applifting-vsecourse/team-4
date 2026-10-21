@@ -9,7 +9,7 @@ const ready = {
     bankAccountPrefix: '19',
     bankAccountNumber: '2000145399',
     bankCode: '0800',
-    paymentDueDays: 14,
+    paymentReminderDays: 14,
   },
 };
 
@@ -30,11 +30,11 @@ describe('findOpeningBlockers', () => {
     ).toEqual(['name', 'description', 'location', 'terms', 'paymentSettings']);
   });
 
-  it('requires a positive number of due days', () => {
+  it('requires a positive number of reminder days', () => {
     expect(
       findOpeningBlockers({
         ...ready,
-        paymentSettings: { ...ready.paymentSettings, paymentDueDays: 0 },
+        paymentSettings: { ...ready.paymentSettings, paymentReminderDays: 0 },
       }),
     ).toEqual(['paymentSettings']);
   });

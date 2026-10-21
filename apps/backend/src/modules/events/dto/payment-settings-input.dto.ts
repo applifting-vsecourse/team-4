@@ -1,4 +1,4 @@
-import { MAX_PAYMENT_DUE_DAYS } from '@/modules/events/domain/payment-settings';
+import { MAX_PAYMENT_REMINDER_DAYS } from '@/modules/events/domain/payment-settings';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
@@ -53,14 +53,17 @@ export class PaymentSettingsInputDto {
 
   @ApiProperty({
     minimum: 1,
-    maximum: MAX_PAYMENT_DUE_DAYS,
+    maximum: MAX_PAYMENT_REMINDER_DAYS,
     example: 14,
-    description: 'Days from confirmation to the payment due date.',
+    description:
+      'Calendar days from participation confirmation to the payment reminder date (Europe/Prague), independently of email delivery.',
   })
-  @IsInt({ message: 'Splatnost zadejte jako celý počet dní.' })
-  @Min(1, { message: 'Splatnost musí být alespoň 1 den.' })
-  @Max(MAX_PAYMENT_DUE_DAYS, {
-    message: 'Zadejte menší počet dní splatnosti.',
+  @IsInt({
+    message: 'Počet dní do připomenutí platby zadejte jako celé číslo.',
   })
-  paymentDueDays!: number;
+  @Min(1, { message: 'Počet dní do připomenutí platby musí být alespoň 1.' })
+  @Max(MAX_PAYMENT_REMINDER_DAYS, {
+    message: 'Zadejte menší počet dní do připomenutí platby.',
+  })
+  paymentReminderDays!: number;
 }

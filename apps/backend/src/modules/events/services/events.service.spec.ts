@@ -206,7 +206,7 @@ describe('EventsService', () => {
       bankAccountPrefix: '19',
       bankAccountNumber: '2000145399',
       bankCode: '0800',
-      paymentDueDays: 14,
+      paymentReminderDays: 14,
     };
 
     it('saves a valid account, also on a locked event', async () => {
@@ -269,7 +269,7 @@ describe('EventsService', () => {
         bankAccountPrefix: '19',
         bankAccountNumber: '2000145399',
         bankCode: '0800',
-        paymentDueDays: 14,
+        paymentReminderDays: 14,
       },
     };
 

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -19,7 +20,7 @@ import { Input } from "@/components/ui/input"
 import { type PaymentSettings } from "@/features/events/api/paymentSettingsSchemas"
 
 // The largest value the stored 32-bit column holds; no business limit (S2-09).
-const MAX_PAYMENT_DUE_DAYS = 2_147_483_647
+const MAX_PAYMENT_REMINDER_DAYS = 2_147_483_647
 
 // Format only: the account checksum is enforced by the server (S2-09).
 const schema = z.object({
@@ -37,15 +38,15 @@ const schema = z.object({
     .trim()
     .min(1, "Vyplňte kód banky.")
     .regex(/^[0-9]{4}$/, "Kód banky tvoří 4 číslice."),
-  paymentDueDays: z
+  paymentReminderDays: z
     .string()
     .trim()
-    .min(1, "Vyplňte splatnost ve dnech.")
-    .regex(/^[0-9]+$/, "Splatnost zadejte jako celý počet dní.")
-    .refine((value) => Number(value) >= 1, "Splatnost musí být alespoň 1 den.")
+    .min(1, "Vyplňte počet dní do připomenutí platby.")
+    .regex(/^[0-9]+$/, "Počet dní do připomenutí platby zadejte jako celé číslo.")
+    .refine((value) => Number(value) >= 1, "Počet dní do připomenutí platby musí být alespoň 1.")
     .refine(
-      (value) => Number(value) <= MAX_PAYMENT_DUE_DAYS,
-      "Zadejte menší počet dní splatnosti.",
+      (value) => Number(value) <= MAX_PAYMENT_REMINDER_DAYS,
+      "Zadejte menší počet dní do připomenutí platby.",
     ),
 })
 
@@ -57,7 +58,7 @@ export const EMPTY_PAYMENT_SETTINGS: PaymentSettingsFormValues = {
   bankAccountPrefix: "",
   bankAccountNumber: "",
   bankCode: "",
-  paymentDueDays: "",
+  paymentReminderDays: "",
 }
 
 export const toFormValues = (settings: PaymentSettings | null): PaymentSettingsFormValues =>
@@ -66,7 +67,7 @@ export const toFormValues = (settings: PaymentSettings | null): PaymentSettingsF
         bankAccountPrefix: settings.bankAccountPrefix ?? "",
         bankAccountNumber: settings.bankAccountNumber,
         bankCode: settings.bankCode,
-        paymentDueDays: String(settings.paymentDueDays),
+        paymentReminderDays: String(settings.paymentReminderDays),
       }
     : EMPTY_PAYMENT_SETTINGS
 
@@ -117,7 +118,7 @@ export function PaymentSettingsForm({
       bankAccountPrefix: values.bankAccountPrefix === "" ? null : values.bankAccountPrefix,
       bankAccountNumber: values.bankAccountNumber,
       bankCode: values.bankCode,
-      paymentDueDays: Number(values.paymentDueDays),
+      paymentReminderDays: Number(values.paymentReminderDays),
     })
 
   return (
@@ -195,10 +196,10 @@ export function PaymentSettingsForm({
 
         <FormField
           control={form.control}
-          name="paymentDueDays"
+          name="paymentReminderDays"
           render={({ field }) => (
             <FormItem className="sm:max-w-sm">
-              <FormLabel>Splatnost (dní od potvrzení přihlášky)</FormLabel>
+              <FormLabel>Počet dní do připomenutí platby</FormLabel>
               <FormControl>
                 <Input
                   inputMode="numeric"
@@ -207,6 +208,7 @@ export function PaymentSettingsForm({
                   {...field}
                 />
               </FormControl>
+              <FormDescription>Počítá se od potvrzení účasti.</FormDescription>
               <FormMessage />
             </FormItem>
           )}

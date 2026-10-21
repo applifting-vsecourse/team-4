@@ -43,7 +43,11 @@ describe('event', () => {
   });
 
   it.each([
-    ['paymentDueDays', { paymentDueDays: 0 }, /event_due_days_chk/],
+    [
+      'paymentReminderDays',
+      { paymentReminderDays: 0 },
+      /event_reminder_days_chk/,
+    ],
     ['bankCode', { bankCode: '08A0' }, /event_bank_code_chk/],
     [
       'bankAccountNumber',
