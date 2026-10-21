@@ -38,8 +38,8 @@ const FEATURES = [
   },
   {
     icon: WalletCards,
-    title: "Platby a splatnost",
-    text: "Splatnost u každé přihlášky, ruční zápis plateb.",
+    title: "Platby",
+    text: "Platební údaje u každé přihlášky, ruční zápis plateb.",
   },
 ]
 

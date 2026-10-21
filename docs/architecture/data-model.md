@@ -17,22 +17,22 @@ Context: [T1 issue #74](https://github.com/applifting-vsecourse/team-4/issues/74
 
 ## 1. Requirements the model must satisfy
 
-| #   | Requirement                                                                                                                                                                                         | Source            |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| R1  | An organizer owns several organizations. All data belongs to exactly one organization, and foreign data is unreachable for reads and writes.                                                        | S2-02, S2-03, F41 |
-| R2  | An event has terms with calendar dates (both ends inclusive), a price in CZK (≥ 0) and **no overlap** within the event.                                                                             | S2-04             |
-| R3  | Event name, description, location, terms and prices are locked from the first opening onward.                                                                                                       | S2-04, S2-06      |
-| R4  | Rooms belong to one event, have a unique label, a positive bed count and availability per term. Capacity of a term = Σ beds of rooms available in it.                                               | S2-05             |
-| R5  | Room edits must not drop any term's capacity below its confirmed count.                                                                                                                             | S2-05             |
-| R6  | A registration is always saved. Each selected term is independently _confirmed_ (consumes a bed) or _waitlisted_ (consumes nothing). There is **no aggregate status that hides a mixed result**.    | S2-08, T1         |
-| R7  | Concurrent submissions never confirm more people than the capacity.                                                                                                                                 | S2-08, F53        |
-| R8  | One registration per e-mail per event. Retrying a lost request creates no duplicate.                                                                                                                | S2-08             |
-| R9  | Each registration has a unique VS, one amount due (Σ confirmed term prices) and one due date (confirmation + N days). It keeps the bank account and due-day settings in force when it was received. | S2-09             |
-| R10 | Payments: positive CZK amount with ≤ 2 decimals, received date, no duplicates on double submit, immutable. Balance can be debt, settled or overpaid.                                                | S2-12             |
-| R11 | Participant accounts are separate from the personal data on each registration. One account per e-mail, created only once a registration exists.                                                     | S2-13, T1         |
-| R12 | Magic links last 15 min and are single use. Participant sessions last 7 days and can be revoked. They never grant organizer access. Tokens are never exposed.                                       | S2-13             |
-| R13 | Confirmation e-mail failures are recorded and traceable. Provider acceptance is not reported as delivery.                                                                                           | S2-15, T3         |
-| R14 | Do not break the existing BetterAuth model.                                                                                                                                                         | T1                |
+| #   | Requirement                                                                                                                                                                                                   | Source            |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| R1  | An organizer owns several organizations. All data belongs to exactly one organization, and foreign data is unreachable for reads and writes.                                                                  | S2-02, S2-03, F41 |
+| R2  | An event has terms with calendar dates (both ends inclusive), a price in CZK (≥ 0) and **no overlap** within the event.                                                                                       | S2-04             |
+| R3  | Event name, description, location, terms and prices are locked from the first opening onward.                                                                                                                 | S2-04, S2-06      |
+| R4  | Rooms belong to one event, have a unique label, a positive bed count and availability per term. Capacity of a term = Σ beds of rooms available in it.                                                         | S2-05             |
+| R5  | Room edits must not drop any term's capacity below its confirmed count.                                                                                                                                       | S2-05             |
+| R6  | A registration is always saved. Each selected term is independently _confirmed_ (consumes a bed) or _waitlisted_ (consumes nothing). There is **no aggregate status that hides a mixed result**.              | S2-08, T1         |
+| R7  | Concurrent submissions never confirm more people than the capacity.                                                                                                                                           | S2-08, F53        |
+| R8  | One registration per e-mail per event. Retrying a lost request creates no duplicate.                                                                                                                          | S2-08             |
+| R9  | Each registration has a unique VS, one amount due (Σ confirmed term prices) and one reminder date (confirmation + N days). It keeps the bank account and reminder-day settings in force when it was received. | S2-09             |
+| R10 | Payments: positive CZK amount with ≤ 2 decimals, received date, no duplicates on double submit, immutable. Balance can be debt, settled or overpaid.                                                          | S2-12             |
+| R11 | Participant accounts are separate from the personal data on each registration. One account per e-mail, created only once a registration exists.                                                               | S2-13, T1         |
+| R12 | Magic links last 15 min and are single use. Participant sessions last 7 days and can be revoked. They never grant organizer access. Tokens are never exposed.                                                 | S2-13             |
+| R13 | Confirmation e-mail failures are recorded and traceable. Provider acceptance is not reported as delivery.                                                                                                     | S2-15, T3         |
+| R14 | Do not break the existing BetterAuth model.                                                                                                                                                                   | T1                |
 
 ## 2. Entity overview
 
@@ -68,7 +68,7 @@ erDiagram
 | `RoomTermAvailability`                          | `room_term_availability`                         | Which rooms count towards which term's capacity.                                                  |
 | `ParticipantAccount`                            | `participant_account`                            | Participant identity = normalized e-mail.                                                         |
 | `ParticipantMagicLink` / `ParticipantSession`   | `participant_magic_link` / `participant_session` | Passwordless participant access, separate from BetterAuth.                                        |
-| `Registration`                                  | `registration`                                   | Submission: personal data snapshot, VS, payment snapshot, due date.                               |
+| `Registration`                                  | `registration`                                   | Submission: personal data snapshot, VS, payment snapshot, reminder date.                          |
 | `RegistrationTerm`                              | `registration_term`                              | Selected term + participation outcome + price snapshot.                                           |
 | `Payment`                                       | `payment`                                        | Received payment recorded by an organizer.                                                        |
 | `EmailDelivery`                                 | `email_delivery`                                 | Outbound e-mail log (status, provider id, sanitized error).                                       |
@@ -135,7 +135,7 @@ erDiagram
   payment settings stay editable (S2-05, S2-09).
 - **Open preconditions** (S2-06), checked in the same transaction as the status change:
   non-empty name/description/location, ≥ 1 term, `bankAccountNumber` + `bankCode` set,
-  `paymentDueDays > 0`. Rooms are not required.
+  `paymentReminderDays > 0`. Rooms are not required.
 - A DB `CHECK (status = 'draft' OR "firstOpenedAt" IS NOT NULL)` keeps the two fields
   consistent.
 - Because terms are frozen before any registration can exist (drafts accept none),
@@ -256,22 +256,36 @@ Prisma: use an interactive `prisma.$transaction(async (tx) => …)` with
 
 ### 3.9 Payment obligation and balance (R9, R10)
 
+The payment reminder contract follows [#138](https://github.com/applifting-vsecourse/team-4/issues/138)
+and the PM decision of 21 October 2026. `paymentReminderDays` is a positive whole
+number configured by the organizer, not a fixed deadline. #128 calculates
+`paymentReminderAt` from participation confirmation, independently of email sending
+or delivery. A zero obligation has no reminder date. Passing the reminder date,
+non-payment or partial payment never changes participation, occupancy or capacity
+and never cancels a registration. Automatic reminder scheduling and sending are
+outside Sprint 2; showing a date does not promise an automatic email.
+
+Changes to event settings apply only to new registrations. Existing instruction
+snapshots and reminder dates are immutable. The #138 migration renames the old
+columns and constraints in place, preserving stored values and null dates without
+recalculation. Existing migration files remain historical records.
+
 The table separates the facts that are stored from the values that are derived:
 
-| Value                                        | Stored or derived                                 | Rule                                                                                                                                                                                                                                                              |
-| -------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bank account, due days for this registration | **stored snapshot** on `Registration`             | Copied from `Event` at receipt. Later event changes do not touch it (S2-09).                                                                                                                                                                                      |
-| Price of each selected term                  | **stored snapshot** `RegistrationTerm.priceMinor` | Copied at receipt. Prices are locked anyway, but the snapshot keeps the record self-contained for future pricing (F08).                                                                                                                                           |
-| Price of selection                           | derived                                           | Σ `priceMinor` over all selected terms.                                                                                                                                                                                                                           |
-| **Amount due**                               | derived                                           | Σ `priceMinor` over terms with `status = confirmed`.                                                                                                                                                                                                              |
-| **Due date**                                 | **stored** `Registration.paymentDueAt`            | Set when the amount due first becomes > 0: confirmation moment + `paymentDueDays` days, computed in Europe/Prague local time, so it lands on the same wall-clock time N days later across DST changes. `NULL` when nothing is due (all waitlisted or free terms). |
-| Paid                                         | derived                                           | Σ `Payment.amountMinor`.                                                                                                                                                                                                                                          |
-| Balance                                      | derived                                           | due − paid.                                                                                                                                                                                                                                                       |
-| Payment state (filter)                       | derived                                           | `none`: due = 0 ∧ paid = 0 · `unpaid`: due > 0 ∧ paid = 0 · `partial`: 0 < paid < due · `paid`: paid = due > 0 · `overpaid`: paid > due (includes due = 0 ∧ paid > 0, S2-12).                                                                                     |
+| Value                                             | Stored or derived                                 | Rule                                                                                                                                                                                                                                                                   |
+| ------------------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bank account, reminder days for this registration | **stored snapshot** on `Registration`             | Copied from `Event` at receipt. Later event changes do not touch it (S2-09).                                                                                                                                                                                           |
+| Price of each selected term                       | **stored snapshot** `RegistrationTerm.priceMinor` | Copied at receipt. Prices are locked anyway, but the snapshot keeps the record self-contained for future pricing (F08).                                                                                                                                                |
+| Price of selection                                | derived                                           | Σ `priceMinor` over all selected terms.                                                                                                                                                                                                                                |
+| **Amount due**                                    | derived                                           | Σ `priceMinor` over terms with `status = confirmed`.                                                                                                                                                                                                                   |
+| **Reminder date**                                 | **stored** `Registration.paymentReminderAt`       | Set when the amount due first becomes > 0: confirmation moment + `paymentReminderDays` days, computed in Europe/Prague local time, so it lands on the same wall-clock time N days later across DST changes. `NULL` when nothing is due (all waitlisted or free terms). |
+| Paid                                              | derived                                           | Σ `Payment.amountMinor`.                                                                                                                                                                                                                                               |
+| Balance                                           | derived                                           | due − paid.                                                                                                                                                                                                                                                            |
+| Payment state (filter)                            | derived                                           | `none`: due = 0 ∧ paid = 0 · `unpaid`: due > 0 ∧ paid = 0 · `partial`: 0 < paid < due · `paid`: paid = due > 0 · `overpaid`: paid > due (includes due = 0 ∧ paid > 0, S2-12).                                                                                          |
 
 The amount due is derived instead of stored because a future promotion or cancellation
 (F10, F16) then only changes `registration_term`, and the amount follows automatically.
-A stored copy could drift. The due date has to be stored because it is a moment in time
+A stored copy could drift. The reminder date has to be stored because it is a moment in time
 that a later recomputation must not move.
 
 Payments are **append-only** (no update or delete in Sprint 2). `submissionKey UUID UNIQUE`
@@ -353,7 +367,7 @@ hundreds of registrations, do not justify stored totals.
 | `firstOpenedAt`                   | timestamptz?             | Set once.                                                                                                            |
 | `bankAccountPrefix`               | varchar(6)?              | Optional prefix, digits only.                                                                                        |
 | `bankAccountNumber`, `bankCode`   | varchar(10)?, char(4)?   | Nullable until configured, required for opening. Validate digits and the Czech mod-11 checksum on prefix and number. |
-| `paymentDueDays`                  | int?                     | `> 0`. Required for opening.                                                                                         |
+| `paymentReminderDays`             | int?                     | `> 0`. Required for opening.                                                                                         |
 
 ### EventTerm, Room, RoomTermAvailability
 
@@ -376,8 +390,8 @@ hundreds of registrations, do not justify stored totals.
 | `variableSymbol`                          | varchar(10) unique          | Sequence default.                                                    |
 | `firstName`, `lastName`, `email`, `phone` | text                        | Snapshot as submitted. Phone in E.164.                               |
 | `receivedAt`                              | timestamptz default `now()` | Server time. Ordering key. Also the confirmation moment in Sprint 2. |
-| `paymentDueAt`                            | timestamptz?                | See §3.9.                                                            |
-| `bankAccount*`, `paymentDueDays`          | snapshot                    | Copied from the event.                                               |
+| `paymentReminderAt`                       | timestamptz?                | See §3.9.                                                            |
+| `bankAccount*`, `paymentReminderDays`     | snapshot                    | Copied from the event.                                               |
 | `registration_term.status`                | enum `confirmed/waitlisted` | Per term. No aggregate status on `registration`.                     |
 | `registration_term.priceMinor`            | int                         | Price snapshot.                                                      |
 | `registration_term.decidedAt`             | timestamptz                 | When the status was set.                                             |
@@ -411,7 +425,7 @@ hundreds of registrations, do not justify stored totals.
       response.
    5. Per term, compute capacity and confirmed, then insert `registration_term`
       (`confirmed` / `waitlisted`, price snapshot).
-   6. If Σ confirmed price > 0, set `paymentDueAt`.
+   6. If Σ confirmed price > 0, set `paymentReminderAt`.
 3. After commit: create a magic link, insert `email_delivery(pending)`, send through
    Resend, and update the status. Return the saved result read back from the database,
    never an optimistic one.
@@ -516,7 +530,7 @@ model Event {
   bankAccountPrefix String? @db.VarChar(6)
   bankAccountNumber String? @db.VarChar(10)
   bankCode          String? @db.Char(4)
-  paymentDueDays    Int?
+  paymentReminderDays    Int?
 
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
@@ -648,13 +662,13 @@ model Registration {
   phone     String @db.VarChar(16)  // E.164
 
   receivedAt   DateTime  @default(now()) @db.Timestamptz(3)
-  paymentDueAt DateTime? @db.Timestamptz(3)
+  paymentReminderAt DateTime? @db.Timestamptz(3)
 
   // snapshot of event payment settings at receipt
   bankAccountPrefix String? @db.VarChar(6)
   bankAccountNumber String  @db.VarChar(10)
   bankCode          String  @db.Char(4)
-  paymentDueDays    Int
+  paymentReminderDays    Int
 
   organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   event              Event              @relation(fields: [eventId, organizationId], references: [id, organizationId], onDelete: Restrict)
@@ -761,7 +775,7 @@ CREATE SEQUENCE registration_variable_symbol_seq START 1000001;
 -- event
 ALTER TABLE "event"
   ADD CONSTRAINT event_first_opened_chk CHECK ("status" = 'draft' OR "firstOpenedAt" IS NOT NULL),
-  ADD CONSTRAINT event_due_days_chk     CHECK ("paymentDueDays" IS NULL OR "paymentDueDays" > 0),
+  ADD CONSTRAINT event_reminder_days_chk     CHECK ("paymentReminderDays" IS NULL OR "paymentReminderDays" > 0),
   ADD CONSTRAINT event_bank_code_chk    CHECK ("bankCode" IS NULL OR "bankCode" ~ '^[0-9]{4}$'),
   ADD CONSTRAINT event_bank_number_chk  CHECK ("bankAccountNumber" IS NULL OR "bankAccountNumber" ~ '^[0-9]{2,10}$'),
   ADD CONSTRAINT event_bank_prefix_chk  CHECK ("bankAccountPrefix" IS NULL OR "bankAccountPrefix" ~ '^[0-9]{1,6}$');
@@ -781,7 +795,7 @@ ALTER TABLE "room" ADD CONSTRAINT room_bed_count_chk CHECK ("bedCount" > 0);
 -- registration
 ALTER TABLE "registration"
   ADD CONSTRAINT registration_vs_chk          CHECK ("variableSymbol" ~ '^[0-9]{1,10}$'),
-  ADD CONSTRAINT registration_due_days_chk    CHECK ("paymentDueDays" > 0),
+  ADD CONSTRAINT registration_reminder_days_chk    CHECK ("paymentReminderDays" > 0),
   ADD CONSTRAINT registration_bank_code_chk   CHECK ("bankCode" ~ '^[0-9]{4}$'),
   ADD CONSTRAINT registration_bank_number_chk CHECK ("bankAccountNumber" ~ '^[0-9]{2,10}$'),
   ADD CONSTRAINT registration_bank_prefix_chk CHECK ("bankAccountPrefix" IS NULL OR "bankAccountPrefix" ~ '^[0-9]{1,6}$');
@@ -843,16 +857,16 @@ deploy`, `pnpm backend seed` twice, then `pnpm backend test:db`.
 These do not block the schema. Each has a default chosen in this design, which the PM
 confirms or changes.
 
-| #   | Question                                                                                                                                         | Default in this design                                                               |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| Q1  | Is the due date "confirmation + N × 24 h" or "same wall-clock time N days later in Europe/Prague"? The two differ by an hour across DST changes. | Same wall-clock time in Europe/Prague.                                               |
-| Q2  | Is a sequential VS acceptable? It reveals the approximate registration volume.                                                                   | Sequential from 1000001.                                                             |
-| Q3  | Is e-mail identity case-insensitive (`Jan@x.cz` = `jan@x.cz`)?                                                                                   | Yes. Trimmed and lower-cased for the account key, original kept on the registration. |
-| Q4  | Is room label uniqueness case-insensitive ("Pokoj 1" vs "pokoj 1")?                                                                              | Case-sensitive after trimming.                                                       |
-| Q5  | When everything is waitlisted, is "no due date" correct? Does the e-mail and portal omit the due date?                                           | `paymentDueAt = NULL`, nothing shown.                                                |
-| Q6  | What are the rate limits for magic-link requests per e-mail and per IP?                                                                          | 3 per 15 min per account. Needs PM/QA sign-off.                                      |
-| Q7  | Is the payment date "not in the future" judged in Europe/Prague?                                                                                 | Yes.                                                                                 |
-| Q8  | What is the retention and deletion policy for participant data (GDPR)?                                                                           | Not modelled in Sprint 2. Everything uses `RESTRICT` deletes.                        |
+| #   | Question                                                                                                                                              | Default in this design                                                               |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Q1  | Is the reminder date "confirmation + N × 24 h" or "same wall-clock time N days later in Europe/Prague"? The two differ by an hour across DST changes. | Same wall-clock time in Europe/Prague.                                               |
+| Q2  | Is a sequential VS acceptable? It reveals the approximate registration volume.                                                                        | Sequential from 1000001.                                                             |
+| Q3  | Is e-mail identity case-insensitive (`Jan@x.cz` = `jan@x.cz`)?                                                                                        | Yes. Trimmed and lower-cased for the account key, original kept on the registration. |
+| Q4  | Is room label uniqueness case-insensitive ("Pokoj 1" vs "pokoj 1")?                                                                                   | Case-sensitive after trimming.                                                       |
+| Q5  | When everything is waitlisted, is "no reminder date" correct? Does the e-mail and portal omit the reminder date?                                      | `paymentReminderAt = NULL`, nothing shown.                                           |
+| Q6  | What are the rate limits for magic-link requests per e-mail and per IP?                                                                               | 3 per 15 min per account. Needs PM/QA sign-off.                                      |
+| Q7  | Is the payment date "not in the future" judged in Europe/Prague?                                                                                      | Yes.                                                                                 |
+| Q8  | What is the retention and deletion policy for participant data (GDPR)?                                                                                | Not modelled in Sprint 2. Everything uses `RESTRICT` deletes.                        |
 
 ## 11. Evolution towards the full MVP
 

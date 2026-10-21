@@ -14,7 +14,7 @@ const SAVED: PaymentSettingsFormValues = {
   bankAccountPrefix: "19",
   bankAccountNumber: "2000145399",
   bankCode: "0800",
-  paymentDueDays: "14",
+  paymentReminderDays: "14",
 }
 
 function renderForm(
@@ -37,27 +37,27 @@ const save = () =>
   userEvent.click(screen.getByRole("button", { name: "Uložit platební nastavení" }))
 
 describe("PaymentSettingsForm", () => {
-  it("requires the account number, bank code and due days", async () => {
+  it("requires the account number, bank code and reminder days", async () => {
     const { onSubmit } = renderForm(EMPTY_PAYMENT_SETTINGS)
     await save()
     expect(await screen.findByText("Vyplňte číslo účtu.")).toBeInTheDocument()
     expect(screen.getByText("Vyplňte kód banky.")).toBeInTheDocument()
-    expect(screen.getByText("Vyplňte splatnost ve dnech.")).toBeInTheDocument()
+    expect(screen.getByText("Vyplňte počet dní do připomenutí platby.")).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
   // Saved settings can only be saved after a change, so each case edits a field.
   const changeDays = async (days: string) => {
-    const field = screen.getByLabelText(/Splatnost/)
+    const field = screen.getByLabelText(/Počet dní do připomenutí platby/)
     await userEvent.clear(field)
     await userEvent.type(field, days)
   }
 
-  it.each(["0", "1.5", "-3", "abc", "2147483648"])("rejects %s due days", async (days) => {
+  it.each(["0", "1.5", "-3", "abc", "2147483648"])("rejects %s reminder days", async (days) => {
     const { onSubmit } = renderForm(SAVED)
     await changeDays(days)
     await save()
-    expect(await screen.findByText(/splatnost/i, { selector: "p" })).toBeInTheDocument()
+    expect(await screen.findByText(/připomenutí platby/i, { selector: "p" })).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
@@ -70,17 +70,17 @@ describe("PaymentSettingsForm", () => {
         bankAccountPrefix: "19",
         bankAccountNumber: "2000145399",
         bankCode: "0800",
-        paymentDueDays: 30,
+        paymentReminderDays: 30,
       }),
     )
   })
 
-  it("accepts a due period of more than a year", async () => {
+  it("accepts a reminder period of more than a year", async () => {
     const { onSubmit } = renderForm(SAVED)
     await changeDays("366")
     await save()
     await vi.waitFor(() =>
-      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ paymentDueDays: 366 })),
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ paymentReminderDays: 366 })),
     )
   })
 
@@ -110,13 +110,13 @@ describe("PaymentSettingsForm", () => {
         bankAccountPrefix: null,
         bankAccountNumber: "123457",
         bankCode: "0100",
-        paymentDueDays: 7,
+        paymentReminderDays: 7,
       }),
     ).toEqual({
       bankAccountPrefix: "",
       bankAccountNumber: "123457",
       bankCode: "0100",
-      paymentDueDays: "7",
+      paymentReminderDays: "7",
     })
   })
   describe("save button", () => {
@@ -130,13 +130,13 @@ describe("PaymentSettingsForm", () => {
     it("is disabled for saved settings until a value changes", async () => {
       renderForm(SAVED)
       expect(saveButton()).toBeDisabled()
-      await userEvent.type(screen.getByLabelText(/Splatnost/), "0")
+      await userEvent.type(screen.getByLabelText(/Počet dní do připomenutí platby/), "0")
       expect(saveButton()).toBeEnabled()
     })
 
     it("is disabled again when the original values are restored", async () => {
       renderForm(SAVED)
-      const days = screen.getByLabelText(/Splatnost/)
+      const days = screen.getByLabelText(/Počet dní do připomenutí platby/)
       await userEvent.clear(days)
       await userEvent.type(days, "30")
       expect(saveButton()).toBeEnabled()

@@ -11,6 +11,7 @@ import {
   createEvent,
   createOrganization,
   createOrganizer,
+  createPayment,
   createRegistration,
 } from '@/testing/factories';
 import { INestApplication } from '@nestjs/common';
@@ -435,7 +436,7 @@ const ACCOUNT = {
   bankAccountPrefix: '19',
   bankAccountNumber: '2000145399',
   bankCode: '0800',
-  paymentDueDays: 14,
+  paymentReminderDays: 14,
 };
 
 describe('payment settings', () => {
@@ -456,24 +457,35 @@ describe('payment settings', () => {
     );
   });
 
-  it('accepts a due period of more than a year', async () => {
+  it('accepts a reminder period of more than a year', async () => {
     const { ownerId, path } = await draftEvent();
     const saved = await call(ownerId, 'PUT', `${path}/payment-settings`, {
       ...ACCOUNT,
-      paymentDueDays: 366,
+      paymentReminderDays: 366,
     });
     expect(saved.status).toBe(200);
-    expect(saved.body.paymentSettings.paymentDueDays).toBe(366);
+    expect(saved.body.paymentSettings.paymentReminderDays).toBe(366);
+  });
+
+  it('rejects the old deadline contract instead of accepting an alias', async () => {
+    const { ownerId, path } = await draftEvent();
+    const { paymentReminderDays, ...account } = ACCOUNT;
+    const attempt = await call(ownerId, 'PUT', `${path}/payment-settings`, {
+      ...account,
+      paymentDueDays: paymentReminderDays,
+    });
+    expect(attempt.status).toBe(400);
+    expect((await call(ownerId, 'GET', path)).body.paymentSettings).toBeNull();
   });
 
   it('accepts the largest value the column holds', async () => {
     const { ownerId, path } = await draftEvent();
     const saved = await call(ownerId, 'PUT', `${path}/payment-settings`, {
       ...ACCOUNT,
-      paymentDueDays: 2_147_483_647,
+      paymentReminderDays: 2_147_483_647,
     });
     expect(saved.status).toBe(200);
-    expect(saved.body.paymentSettings.paymentDueDays).toBe(2_147_483_647);
+    expect(saved.body.paymentSettings.paymentReminderDays).toBe(2_147_483_647);
   });
 
   it('accepts an account without a prefix', async () => {
@@ -498,11 +510,11 @@ describe('payment settings', () => {
     ['bankAccountPrefix', { bankAccountPrefix: '20' }],
     ['bankAccountPrefix', { bankAccountPrefix: '1234567' }],
     ['bankCode', { bankCode: '80' }],
-    ['paymentDueDays', { paymentDueDays: 0 }],
-    ['paymentDueDays', { paymentDueDays: -3 }],
-    ['paymentDueDays', { paymentDueDays: 2_147_483_648 }],
-    ['paymentDueDays', { paymentDueDays: 1.5 }],
-    ['paymentDueDays', { paymentDueDays: '14' }],
+    ['paymentReminderDays', { paymentReminderDays: 0 }],
+    ['paymentReminderDays', { paymentReminderDays: -3 }],
+    ['paymentReminderDays', { paymentReminderDays: 2_147_483_648 }],
+    ['paymentReminderDays', { paymentReminderDays: 1.5 }],
+    ['paymentReminderDays', { paymentReminderDays: '14' }],
   ])(
     'refuses an invalid %s and keeps the stored settings',
     async (field, change) => {
@@ -531,32 +543,51 @@ describe('payment settings', () => {
       organizationId: organization.id,
       status: 'open',
       terms: [{ startDate: '2027-07-01', endDate: '2027-07-07' }],
+      rooms: [{ bedCount: 2, termIndexes: [0] }],
     });
     const registration = await createRegistration(prisma, {
       event,
       terms: [{ term: terms[0], status: 'confirmed' }],
     });
+    await prisma.registration.update({
+      where: { id: registration.id },
+      data: { paymentReminderAt: new Date('2026-10-01T10:00:00Z') },
+    });
+    await createPayment(prisma, {
+      registration,
+      recordedById: owner.id,
+      amountMinor: 5_000,
+    });
+    const registrationQuery = {
+      where: { id: registration.id },
+      include: { terms: true, payments: true },
+    } as const;
+    const before =
+      await prisma.registration.findUniqueOrThrow(registrationQuery);
+    const availabilityBefore = await prisma.roomTermAvailability.findMany({
+      where: { eventId: event.id },
+    });
     const path = `organizations/${organization.id}/events/${event.id}`;
+    const changedSettings = { ...ACCOUNT, paymentReminderDays: 30 };
 
     const changed = await call(
       owner.id,
       'PUT',
       `${path}/payment-settings`,
-      ACCOUNT,
+      changedSettings,
     );
     expect(changed.status).toBe(200);
     expect(changed.body.isLocked).toBe(true);
-    expect(changed.body.paymentSettings).toEqual(ACCOUNT);
+    expect(changed.body.paymentSettings).toEqual(changedSettings);
 
-    const stored = await prisma.registration.findUniqueOrThrow({
-      where: { id: registration.id },
-    });
-    expect(stored).toMatchObject({
-      bankAccountPrefix: null,
-      bankAccountNumber: '123457',
-      bankCode: '0100',
-      paymentDueDays: 14,
-    });
+    expect(
+      await prisma.registration.findUniqueOrThrow(registrationQuery),
+    ).toEqual(before);
+    expect(
+      await prisma.roomTermAvailability.findMany({
+        where: { eventId: event.id },
+      }),
+    ).toEqual(availabilityBefore);
   });
 
   it('answers 404 to another organizer', async () => {
@@ -751,7 +782,7 @@ describe('opening registration', () => {
             bankAccountPrefix: null,
             bankAccountNumber: null,
             bankCode: null,
-            paymentDueDays: null,
+            paymentReminderDays: null,
           },
         }),
     ],

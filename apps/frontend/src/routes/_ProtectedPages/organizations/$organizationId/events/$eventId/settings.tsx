@@ -52,6 +52,7 @@ function EventPage() {
         badge={<EventStatusBadge status={event.status} />}
       />
       <div className="space-y-10">
+        {event.isLocked ? <EventLockedAlert status={event.status} /> : null}
         <section aria-labelledby="event-details-heading">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
             <h2
@@ -91,7 +92,6 @@ function EventPage() {
                   <dd className="mt-1 break-words whitespace-pre-line">{event.description}</dd>
                 </div>
               </dl>
-              {event.isLocked ? <EventLockedAlert status={event.status} /> : null}
             </CardContent>
           </Card>
         </section>

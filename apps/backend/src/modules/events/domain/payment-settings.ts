@@ -7,15 +7,15 @@ export type PaymentSettings = {
   /** 4 digits. */
   bankCode: string;
   /** Positive whole number of days. */
-  paymentDueDays: number;
+  paymentReminderDays: number;
 };
 
 /**
  * Not a business rule: the story sets no upper bound. It is the largest value
- * the 32-bit `paymentDueDays` column can hold, so a larger one would fail in
+ * the 32-bit `paymentReminderDays` column can hold, so a larger one would fail in
  * the database instead of at the field.
  */
-export const MAX_PAYMENT_DUE_DAYS = 2_147_483_647;
+export const MAX_PAYMENT_REMINDER_DAYS = 2_147_483_647;
 
 export type AccountField = 'bankAccountPrefix' | 'bankAccountNumber';
 

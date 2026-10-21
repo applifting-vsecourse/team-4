@@ -94,7 +94,7 @@ export const createEvent = async (
       firstOpenedAt: status === 'draft' ? null : new Date(),
       bankAccountNumber: '123457',
       bankCode: '0100',
-      paymentDueDays: 14,
+      paymentReminderDays: 14,
     },
   });
 
@@ -166,7 +166,7 @@ export const createRegistration = async (
       phone: '+420600000000',
       bankAccountNumber: options.event.bankAccountNumber ?? '123457',
       bankCode: options.event.bankCode ?? '0100',
-      paymentDueDays: options.event.paymentDueDays ?? 14,
+      paymentReminderDays: options.event.paymentReminderDays ?? 14,
       terms: {
         create: options.terms.map(({ term, status }) => ({
           termId: term.id,

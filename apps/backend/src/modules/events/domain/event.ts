@@ -42,7 +42,7 @@ export const findOpeningBlockers = (input: OpeningInput): OpeningBlocker[] => {
   const payment = input.paymentSettings;
   if (
     !payment ||
-    payment.paymentDueDays < 1 ||
+    payment.paymentReminderDays < 1 ||
     findInvalidAccountField(
       payment.bankAccountPrefix,
       payment.bankAccountNumber,
