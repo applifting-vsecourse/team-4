@@ -32,14 +32,20 @@ async function scenario(mode) {
         mode === 'moved' && reads === 2
           ? { ...pr, head: { sha: 'b'.repeat(40) } }
           : pr;
-    } else if (url.includes('/status?')) {
-      data = { total_count: 0, statuses: [] };
+    } else if (url.includes('/statuses?')) {
+      data = [];
       if (
-        ['status', 'pending', 'forged-status', 'status-failed-check'].includes(
-          mode,
-        )
+        [
+          'status',
+          'pending',
+          'forged-status',
+          'status-failed-check',
+          'paged-status',
+          'newer-pending',
+          'missing-creator',
+        ].includes(mode)
       ) {
-        data.statuses = [
+        data = [
           {
             context: 'Delivery stages',
             state: mode === 'pending' ? 'pending' : 'success',
@@ -50,6 +56,17 @@ async function scenario(mode) {
           },
         ];
       }
+      if (mode === 'missing-creator') delete data[0].creator;
+      if (mode === 'newer-pending')
+        data = [{ ...data[0], state: 'pending' }, data[0]];
+      if (
+        mode === 'paged-status' &&
+        new URL(url).searchParams.get('page') === '1'
+      )
+        data = Array.from({ length: 100 }, () => ({
+          context: 'other-check',
+          state: 'success',
+        }));
     } else if (url.includes('/check-runs?')) {
       data = { total_count: 1, check_runs: [legacy] };
       if (mode === 'status' || mode === 'missing') data.check_runs = [];
@@ -88,12 +105,14 @@ test('only PR events expose the required native job, running trusted main code',
   );
 });
 
-for (const mode of ['legacy', 'status']) {
+for (const mode of ['legacy', 'status', 'paged-status']) {
   test(`native job accepts the evaluated ${mode} verdict`, () =>
     scenario(mode));
 }
 for (const mode of [
   'pending',
+  'newer-pending',
+  'missing-creator',
   'forged-status',
   'missing',
   'failed',
