@@ -47,7 +47,7 @@ export class EventPaymentSettingsController {
 
   @Put()
   @ApiOperation({
-    summary: 'Set the account and due days for new registrations',
+    summary: 'Set the account and reminder days for new registrations',
     description:
       'Allowed at any time, also after registration has been opened. ' +
       'Registrations already received keep their own copy. ' +
@@ -67,7 +67,7 @@ export class EventPaymentSettingsController {
           bankAccountPrefix: dto.bankAccountPrefix ?? null,
           bankAccountNumber: dto.bankAccountNumber,
           bankCode: dto.bankCode,
-          paymentDueDays: dto.paymentDueDays,
+          paymentReminderDays: dto.paymentReminderDays,
         },
       ),
     );

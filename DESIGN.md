@@ -73,7 +73,7 @@ Values come from the Figma library Design system (modes Light and Dark). Utility
 | `border` / `input`                          | `#e5e7eb`                               | `#1f2937` / `#374151`          | Borders, input outlines                              |
 | `ring`                                      | `#2563eb`                               | `#60a5fa`                      | Focus ring                                           |
 | `destructive`                               | `#dc2626`                               | `#ef4444`                      | Destructive actions, form errors                     |
-| `destructive-subtle` / `-subtle-foreground` | `#fef2f2` / `#b91c1c`                   | `#450a0a` / `#f87171`          | Overdue, failed, error status                        |
+| `destructive-subtle` / `-subtle-foreground` | `#fef2f2` / `#b91c1c`                   | `#450a0a` / `#f87171`          | Failed, error status                                 |
 | `success` / `success-subtle`                | `#15803d` / `#f0fdf4`                   | `#4ade80` / `#052e16`          | Confirmed, paid                                      |
 | `warning` / `warning-subtle`                | `#c2410c` / `#fff7ed`                   | `#fb923c` / `#431407`          | Waitlisted (náhradník), partially paid               |
 | `sidebar*`                                  | page surface and text; lime active item | dark surface; lime active item | Organizer navigation                                 |
@@ -86,7 +86,7 @@ Status meaning, used consistently across the app:
 | --------------------------------------- | ------------------------ |
 | Confirmed term, paid in full            | `success`                |
 | Waitlisted (náhradník), partial payment | `warning`                |
-| Overdue payment, failed, error          | `destructive-subtle`     |
+| Failed, error                           | `destructive-subtle`     |
 | Neutral / informational                 | `secondary` or `outline` |
 
 Values not given by the Figma library and filled in by convention: `popover-foreground`, `accent-foreground`, `destructive-foreground`, `sidebar-foreground`, `sidebar-accent-foreground`, `sidebar-border`, `sidebar-ring`, `overlay`.

@@ -54,7 +54,7 @@ export class LockedEvent {
         bankAccountPrefix: true,
         bankAccountNumber: true,
         bankCode: true,
-        paymentDueDays: true,
+        paymentReminderDays: true,
         _count: { select: { terms: true } },
       },
     });
@@ -142,16 +142,16 @@ const toPaymentSettings = (event: {
   bankAccountPrefix: string | null;
   bankAccountNumber: string | null;
   bankCode: string | null;
-  paymentDueDays: number | null;
+  paymentReminderDays: number | null;
 }): PaymentSettings | null =>
   event.bankAccountNumber !== null &&
   event.bankCode !== null &&
-  event.paymentDueDays !== null
+  event.paymentReminderDays !== null
     ? {
         bankAccountPrefix: event.bankAccountPrefix,
         bankAccountNumber: event.bankAccountNumber,
         bankCode: event.bankCode,
-        paymentDueDays: event.paymentDueDays,
+        paymentReminderDays: event.paymentReminderDays,
       }
     : null;
 
@@ -222,7 +222,7 @@ export class EventsRepository {
         bankAccountPrefix: true,
         bankAccountNumber: true,
         bankCode: true,
-        paymentDueDays: true,
+        paymentReminderDays: true,
         terms: {
           orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
           select: {
