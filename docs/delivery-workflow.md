@@ -123,8 +123,20 @@ still approve the current commit.
 Workflows run trusted code from main on relevant PR/review events, human issue
 comments and issue edits, with five-minute polling as a fallback. Bot comments
 are ignored as direct event triggers to avoid self-triggering loops. The stage
-checker publishes a blocking check when scope, agent or QA evidence is missing.
-A green workflow execution is not the same as a green delivery verdict.
+checker publishes a `Delivery stages` commit status on the PR head, linked to
+the enforcing Actions run. It starts pending and reports failure or error when
+scope, agent or QA evidence is missing or cannot be read. Commit statuses avoid
+creating synthetic jobs in an unrelated Actions check suite. Existing synthetic check runs
+with the same name receive the same evaluated verdict (or failure on API errors);
+Actions job checks and checks from other apps are never modified; the required
+name and GitHub Actions source remain unchanged.
+On PR events, the native Actions job is also named `Delivery stages`. After
+running the trusted main evaluator, it requires a passing verdict for that exact
+open PR commit, accepting its commit status and checking any existing synthetic
+checks. The native job never treats its own result as delivery evidence. Other
+events use the job name `Reconcile delivery stages`, so a manual or scheduled
+run cannot satisfy the required PR job without this verification.
+A green reconciliation workflow is not the same as a green delivery verdict.
 
 ## Releases and the stage
 
