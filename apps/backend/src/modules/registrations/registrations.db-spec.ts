@@ -179,8 +179,8 @@ describe('saving a registration', () => {
       phone: '+420777123456',
       bankAccountNumber: f.event.bankAccountNumber,
       bankCode: f.event.bankCode,
-      paymentDueDays: f.event.paymentDueDays,
-      paymentDueAt: null,
+      paymentReminderDays: f.event.paymentReminderDays,
+      paymentReminderAt: null,
     });
     expect(stored.variableSymbol).toMatch(/^\d{1,10}$/);
     expect(stored.participantAccount.email).toBe('jana.novakova@example.test');

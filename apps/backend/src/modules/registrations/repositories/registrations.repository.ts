@@ -70,7 +70,7 @@ type OpenEventRow = {
   bankAccountPrefix: string | null;
   bankAccountNumber: string | null;
   bankCode: string | null;
-  paymentDueDays: number | null;
+  paymentReminderDays: number | null;
 };
 
 @Injectable()
@@ -114,7 +114,7 @@ export class RegistrationsRepository {
     return this.prisma.$transaction(async (tx) => {
       const [event] = await tx.$queryRaw<OpenEventRow[]>`
         SELECT "id", "organizationId", "bankAccountPrefix", "bankAccountNumber",
-               "bankCode", "paymentDueDays"
+               "bankCode", "paymentReminderDays"
         FROM "event"
         WHERE "publicId" = ${publicId} AND "status" = 'open'
         FOR SHARE`;
@@ -123,7 +123,7 @@ export class RegistrationsRepository {
       if (
         event.bankAccountNumber === null ||
         event.bankCode === null ||
-        event.paymentDueDays === null
+        event.paymentReminderDays === null
       ) {
         throw new Error(`Open event ${event.id} has no payment settings`);
       }
@@ -169,7 +169,7 @@ export class RegistrationsRepository {
           bankAccountPrefix: event.bankAccountPrefix,
           bankAccountNumber: event.bankAccountNumber,
           bankCode: event.bankCode,
-          paymentDueDays: event.paymentDueDays,
+          paymentReminderDays: event.paymentReminderDays,
         },
         select: { id: true },
       });
