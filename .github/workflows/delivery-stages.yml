@@ -75,9 +75,15 @@ jobs:
           }
           const pr = await get(`pulls/${process.env.PR_NUMBER}`);
           if (pr.state !== 'open' || pr.head.sha !== sha) throw new Error('PR changed during evaluation');
-          const statuses = await get(`commits/${sha}/status?per_page=100`);
-          if (statuses.total_count > 100) throw new Error('Too many statuses to verify');
-          const status = statuses.statuses.find((s) => s.context === 'Delivery stages');
+          // The combined-status response omits creator. Individual statuses
+          // include it and are returned newest first; do not skip an untrusted
+          // newer result in favour of an older passing one.
+          let status;
+          for (let page = 1; ; page++) {
+            const statuses = await get(`commits/${sha}/statuses?per_page=100&page=${page}`);
+            status = statuses.find((s) => s.context === 'Delivery stages');
+            if (status || statuses.length < 100) break;
+          }
           if (status) {
             if (status.creator?.login !== 'github-actions[bot]' || status.state !== 'success') {
               throw new Error('Delivery status has not passed');
