@@ -123,7 +123,12 @@ still approve the current commit.
 Workflows run trusted code from main on relevant PR/review events, human issue
 comments and issue edits, with five-minute polling as a fallback. Bot comments
 are ignored as direct event triggers to avoid self-triggering loops. The stage
-checker publishes a blocking check when scope, agent or QA evidence is missing.
+checker publishes a `Delivery stages` commit status on the PR head, linked to
+the enforcing Actions run. It starts pending and reports failure or error when
+scope, agent or QA evidence is missing or cannot be read. Commit statuses avoid
+creating synthetic jobs in an unrelated Actions check suite. Existing check-run
+results with the same name must also pass during the transition; the required
+name and GitHub Actions source remain unchanged.
 A green workflow execution is not the same as a green delivery verdict.
 
 ## Releases and the stage

@@ -4,6 +4,9 @@ import { copilotWaiver } from './copilot-waiver.mjs';
 
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
+const runUrl = process.env.GITHUB_RUN_ID
+  ? `https://github.com/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}`
+  : undefined;
 if (!repo || !token)
   throw new Error('GITHUB_REPOSITORY and GITHUB_TOKEN are required');
 async function api(path, method = 'GET', body) {
@@ -47,16 +50,16 @@ async function issuesFor(pr) {
 }
 
 for (const pr of await list(`/repos/${repo}/pulls?state=open&base=main`)) {
-  // Start in a blocking state; API errors must never leave an old green check.
-  const check = await api(`/repos/${repo}/check-runs`, 'POST', {
-    name: 'Delivery stages',
-    head_sha: pr.head.sha,
-    status: 'in_progress',
-    output: {
-      title: 'Checking delivery stages',
-      summary: 'Requirements → agent review → QA',
-    },
-  });
+  // Commit statuses do not become synthetic jobs in an unrelated Actions suite.
+  // Start blocked so an API error cannot leave a previous passing verdict current.
+  const publish = (state, description) =>
+    api(`/repos/${repo}/statuses/${pr.head.sha}`, 'POST', {
+      context: 'Delivery stages',
+      state,
+      description: description.slice(0, 140),
+      target_url: runUrl,
+    });
+  await publish('pending', 'Checking requirements, agent review and QA');
   try {
     const issues = await issuesFor(pr);
     const reviews = await list(`/repos/${repo}/pulls/${pr.number}/reviews`);
@@ -76,29 +79,18 @@ for (const pr of await list(`/repos/${repo}/pulls?state=open&base=main`)) {
     const current = await api(`/repos/${repo}/pulls/${pr.number}`);
     if (current.head.sha !== pr.head.sha || current.state !== 'open')
       throw new Error('PR changed during evaluation');
-    await api(`/repos/${repo}/check-runs/${check.id}`, 'PATCH', {
-      status: 'completed',
-      conclusion: result.pass ? 'success' : 'failure',
-      output: {
-        title: result.pass
-          ? 'All delivery stages passed'
-          : 'Delivery stages incomplete',
-        summary: result.pass
-          ? copilotWaiver({ pr, comments })
-            ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
-            : 'Requirements and agent review passed before QA approved this commit.'
-          : result.reasons.map((r) => `- ${r}`).join('\n'),
-      },
-    });
+    const summary = result.pass
+      ? copilotWaiver({ pr, comments })
+        ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
+        : 'Requirements and agent review passed before QA approved this commit.'
+      : result.reasons.join(' ');
+    await publish(result.pass ? 'success' : 'failure', summary);
     console.log(
       `#${pr.number}: ${result.pass ? 'pass' : result.reasons.join(' ')}`,
     );
   } catch (error) {
-    await api(`/repos/${repo}/check-runs/${check.id}`, 'PATCH', {
-      status: 'completed',
-      conclusion: 'failure',
-      output: { title: 'Could not verify stages', summary: error.message },
-    });
+    await publish('error', `Could not verify stages: ${error.message}`);
+    console.error(`#${pr.number}: ${error.message}`);
     process.exitCode = 1;
   }
 }

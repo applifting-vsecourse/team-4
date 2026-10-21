@@ -285,7 +285,7 @@ async function checkScenario(mode) {
             submitted_at: '2004-01-01',
           },
         ];
-  let check;
+  const statuses = [];
   globalThis.fetch = async (url, options = {}) => {
     const path = new URL(url).pathname;
     const body = options.body ? JSON.parse(options.body) : {};
@@ -305,24 +305,41 @@ async function checkScenario(mode) {
           },
         },
       };
-    else if (path === '/repos/owner/repo/check-runs') data = { id: 1 };
-    else if (path === '/repos/owner/repo/check-runs/1') {
-      check = body;
+    else if (path === `/repos/owner/repo/statuses/${sha}`) {
+      if (options.method !== 'POST') throw new Error('Status requires POST');
+      statuses.push(body);
       data = {};
     } else if (path === '/repos/owner/repo/pulls') data = [pr];
-    else if (path.endsWith('/pulls/12/reviews')) data = reviews;
-    else if (path.endsWith('/issues/12/comments')) data = comments;
+    else if (path.endsWith('/pulls/12/reviews')) {
+      if (mode === 'api-error') throw new Error('Review API unavailable');
+      data = reviews;
+    } else if (path.endsWith('/issues/12/comments')) data = comments;
     else if (path.endsWith('/issues/78/comments')) data = [];
     else if (path.endsWith('/issues/78')) data = issue;
-    else if (path.endsWith('/pulls/12')) data = pr;
+    else if (path.endsWith('/pulls/12'))
+      data =
+        mode === 'moved'
+          ? { ...pr, head: { sha: 'b'.repeat(40) } }
+          : mode === 'closed'
+            ? { ...pr, state: 'closed' }
+            : pr;
     else throw new Error('Unexpected API ' + path);
     return { ok: true, json: async () => structuredClone(data) };
   };
   await import('./scripts/delivery/run.mjs');
-  console.log(JSON.stringify(check));
+  console.log(JSON.stringify({ statuses, exitCode: process.exitCode || 0 }));
+  process.exitCode = 0;
 }
 
-for (const mode of ['valid', 'no-qa', 'forged', 'deleted']) {
+for (const mode of [
+  'valid',
+  'no-qa',
+  'forged',
+  'deleted',
+  'api-error',
+  'moved',
+  'closed',
+]) {
   test(`real delivery check publisher handles ${mode} waiver evidence`, async () => {
     const { execFileSync } = await import('node:child_process');
     const out = execFileSync(
@@ -338,18 +355,33 @@ for (const mode of ['valid', 'no-qa', 'forged', 'deleted']) {
           ...process.env,
           GITHUB_REPOSITORY: 'owner/repo',
           GITHUB_TOKEN: 'mock',
+          GITHUB_RUN_ID: '123',
         },
       },
     );
-    const check = JSON.parse(out.trim().split('\n').at(-1));
-    assert.equal(check.conclusion, mode === 'valid' ? 'success' : 'failure');
-    if (mode === 'valid')
-      assert.match(check.output.summary, /manually waived by darebakdavca/);
-    if (mode === 'no-qa')
-      assert.match(
-        check.output.summary,
-        /QA approval by MatejKrones is missing/,
+    const { statuses, exitCode } = JSON.parse(out.trim().split('\n').at(-1));
+    const check = statuses.at(-1);
+    const isError = ['api-error', 'moved', 'closed'].includes(mode);
+    assert.equal(statuses.length, 2);
+    assert.equal(statuses[0].state, 'pending');
+    assert.equal(
+      check.state,
+      isError ? 'error' : mode === 'valid' ? 'success' : 'failure',
+    );
+    assert.equal(exitCode, isError ? 1 : 0);
+    for (const status of statuses) {
+      assert.equal(status.context, 'Delivery stages');
+      assert.equal(
+        status.target_url,
+        'https://github.com/owner/repo/actions/runs/123',
       );
+      assert.ok(status.description.length <= 140);
+    }
+    assert.equal(check.context, 'Delivery stages');
+    if (mode === 'valid')
+      assert.match(check.description, /manually waived by darebakdavca/);
+    if (mode === 'no-qa')
+      assert.match(check.description, /QA approval by MatejKrones is missing/);
   });
 }
 
