@@ -285,7 +285,8 @@ async function checkScenario(mode) {
             submitted_at: '2004-01-01',
           },
         ];
-  let check;
+  const statuses = [];
+  const patches = [];
   globalThis.fetch = async (url, options = {}) => {
     const path = new URL(url).pathname;
     const body = options.body ? JSON.parse(options.body) : {};
@@ -305,24 +306,80 @@ async function checkScenario(mode) {
           },
         },
       };
-    else if (path === '/repos/owner/repo/check-runs') data = { id: 1 };
-    else if (path === '/repos/owner/repo/check-runs/1') {
-      check = body;
+    else if (path === `/repos/owner/repo/statuses/${sha}`) {
+      if (options.method !== 'POST') throw new Error('Status requires POST');
+      statuses.push(body);
+      if (mode === 'pending-error' && body.state === 'pending')
+        throw new Error('Pending API unavailable');
+      if (mode === 'report-error' && ['pending', 'error'].includes(body.state))
+        throw new Error('Status API unavailable');
+      data = {};
+    } else if (path === `/repos/owner/repo/commits/${sha}/check-runs`) {
+      if (mode === 'checks-error') throw new Error('Checks API unavailable');
+      const legacy = {
+        id: 1,
+        name: 'Delivery stages',
+        head_sha: sha,
+        app: { id: 15368 },
+        external_id: '',
+        status: 'in_progress',
+      };
+      data = {
+        check_runs:
+          mode === 'no-legacy'
+            ? []
+            : [
+                legacy,
+                { ...legacy, id: 2, external_id: 'real-actions-job' },
+                { ...legacy, id: 3, app: { id: 999 } },
+                { ...legacy, id: 4, head_sha: 'b'.repeat(40) },
+                { ...legacy, id: 5, name: 'verify' },
+              ],
+      };
+    } else if (path.startsWith('/repos/owner/repo/check-runs/')) {
+      if (options.method !== 'PATCH' || !path.endsWith('/1'))
+        throw new Error('Must only update our legacy check');
+      patches.push(body);
+      if (mode === 'patch-error') throw new Error('Cannot update legacy check');
       data = {};
     } else if (path === '/repos/owner/repo/pulls') data = [pr];
-    else if (path.endsWith('/pulls/12/reviews')) data = reviews;
-    else if (path.endsWith('/issues/12/comments')) data = comments;
+    else if (path.endsWith('/pulls/12/reviews')) {
+      if (mode === 'api-error') throw new Error('Review API unavailable');
+      data = reviews;
+    } else if (path.endsWith('/issues/12/comments')) data = comments;
     else if (path.endsWith('/issues/78/comments')) data = [];
     else if (path.endsWith('/issues/78')) data = issue;
-    else if (path.endsWith('/pulls/12')) data = pr;
+    else if (path.endsWith('/pulls/12'))
+      data =
+        mode === 'moved'
+          ? { ...pr, head: { sha: 'b'.repeat(40) } }
+          : mode === 'closed'
+            ? { ...pr, state: 'closed' }
+            : pr;
     else throw new Error('Unexpected API ' + path);
     return { ok: true, json: async () => structuredClone(data) };
   };
   await import('./scripts/delivery/run.mjs');
-  console.log(JSON.stringify(check));
+  console.log(
+    JSON.stringify({ statuses, patches, exitCode: process.exitCode || 0 }),
+  );
+  process.exitCode = 0;
 }
 
-for (const mode of ['valid', 'no-qa', 'forged', 'deleted']) {
+for (const mode of [
+  'valid',
+  'no-qa',
+  'forged',
+  'deleted',
+  'api-error',
+  'moved',
+  'closed',
+  'pending-error',
+  'checks-error',
+  'patch-error',
+  'report-error',
+  'no-legacy',
+]) {
   test(`real delivery check publisher handles ${mode} waiver evidence`, async () => {
     const { execFileSync } = await import('node:child_process');
     const out = execFileSync(
@@ -338,18 +395,53 @@ for (const mode of ['valid', 'no-qa', 'forged', 'deleted']) {
           ...process.env,
           GITHUB_REPOSITORY: 'owner/repo',
           GITHUB_TOKEN: 'mock',
+          GITHUB_RUN_ID: '123',
         },
       },
     );
-    const check = JSON.parse(out.trim().split('\n').at(-1));
-    assert.equal(check.conclusion, mode === 'valid' ? 'success' : 'failure');
-    if (mode === 'valid')
-      assert.match(check.output.summary, /manually waived by darebakdavca/);
-    if (mode === 'no-qa')
-      assert.match(
-        check.output.summary,
-        /QA approval by MatejKrones is missing/,
+    const { statuses, patches, exitCode } = JSON.parse(
+      out.trim().split('\n').at(-1),
+    );
+    const check = statuses.at(-1);
+    const isError = [
+      'api-error',
+      'moved',
+      'closed',
+      'pending-error',
+      'checks-error',
+      'patch-error',
+      'report-error',
+    ].includes(mode);
+    const passes = ['valid', 'no-legacy'].includes(mode);
+    assert.equal(statuses.length, 2);
+    assert.equal(statuses[0].state, 'pending');
+    assert.equal(
+      check.state,
+      isError ? 'error' : passes ? 'success' : 'failure',
+    );
+    assert.equal(exitCode, isError ? 1 : 0);
+    if (['no-legacy', 'checks-error'].includes(mode))
+      assert.equal(patches.length, 0);
+    else {
+      assert.equal(patches.at(-1).conclusion, passes ? 'success' : 'failure');
+      assert.equal(patches.at(-1).status, 'completed');
+    }
+    assert.ok(
+      !isError || statuses.every((status) => status.state !== 'success'),
+    );
+    for (const status of statuses) {
+      assert.equal(status.context, 'Delivery stages');
+      assert.equal(
+        status.target_url,
+        'https://github.com/owner/repo/actions/runs/123',
       );
+      assert.ok(status.description.length <= 140);
+    }
+    assert.equal(check.context, 'Delivery stages');
+    if (mode === 'valid')
+      assert.match(check.description, /manually waived by darebakdavca/);
+    if (mode === 'no-qa')
+      assert.match(check.description, /QA approval by MatejKrones is missing/);
   });
 }
 
