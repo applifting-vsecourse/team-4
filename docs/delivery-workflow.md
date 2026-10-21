@@ -130,7 +130,13 @@ creating synthetic jobs in an unrelated Actions check suite. Existing synthetic 
 with the same name receive the same evaluated verdict (or failure on API errors);
 Actions job checks and checks from other apps are never modified; the required
 name and GitHub Actions source remain unchanged.
-A green workflow execution is not the same as a green delivery verdict.
+On PR events, the native Actions job is also named `Delivery stages`. After
+running the trusted main evaluator, it requires a passing verdict for that exact
+open PR commit, accepting its commit status and checking any existing synthetic
+checks. The native job never treats its own result as delivery evidence. Other
+events use the job name `Reconcile delivery stages`, so a manual or scheduled
+run cannot satisfy the required PR job without this verification.
+A green reconciliation workflow is not the same as a green delivery verdict.
 
 ## Releases and the stage
 
