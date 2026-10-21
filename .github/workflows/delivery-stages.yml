@@ -29,7 +29,7 @@ permissions:
   contents: read
   pull-requests: read
   issues: read
-  # PR events can use this workflow before the trusted main script is migrated.
+  # Reconcile existing synthetic checks as well as publishing commit statuses.
   checks: write
   statuses: write
 

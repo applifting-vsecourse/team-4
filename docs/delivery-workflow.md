@@ -126,8 +126,9 @@ are ignored as direct event triggers to avoid self-triggering loops. The stage
 checker publishes a `Delivery stages` commit status on the PR head, linked to
 the enforcing Actions run. It starts pending and reports failure or error when
 scope, agent or QA evidence is missing or cannot be read. Commit statuses avoid
-creating synthetic jobs in an unrelated Actions check suite. Existing check-run
-results with the same name must also pass during the transition; the required
+creating synthetic jobs in an unrelated Actions check suite. Existing synthetic check runs
+with the same name receive the same evaluated verdict (or failure on API errors);
+Actions job checks and checks from other apps are never modified; the required
 name and GitHub Actions source remain unchanged.
 A green workflow execution is not the same as a green delivery verdict.
 

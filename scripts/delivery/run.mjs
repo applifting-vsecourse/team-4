@@ -49,6 +49,32 @@ async function issuesFor(pr) {
   return issues.nodes;
 }
 
+// GitHub requires both a status and a check run when they share a name.
+// Reconcile only checks created by our previous publisher, never Actions jobs.
+async function reconcileChecks(pr, conclusion, summary) {
+  for (let page = 1; ; page++) {
+    const { check_runs: checks } = await api(
+      `/repos/${repo}/commits/${pr.head.sha}/check-runs?check_name=Delivery%20stages&filter=latest&per_page=100&page=${page}`,
+    );
+    for (const check of checks) {
+      if (
+        check.name !== 'Delivery stages' ||
+        check.head_sha !== pr.head.sha ||
+        check.app?.id !== 15368 ||
+        check.external_id
+      )
+        continue;
+      await api(`/repos/${repo}/check-runs/${check.id}`, 'PATCH', {
+        status: 'completed',
+        conclusion,
+        details_url: runUrl,
+        output: { title: 'Delivery stages', summary },
+      });
+    }
+    if (checks.length < 100) return;
+  }
+}
+
 for (const pr of await list(`/repos/${repo}/pulls?state=open&base=main`)) {
   // Commit statuses do not become synthetic jobs in an unrelated Actions suite.
   // Start blocked so an API error cannot leave a previous passing verdict current.
@@ -59,8 +85,8 @@ for (const pr of await list(`/repos/${repo}/pulls?state=open&base=main`)) {
       description: description.slice(0, 140),
       target_url: runUrl,
     });
-  await publish('pending', 'Checking requirements, agent review and QA');
   try {
+    await publish('pending', 'Checking requirements, agent review and QA');
     const issues = await issuesFor(pr);
     const reviews = await list(`/repos/${repo}/pulls/${pr.number}/reviews`);
     const comments = await list(`/repos/${repo}/issues/${pr.number}/comments`);
@@ -84,13 +110,27 @@ for (const pr of await list(`/repos/${repo}/pulls?state=open&base=main`)) {
         ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
         : 'Requirements and agent review passed before QA approved this commit.'
       : result.reasons.join(' ');
+    await reconcileChecks(pr, result.pass ? 'success' : 'failure', summary);
     await publish(result.pass ? 'success' : 'failure', summary);
     console.log(
       `#${pr.number}: ${result.pass ? 'pass' : result.reasons.join(' ')}`,
     );
   } catch (error) {
-    await publish('error', `Could not verify stages: ${error.message}`);
-    console.error(`#${pr.number}: ${error.message}`);
     process.exitCode = 1;
+    const summary = `Could not verify stages: ${error.message}`;
+    console.error(`#${pr.number}: ${summary}`);
+    // Attempt both blocking reports even if one API is unavailable.
+    for (const report of [
+      () => publish('error', summary),
+      () => reconcileChecks(pr, 'failure', summary),
+    ]) {
+      try {
+        await report();
+      } catch (reportError) {
+        console.error(
+          `#${pr.number}: Could not report failure: ${reportError.message}`,
+        );
+      }
+    }
   }
 }
