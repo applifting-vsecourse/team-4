@@ -34,7 +34,7 @@ const SAVED = {
   bankAccountPrefix: "19",
   bankAccountNumber: "2000145399",
   bankCode: "0800",
-  paymentDueDays: 14,
+  paymentReminderDays: 14,
 }
 
 // Mirrors the event page: the section gets the event from the query cache.
@@ -79,7 +79,7 @@ describe("PaymentSettingsSection", () => {
     await userEvent.type(field("Předčíslí (nepovinné)"), "19")
     await userEvent.type(field("Číslo účtu"), "2000145399")
     await userEvent.type(field("Kód banky"), "0800")
-    await userEvent.type(field(/Splatnost/), "14")
+    await userEvent.type(field(/Počet dní do připomenutí platby/), "14")
     await userEvent.click(screen.getByRole("button", { name: "Uložit platební nastavení" }))
 
     await vi.waitFor(() =>
@@ -90,7 +90,7 @@ describe("PaymentSettingsSection", () => {
     expect(field("Předčíslí (nepovinné)")).toHaveValue("19")
     expect(field("Číslo účtu")).toHaveValue("2000145399")
     expect(field("Kód banky")).toHaveValue("0800")
-    expect(field(/Splatnost/)).toHaveValue("14")
+    expect(field(/Počet dní do připomenutí platby/)).toHaveValue("14")
   })
 
   it("disables the button after a successful save and keeps it active after a failed one", async () => {
@@ -99,28 +99,39 @@ describe("PaymentSettingsSection", () => {
     expect(button).toBeDisabled()
 
     put.mockReturnValueOnce({ json: () => Promise.reject(new Error("offline")) })
-    await userEvent.clear(field(/Splatnost/))
-    await userEvent.type(field(/Splatnost/), "30")
+    await userEvent.clear(field(/Počet dní do připomenutí platby/))
+    await userEvent.type(field(/Počet dní do připomenutí platby/), "30")
     await userEvent.click(button)
     expect(await screen.findByText(/nepodařilo uložit/)).toBeVisible()
-    expect(field(/Splatnost/)).toHaveValue("30")
+    expect(field(/Počet dní do připomenutí platby/)).toHaveValue("30")
     expect(button).toBeEnabled()
 
     put.mockReturnValueOnce({
-      json: () => Promise.resolve({ ...EVENT, paymentSettings: { ...SAVED, paymentDueDays: 30 } }),
+      json: () =>
+        Promise.resolve({ ...EVENT, paymentSettings: { ...SAVED, paymentReminderDays: 30 } }),
     })
     await userEvent.click(button)
     await vi.waitFor(() => expect(button).toBeDisabled())
-    expect(field(/Splatnost/)).toHaveValue("30")
+    expect(field(/Počet dní do připomenutí platby/)).toHaveValue("30")
   })
 
   it("starts from the persisted settings and lets them be edited", async () => {
     renderPage({ ...EVENT, paymentSettings: SAVED })
     expect(field("Číslo účtu")).toHaveValue("2000145399")
-    await userEvent.clear(field(/Splatnost/))
-    await userEvent.type(field(/Splatnost/), "30")
+    await userEvent.clear(field(/Počet dní do připomenutí platby/))
+    await userEvent.type(field(/Počet dní do připomenutí platby/), "30")
     await userEvent.click(screen.getByRole("button", { name: "Uložit platební nastavení" }))
     await vi.waitFor(() => expect(put).toHaveBeenCalled())
-    expect(put.mock.calls[0]?.[1]).toEqual({ json: { ...SAVED, paymentDueDays: 30 } })
+    expect(put.mock.calls[0]?.[1]).toEqual({ json: { ...SAVED, paymentReminderDays: 30 } })
+  })
+
+  it("explains the reminder period and preservation of existing instructions", () => {
+    renderPage({ ...EVENT, paymentSettings: SAVED })
+    expect(field("Počet dní do připomenutí platby")).toHaveAccessibleDescription(
+      "Počítá se od potvrzení účasti.",
+    )
+    expect(
+      screen.getByText(/ponechávají původní účet, počet dní i datum připomenutí/),
+    ).toBeVisible()
   })
 })

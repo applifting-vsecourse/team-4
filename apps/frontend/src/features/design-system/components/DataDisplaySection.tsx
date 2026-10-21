@@ -56,7 +56,7 @@ const APPLICATIONS = [
     name: "Petr Svoboda",
     term: "2. turnus",
     status: <Badge variant="success">Potvrzeno</Badge>,
-    payment: <Badge variant="destructive-subtle">Po splatnosti</Badge>,
+    payment: <Badge variant="destructive-subtle">Chyba</Badge>,
     amount: "0 Kč",
   },
 ]
@@ -67,7 +67,7 @@ export function DataDisplaySection() {
       <ShowcaseSection
         id="badges"
         title="Štítky stavu"
-        description="success = potvrzeno / zaplaceno, warning = náhradník / částečně, destructive-subtle = po splatnosti / chyba."
+        description="success = potvrzeno / zaplaceno, warning = náhradník / částečně, destructive-subtle = chyba."
       >
         <div className="flex flex-wrap gap-2">
           <Badge>default</Badge>
@@ -76,7 +76,7 @@ export function DataDisplaySection() {
           <Badge variant="destructive">destructive</Badge>
           <Badge variant="success">Potvrzeno</Badge>
           <Badge variant="warning">Náhradník</Badge>
-          <Badge variant="destructive-subtle">Po splatnosti</Badge>
+          <Badge variant="destructive-subtle">Chyba</Badge>
         </div>
       </ShowcaseSection>
 
@@ -89,7 +89,8 @@ export function DataDisplaySection() {
             <Info />
             <AlertTitle>Platební údaje odeslány</AlertTitle>
             <AlertDescription>
-              Splatnost je 14 dní od potvrzení, tj. do 26. 10. 2026 23:59 (Europe/Prague).
+              Datum připomenutí platby je 26. 10. 2026 23:59 (Europe/Prague), 14 dní od potvrzení
+              účasti. Automatické upomínky se neodesílají.
             </AlertDescription>
           </Alert>
           <Alert variant="destructive">

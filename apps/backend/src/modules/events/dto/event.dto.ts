@@ -110,15 +110,15 @@ export class PaymentSettingsDto {
   @ApiProperty({ example: '0800' })
   bankCode!: string;
 
-  @ApiProperty({ description: 'Days from confirmation to the due date.' })
-  paymentDueDays!: number;
+  @ApiProperty({ description: 'Days from confirmation to the reminder date.' })
+  paymentReminderDays!: number;
 
   static from(model: PaymentSettings): PaymentSettingsDto {
     return {
       bankAccountPrefix: model.bankAccountPrefix,
       bankAccountNumber: model.bankAccountNumber,
       bankCode: model.bankCode,
-      paymentDueDays: model.paymentDueDays,
+      paymentReminderDays: model.paymentReminderDays,
     };
   }
 }
@@ -153,7 +153,7 @@ export class EventDetailDto {
     type: PaymentSettingsDto,
     nullable: true,
     description:
-      'Account and due days applied to registrations received from now on; ' +
+      'Account and reminder days applied to registrations received from now on; ' +
       'null until completed. Existing registrations keep their own copy.',
   })
   paymentSettings!: PaymentSettingsDto | null;

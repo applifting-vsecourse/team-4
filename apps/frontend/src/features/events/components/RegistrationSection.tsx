@@ -24,7 +24,11 @@ const CONDITIONS: Condition[] = [
   { blocker: "description", label: "Popis akce", fixIn: "edit" },
   { blocker: "location", label: "Místo konání", fixIn: "edit" },
   { blocker: "terms", label: "Alespoň jeden termín s cenou", fixIn: "terms" },
-  { blocker: "paymentSettings", label: "Číslo účtu a splatnost", fixIn: "payments" },
+  {
+    blocker: "paymentSettings",
+    label: "Číslo účtu a počet dní do připomenutí platby",
+    fixIn: "payments",
+  },
 ]
 
 type RegistrationSectionProps = {

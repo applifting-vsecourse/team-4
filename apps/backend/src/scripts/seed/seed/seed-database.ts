@@ -35,7 +35,7 @@ const date = (value: string): Date => new Date(`${value}T00:00:00Z`);
 
 // Fictional account, valid under the Czech mod-11 checksum.
 const BANK = { bankAccountNumber: '123457', bankCode: '0100' };
-const DUE_DAYS = 14;
+const REMINDER_DAYS = 14;
 
 const ensureOrganizer = async (
   prisma: PrismaService,
@@ -104,7 +104,7 @@ const ensureEvent = async (
       location: event.location,
       status: event.status,
       firstOpenedAt: configured ? new Date('2026-09-01T08:00:00Z') : null,
-      ...(configured ? { ...BANK, paymentDueDays: DUE_DAYS } : {}),
+      ...(configured ? { ...BANK, paymentReminderDays: REMINDER_DAYS } : {}),
     },
     update: {},
   });
@@ -179,9 +179,9 @@ const ensureRegistration = async (
       .reduce((sum, { termId }) => sum + (prices.get(termId) ?? 0), 0);
     // Received dates are chosen outside DST changes, so N × 24 h equals the
     // same Prague wall-clock time N days later (data-model.md §3.9).
-    const paymentDueAt =
+    const paymentReminderAt =
       due > 0
-        ? new Date(receivedAt.getTime() + DUE_DAYS * 24 * 60 * 60 * 1000)
+        ? new Date(receivedAt.getTime() + REMINDER_DAYS * 24 * 60 * 60 * 1000)
         : null;
 
     await prisma.registration.create({
@@ -196,9 +196,9 @@ const ensureRegistration = async (
         email: registration.email,
         phone: registration.phone,
         receivedAt,
-        paymentDueAt,
+        paymentReminderAt,
         ...BANK,
-        paymentDueDays: DUE_DAYS,
+        paymentReminderDays: REMINDER_DAYS,
         terms: {
           create: registration.terms.map(({ termId, status }) => ({
             termId,
@@ -443,7 +443,7 @@ export const seedDatabase = async (
       recordedById: organizerA,
     },
     {
-      // Waitlisted only: no debt and no due date.
+      // Waitlisted only: no debt and no reminder date.
       id: id(204),
       event: summerCamp,
       firstName: 'Martin',
