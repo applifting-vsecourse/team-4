@@ -5,3 +5,6 @@ apps
 
 # Prisma client (generated)
 apps/backend/src/generated/
+
+# Vendored agent skills (managed by `npx skills`, see skills-lock.json)
+.claude/skills/
