@@ -1,14 +1,12 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, useRouter, type ErrorComponentProps } from "@tanstack/react-router"
 
-import { ROUTES } from "@/app/routes"
 import { PageHeader } from "@/components/PageHeader"
-import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
-import { Button } from "@/components/ui/button"
 
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
+import { EventLoadError } from "@/features/events/components/EventLoadError"
 import { EventNavigation } from "@/features/events/components/EventNavigation"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { MissingTermNotice } from "@/features/events/components/MissingTermNotice"
@@ -60,33 +58,19 @@ function EventPage() {
   )
 }
 
-// A foreign and a missing event look the same (S2-03, Wireframy N1).
-function Unavailable() {
+function Unavailable({ error, reset }: ErrorComponentProps) {
   const { organizationId } = Route.useParams()
+  const router = useRouter()
   const { data: organization } = useQuery(organizationQueryOptions(organizationId))
   return (
-    <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
-      <PageHeader
-        breadcrumb={
-          <EventBreadcrumb
-            organizationId={organizationId}
-            organizationName={organization?.name}
-          />
-        }
-        title="Akce a turnusy"
-      />
-      <RecordUnavailable
-        action={
-          <Button asChild>
-            <Link
-              to={ROUTES.organization}
-              params={{ organizationId }}
-            >
-              Zpět na přehled akcí
-            </Link>
-          </Button>
-        }
-      />
-    </section>
+    <EventLoadError
+      organizationId={organizationId}
+      organizationName={organization?.name}
+      error={error}
+      onRetry={() => {
+        reset()
+        void router.invalidate()
+      }}
+    />
   )
 }
