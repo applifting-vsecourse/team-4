@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { ParticipationStatus } from '@/generated/prisma/client';
+import { submissionHash } from '@/modules/registrations/domain/registration';
 import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 
 // Demo data for local development and staging (data-model.md §9). Fictional
@@ -191,6 +192,14 @@ const ensureRegistration = async (
         eventId: registration.event.id,
         participantAccountId: account.id,
         submissionKey: registration.id,
+        payloadHash: submissionHash({
+          submissionKey: registration.id,
+          firstName: registration.firstName,
+          lastName: registration.lastName,
+          email: registration.email,
+          phone: registration.phone,
+          termIds: registration.terms.map(({ termId }) => termId),
+        }),
         firstName: registration.firstName,
         lastName: registration.lastName,
         email: registration.email,

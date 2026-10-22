@@ -11,6 +11,7 @@ import {
   Room,
   User,
 } from '@/generated/prisma/client';
+import { submissionHash } from '@/modules/registrations/domain/registration';
 
 // Isolated test data (data-model.md §9). Every call uses a fresh suffix for
 // names, e-mails and keys, so tests can share one database and run in parallel
@@ -154,16 +155,25 @@ export const createRegistration = async (
     update: {},
   });
   const now = new Date();
+  const submission = {
+    submissionKey: randomUUID(),
+    firstName: 'Test',
+    lastName: `Participant ${s}`,
+    email,
+    phone: '+420600000000',
+    termIds: options.terms.map(({ term }) => term.id),
+  };
   return prisma.registration.create({
     data: {
       organizationId: options.event.organizationId,
       eventId: options.event.id,
       participantAccountId: account.id,
-      submissionKey: randomUUID(),
-      firstName: 'Test',
-      lastName: `Participant ${s}`,
+      submissionKey: submission.submissionKey,
+      payloadHash: submissionHash(submission),
+      firstName: submission.firstName,
+      lastName: submission.lastName,
       email,
-      phone: '+420600000000',
+      phone: submission.phone,
       bankAccountNumber: options.event.bankAccountNumber ?? '123457',
       bankCode: options.event.bankCode ?? '0100',
       paymentReminderDays: options.event.paymentReminderDays ?? 14,

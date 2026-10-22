@@ -11,6 +11,9 @@ export type ApiErrorCode =
   | "room_label_taken"
   | "capacity_below_confirmed"
   | "term_unknown"
+  | "event_unavailable"
+  | "already_registered"
+  | "submission_key_reused"
 
 export type ApiError = {
   status: number | null

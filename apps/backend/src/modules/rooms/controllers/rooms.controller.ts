@@ -41,7 +41,7 @@ export class RoomsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Rooms of an event and the capacity of each term',
+    summary: 'Rooms of an event and the capacity and occupancy of each term',
   })
   async get(
     @User() user: Identity,

@@ -8,10 +8,12 @@ import {
   RoomsOverviewModel,
   TermCapacity,
   termCapacity,
+  termOccupancy,
 } from '@/modules/rooms/domain/room';
 import { Injectable } from '@nestjs/common';
 
-const termsWithBeds = {
+/** A term with what holds its beds, shared by every capacity write (§3.6). */
+export const termsWithBeds = {
   orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
   select: {
     id: true,
@@ -25,9 +27,9 @@ const termsWithBeds = {
   },
 } satisfies Prisma.Event$termsArgs;
 
-type TermWithBeds = Prisma.EventTermGetPayload<typeof termsWithBeds>;
+export type TermWithBeds = Prisma.EventTermGetPayload<typeof termsWithBeds>;
 
-const toTermCapacity = (term: TermWithBeds): TermCapacity =>
+export const toTermCapacity = (term: TermWithBeds): TermCapacity =>
   termCapacity(
     {
       id: term.id,
@@ -123,7 +125,17 @@ export class RoomsRepository {
         organization: { ownerId: scope.ownerId },
       },
       select: {
-        terms: termsWithBeds,
+        terms: {
+          ...termsWithBeds,
+          select: {
+            ...termsWithBeds.select,
+            // `_count` takes one filter per relation; confirmed is in the shared one.
+            registrationTerms: {
+              where: { status: 'waitlisted' },
+              select: { registrationId: true },
+            },
+          },
+        },
         rooms: {
           orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
           select: {
@@ -146,7 +158,9 @@ export class RoomsRepository {
             room.availabilities.map((availability) => availability.termId),
           ),
       ),
-      event.terms.map(toTermCapacity),
+      event.terms.map((term) =>
+        termOccupancy(toTermCapacity(term), term.registrationTerms.length),
+      ),
     );
   }
 

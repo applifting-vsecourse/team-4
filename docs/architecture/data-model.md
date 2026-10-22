@@ -236,8 +236,14 @@ Prisma: use an interactive `prisma.$transaction(async (tx) => …)` with
   the submit. A retry after a lost response with the **same key** returns the
   original result (the same browser legitimately sees its own outcome, S2-14). A
   different key with the same e-mail gets the "already registered" response.
-  - Recommended: also store a hash of the request payload, and reject a reused key with
-    a different payload (`409`). This is optional for Sprint 2.
+  - `payloadHash` stores a SHA-256 of the normalized submission (trimmed names,
+    normalized e-mail, E.164 phone, sorted term ids). A reused key with a different
+    payload gets `409 submission_key_reused` and changes nothing.
+- The submit also queues the confirmation e-mail as a `pending` `email_delivery` row in
+  the same transaction (S2-15 sends it), so a saved registration always has exactly
+  one, a failed send never undoes the registration, and a retry adds none.
+- Contact details (`firstName`, `lastName`, `email`, `phone`) are not validated by the
+  database beyond their lengths; the API trims them and stores the phone in E.164.
 - The result page right after submit is served from the POST response held in client
   memory. There is no extra token, and re-access after closing the page goes through
   the magic link (S2-14).
@@ -654,6 +660,7 @@ model Registration {
   eventId              String @db.Uuid
   participantAccountId String @db.Uuid
   submissionKey        String @unique @db.Uuid
+  payloadHash          String @db.Char(64) // SHA-256 hex of the normalized submission (§3.7)
   variableSymbol       String @unique @default(dbgenerated("(nextval('registration_variable_symbol_seq'::regclass))::text")) @db.VarChar(10)
 
   firstName String @db.VarChar(100)

@@ -288,6 +288,7 @@ model Registration {
   eventId              String @db.Uuid
   participantAccountId String @db.Uuid
   submissionKey        String @unique @db.Uuid
+  payloadHash          String @db.Char(64) // SHA-256 hex of the normalized submission (§3.7)
   variableSymbol       String @unique @default(dbgenerated("(nextval('registration_variable_symbol_seq'::regclass))::text")) @db.VarChar(10)
 
   firstName String @db.VarChar(100)

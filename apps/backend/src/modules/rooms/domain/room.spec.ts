@@ -2,6 +2,7 @@ import {
   findCapacityShortfall,
   TermCapacity,
   termCapacity,
+  termOccupancy,
 } from '@/modules/rooms/domain/room';
 
 const term = (
@@ -22,6 +23,31 @@ describe('termCapacity', () => {
     const base = { id: 't', label: 'T', startDate: 'a', endDate: 'b' };
     expect(termCapacity(base, [2, 3], 1).capacity).toBe(5);
     expect(termCapacity(base, [], 0).capacity).toBe(0);
+  });
+});
+
+describe('termOccupancy', () => {
+  const counts = (occupancy: ReturnType<typeof termOccupancy>): number[] => [
+    occupancy.capacity,
+    occupancy.confirmed,
+    occupancy.free,
+    occupancy.waitlisted,
+  ];
+
+  it('shows a full term with a waiting participant as 2 / 2 / 0 / 1', () => {
+    expect(counts(termOccupancy(term('T1', 2, 2), 1))).toEqual([2, 2, 0, 1]);
+  });
+
+  it('leaves every bed free without registrations', () => {
+    expect(counts(termOccupancy(term('T1', 5, 0), 0))).toEqual([5, 0, 5, 0]);
+  });
+
+  it('keeps waiting participants of a term without beds', () => {
+    expect(counts(termOccupancy(term('T1', 0, 0), 2))).toEqual([0, 0, 0, 2]);
+  });
+
+  it('never reports fewer than zero free beds', () => {
+    expect(termOccupancy(term('T1', 1, 2), 0).free).toBe(0);
   });
 });
 
