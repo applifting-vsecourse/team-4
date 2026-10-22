@@ -9,14 +9,18 @@
     "dev": "run-s env:check \"backend docker:up:wait\" \"backend migrate\" \"backend seed\" dev:servers",
     "dev:servers": "run-p \"backend start:dev\" \"frontend dev\"",
     "dev:down": "pnpm backend docker:down",
-    "check-all": "run-s \"backend lint:check\" \"backend test\" \"backend build\" \"frontend lint:check\" \"frontend type-check\" \"frontend test:ci\" \"frontend build\" format:check",
+    "lint": "pnpm frontend lint:check",
+    "check": "run-s \"frontend type-check\" \"frontend lint:check\" \"frontend test:ci\"",
+    "check-all": "run-s \"backend prisma:generate\" agent-review:test qa:test \"backend lint:check\" \"backend test\" \"backend build\" \"frontend lint:check\" \"frontend type-check\" \"frontend test:ci\" \"frontend build\" format:check",
     "format": "run-s format:root:write format:workspaces:write",
     "format:check": "run-s format:root:check format:workspaces:check",
     "format:root:write": "prettier \"**/*.{cjs,js,mjs,ts,json,md,yaml,yml}\" --write --list-different",
     "format:root:check": "prettier \"**/*.{cjs,js,mjs,ts,json,md,yaml,yml}\" --check",
     "format:workspaces:write": "pnpm -r --stream --if-present run format:write",
     "format:workspaces:check": "pnpm -r --stream --if-present run format:check",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "qa:prepare": "node scripts/qa/prepare.mjs",
+    "qa:test": "node --test scripts/qa/*.test.mjs"
   },
   "devDependencies": {
     "dotenv-flow": "^4.1.0",

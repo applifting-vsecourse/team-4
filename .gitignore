@@ -18,6 +18,9 @@ yarn-error.log*
 .eslintcache
 *.tsbuildinfo
 
+# Personal Claude Code settings (shared ones live in .claude/settings.json)
+.claude/settings.local.json
+
 # Playwright MCP traces from local browser walkthroughs
 .playwright-mcp/
 

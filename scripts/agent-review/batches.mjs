@@ -21,10 +21,8 @@ function fileBlocks(diff) {
   }
   return blocks.map((text) => {
     const name = text.split('\n', 1)[0];
-    if (/^(GIT binary patch|Binary files )/m.test(text)) {
-      throw new Error(`Binary change requires a separate review: ${name}`);
-    }
-    return { name, text };
+    const binary = /^(GIT binary patch|Binary files )/m.test(text);
+    return { name, text, binary };
   });
 }
 
@@ -74,10 +72,17 @@ can check cross-file consistency. This summary is required even when there are f
 }
 
 export function planReview(context, meta, limit = MAX_PROMPT_BYTES) {
-  const files = verifyCoverage(context.diff, meta);
+  const blocks = verifyCoverage(context.diff, meta);
+  const files = blocks.filter((f) => !f.binary);
+  const skipped = blocks
+    .filter((f) => f.binary)
+    .map((f) => f.name.replace(/^diff --git a\/.*? b\//, ''));
+  if (!files.length)
+    return { prompts: [], crossFile: false, files: 0, skipped };
+  context = { ...context, diff: files.map((f) => f.text).join('') };
   const full = buildPrompt(context);
   if (bytes(full) <= limit)
-    return { prompts: [full], crossFile: false, files: files.length };
+    return { prompts: [full], crossFile: false, files: files.length, skipped };
   const manifest = files.map((f) => f.name).join('\n');
   const prompt = (text) => batchPrompt(context, manifest, text);
   if (bytes(prompt('')) + 1000 > limit)
@@ -154,7 +159,13 @@ export function planReview(context, meta, limit = MAX_PROMPT_BYTES) {
     throw new Error(
       'Cross-file summary review would exceed its input budget; split the PR.',
     );
-  return { prompts: batches, crossFile: true, files: files.length, manifest };
+  return {
+    prompts: batches,
+    crossFile: true,
+    files: files.length,
+    manifest,
+    skipped,
+  };
 }
 
 function crossFilePrompt(context, manifest, summaries) {
@@ -165,7 +176,7 @@ function crossFilePrompt(context, manifest, summaries) {
     }) +
     `
 ## Cross-file integration review
-Every original changed line was reviewed in a batch. Now check the batch summaries
+Every text change was reviewed in a batch; binary changes are excluded by policy. Now check the batch summaries
 against the issue and repository rules for inconsistent contracts, imports/exports,
 configuration, dependencies and missing integration between files. This pass uses
 summaries, not the full diff, so report only defects supported by this evidence.
@@ -178,6 +189,14 @@ Return the same verdict/findings JSON schema. A pass here cannot override a batc
 }
 
 export async function executeReview(plan, context, run, log = () => {}) {
+  if (!plan.prompts.length)
+    return {
+      status: 'pass',
+      findings: [],
+      binaryOnly: true,
+      coverage: 'No text changes; Copilot not called.',
+      skipped: plan.skipped,
+    };
   const findings = [];
   const summaries = [];
   for (let index = 0; index < plan.prompts.length; index++) {
@@ -231,6 +250,7 @@ export async function executeReview(plan, context, run, log = () => {}) {
     // Notes are reported but never block; only a blocker fails the review.
     status: unique.some(isBlocker) ? 'findings' : 'pass',
     findings: unique,
+    skipped: plan.skipped,
     coverage: `${plan.files} files; ${plan.prompts.length} diff batch(es); cross-file review: ${plan.crossFile ? 'completed' : 'included in full diff'}`,
   };
 }

@@ -7,6 +7,8 @@ akc.io is an event management product, developed as a pnpm monorepo with two app
 
 Organize backend features into controllers, DTOs, services, domain models and repositories. Organize frontend features into API schemas, query options, hooks and components. Keep shared infrastructure outside feature folders.
 
+@AGENTS.md
+
 **Before writing or changing any UI, read [`DESIGN.md`](DESIGN.md).** It is the akc.io design system: tokens, components and how to add them (#79).
 
 ## Sitemap and story context
@@ -18,7 +20,7 @@ Reuse the relevant existing page. Report conflicts or proposed structural change
 ## Commands
 
 - `pnpm dev` — everything: env files, Postgres (Docker), migrate, run the seed entry point, both dev servers
-- `pnpm check-all` — lint + type-check + tests + build (same as CI)
+- `pnpm check-all` — lint + type-check + tests + build (CI also validates migrations and database constraints)
 - `pnpm backend test` / `pnpm frontend test:ci` — unit tests
 - `pnpm backend prisma:migrations:run` — create/apply migrations after schema changes
 
@@ -56,7 +58,7 @@ Don't reach for the browser to check your own work. Tests and type-checks are th
 
 ### Run `pnpm check-all` before handing work back
 
-Before you hand work to the developer (report it done, commit, push or open a PR), run `pnpm check-all` from the repo root and fix every failure. It is the same gate as CI; running single checks or Prettier from the root is not enough, because each app has its own Prettier config.
+Before you hand work to the developer (report it done, commit, push or open a PR), run `pnpm check-all` from the repo root and fix every failure. CI additionally validates migrations and database constraints. Running single checks or Prettier from the root is not enough, because each app has its own Prettier config.
 
 ### Delivery gates
 

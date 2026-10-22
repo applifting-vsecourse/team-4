@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { eventScope, includesIssue } from '../automation/events.mjs';
 // Polls the project board for issues in "Ready for Code Review", reviews every
 // linked open PR with the Copilot CLI and moves the issue to "Ready for
 // Testing" only when all of them pass for their current commit.
@@ -27,6 +28,7 @@ import {
   readyMarker,
 } from '../delivery/lib.mjs';
 
+import { ciEvidence } from './ci-evidence.mjs';
 import { planReview, executeReview } from './batches.mjs';
 import { ensureQaReviewRequest } from './qa-review.mjs';
 import {
@@ -271,7 +273,7 @@ async function runCopilot(prompt) {
 
 async function readRules() {
   const rules = [];
-  for (const name of ['CLAUDE.md', 'DESIGN.md']) {
+  for (const name of ['CLAUDE.md', 'DESIGN.md', '.github/workflows/ci.yml']) {
     try {
       rules.push({ name, content: await readFile(name, 'utf8') });
     } catch {
@@ -369,7 +371,24 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
   let plan;
   try {
     plan = planReview(context, meta);
+    if (plan.prompts.length) {
+      context.ciEvidence = await ciEvidence({
+        repo: cfg.repo,
+        pr,
+        sha,
+        get: (path) => api(cfg.githubToken, path),
+      });
+      if (context.ciEvidence.status !== 'completed')
+        return {
+          pr,
+          sha,
+          status: 'waiting',
+          reason: 'Waiting for CI for this commit.',
+        };
+      plan = planReview(context, meta);
+    }
   } catch (error) {
+    plan = undefined;
     outcome = {
       status: 'error',
       reason: `Review not started: ${error.message} Copilot was not called.`,
@@ -389,6 +408,8 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
         reason: outcome.reason,
         attempt,
         coverage: outcome.coverage,
+        skipped: outcome.skipped,
+        binaryOnly: outcome.binaryOnly,
         pr,
         issue: issue.number,
       }),
@@ -449,13 +470,25 @@ async function processIssue(board, item) {
     if (scope.grantRecord)
       await postComment(
         issue.number,
-        `${scopeMarker('issue-requirements', scope.grantRecord)}\nRequirements approved by @${scope.grantRecord.reviewer} for the current issue scope. This approval survives implementation commits; use /requirements-rereview when scope changes.`,
+        `${scopeMarker('issue-requirements', scope.grantRecord)}\nRequirements approved by @${scope.grantRecord.reviewer} for the current issue scope. Use /requirements-rereview for scope changes.`,
       );
     for (const entry of all) {
       entry.pr.requirements = scope.approval;
       entry.pr.requirementsVersion = scope.version;
     }
     return all;
+  }
+  // Stacked PRs are an expected waiting state, not a runner failure.
+  for (const number of prNumbers) {
+    const pr = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${number}`);
+    if (pr.state === 'open' && pr.base.ref !== 'main') {
+      console.log(
+        `  -> waiting: PR #${number} targets ${pr.base.ref}; retarget to main after its prerequisite merges`,
+      );
+      if (item.status?.name === STATUS_TESTING)
+        await moveStatus(board, item, STATUS_REVIEW);
+      return;
+    }
   }
   const initial = await snapshots();
   const transition = requirementsTransition(item.status?.name, initial);
@@ -507,7 +540,7 @@ async function processIssue(board, item) {
     if (!record)
       record = await postComment(
         pr.number,
-        `${marker}\n${approval.exempt ? 'Requirements review is exempt because the PR author is darebakdavca' : `Issue requirements approved by @${reviewersFor(pr.user.login).requirements}`} for commit \`${pr.head.sha}\`. Issue #${issue.number} is eligible for independent code review.`,
+        `${marker}\n${approval.exempt ? 'Requirements review is exempt because the PR author is darebakdavca' : `Issue requirements approved by @${reviewersFor(pr.user.login).requirements}`} for commit \`${pr.head.sha}\`. Issue #${issue.number}: ready for code review.`,
       );
     requirementRecords.set(pr.number, {
       ...record,
@@ -598,7 +631,7 @@ async function processIssue(board, item) {
         ) {
           await postComment(
             r.pr,
-            `${marker}\n${r.status === 'waived' ? `Copilot review manually waived by @darebakdavca ([command](${r.waiver.url})). Reason: ${r.waiver.reason}. Requirements policy remains satisfied; this is not a Copilot pass` : rolesByPr.get(r.pr).requirements === null ? 'Requirements exemption applied; independent agent review passed' : 'Issue requirements approval is valid; independent agent review passed'} for commit \`${r.sha}\`. Issue #${issue.number} entered **Ready for Testing**. @${rolesByPr.get(r.pr).qa}: test this commit, then submit an approving PR review. New commits require fresh agent review and QA; issue requirements approval persists unless scope changes.`,
+            `${marker}\nReady for QA · issue #${issue.number} · \`${r.sha}\`.\n${r.status === 'waived' ? `Copilot waived ([reason](${r.waiver.url})). ` : ''}@${rolesByPr.get(r.pr).qa}: test this commit, then approve.`,
           );
         }
         const snapshot = current.find(({ pr }) => pr.number === r.pr);
@@ -638,6 +671,7 @@ async function processIssue(board, item) {
   console.log(`  -> ${decision.outcome}${moved ? ' (moved)' : ''}`);
 }
 
+const scope = await eventScope();
 const board = await loadBoard();
 if (!board.project.field) throw new Error('Status field not found');
 
@@ -652,7 +686,8 @@ const candidates = board.items.filter(
     ].includes(i.status?.name) &&
     i.content?.state === 'OPEN' &&
     i.content.repository?.nameWithOwner === cfg.repo &&
-    (!cfg.onlyIssue || i.content.number === cfg.onlyIssue),
+    (!cfg.onlyIssue || i.content.number === cfg.onlyIssue) &&
+    includesIssue(scope, i.content),
 );
 console.log(
   `${candidates.length} issue(s) in active delivery stages${cfg.dryRun ? ' [dry-run]' : ''}`,

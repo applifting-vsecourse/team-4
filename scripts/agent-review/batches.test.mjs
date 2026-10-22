@@ -72,7 +72,7 @@ test('whole files that fit are preserved rather than fragmented', () => {
   for (const block of blocks)
     assert.equal(plan.prompts.filter((p) => p.includes(block)).length, 1);
 });
-test('partial or binary diffs are blocked before model calls', () => {
+test('partial diffs are blocked before model calls', () => {
   const { input, meta } = context(1, 1, 1);
   assert.throws(
     () => planReview(input, { ...meta, changed_files: 2 }),
@@ -86,17 +86,6 @@ test('partial or binary diffs are blocked before model calls', () => {
         { ...meta, additions: 2 },
       ),
     /coverage/,
-  );
-  assert.throws(
-    () =>
-      planReview(
-        {
-          ...input,
-          diff: 'diff --git a/image b/image\nBinary files a/image and b/image differ\n',
-        },
-        { ...meta, additions: 0 },
-      ),
-    /Binary/,
   );
 });
 test('oversized context, single lines and excessive batches fail closed', () => {
@@ -203,4 +192,50 @@ test('a blocker among notes still fails the review', async () => {
     }),
   }));
   assert.equal(result.status, 'findings');
+});
+
+const binary =
+  'diff --git a/image.png b/image.png\nBinary files a/image.png and b/image.png differ\n';
+test('mixed diffs review all text and report skipped binaries without approval', async () => {
+  const { input, meta } = context(1, 1, 1);
+  input.diff += binary;
+  const plan = planReview(input, { ...meta, changed_files: 2 });
+  assert.ok(plan.prompts[0].includes('+unique_0_0_'));
+  assert.ok(!plan.prompts[0].includes('Binary files'));
+  const result = await executeReview(plan, input, async () => answer());
+  assert.equal(result.status, 'pass');
+  assert.deepEqual(result.skipped, ['image.png']);
+  assert.match(result.coverage, /1 files/);
+});
+
+test('binary-only diffs pass the text gate without calling Copilot', async () => {
+  const input = { ...context(1, 1, 1).input, diff: binary };
+  const plan = planReview(input, {
+    changed_files: 1,
+    additions: 0,
+    deletions: 0,
+  });
+  const result = await executeReview(plan, input, () => {
+    throw new Error('Must not call Copilot');
+  });
+  assert.equal(result.status, 'pass');
+  assert.equal(result.binaryOnly, true);
+  assert.match(result.coverage, /Copilot not called/);
+  assert.throws(
+    () => planReview(input, { changed_files: 2, additions: 0, deletions: 0 }),
+    /coverage/,
+  );
+});
+
+test('Git binary patch payload is excluded while text in later batches remains covered', () => {
+  const { input, meta } = context();
+  input.diff +=
+    'diff --git a/image b/image\nGIT binary patch\nliteral 3\nBINARY_PAYLOAD\n';
+  const plan = planReview(input, {
+    ...meta,
+    changed_files: meta.changed_files + 1,
+  });
+  assert.equal(plan.crossFile, true);
+  assert.ok(plan.prompts.every((p) => !p.includes('BINARY_PAYLOAD')));
+  assert.equal(plan.skipped.length, 1);
 });
