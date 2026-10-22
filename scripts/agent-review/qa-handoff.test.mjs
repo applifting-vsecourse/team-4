@@ -6,6 +6,19 @@ import { execFileSync } from 'node:child_process';
 // verdicts exercise its real handoff path without calling Copilot or GitHub.
 async function scenario(options) {
   const assert = (await import('node:assert/strict')).default;
+  let eventDir;
+  if (options.eventPr) {
+    const fs = await import('node:fs/promises');
+    eventDir = await fs.mkdtemp(
+      (await import('node:os')).tmpdir() + '/review-scope-',
+    );
+    process.env.GITHUB_EVENT_NAME = 'pull_request_target';
+    process.env.GITHUB_EVENT_PATH = eventDir + '/event.json';
+    await fs.writeFile(
+      process.env.GITHUB_EVENT_PATH,
+      JSON.stringify({ pull_request: { number: options.eventPr } }),
+    );
+  }
   const { issueRequirements, scopeMarker } =
     await import('./scripts/delivery/requirements.mjs');
   const { requirementsApproval, requirementsMarker, readyMarker } =
@@ -30,8 +43,11 @@ async function scenario(options) {
     user: { login: author },
     head: { sha },
     state: 'open',
-    base: { ref: 'main' },
+    base: { ref: options.stacked ? 'feature/prerequisite' : 'main' },
     draft: options.draft ?? false,
+    changed_files: 1,
+    additions: options.binaryOnly ? 0 : 1,
+    deletions: 0,
   }));
   const reviews = [
     {
@@ -75,6 +91,13 @@ async function scenario(options) {
           ]
         : [],
     );
+    if (options.freshReview)
+      comments.set(
+        pr.number,
+        comments
+          .get(pr.number)
+          .filter((c) => !c.body.startsWith('<!-- agent-review-scope')),
+      );
     if (options.existingHandoff)
       comments
         .get(pr.number)
@@ -215,7 +238,22 @@ async function scenario(options) {
         users: requested.get(number).map((login) => ({ login })),
         teams: [],
       };
+    } else if (path.includes('/actions/runs')) {
+      if (options.ciUnavailable) throw new Error('CI API unavailable');
+      data = { workflow_runs: [] };
     } else if (/\/pulls\/\d+$/.test(path)) {
+      if (
+        options.freshReview &&
+        opts.headers.Accept === 'application/vnd.github.diff'
+      ) {
+        return {
+          ok: true,
+          text: async () =>
+            options.binaryOnly
+              ? 'diff --git a/image.png b/image.png\nBinary files a/image.png and b/image.png differ\n'
+              : 'diff --git a/file.ts b/file.ts\nnew file mode 100644\n--- /dev/null\n+++ b/file.ts\n@@ -0,0 +1 @@\n+export const value = 1;\n',
+        };
+      }
       assert.notEqual(
         opts.headers.Accept,
         'application/vnd.github.diff',
@@ -288,6 +326,8 @@ async function scenario(options) {
         }
     }
   }
+  if (eventDir)
+    await (await import('node:fs/promises')).rm(eventDir, { recursive: true });
   // A simulated API failure is asserted in the result rather than failing the child.
   process.exitCode = 0;
   console.log(
@@ -425,7 +465,7 @@ test('owner waiver bypasses cached findings and requests QA with an explicit man
       (c) =>
         c.startsWith('<!-- delivery-ready') &&
         c.includes('<!-- copilot-waiver source=') &&
-        c.includes('not a Copilot pass'),
+        c.includes('Copilot waived'),
     ),
   );
 });
@@ -554,5 +594,63 @@ test('progress edits after QA preserve approval without duplicate requests or ha
   assert.equal(
     r.calls.some((c) => c === 'comment:12'),
     false,
+  );
+});
+
+test('stacked PR waits without review, QA handoff or runner failure', () => {
+  const r = run({ stacked: true });
+  assert.deepEqual(r.handoffs, [0]);
+  assert.deepEqual(r.requested, { 12: [] });
+  assert.equal(r.status, 'Ready for Code Review');
+  assert.ok(r.calls.includes('exit:0'));
+});
+
+test('PR event does not review unrelated board issues', () => {
+  const r = run({ eventPr: 144 });
+  assert.deepEqual(r.handoffs, [0]);
+  assert.deepEqual(r.requested, { 12: [] });
+  assert.deepEqual(r.calls, ['exit:0']);
+});
+
+test('PR event reviews its linked board issue', () => {
+  const r = run({ eventPr: 12 });
+  assert.deepEqual(r.handoffs, [1]);
+  assert.deepEqual(r.requested, { 12: ['MatejKrones'] });
+  assert.ok(r.calls.includes('exit:0'));
+});
+
+test('fresh review waits for CI without a model verdict or QA handoff', () => {
+  const r = run({ freshReview: true });
+  assert.deepEqual(r.handoffs, [0]);
+  assert.ok(r.calls.includes('exit:0'));
+  assert.ok(
+    !r.prComments[12].some(
+      (c) => c.includes('result=pass') || c.includes('result=error'),
+    ),
+  );
+});
+
+test('CI API errors never run the already-planned review or produce a pass', () => {
+  const r = run({ freshReview: true, ciUnavailable: true });
+  assert.deepEqual(r.handoffs, [0]);
+  assert.ok(
+    r.prComments[12].some(
+      (c) => c.includes('result=error') && c.includes('CI API unavailable'),
+    ),
+  );
+  assert.ok(!r.prComments[12].some((c) => c.includes('result=pass')));
+});
+
+test('binary-only PR reaches QA with explicit skipped coverage and no Copilot call', () => {
+  const r = run({ freshReview: true, binaryOnly: true });
+  assert.deepEqual(r.handoffs, [1]);
+  assert.deepEqual(r.requested, { 12: ['MatejKrones'] });
+  assert.ok(
+    r.prComments[12].some(
+      (c) =>
+        c.includes('Text review: no text changes') &&
+        c.includes('Copilot not called') &&
+        c.includes('image.png'),
+    ),
   );
 });

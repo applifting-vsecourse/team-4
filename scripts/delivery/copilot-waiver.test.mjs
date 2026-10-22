@@ -285,10 +285,31 @@ async function checkScenario(mode) {
             submitted_at: '2004-01-01',
           },
         ];
+  let eventDir;
+  if (['scoped-pr', 'scoped-issue', 'unrelated-issue'].includes(mode)) {
+    const fs = await import('node:fs/promises');
+    eventDir = await fs.mkdtemp(
+      (await import('node:os')).tmpdir() + '/delivery-scope-',
+    );
+    process.env.GITHUB_EVENT_NAME = 'issue_comment';
+    process.env.GITHUB_EVENT_PATH = eventDir + '/event.json';
+    await fs.writeFile(
+      process.env.GITHUB_EVENT_PATH,
+      JSON.stringify({
+        issue:
+          mode === 'scoped-pr'
+            ? { number: 12, pull_request: {} }
+            : { number: mode === 'scoped-issue' ? 78 : 999 },
+      }),
+    );
+  }
+  let issueReads = 0;
   const statuses = [];
   const patches = [];
   globalThis.fetch = async (url, options = {}) => {
     const path = new URL(url).pathname;
+    if (mode === 'scoped-pr' && path === '/repos/owner/repo/pulls')
+      throw new Error('PR event must not scan all PRs');
     const body = options.body ? JSON.parse(options.body) : {};
     let data;
     if (path === '/graphql')
@@ -342,24 +363,38 @@ async function checkScenario(mode) {
       patches.push(body);
       if (mode === 'patch-error') throw new Error('Cannot update legacy check');
       data = {};
-    } else if (path === '/repos/owner/repo/pulls') data = [pr];
+    } else if (path === '/repos/owner/repo/pulls')
+      data = [
+        mode === 'stacked'
+          ? { ...pr, base: { ref: 'feature/prerequisite' } }
+          : pr,
+      ];
     else if (path.endsWith('/pulls/12/reviews')) {
       if (mode === 'api-error') throw new Error('Review API unavailable');
       data = reviews;
     } else if (path.endsWith('/issues/12/comments')) data = comments;
     else if (path.endsWith('/issues/78/comments')) data = [];
-    else if (path.endsWith('/issues/78')) data = issue;
-    else if (path.endsWith('/pulls/12'))
+    else if (path.endsWith('/issues/78')) {
+      issueReads++;
       data =
-        mode === 'moved'
-          ? { ...pr, head: { sha: 'b'.repeat(40) } }
-          : mode === 'closed'
-            ? { ...pr, state: 'closed' }
-            : pr;
+        mode === 'scope-changed' && issueReads > 1
+          ? { ...issue, body: 'Changed scope' }
+          : issue;
+    } else if (path.endsWith('/pulls/12'))
+      data =
+        mode === 'retargeted'
+          ? { ...pr, base: { ref: 'feature/prerequisite' } }
+          : mode === 'moved'
+            ? { ...pr, head: { sha: 'b'.repeat(40) } }
+            : mode === 'closed'
+              ? { ...pr, state: 'closed' }
+              : pr;
     else throw new Error('Unexpected API ' + path);
     return { ok: true, json: async () => structuredClone(data) };
   };
   await import('./scripts/delivery/run.mjs');
+  if (eventDir)
+    await (await import('node:fs/promises')).rm(eventDir, { recursive: true });
   console.log(
     JSON.stringify({ statuses, patches, exitCode: process.exitCode || 0 }),
   );
@@ -379,6 +414,12 @@ for (const mode of [
   'patch-error',
   'report-error',
   'no-legacy',
+  'retargeted',
+  'stacked',
+  'scoped-pr',
+  'scoped-issue',
+  'unrelated-issue',
+  'scope-changed',
 ]) {
   test(`real delivery check publisher handles ${mode} waiver evidence`, async () => {
     const { execFileSync } = await import('node:child_process');
@@ -402,17 +443,27 @@ for (const mode of [
     const { statuses, patches, exitCode } = JSON.parse(
       out.trim().split('\n').at(-1),
     );
+    if (mode === 'unrelated-issue') {
+      assert.deepEqual(statuses, []);
+      assert.deepEqual(patches, []);
+      assert.equal(exitCode, 0);
+      return;
+    }
     const check = statuses.at(-1);
     const isError = [
       'api-error',
       'moved',
+      'retargeted',
+      'scope-changed',
       'closed',
       'pending-error',
       'checks-error',
       'patch-error',
       'report-error',
     ].includes(mode);
-    const passes = ['valid', 'no-legacy'].includes(mode);
+    const passes = ['valid', 'no-legacy', 'scoped-pr', 'scoped-issue'].includes(
+      mode,
+    );
     assert.equal(statuses.length, 2);
     assert.equal(statuses[0].state, 'pending');
     assert.equal(
@@ -420,7 +471,7 @@ for (const mode of [
       isError ? 'error' : passes ? 'success' : 'failure',
     );
     assert.equal(exitCode, isError ? 1 : 0);
-    if (['no-legacy', 'checks-error'].includes(mode))
+    if (['no-legacy', 'checks-error', 'stacked'].includes(mode))
       assert.equal(patches.length, 0);
     else {
       assert.equal(patches.at(-1).conclusion, passes ? 'success' : 'failure');

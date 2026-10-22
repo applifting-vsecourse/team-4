@@ -22,7 +22,7 @@ Agent každý nález zařadí jako **`blocker`** nebo **`note`**:
 Poznámky se zapíšou do komentáře u PR, ale **review neblokují**. Úspěch je platný verdikt bez `blocker` nálezu pro **aktuální commit** PR (`pass`, případně se seznamem poznámek). Rozhoduje přítomnost `blocker`, ne verdikt, který agent napsal: nález bez výslovného `note` se bere jako `blocker`, a `pass` s uvedeným `blocker` tedy blokuje. Za neúspěch (karta zůstává) se považuje:
 
 - blokující nález (`blocker`),
-- chyba agenta: neplatný nebo nesoudržný výstup, vypršený čas, chyba kvóty nebo přihlášení, neúplný diff, nepodporovaná binární změna nebo překročený limit dávkového review,
+- chyba agenta: neplatný nebo nesoudržný výstup, vypršený čas, chyba kvóty nebo přihlášení, neúplný diff nebo překročený limit dávkového review,
 - chybějící propojený PR,
 - commit, který se změnil během review (zastaralý výsledek, review proběhne znovu).
 
@@ -97,10 +97,12 @@ roles and merge configuration.
 The 100,000-byte limit applies to each complete prompt, not to the whole PR.
 Small PRs still get one full-diff review. Larger diffs are grouped into bounded
 batches, preserving whole files where possible and splitting oversized files at
-line boundaries. No changed content is silently truncated or excluded, including
-lockfiles and generated component code. Before any Copilot call, the runner
+line boundaries. No text changes are silently truncated or excluded, including
+lockfiles and generated component code. Binary files are skipped without separate
+approval and listed in a collapsed coverage section. Binary-only PRs satisfy the
+text review gate without a Copilot call; CI, requirements and QA still apply. Before any Copilot call, the runner
 compares file and added/deleted-line counts against GitHub's PR metadata. A
-mismatch, binary diff, oversized individual line or excessive context blocks
+mismatch, oversized individual line or excessive context blocks
 review before it starts.
 
 Every batch receives the issue, main-branch repository rules and a complete file
@@ -127,3 +129,24 @@ retries after three recorded failed review attempts. Earlier cached input errors
 run Agent code review for issue `79` with `force=true` and `dry_run=false`.
 Keep the issue in Ready for Code Review; a new implementation commit is not
 required solely to retry review.
+
+## CI evidence and local QA
+
+Before a fresh text review, the runner waits for CI for the exact PR head SHA.
+CI completion triggers scoped review; scheduled reconciliation remains the fallback.
+Waiting does not consume a model attempt. The reviewer receives only matching
+CI workflow/run/attempt and recognised step summaries, plus the trusted main CI
+configuration. Pending, missing or stale CI is never described as passed.
+Logs and arbitrary job output are not injected into the prompt. A successful
+clean-database migration does not establish populated-data upgrade correctness.
+Green CI is evidence, not an automatic waiver of concrete runtime defects.
+
+Existing cached verdicts remain intact. To reconsider an old false positive or
+binary input error, use a current-SHA waiver or rerun review with `force=true`.
+No implementation commit is needed just to retry.
+
+QA remains local. See [local QA](local-qa.md) for exact-commit preparation and
+older PR branches. GitHub handoffs stay short; nonblocking review notes and skipped
+binary paths are collapsed. `pnpm check-all` regenerates Prisma and includes
+review/merge and local QA helper tests; CI additionally runs clean migrations and
+the real PostgreSQL constraint suite.
