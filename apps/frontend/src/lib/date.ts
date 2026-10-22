@@ -42,3 +42,15 @@ const pragueDateTime = new Intl.DateTimeFormat("cs-CZ", {
 export function formatPragueDateTime(value: string) {
   return pragueDateTime.format(new Date(value))
 }
+
+const pragueDate = new Intl.DateTimeFormat("cs-CZ", {
+  timeZone: "Europe/Prague",
+  day: "numeric",
+  month: "numeric",
+  year: "numeric",
+})
+
+/** The Prague calendar day of a server timestamp: "28. 6. 2027". */
+export function formatPragueDate(value: string) {
+  return pragueDate.format(new Date(value))
+}

@@ -9,7 +9,7 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui
 const sections = [
   { label: "Přehled", icon: LayoutDashboard, to: ROUTES.event },
   { label: "Nastavení", icon: Settings, to: ROUTES.eventSettings },
-  { label: "Přihlášky", icon: ClipboardList },
+  { label: "Přihlášky", icon: ClipboardList, to: ROUTES.eventRegistrations },
   { label: "Platby", icon: CreditCard },
   { label: "Ubytování", icon: BedDouble, to: ROUTES.eventRooms },
   { label: "Komunikace", icon: Mail },
@@ -42,8 +42,10 @@ export function EventNavigation({ organizationId, eventId, isSidebar = false }: 
           )}
         </>
       )
+      // A section stays active on its sub-pages: Nastavení on editing the event,
+      // Přihlášky on the detail of one registration.
       const isActive = to
-        ? Boolean(matchRoute({ to, params })) ||
+        ? Boolean(matchRoute({ to, params, fuzzy: to === ROUTES.eventRegistrations })) ||
           (to === ROUTES.eventSettings && Boolean(matchRoute({ to: ROUTES.editEvent, params })))
         : false
       if (isSidebar) {

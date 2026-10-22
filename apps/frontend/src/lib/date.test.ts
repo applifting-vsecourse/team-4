@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { formatCalendarDate, formatCalendarRange } from "@/lib/date"
+import { formatCalendarDate, formatCalendarRange, formatPragueDate } from "@/lib/date"
 
 describe("calendar dates", () => {
   it("formats a date without a time zone shift", () => {
@@ -17,5 +17,12 @@ describe("calendar dates", () => {
 
   it("shows one date for a one-day term", () => {
     expect(formatCalendarRange("2027-07-08", "2027-07-08")).toBe("8. 7. 2027")
+  })
+})
+
+describe("Prague dates", () => {
+  it("takes the day in Prague, not in UTC", () => {
+    // 23:30 UTC on 27 June is already 28 June in Prague (UTC+2 in summer).
+    expect(formatPragueDate("2027-06-27T23:30:00Z")).toBe("28. 6. 2027")
   })
 })
