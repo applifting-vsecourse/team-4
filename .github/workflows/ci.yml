@@ -55,6 +55,9 @@ jobs:
       - name: Test review and merge gates
         run: pnpm agent-review:test
 
+      - name: Test local QA preparation
+        run: pnpm qa:test
+
       - name: Format check
         run: pnpm format:check
 
