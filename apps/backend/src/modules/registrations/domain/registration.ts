@@ -45,6 +45,82 @@ export const decideParticipation = (
 ): ParticipationStatus =>
   term.confirmed < term.capacity ? 'confirmed' : 'waitlisted';
 
+const PRAGUE = 'Europe/Prague';
+
+const pragueFormat = new Intl.DateTimeFormat('en-US', {
+  timeZone: PRAGUE,
+  hourCycle: 'h23',
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: 'numeric',
+  second: 'numeric',
+});
+
+/** Wall-clock time in Prague at `instant`, as if it were UTC. */
+const pragueWallClock = (instant: number): number => {
+  const part = Object.fromEntries(
+    pragueFormat
+      .formatToParts(new Date(instant))
+      .map(({ type, value }) => [type, Number(value)]),
+  );
+  return Date.UTC(
+    part.year,
+    part.month - 1,
+    part.day,
+    part.hour,
+    part.minute,
+    part.second,
+    instant % 1000,
+  );
+};
+
+/**
+ * The reminder date: `days` calendar days after `confirmedAt` at the same
+ * Prague wall-clock time, so it holds across a DST change (S2-16). A time that
+ * does not exist on the target day (the spring gap) moves to the next valid one.
+ */
+export const paymentReminderAt = (confirmedAt: Date, days: number): Date => {
+  const instant = confirmedAt.getTime();
+  const local = pragueWallClock(instant);
+  const target = new Date(local);
+  target.setUTCDate(target.getUTCDate() + days);
+  const wanted = target.getTime();
+  // The offset can change between the guesses; two rounds settle it.
+  let result = wanted - (local - instant);
+  for (let i = 0; i < 2; i++) {
+    result = wanted - (pragueWallClock(result) - result);
+  }
+  return new Date(result);
+};
+
+/** Σ price of the confirmed terms in haléře; waitlisted terms owe nothing. */
+export const amountDueMinor = (
+  terms: { status: ParticipationStatus; priceMinor: number }[],
+): number =>
+  terms
+    .filter((term) => term.status === 'confirmed')
+    .reduce((sum, term) => sum + term.priceMinor, 0);
+
+export type BankAccount = {
+  prefix: string | null;
+  number: string;
+  bankCode: string;
+};
+
+/**
+ * What the participant pays, where and when they are reminded. Stored on the
+ * registration at receipt, so later event changes never touch it (S2-09).
+ */
+export type PaymentInstructions = {
+  amountMinor: number;
+  variableSymbol: string;
+  account: BankAccount;
+  /** Reminder, not a deadline: nothing happens to the registration when it passes. */
+  reminderAt: Date;
+};
+
 export type RegistrationTermResult = {
   termId: string;
   label: string;
@@ -65,9 +141,28 @@ export class RegistrationResultModel {
     public readonly phone: string,
     /** By term start. */
     public readonly terms: RegistrationTermResult[],
+    public readonly variableSymbol: string,
+    public readonly account: BankAccount,
+    public readonly reminderAt: Date | null,
   ) {}
 
-  /** Price of the selected terms; not the amount due, which S2-16 derives. */
+  /** Σ confirmed terms (S2-16); 0 for waitlisted-only or free terms. */
+  get amountDueMinor(): number {
+    return amountDueMinor(this.terms);
+  }
+
+  /** Null at zero obligation: no reminder date and no request to pay. */
+  get paymentInstructions(): PaymentInstructions | null {
+    if (this.amountDueMinor <= 0 || !this.reminderAt) return null;
+    return {
+      amountMinor: this.amountDueMinor,
+      variableSymbol: this.variableSymbol,
+      account: this.account,
+      reminderAt: this.reminderAt,
+    };
+  }
+
+  /** Price of the selected terms; not the amount due. */
   get selectedPriceMinor(): number {
     return this.terms.reduce((sum, term) => sum + term.priceMinor, 0);
   }

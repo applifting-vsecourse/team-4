@@ -42,6 +42,39 @@ export class RegistrationTermResultDto {
   }
 }
 
+export class BankAccountDto {
+  @ApiProperty({ nullable: true, type: String })
+  prefix!: string | null;
+
+  @ApiProperty()
+  number!: string;
+
+  @ApiProperty({ description: 'Four-digit bank code.' })
+  bankCode!: string;
+}
+
+export class PaymentInstructionsDto {
+  @ApiProperty({
+    description: 'Amount due in haléře (CZK), confirmed terms only.',
+  })
+  amountMinor!: number;
+
+  @ApiProperty({
+    description: 'Globally unique variable symbol of the registration.',
+  })
+  variableSymbol!: string;
+
+  @ApiProperty({ type: BankAccountDto })
+  account!: BankAccountDto;
+
+  @ApiProperty({
+    format: 'date-time',
+    description:
+      'Payment reminder date, not a deadline: passing it changes nothing about the registration, and no e-mail is promised.',
+  })
+  reminderAt!: string;
+}
+
 /** What the submitter sees right after saving (S2-14); nothing of other registrations. */
 export class RegistrationResultDto {
   @ApiProperty({ format: 'uuid' })
@@ -74,7 +107,22 @@ export class RegistrationResultDto {
   })
   selectedPriceMinor!: number;
 
+  @ApiProperty({
+    description:
+      'Sum of the confirmed terms in haléře; 0 when all are waitlisted or free.',
+  })
+  amountDueMinor!: number;
+
+  @ApiProperty({
+    type: PaymentInstructionsDto,
+    nullable: true,
+    description:
+      'Null at zero obligation: no reminder date and no request to pay.',
+  })
+  paymentInstructions!: PaymentInstructionsDto | null;
+
   static from(model: RegistrationResultModel): RegistrationResultDto {
+    const instructions = model.paymentInstructions;
     return {
       id: model.id,
       receivedAt: model.receivedAt.toISOString(),
@@ -84,6 +132,13 @@ export class RegistrationResultDto {
       phone: model.phone,
       terms: model.terms.map(RegistrationTermResultDto.from),
       selectedPriceMinor: model.selectedPriceMinor,
+      amountDueMinor: model.amountDueMinor,
+      paymentInstructions: instructions && {
+        amountMinor: instructions.amountMinor,
+        variableSymbol: instructions.variableSymbol,
+        account: { ...instructions.account },
+        reminderAt: instructions.reminderAt.toISOString(),
+      },
     };
   }
 }

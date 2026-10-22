@@ -180,7 +180,7 @@ describe('saving a registration', () => {
       bankAccountNumber: f.event.bankAccountNumber,
       bankCode: f.event.bankCode,
       paymentReminderDays: f.event.paymentReminderDays,
-      paymentReminderAt: null,
+      paymentReminderAt: expect.any(Date),
     });
     expect(stored.variableSymbol).toMatch(/^\d{1,10}$/);
     expect(stored.participantAccount.email).toBe('jana.novakova@example.test');
@@ -242,6 +242,110 @@ describe('saving a registration', () => {
       T1: 'confirmed',
       T2: 'waitlisted',
     });
+  });
+});
+
+describe('payment obligation (S2-16)', () => {
+  const oneBed = [{ bedCount: 1, termIndexes: [0] }];
+
+  it('owes the confirmed terms only and returns amount, account, VS and reminder date', async () => {
+    const f = await eventWith({
+      terms: [
+        { ...T1, priceMinor: 100_000 },
+        { ...T2, priceMinor: 200_000 },
+      ],
+      rooms: oneBed,
+    });
+
+    const response = await submit(f.publicId, form(f.termIds));
+
+    expect(statusesOf(response.body)).toEqual({
+      T1: 'confirmed',
+      T2: 'waitlisted',
+    });
+    const stored = await prisma.registration.findUniqueOrThrow({
+      where: { id: response.body.id },
+      include: { terms: true },
+    });
+    expect(response.body.amountDueMinor).toBe(100_000);
+    expect(response.body.paymentInstructions).toEqual({
+      amountMinor: 100_000,
+      variableSymbol: stored.variableSymbol,
+      account: { prefix: null, number: '123457', bankCode: '0100' },
+      reminderAt: stored.paymentReminderAt?.toISOString(),
+    });
+    const decidedAt = stored.terms[0].decidedAt.getTime();
+    const days = (stored.paymentReminderAt!.getTime() - decidedAt) / 86_400_000;
+    // 14 calendar days, give or take the hour of a DST change
+    expect(Math.abs(days - 14)).toBeLessThanOrEqual(1 / 24);
+  });
+
+  it.each([
+    ['only waitlisted terms', { rooms: [] }],
+    [
+      'only confirmed free terms',
+      { terms: [{ ...T1, priceMinor: 0 }], rooms: oneBed },
+    ],
+  ])(
+    'has no obligation, reminder date or payment request for %s',
+    async (_, options) => {
+      const f = await eventWith(options);
+
+      const response = await submit(f.publicId, form(f.termIds));
+
+      expect(response.body.amountDueMinor).toBe(0);
+      expect(response.body.paymentInstructions).toBeNull();
+      const stored = await prisma.registration.findUniqueOrThrow({
+        where: { id: response.body.id },
+      });
+      expect(stored.paymentReminderAt).toBeNull();
+    },
+  );
+
+  it('gives every registration its own VS', async () => {
+    const f = await eventWith({ rooms: [{ bedCount: 5, termIndexes: [0] }] });
+
+    const responses = await Promise.all(
+      [1, 2, 3].map(() => submit(f.publicId, form(f.termIds))),
+    );
+
+    const symbols = responses.map(
+      (response) => response.body.paymentInstructions.variableSymbol,
+    );
+    expect(new Set(symbols).size).toBe(3);
+  });
+
+  it('keeps the instructions of a repeat and of an existing registration after the settings change', async () => {
+    const f = await eventWith({ rooms: oneBed });
+    const body = form(f.termIds);
+    const original = await submit(f.publicId, body);
+
+    await prisma.event.update({
+      where: { id: f.event.id },
+      data: {
+        bankAccountNumber: '999999',
+        bankCode: '0800',
+        paymentReminderDays: 3,
+      },
+    });
+    const repeated = await submit(f.publicId, body);
+    const stored = await prisma.registration.findUniqueOrThrow({
+      where: { id: original.body.id },
+    });
+
+    expect(repeated).toEqual({ status: 200, body: original.body });
+    expect(stored).toMatchObject({
+      bankAccountNumber: '123457',
+      bankCode: '0100',
+      paymentReminderDays: 14,
+      variableSymbol: original.body.paymentInstructions.variableSymbol,
+    });
+    expect(stored.paymentReminderAt?.toISOString()).toBe(
+      original.body.paymentInstructions.reminderAt,
+    );
+
+    const later = await submit(f.publicId, form([f.termIds[1]]));
+    expect(later.body.paymentInstructions).toBeNull();
   });
 });
 
