@@ -4,12 +4,17 @@ import { ConsoleMailerAdapterFactory } from './adapters/console-mailer/console-m
 import { ResendAdapterFactory } from './adapters/resend/resend.adapter.factory';
 import { SMTPAdapterFactory } from './adapters/smtp/smtp.adapter.factory';
 import { EmailModule } from './email.module';
+import { EmailService } from './interfaces/email-service.interface';
+import { RecipientRestrictedEmailService } from './services/recipient-restricted-email.service';
 
 /**
  * Picks an email adapter based on env:
  *   RESEND_API_KEY set           → Resend
  *   SMTP_HOST + USERNAME + PASS  → SMTP
  *   otherwise                    → Console (logs emails to stdout, dev only)
+ *
+ * If EMAIL_ALLOWED_RECIPIENT is set, the chosen adapter only delivers to that
+ * address (needed while Resend has no verified domain).
  *
  * Import this module whenever you need to inject `'EmailService'`.
  * The single shared `EmailService` instance is provided here so every
@@ -21,22 +26,13 @@ import { EmailModule } from './email.module';
     EmailModule.forRootAsync({
       useFactory: async (...args: unknown[]) => {
         const config = args[0] as Config;
-        if (config.resendApiKey) {
-          return ResendAdapterFactory.create({
-            apiKey: config.resendApiKey,
-            from: config.emailFrom,
-          });
-        }
-        if (config.smtpHost && config.smtpUsername && config.smtpPassword) {
-          return SMTPAdapterFactory.create({
-            host: config.smtpHost,
-            port: config.smtpPort,
-            secure: config.smtpSecure,
-            user: config.smtpUsername,
-            pass: config.smtpPassword,
-          });
-        }
-        return ConsoleMailerAdapterFactory.create();
+        const adapter = createAdapter(config);
+        return config.emailAllowedRecipient
+          ? new RecipientRestrictedEmailService(
+              adapter,
+              config.emailAllowedRecipient,
+            )
+          : adapter;
       },
       inject: [Config],
     }),
@@ -44,3 +40,22 @@ import { EmailModule } from './email.module';
   exports: [EmailModule],
 })
 export class MailModule {}
+
+function createAdapter(config: Config): EmailService {
+  if (config.resendApiKey) {
+    return ResendAdapterFactory.create({
+      apiKey: config.resendApiKey,
+      from: config.emailFrom,
+    });
+  }
+  if (config.smtpHost && config.smtpUsername && config.smtpPassword) {
+    return SMTPAdapterFactory.create({
+      host: config.smtpHost,
+      port: config.smtpPort,
+      secure: config.smtpSecure,
+      user: config.smtpUsername,
+      pass: config.smtpPassword,
+    });
+  }
+  return ConsoleMailerAdapterFactory.create();
+}

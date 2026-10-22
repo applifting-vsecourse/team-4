@@ -88,7 +88,7 @@ pnpm dev
 
 Local configuration lives in [apps/backend/.env.example](apps/backend/.env.example) and [apps/frontend/.env.example](apps/frontend/.env.example), copied to each application's `.env`. The root `.env` is used by the production Docker Compose stack, not by `pnpm dev`.
 
-Email verification and password reset messages use the console mailer by default, so check the backend output for those messages. Resend and SMTP adapters are also available.
+Email verification and password reset messages use the console mailer by default, so check the backend output for those messages. Resend and SMTP adapters are also available. Without a verified Resend domain, set `RESEND_API_KEY`, keep the sandbox `EMAIL_FROM` and set `EMAIL_ALLOWED_RECIPIENT` to the Resend account owner's address; mail to any other recipient is dropped with a warning.
 
 Stop the development servers with `Ctrl+C`. Stop the local PostgreSQL container with:
 
