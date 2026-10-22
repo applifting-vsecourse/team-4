@@ -65,6 +65,9 @@ COPY --from=builder /app/apps/backend/prisma ./apps/backend/prisma
 ARG CI_COMMIT_SHA
 ENV CI_COMMIT_SHA=$CI_COMMIT_SHA
 
+ARG RESEND_API_KEY=""
+ENV RESEND_API_KEY=$RESEND_API_KEY
+
 USER node
 WORKDIR /app/apps/backend
 
