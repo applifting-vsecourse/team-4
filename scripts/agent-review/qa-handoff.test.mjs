@@ -363,6 +363,8 @@ function run(options = {}) {
       encoding: 'utf8',
       env: {
         ...process.env,
+        GITHUB_EVENT_NAME: 'schedule',
+        GITHUB_EVENT_PATH: '',
         GITHUB_REPOSITORY: 'owner/repo',
         GITHUB_TOKEN: 'mock',
         PROJECT_TOKEN: 'mock',

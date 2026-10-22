@@ -434,6 +434,8 @@ for (const mode of [
         encoding: 'utf8',
         env: {
           ...process.env,
+          GITHUB_EVENT_NAME: 'schedule',
+          GITHUB_EVENT_PATH: '',
           GITHUB_REPOSITORY: 'owner/repo',
           GITHUB_TOKEN: 'mock',
           GITHUB_RUN_ID: '123',
