@@ -9,6 +9,7 @@ export const ROUTES = {
   eventRooms: "/organizations/$organizationId/events/$eventId/rooms",
   editEvent: "/organizations/$organizationId/events/$eventId/edit",
   publicEvent: "/e/$publicId",
+  myRegistrations: "/my-registrations",
   login: "/login",
   signup: "/signup",
   designSystem: "/design-system",
