@@ -51,7 +51,9 @@ an approving PR review. For Matej-authored PRs, David substitutes for QA. On
 David-authored PRs, requirements remain exempt but Matej's QA is still required.
 QA must happen after the handoff. A manual board move or early approval is not
 QA evidence. Do not merge to obtain a test build: QA needs the PR version before
-merge.
+merge. Use [local QA preparation](local-qa.md); setup instructions are not repeated
+in GitHub handoffs. Binary files are excluded from automated text review without
+separate approval and listed in coverage; binary-only PRs still need CI and QA.
 
 | PR author    | Requirements                 | QA after testing handoff |
 | ------------ | ---------------------------- | ------------------------ |
@@ -115,7 +117,7 @@ Disable the native `require_code_owner_review` requirement: otherwise a sole
 code owner authoring a PR can be blocked by a redundant owner-approval gate.
 The named reviewer requirements remain enforced by Delivery stages. GitHub still
 requires one current human approval, dismisses stale reviews on pushes, requires
-last-push approval and resolved review threads, and enforces up-to-date `verify`
+last-push approval and resolved review threads, and enforces `verify`
 and `Delivery stages` checks from GitHub Actions (app ID 15368). No standing
 bypass actors are configured. Do not disable stale-review dismissal: QA must
 still approve the current commit.
@@ -130,13 +132,27 @@ creating synthetic jobs in an unrelated Actions check suite. Existing synthetic 
 with the same name receive the same evaluated verdict (or failure on API errors);
 Actions job checks and checks from other apps are never modified; the required
 name and GitHub Actions source remain unchanged.
-On PR events, the native Actions job is also named `Delivery stages`. After
-running the trusted main evaluator, it requires a passing verdict for that exact
-open PR commit, accepting its commit status and checking any existing synthetic
-checks. The native job never treats its own result as delivery evidence. Other
-events use the job name `Reconcile delivery stages`, so a manual or scheduled
-run cannot satisfy the required PR job without this verification.
-A green reconciliation workflow is not the same as a green delivery verdict.
+The native Actions job is always named `Reconcile delivery stages`; only the
+commit status is named `Delivery stages`. Waiting for requirements, review or
+QA blocks that status without failing the reconciliation job. API failures
+remain workflow errors. A green reconciliation run is not a delivery pass.
+
+PR events process their linked issues; issue events process that issue and its
+linked PRs. Scheduled and manual runs reconcile all active work (manual issue
+filters still apply). Agent review reconciles delivery in a final step, even
+when review fails, using the same event scope; dry runs never publish verdicts.
+Stacked PRs wait for their prerequisite and retargeting to `main`; they do not
+fail unrelated reviews or receive QA handoffs. A retarget during evaluation
+invalidates its result.
+
+Advancing `main` does not require updating PR branches or invalidate existing
+review/QA evidence. Changing the PR head still requires fresh code review and
+post-handoff QA; unchanged requirements approval persists.
+
+When installing this change, existing native `Delivery stages` jobs on open PRs
+can still block alongside the status. Re-run affected historical enforcement
+runs after installation and verify actual mergeability; do not rewrite native
+job results or weaken protection. New workflow runs use the distinct job name.
 
 ## Releases and the stage
 

@@ -19,7 +19,9 @@ on:
         ready_for_review,
         converted_to_draft,
       ]
-    branches: [main]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
@@ -44,12 +46,15 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read
   issues: write
   pull-requests: write
+  checks: write
+  statuses: write
 
 jobs:
   review:
-    if: (github.event_name != 'pull_request_review' || github.event.pull_request.base.ref == 'main') && (github.event_name != 'issue_comment' || github.actor != 'github-actions[bot]')
+    if: (github.event_name != 'issue_comment' || github.actor != 'github-actions[bot]') && (github.event_name != 'workflow_run' || github.event.workflow_run.event == 'pull_request')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -79,3 +84,10 @@ jobs:
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
           ONLY_ISSUE: ${{ inputs.issue }}
           FORCE: ${{ inputs.force }}
+
+      - name: Reconcile delivery verdicts
+        if: always() && (github.event_name != 'workflow_dispatch' || !inputs.dry_run)
+        run: node scripts/delivery/run.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ONLY_ISSUE: ${{ inputs.issue }}

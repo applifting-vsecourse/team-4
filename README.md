@@ -23,7 +23,7 @@ Installment payment plans (F22) and refunds (F31) are outside the MVP scope. See
 
 This repository currently contains the akc.io application foundation and product backlog. The application includes account sign-up and sign-in, a basic home page, an authenticated dashboard placeholder, welcome and health API endpoints, and email infrastructure. The database schema contains authentication tables only.
 
-The event, accommodation and payment workflows described above are planned requirements, not implemented features. No demo accounts or event data are seeded; create an account through sign-up.
+The event, accommodation and payment workflows described above are planned requirements, not implemented features. Local demo data can be added with `pnpm backend seed`; see the seed source for accounts.
 
 ## Product documentation
 
@@ -73,11 +73,11 @@ From the repository root:
 
 ```sh
 corepack enable
-pnpm install
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-`pnpm dev` creates missing application environment files from their examples, starts PostgreSQL, applies migrations, runs the currently empty seed entry point and starts both development servers. Existing environment files are preserved.
+`pnpm dev` creates missing application environment files from their examples, starts PostgreSQL, applies migrations, runs the demo seed entry point and starts both development servers. Existing environment files are preserved.
 
 | Service            | Address                                  |
 | ------------------ | ---------------------------------------- |
@@ -96,21 +96,23 @@ Stop the development servers with `Ctrl+C`. Stop the local PostgreSQL container 
 pnpm dev:down
 ```
 
+For testing an open PR, use [local QA preparation](docs/local-qa.md).
+
 ## Development commands
 
 Run these commands from the repository root:
 
-| Command                              | Purpose                                                                |
-| ------------------------------------ | ---------------------------------------------------------------------- |
-| `pnpm check-all`                     | Run linting, frontend type checks, tests, builds and formatting checks |
-| `pnpm backend test`                  | Run backend tests with Jest                                            |
-| `pnpm frontend test:ci`              | Run frontend tests with Vitest                                         |
-| `pnpm frontend type-check`           | Check frontend TypeScript types                                        |
-| `pnpm format`                        | Format repository and application files                                |
-| `pnpm backend prisma:migrations:run` | Create and apply development migrations after schema changes           |
-| `pnpm backend prisma:studio`         | Open the database browser                                              |
-| `pnpm backend seed`                  | Run the project seed entry point                                       |
-| `pnpm backend email:dev`             | Preview email templates                                                |
+| Command                              | Purpose                                                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `pnpm check-all`                     | Generate Prisma; run automation tests, lint, type checks, unit tests, builds and formatting |
+| `pnpm backend test`                  | Run backend tests with Jest                                                                 |
+| `pnpm frontend test:ci`              | Run frontend tests with Vitest                                                              |
+| `pnpm frontend type-check`           | Check frontend TypeScript types                                                             |
+| `pnpm format`                        | Format repository and application files                                                     |
+| `pnpm backend prisma:migrations:run` | Create and apply development migrations after schema changes                                |
+| `pnpm backend prisma:studio`         | Open the database browser                                                                   |
+| `pnpm backend seed`                  | Run the project seed entry point                                                            |
+| `pnpm backend email:dev`             | Preview email templates                                                                     |
 
 The test runners currently allow empty test suites. Passing checks alone does not demonstrate completion of the planned product workflows.
 
