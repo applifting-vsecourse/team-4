@@ -1,7 +1,7 @@
 import {
   RoomModel,
   RoomsOverviewModel,
-  TermCapacity,
+  TermOccupancy,
 } from '@/modules/rooms/domain/room';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -32,7 +32,7 @@ export class RoomDto {
   }
 }
 
-export class TermCapacityDto {
+export class TermOccupancyDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
@@ -53,7 +53,17 @@ export class TermCapacityDto {
   @ApiProperty({ description: 'Participants confirmed in the term.' })
   confirmed!: number;
 
-  static from(model: TermCapacity): TermCapacityDto {
+  @ApiProperty({
+    description: 'Capacity minus confirmed participants, never below zero.',
+  })
+  free!: number;
+
+  @ApiProperty({
+    description: 'Participants waiting in the term; they hold no bed.',
+  })
+  waitlisted!: number;
+
+  static from(model: TermOccupancy): TermOccupancyDto {
     return {
       id: model.id,
       label: model.label,
@@ -61,6 +71,8 @@ export class TermCapacityDto {
       endDate: model.endDate,
       capacity: model.capacity,
       confirmed: model.confirmed,
+      free: model.free,
+      waitlisted: model.waitlisted,
     };
   }
 }
@@ -70,15 +82,16 @@ export class RoomsOverviewDto {
   rooms!: RoomDto[];
 
   @ApiProperty({
-    type: [TermCapacityDto],
-    description: 'Every term of the event by start date, with its capacity.',
+    type: [TermOccupancyDto],
+    description:
+      'Every term of the event by start date, with its capacity and occupancy.',
   })
-  terms!: TermCapacityDto[];
+  terms!: TermOccupancyDto[];
 
   static from(model: RoomsOverviewModel): RoomsOverviewDto {
     return {
       rooms: model.rooms.map(RoomDto.from),
-      terms: model.terms.map(TermCapacityDto.from),
+      terms: model.terms.map(TermOccupancyDto.from),
     };
   }
 }

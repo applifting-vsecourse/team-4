@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { formatCalendarRange } from "@/lib/date"
 
-import { type RoomInput, type TermCapacity } from "@/features/rooms/api/roomSchemas"
+import { type RoomInput, type TermOccupancy } from "@/features/rooms/api/roomSchemas"
 
 const MAX_BEDS = 1000
 
@@ -50,7 +50,7 @@ export type RoomFieldError = { field: "label"; message: string }
 type RoomFormProps = {
   initialValues: RoomFormValues
   /** The terms of this event; availability can only be chosen from them. */
-  terms: TermCapacity[]
+  terms: TermOccupancy[]
   organizationId: string
   eventId: string
   isLoading: boolean

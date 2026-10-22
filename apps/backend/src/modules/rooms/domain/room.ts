@@ -26,10 +26,18 @@ export type TermCapacity = {
   confirmed: number;
 };
 
+/** A term's capacity with how it is taken up (S2-10). */
+export type TermOccupancy = TermCapacity & {
+  /** Beds not taken by a confirmed participant; never below zero. */
+  free: number;
+  /** Waiting participants hold no bed and do not lower `free`. */
+  waitlisted: number;
+};
+
 export class RoomsOverviewModel {
   constructor(
     public readonly rooms: RoomModel[],
-    public readonly terms: TermCapacity[],
+    public readonly terms: TermOccupancy[],
   ) {}
 }
 
@@ -42,6 +50,15 @@ export const termCapacity = (
   ...term,
   capacity: capacityFromBeds(bedCounts),
   confirmed,
+});
+
+export const termOccupancy = (
+  term: TermCapacity,
+  waitlisted: number,
+): TermOccupancy => ({
+  ...term,
+  free: Math.max(term.capacity - term.confirmed, 0),
+  waitlisted,
 });
 
 /**

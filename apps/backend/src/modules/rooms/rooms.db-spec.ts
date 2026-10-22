@@ -1,6 +1,10 @@
+import { randomUUID } from 'node:crypto';
 import { PrismaModule } from '@/core/prisma/prisma.module';
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import { PublicRegistrationsController } from '@/modules/registrations/controllers/public-registrations.controller';
+import { RegistrationsRepository } from '@/modules/registrations/repositories/registrations.repository';
+import { RegistrationsService } from '@/modules/registrations/services/registrations.service';
 import { RoomsController } from '@/modules/rooms/controllers/rooms.controller';
 import { RoomsRepository } from '@/modules/rooms/repositories/rooms.repository';
 import { RoomsService } from '@/modules/rooms/services/rooms.service';
@@ -8,13 +12,14 @@ import {
   createEvent,
   createOrganization,
   createOrganizer,
+  createPayment,
   createRegistration,
 } from '@/testing/factories';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
-// S2-05 through the HTTP API against a real database: controllers, validation,
-// service rules, the term row locks and the constraints together. Only the
+// S2-05 and S2-10 through the HTTP API against a real database: controllers,
+// validation, service rules, the term row locks and the constraints together. Only the
 // BetterAuth session is replaced: the `x-test-user` header names the caller.
 // Needs a migrated Postgres in DATABASE_URL: `pnpm backend test:db`.
 
@@ -47,8 +52,14 @@ let prisma: PrismaService;
 beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({
     imports: [PrismaModule],
-    controllers: [RoomsController],
-    providers: [RoomsService, RoomsRepository],
+    // The public form, so occupancy is checked after a real submission too.
+    controllers: [RoomsController, PublicRegistrationsController],
+    providers: [
+      RoomsService,
+      RoomsRepository,
+      RegistrationsService,
+      RegistrationsRepository,
+    ],
   }).compile();
   app = moduleRef.createNestApplication();
   await app.listen(0);
@@ -90,7 +101,7 @@ type EventFixture = {
   termIds: string[];
   prisma: PrismaService;
   terms: { id: string }[];
-  event: { id: string };
+  event: { id: string; publicId: string };
 };
 
 /** An own organization with one event, by default open (hence locked). */
@@ -555,6 +566,128 @@ describe('protecting confirmed capacity', () => {
   });
 });
 
+describe('occupancy of terms', () => {
+  type Status = 'confirmed' | 'waitlisted';
+
+  /** One registration with its own status in each listed term (by index). */
+  const register = async (
+    f: EventFixture,
+    statuses: Record<number, Status>,
+  ): Promise<Awaited<ReturnType<typeof createRegistration>>> => {
+    const event = await prisma.event.findUniqueOrThrow({
+      where: { id: f.eventId },
+    });
+    const terms = await prisma.eventTerm.findMany({
+      where: { eventId: f.eventId },
+    });
+    return createRegistration(prisma, {
+      event,
+      terms: Object.entries(statuses).map(([index, status]) => ({
+        term: terms.find((term) => term.id === f.termIds[Number(index)])!,
+        status,
+      })),
+    });
+  };
+
+  /** Capacity / confirmed / free / waitlisted of each term, by label. */
+  const occupancy = (body: {
+    terms: {
+      label: string;
+      capacity: number;
+      confirmed: number;
+      free: number;
+      waitlisted: number;
+    }[];
+  }): Record<string, number[]> =>
+    Object.fromEntries(
+      body.terms.map((term) => [
+        term.label,
+        [term.capacity, term.confirmed, term.free, term.waitlisted],
+      ]),
+    );
+
+  it('counts a registration in each term by its own status, whatever was paid', async () => {
+    const f = await eventWith();
+    await call(f.ownerId, 'POST', f.path, {
+      label: 'Pokoj 1',
+      bedCount: 2,
+      termIds: f.termIds,
+    });
+    const paid = await register(f, { 0: 'confirmed', 1: 'waitlisted' });
+    await register(f, { 0: 'confirmed' });
+    await register(f, { 0: 'waitlisted' });
+    await createPayment(prisma, {
+      registration: paid,
+      recordedById: f.ownerId,
+      amountMinor: 500_000,
+    });
+
+    const overview = await call(f.ownerId, 'GET', f.path);
+    expect(overview.status).toBe(200);
+    expect(occupancy(overview.body)).toEqual({
+      T1: [2, 2, 0, 1],
+      T2: [2, 0, 2, 1],
+    });
+  });
+
+  it('shows every bed free without registrations, and no beds with the waiting kept', async () => {
+    const f = await eventWith();
+    await call(f.ownerId, 'POST', f.path, {
+      label: 'Pokoj 1',
+      bedCount: 3,
+      termIds: [f.termIds[0]],
+    });
+    await register(f, { 1: 'waitlisted' });
+
+    const overview = await call(f.ownerId, 'GET', f.path);
+    expect(occupancy(overview.body)).toEqual({
+      T1: [3, 0, 3, 0],
+      T2: [0, 0, 0, 1],
+    });
+  });
+
+  it('reads what a real submission and a later room change saved', async () => {
+    const f = await eventWith();
+    const room = await call(f.ownerId, 'POST', f.path, {
+      label: 'Pokoj 1',
+      bedCount: 1,
+      termIds: [f.termIds[0]],
+    });
+    const submit = async (): Promise<number> => {
+      const response = await fetch(
+        `${baseUrl}/public/events/${f.event.publicId}/registrations`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            submissionKey: randomUUID(),
+            firstName: 'Jana',
+            lastName: 'Nováková',
+            email: `jana-${randomUUID().slice(0, 8)}@example.test`,
+            phone: '+420 777 123 456',
+            termIds: [f.termIds[0]],
+          }),
+        },
+      );
+      return response.status;
+    };
+    expect(await submit()).toBe(201);
+    expect(await submit()).toBe(201);
+
+    const submitted = await call(f.ownerId, 'GET', f.path);
+    expect(occupancy(submitted.body).T1).toEqual([1, 1, 0, 1]);
+
+    // More beds do not turn the waiting participant into a confirmed one.
+    await call(f.ownerId, 'PUT', `${f.path}/${room.body.rooms[0].id}`, {
+      label: 'Pokoj 1',
+      bedCount: 3,
+      termIds: [f.termIds[0]],
+    });
+    const enlarged = await call(f.ownerId, 'GET', f.path);
+    expect(occupancy(enlarged.body).T1).toEqual([3, 1, 2, 1]);
+  });
+});
+
 describe('access', () => {
   it('treats a foreign organization or event like a missing one, for reading and writing', async () => {
     const mine = await eventWith();
@@ -567,7 +700,9 @@ describe('access', () => {
     const foreignRoom = created.body.rooms[0].id as string;
     const input = { label: 'X', bedCount: 1, termIds: [] };
 
-    expect((await call(mine.ownerId, 'GET', foreign.path)).status).toBe(404);
+    const read = await call(mine.ownerId, 'GET', foreign.path);
+    expect(read.status).toBe(404);
+    expect(read.body).not.toHaveProperty('terms');
     expect((await call(mine.ownerId, 'POST', foreign.path, input)).status).toBe(
       404,
     );

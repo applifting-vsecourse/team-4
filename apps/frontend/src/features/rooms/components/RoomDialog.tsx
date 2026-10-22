@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
-import { type Room, type RoomInput, type TermCapacity } from "@/features/rooms/api/roomSchemas"
+import { type Room, type RoomInput, type TermOccupancy } from "@/features/rooms/api/roomSchemas"
 import { RoomForm, type RoomFormValues } from "@/features/rooms/components/RoomForm"
 import { useRefreshRooms, useSaveRoom } from "@/features/rooms/hooks/useRoomMutations"
 import { describeRoomError, type RoomSaveError } from "@/features/rooms/lib/roomErrors"
@@ -20,7 +20,7 @@ const NEW_ROOM: RoomFormValues = { label: "", bedCount: "", termIds: [] }
 type RoomDialogProps = {
   organizationId: string
   eventId: string
-  terms: TermCapacity[]
+  terms: TermOccupancy[]
   /** The room to edit; without it the dialog adds a new one. */
   room?: Room
   /** Called after a saved change, e.g. to reload the capacity shown elsewhere. */

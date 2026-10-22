@@ -13,9 +13,10 @@ import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { useRefreshEvent } from "@/features/events/hooks/useEventMutations"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { roomsQueryOptions } from "@/features/rooms/api/roomQueryOptions"
+import { OccupancySection } from "@/features/rooms/components/OccupancySection"
 import { RoomsSection } from "@/features/rooms/components/RoomsSection"
 
-// Správa akce → Ubytování → Pokoje (S2-05).
+// Správa akce → Ubytování: occupancy of the terms (S2-10) and rooms (S2-05).
 export const Route = createFileRoute(
   "/_ProtectedPages/organizations/$organizationId/events/$eventId/rooms",
 )({
@@ -33,32 +34,43 @@ function RoomsPage() {
   const { organizationId, eventId } = Route.useParams()
   const { data: organization } = useSuspenseQuery(organizationQueryOptions(organizationId))
   const { data: event } = useSuspenseQuery(eventQueryOptions(organizationId, eventId))
-  const { data: overview } = useSuspenseQuery(roomsQueryOptions(organizationId, eventId))
+  const rooms = useSuspenseQuery(roomsQueryOptions(organizationId, eventId))
   // The term capacities on the event page are derived from these rooms.
   const refreshEvent = useRefreshEvent(organizationId, eventId)
 
   return (
     <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
-      <Seo title={`Pokoje – ${event.name}`} />
+      <Seo title={`Ubytování – ${event.name}`} />
       <PageHeader
         breadcrumb={
           <EventBreadcrumb
             organizationId={organizationId}
             organizationName={organization.name}
             event={event}
-            current="Ubytování / Pokoje"
+            current="Ubytování"
           />
         }
         title={event.name}
         badge={<EventStatusBadge status={event.status} />}
         description={event.location}
       />
-      <RoomsSection
-        organizationId={organizationId}
-        eventId={eventId}
-        overview={overview}
-        onChanged={refreshEvent}
-      />
+      <div className="space-y-8">
+        <OccupancySection
+          organizationId={organizationId}
+          eventId={eventId}
+          terms={rooms.data.terms}
+          updatedAt={rooms.dataUpdatedAt}
+          isRefreshing={rooms.isFetching}
+          hasRefreshFailed={rooms.isRefetchError}
+          onRefresh={rooms.refetch}
+        />
+        <RoomsSection
+          organizationId={organizationId}
+          eventId={eventId}
+          overview={rooms.data}
+          onChanged={refreshEvent}
+        />
+      </div>
     </section>
   )
 }
@@ -76,7 +88,7 @@ function Unavailable() {
             organizationName={organization?.name}
           />
         }
-        title="Pokoje a lůžka"
+        title="Ubytování"
       />
       <RecordUnavailable
         action={

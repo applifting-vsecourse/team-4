@@ -10,11 +10,6 @@ vi.mock("@/lib/api-client", () => ({
   HTTPError: class HTTPError extends Error {},
 }))
 
-// The links need a router; the tests only look at their text.
-vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children }: { children: React.ReactNode }) => <a href="#test">{children}</a>,
-}))
-
 const T1 = "0190c0de-0000-7000-8000-000000000011"
 const T2 = "0190c0de-0000-7000-8000-000000000012"
 
@@ -26,6 +21,8 @@ const terms = [
     endDate: "2027-07-07",
     capacity: 5,
     confirmed: 3,
+    free: 2,
+    waitlisted: 0,
   },
   {
     id: T2,
@@ -34,6 +31,8 @@ const terms = [
     endDate: "2027-07-21",
     capacity: 3,
     confirmed: 0,
+    free: 3,
+    waitlisted: 0,
   },
 ]
 
@@ -51,7 +50,7 @@ function renderSection(overview: RoomsOverview) {
 }
 
 describe("RoomsSection", () => {
-  it("lists every room with its beds and availability, and the capacity of each term", () => {
+  it("lists every room with its beds and availability", () => {
     renderSection({
       terms,
       rooms: [
@@ -69,27 +68,16 @@ describe("RoomsSection", () => {
     expect(
       within(room("Pokoj 1")).getByRole("button", { name: "Upravit pokoj Pokoj 1" }),
     ).toHaveTextContent("Upravit")
-
-    const capacities = screen.getAllByRole("listitem")
-    expect(capacities).toHaveLength(2)
-    expect(within(capacities[0]!).getByText("5 lůžek")).toBeInTheDocument()
-    expect(within(capacities[0]!).getByText("1. 7. – 7. 7. 2027")).toBeInTheDocument()
-    expect(within(capacities[1]!).getByText("3 lůžka")).toBeInTheDocument()
   })
 
-  it("shows an empty state with the add action and zero capacity", () => {
-    renderSection({
-      terms: terms.map((term) => ({ ...term, capacity: 0, confirmed: 0 })),
-      rooms: [],
-    })
+  it("shows an empty state with the add action", () => {
+    renderSection({ terms, rooms: [] })
     expect(screen.getByText("Zatím žádné pokoje")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Přidat pokoj" })).toBeInTheDocument()
-    expect(screen.getAllByText("0 lůžek")).toHaveLength(2)
   })
 
-  it("points to adding a term when the event has none", () => {
+  it("lets a room be added in an event without terms", () => {
     renderSection({ terms: [], rooms: [] })
-    expect(screen.getByText(/Akce zatím nemá žádné termíny/)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Přidat pokoj" })).toBeInTheDocument()
   })
 })

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
-import { type TermCapacity } from "@/features/rooms/api/roomSchemas"
+import { type TermOccupancy } from "@/features/rooms/api/roomSchemas"
 import {
   RoomForm,
   type RoomFieldError,
@@ -19,7 +19,7 @@ vi.mock("@tanstack/react-router", () => ({
 const T1 = "0190c0de-0000-7000-8000-000000000011"
 const T2 = "0190c0de-0000-7000-8000-000000000012"
 
-const TERMS: TermCapacity[] = [
+const TERMS: TermOccupancy[] = [
   {
     id: T1,
     label: "T1",
@@ -27,6 +27,8 @@ const TERMS: TermCapacity[] = [
     endDate: "2027-07-07",
     capacity: 0,
     confirmed: 0,
+    free: 0,
+    waitlisted: 0,
   },
   {
     id: T2,
@@ -35,6 +37,8 @@ const TERMS: TermCapacity[] = [
     endDate: "2027-07-21",
     capacity: 0,
     confirmed: 0,
+    free: 0,
+    waitlisted: 0,
   },
 ]
 
@@ -42,7 +46,7 @@ const EMPTY: RoomFormValues = { label: "", bedCount: "", termIds: [] }
 
 function renderForm(
   initialValues: RoomFormValues,
-  options: { terms?: TermCapacity[]; fieldError?: RoomFieldError } = {},
+  options: { terms?: TermOccupancy[]; fieldError?: RoomFieldError } = {},
 ) {
   const onSubmit = vi.fn()
   render(
