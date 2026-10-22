@@ -95,15 +95,17 @@ export function RegistrationForm({
 
   if (terms.length === 0) {
     return (
-      <Empty className="border border-dashed">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <CalendarX />
-          </EmptyMedia>
-          <EmptyTitle>Akce nemá termíny k výběru</EmptyTitle>
-          <EmptyDescription>Bez termínu nelze přihlášku odeslat.</EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <div className="rounded-lg border border-dashed">
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <CalendarX />
+            </EmptyMedia>
+            <EmptyTitle>Akce nemá termíny k výběru</EmptyTitle>
+            <EmptyDescription>Bez termínu nelze přihlášku odeslat.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </div>
     )
   }
 
@@ -142,15 +144,17 @@ export function RegistrationForm({
                       />
                       <Label
                         htmlFor={id}
-                        className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1 after:absolute after:inset-0 after:rounded-lg"
+                        className="relative min-w-0 flex-1 after:absolute after:inset-0"
                       >
-                        <span className="min-w-0 break-words">
-                          {term.label}
-                          <span className="mt-0.5 block font-normal text-muted-foreground">
-                            {formatCalendarRange(term.startDate, term.endDate)}
+                        <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                          <span className="min-w-0 break-words">
+                            {term.label}
+                            <span className="mt-0.5 block font-normal text-muted-foreground">
+                              {formatCalendarRange(term.startDate, term.endDate)}
+                            </span>
                           </span>
+                          <span className="tabular-nums">{formatCzk(term.priceMinor)}</span>
                         </span>
-                        <span className="tabular-nums">{formatCzk(term.priceMinor)}</span>
                       </Label>
                     </div>
                   )

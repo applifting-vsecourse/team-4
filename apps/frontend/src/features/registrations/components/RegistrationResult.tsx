@@ -45,8 +45,8 @@ export function RegistrationResult({ result }: { result: Result }) {
         </div>
       </div>
 
-      <Card className="gap-0 p-0">
-        <ul className="divide-y divide-border">
+      <Card>
+        <ul className="-my-6 divide-y divide-border">
           {result.terms.map((term) => {
             const status = STATUS[term.status]
             return (

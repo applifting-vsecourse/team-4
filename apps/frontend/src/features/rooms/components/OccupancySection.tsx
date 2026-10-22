@@ -102,34 +102,36 @@ export function OccupancySection({
             </Alert>
           ) : null}
 
-          <Card className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Termín</TableHead>
-                  <TableHead className="text-right">Kapacita</TableHead>
-                  <TableHead className="text-right">Potvrzení</TableHead>
-                  <TableHead className="text-right">Volná lůžka</TableHead>
-                  <TableHead className="text-right">Náhradníci</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {terms.map((term) => (
-                  <TableRow key={term.id}>
-                    <TableCell>
-                      <p className="font-medium">{term.label}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatCalendarRange(term.startDate, term.endDate)}
-                      </p>
-                    </TableCell>
-                    <TableCell className="text-right">{term.capacity}</TableCell>
-                    <TableCell className="text-right">{term.confirmed}</TableCell>
-                    <TableCell className="text-right">{term.free}</TableCell>
-                    <TableCell className="text-right">{term.waitlisted}</TableCell>
+          <Card>
+            <div className="-my-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Termín</TableHead>
+                    <TableHead className="text-right">Kapacita</TableHead>
+                    <TableHead className="text-right">Potvrzení</TableHead>
+                    <TableHead className="text-right">Volná lůžka</TableHead>
+                    <TableHead className="text-right">Náhradníci</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {terms.map((term) => (
+                    <TableRow key={term.id}>
+                      <TableCell>
+                        <p className="font-medium">{term.label}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatCalendarRange(term.startDate, term.endDate)}
+                        </p>
+                      </TableCell>
+                      <TableCell className="text-right">{term.capacity}</TableCell>
+                      <TableCell className="text-right">{term.confirmed}</TableCell>
+                      <TableCell className="text-right">{term.free}</TableCell>
+                      <TableCell className="text-right">{term.waitlisted}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </Card>
 
           <div className="space-y-1 text-sm text-muted-foreground">
