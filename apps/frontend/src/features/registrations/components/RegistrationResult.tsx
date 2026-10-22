@@ -75,7 +75,7 @@ export function RegistrationResult({ result }: { result: Result }) {
         </p>
         {hasWaitlisted ? (
           <p className="text-muted-foreground">
-            V termínech označených jako náhradník zatím nemáte místo a nedrží se vám v nich lůžko.
+            Pokud se místo uvolní a bude vám přiděleno, dáme vám vědět e-mailem.
           </p>
         ) : null}
       </div>

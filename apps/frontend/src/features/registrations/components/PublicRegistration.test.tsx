@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   type RegistrationResult,
@@ -104,6 +104,10 @@ beforeEach(() => {
   post.mockReset()
 })
 
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
 describe("selecting terms", () => {
   it("lists every term with its dates and price and nothing about availability", () => {
     renderForm()
@@ -183,6 +187,7 @@ describe("validation", () => {
 
 describe("submitting", () => {
   it("sends the selection once, shows progress, then the stored result of each term", async () => {
+    const scrollTo = vi.spyOn(window, "scrollTo").mockReturnValue(undefined)
     let resolve: ((body: unknown) => void) | undefined
     post.mockReturnValue({ json: () => new Promise((r) => (resolve = r)) })
     renderForm()
@@ -198,6 +203,8 @@ describe("submitting", () => {
     resolve?.(RESULT)
 
     expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" })
+    expect(screen.getByRole("heading", { name: "Přihláška je uložená" })).toHaveFocus()
     expect(post).toHaveBeenCalledTimes(1)
     expect(post.mock.calls[0]?.[0]).toBe("public/events/abcdefghijkl/registrations")
     expect(sentBody()).toMatchObject({
@@ -210,6 +217,9 @@ describe("submitting", () => {
     const terms = screen.getAllByRole("listitem")
     expect(within(terms[0]!).getByText("Potvrzeno")).toBeInTheDocument()
     expect(within(terms[1]!).getByText("Náhradník")).toBeInTheDocument()
+    expect(
+      screen.getByText("Pokud se místo uvolní a bude vám přiděleno, dáme vám vědět e-mailem."),
+    ).toBeInTheDocument()
     expect(screen.getByText(/20\. 10\. 2026 14:03/)).toBeInTheDocument()
   })
 

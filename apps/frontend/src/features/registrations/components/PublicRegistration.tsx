@@ -30,8 +30,8 @@ export function PublicRegistration({ publicId, terms }: PublicRegistrationProps)
   useEffect(() => {
     if (!submit.data) return
     const heading = resultHeading.current?.querySelector<HTMLElement>("h2")
-    heading?.focus()
-    heading?.scrollIntoView?.({ block: "start" })
+    heading?.focus({ preventScroll: true })
+    window.scrollTo({ top: 0, behavior: "smooth" })
   }, [submit.data])
 
   if (submit.data) {
