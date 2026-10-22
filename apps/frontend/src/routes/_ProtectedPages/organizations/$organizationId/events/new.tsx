@@ -1,20 +1,21 @@
 import { useState } from "react"
 import { useSuspenseQuery } from "@tanstack/react-query"
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
 import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { readApiError } from "@/lib/apiError"
 
+import { useSession } from "@/features/auth/hooks/useSession"
 import { type EventInput } from "@/features/events/api/eventSchemas"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventForm } from "@/features/events/components/EventForm"
 import { useCreateEvent } from "@/features/events/hooks/useEventMutations"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
+import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
 
 // Wireframy E1, E2.
 export const Route = createFileRoute("/_ProtectedPages/organizations/$organizationId/events/new")({
@@ -76,14 +77,17 @@ function NewEventPage() {
 }
 
 function Unavailable() {
+  const { organizationId } = Route.useParams()
+  const { user } = useSession()
   return (
     <section className="mx-auto w-full max-w-xl px-4 py-8 md:py-12">
       <PageHeader title="Nová akce" />
       <RecordUnavailable
         action={
-          <Button asChild>
-            <Link to={ROUTES.organizations}>Zpět na moje organizace</Link>
-          </Button>
+          <BackToEventsButton
+            organizationId={organizationId}
+            userId={user?.id}
+          />
         }
       />
     </section>

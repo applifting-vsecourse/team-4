@@ -1,6 +1,5 @@
-import { Link } from "@tanstack/react-router"
+import type { ReactNode } from "react"
 
-import { ROUTES } from "@/app/routes"
 import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -14,6 +13,8 @@ type EventLoadErrorProps = {
   organizationName?: string
   error: unknown
   onRetry: () => void
+  /** The way out of "Záznam není dostupný", to an own organization's events. */
+  backAction: ReactNode
 }
 
 // A foreign and a missing event look the same (S2-03, Wireframy N1). Any other
@@ -23,6 +24,7 @@ export function EventLoadError({
   organizationName,
   error,
   onRetry,
+  backAction,
 }: EventLoadErrorProps) {
   const isGone = error instanceof HTTPError && [403, 404].includes(error.response.status)
 
@@ -38,18 +40,7 @@ export function EventLoadError({
         title="Akce a turnusy"
       />
       {isGone ? (
-        <RecordUnavailable
-          action={
-            <Button asChild>
-              <Link
-                to={ROUTES.organization}
-                params={{ organizationId }}
-              >
-                Zpět na přehled akcí
-              </Link>
-            </Button>
-          }
-        />
+        <RecordUnavailable action={backAction} />
       ) : (
         <Alert variant="destructive">
           <AlertTitle>Akci se nepodařilo načíst</AlertTitle>

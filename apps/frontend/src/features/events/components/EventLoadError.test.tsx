@@ -6,12 +6,11 @@ import { HTTPError } from "@/lib/api-client"
 
 import { EventLoadError } from "@/features/events/components/EventLoadError"
 
-vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children }: { children: React.ReactNode }) => <a href="/">{children}</a>,
-}))
 vi.mock("@/features/events/components/EventBreadcrumb", () => ({
   EventBreadcrumb: () => null,
 }))
+
+const BACK = <button type="button">Zpět na přehled akcí</button>
 
 function httpError(status: number) {
   const error = Object.create(HTTPError.prototype) as HTTPError
@@ -27,6 +26,7 @@ describe("EventLoadError", () => {
         organizationId="org-a"
         error={new Error("Failed to fetch")}
         onRetry={onRetry}
+        backAction={BACK}
       />,
     )
     expect(screen.queryByText(/nemá žádný termín/)).not.toBeInTheDocument()
@@ -40,6 +40,7 @@ describe("EventLoadError", () => {
         organizationId="org-a"
         error={httpError(500)}
         onRetry={vi.fn()}
+        backAction={BACK}
       />,
     )
     expect(screen.getByRole("button", { name: "Zkusit znovu" })).toBeInTheDocument()
@@ -53,9 +54,11 @@ describe("EventLoadError", () => {
           organizationId="org-a"
           error={httpError(status)}
           onRetry={vi.fn()}
+          backAction={BACK}
         />,
       )
       expect(screen.getByText("Záznam není dostupný")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "Zpět na přehled akcí" })).toBeInTheDocument()
       expect(screen.queryByRole("button", { name: "Zkusit znovu" })).not.toBeInTheDocument()
     },
   )

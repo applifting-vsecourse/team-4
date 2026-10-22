@@ -6,15 +6,26 @@ import { BrandMark } from "@/components/BrandMark"
 import { ThemeSwitcher } from "@/components/Header/ThemeSwitcher"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 
+import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOptions"
 import { SidebarAccount } from "@/features/auth/components/SidebarAccount"
 import { EventNavigation } from "@/features/events/components/EventNavigation"
 import { organizationsQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { OrganizationSidebar } from "@/features/organizations/components/OrganizationSidebar"
+import { rememberOrganization } from "@/features/organizations/lib/lastOrganization"
 
 // Shell of every page of one organization: sidebar + workspace (Wireframy
 // "Navigace" and "Pracovní plocha"). On a phone the sidebar opens as a sheet.
 export const Route = createFileRoute("/_ProtectedPages/organizations/$organizationId")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(organizationsQueryOptions()),
+  loader: async ({ context, params, preload: isPreload }) => {
+    const [organizations, session] = await Promise.all([
+      context.queryClient.ensureQueryData(organizationsQueryOptions()),
+      context.queryClient.ensureQueryData(authSessionQueryOptions()),
+    ])
+    // The fallback of "Zpět na přehled akcí" (S2-03). A link preloaded on
+    // hover is not a visit, and a foreign organization is never remembered.
+    const isOwn = organizations.some((organization) => organization.id === params.organizationId)
+    if (!isPreload && session && isOwn) rememberOrganization(session.user.id, params.organizationId)
+  },
   component: OrganizationShell,
 })
 

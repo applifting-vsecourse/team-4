@@ -4,6 +4,7 @@ import { createFileRoute, useRouter, type ErrorComponentProps } from "@tanstack/
 import { PageHeader } from "@/components/PageHeader"
 import { Seo } from "@/components/Seo"
 
+import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventLoadError } from "@/features/events/components/EventLoadError"
@@ -11,6 +12,7 @@ import { EventNavigation } from "@/features/events/components/EventNavigation"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { MissingTermNotice } from "@/features/events/components/MissingTermNotice"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
+import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
 
 // Management of one event: its details, terms (S2-04), rooms (S2-05) and payments (S2-09).
 export const Route = createFileRoute(
@@ -62,6 +64,7 @@ function Unavailable({ error, reset }: ErrorComponentProps) {
   const { organizationId } = Route.useParams()
   const router = useRouter()
   const { data: organization } = useQuery(organizationQueryOptions(organizationId))
+  const { user } = useSession()
   return (
     <EventLoadError
       organizationId={organizationId}
@@ -71,6 +74,12 @@ function Unavailable({ error, reset }: ErrorComponentProps) {
         reset()
         void router.invalidate()
       }}
+      backAction={
+        <BackToEventsButton
+          organizationId={organizationId}
+          userId={user?.id}
+        />
+      }
     />
   )
 }

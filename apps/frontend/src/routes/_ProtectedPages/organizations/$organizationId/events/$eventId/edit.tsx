@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { readApiError } from "@/lib/apiError"
 
+import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { type EventInput } from "@/features/events/api/eventSchemas"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
@@ -18,6 +19,7 @@ import { EventForm } from "@/features/events/components/EventForm"
 import { EventLockedAlert } from "@/features/events/components/EventLockedAlert"
 import { useRefreshEvent, useUpdateEvent } from "@/features/events/hooks/useEventMutations"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
+import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
 
 export const Route = createFileRoute(
   "/_ProtectedPages/organizations/$organizationId/events/$eventId/edit",
@@ -115,6 +117,7 @@ function EditEventPage() {
 
 // A foreign and a missing event look the same (S2-03, Wireframy N1).
 function Unavailable() {
+  const { user } = useSession()
   const { organizationId } = Route.useParams()
   const { data: organization } = useQuery(organizationQueryOptions(organizationId))
   return (
@@ -130,14 +133,10 @@ function Unavailable() {
       />
       <RecordUnavailable
         action={
-          <Button asChild>
-            <Link
-              to={ROUTES.organization}
-              params={{ organizationId }}
-            >
-              Zpět na přehled akcí
-            </Link>
-          </Button>
+          <BackToEventsButton
+            organizationId={organizationId}
+            userId={user?.id}
+          />
         }
       />
     </section>

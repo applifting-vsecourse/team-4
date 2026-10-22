@@ -1,17 +1,17 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 
-import { ROUTES } from "@/app/routes"
 import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
-import { Button } from "@/components/ui/button"
 
+import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { useRefreshEvent } from "@/features/events/hooks/useEventMutations"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
+import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
 import { roomsQueryOptions } from "@/features/rooms/api/roomQueryOptions"
 import { OccupancySection } from "@/features/rooms/components/OccupancySection"
 import { RoomsSection } from "@/features/rooms/components/RoomsSection"
@@ -77,6 +77,7 @@ function RoomsPage() {
 
 // A foreign and a missing event look the same (S2-03, Wireframy N1).
 function Unavailable() {
+  const { user } = useSession()
   const { organizationId } = Route.useParams()
   const { data: organization } = useQuery(organizationQueryOptions(organizationId))
   return (
@@ -92,14 +93,10 @@ function Unavailable() {
       />
       <RecordUnavailable
         action={
-          <Button asChild>
-            <Link
-              to={ROUTES.organization}
-              params={{ organizationId }}
-            >
-              Zpět na přehled akcí
-            </Link>
-          </Button>
+          <BackToEventsButton
+            organizationId={organizationId}
+            userId={user?.id}
+          />
         }
       />
     </section>
