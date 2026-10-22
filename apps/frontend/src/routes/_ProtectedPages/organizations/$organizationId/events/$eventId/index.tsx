@@ -11,6 +11,7 @@ import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventNavigation } from "@/features/events/components/EventNavigation"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
+import { MissingTermNotice } from "@/features/events/components/MissingTermNotice"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 
 // Management of one event: its details, terms (S2-04), rooms (S2-05) and payments (S2-09).
@@ -46,6 +47,10 @@ function EventPage() {
         title={event.name}
         badge={<EventStatusBadge status={event.status} />}
         description={event.location}
+      />
+      <MissingTermNotice
+        organizationId={organizationId}
+        event={event}
       />
       <EventNavigation
         organizationId={organizationId}
