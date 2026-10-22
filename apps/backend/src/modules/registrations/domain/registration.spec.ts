@@ -1,6 +1,8 @@
 import {
+  amountDueMinor,
   decideParticipation,
   normalizeEmail,
+  paymentReminderAt,
   RegistrationInput,
   RegistrationResultModel,
   submissionHash,
@@ -86,7 +88,83 @@ describe('RegistrationResultModel', () => {
         { ...term, termId: 'b', priceMinor: 0, status: 'confirmed' },
         { ...term, termId: 'c', priceMinor: 1, status: 'waitlisted' },
       ],
+      '1001',
+      { prefix: null, number: '123456789', bankCode: '0800' },
+      new Date('2027-07-11T10:00:00Z'),
     );
     expect(result.selectedPriceMinor).toBe(450_051);
+    expect(result.amountDueMinor).toBe(450_050);
+    expect(result.paymentInstructions).toMatchObject({
+      amountMinor: 450_050,
+      variableSymbol: '1001',
+    });
+  });
+
+  it('gives no payment instructions at zero obligation', () => {
+    const term = { label: 'T', startDate: '2027-07-01', endDate: '2027-07-07' };
+    const result = new RegistrationResultModel(
+      'id',
+      new Date(),
+      'Jana',
+      'Nováková',
+      'jana@example.com',
+      '+420777123456',
+      [
+        { ...term, termId: 'a', priceMinor: 2_000, status: 'waitlisted' },
+        { ...term, termId: 'b', priceMinor: 0, status: 'confirmed' },
+      ],
+      '1002',
+      { prefix: null, number: '123456789', bankCode: '0800' },
+      null,
+    );
+    expect(result.amountDueMinor).toBe(0);
+    expect(result.paymentInstructions).toBeNull();
+  });
+});
+
+describe('amountDueMinor', () => {
+  it('counts confirmed terms only', () => {
+    expect(
+      amountDueMinor([
+        { status: 'confirmed', priceMinor: 1_000_00 },
+        { status: 'waitlisted', priceMinor: 2_000_00 },
+      ]),
+    ).toBe(100_000);
+  });
+
+  it('is zero for waitlisted-only, free or no terms', () => {
+    expect(amountDueMinor([{ status: 'waitlisted', priceMinor: 5 }])).toBe(0);
+    expect(amountDueMinor([{ status: 'confirmed', priceMinor: 0 }])).toBe(0);
+    expect(amountDueMinor([])).toBe(0);
+  });
+});
+
+describe('paymentReminderAt', () => {
+  it('adds calendar days at the same Prague time within one offset', () => {
+    // 12:00 Prague (CEST, UTC+2) on 1 July + 10 days
+    expect(
+      paymentReminderAt(new Date('2027-07-01T10:00:00Z'), 10).toISOString(),
+    ).toBe('2027-07-11T10:00:00.000Z');
+  });
+
+  it('keeps the wall-clock time across the spring DST change', () => {
+    // 27 Mar 2027 12:00 CET (UTC+1) -> 3 Apr 2027 12:00 CEST (UTC+2)
+    expect(
+      paymentReminderAt(new Date('2027-03-27T11:00:00Z'), 7).toISOString(),
+    ).toBe('2027-04-03T10:00:00.000Z');
+  });
+
+  it('keeps the wall-clock time across the autumn DST change', () => {
+    // 23 Oct 2027 12:00 CEST (UTC+2) -> 30 Oct 2027 12:00 CET (UTC+1)
+    expect(
+      paymentReminderAt(new Date('2027-10-23T10:00:00Z'), 10).toISOString(),
+    ).toBe('2027-11-02T11:00:00.000Z');
+  });
+
+  it('keeps the Prague date near midnight UTC', () => {
+    // 00:30 Prague on 28 Mar 2027 (CET) + 1 day = 29 Mar 00:30 CEST
+    expect(
+      paymentReminderAt(new Date('2027-03-27T23:30:00Z'), 1).toISOString(),
+    ).toBe('2027-03-28T22:30:00.000Z');
   });
 });

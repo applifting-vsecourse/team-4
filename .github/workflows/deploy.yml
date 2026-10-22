@@ -33,6 +33,9 @@ jobs:
           context: .
           file: apps/backend/Dockerfile.deploy
           push: true
+          build-args: |
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            EMAIL_ALLOWED_RECIPIENT=${{ vars.EMAIL_ALLOWED_RECIPIENT }}
           tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend:latest
       - name: Build & push frontend
         uses: docker/build-push-action@v6

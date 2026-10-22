@@ -2,8 +2,10 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import {
+  amountDueMinor,
   decideParticipation,
   normalizeEmail,
+  paymentReminderAt,
   RegistrationInput,
   RegistrationResultModel,
 } from '@/modules/registrations/domain/registration';
@@ -20,6 +22,11 @@ const resultSelect = {
   lastName: true,
   email: true,
   phone: true,
+  variableSymbol: true,
+  bankAccountPrefix: true,
+  bankAccountNumber: true,
+  bankCode: true,
+  paymentReminderAt: true,
   terms: {
     orderBy: [{ term: { startDate: 'asc' } }, { termId: 'asc' }],
     select: {
@@ -49,6 +56,13 @@ const toResult = (
       priceMinor: term.priceMinor,
       status: term.status,
     })),
+    row.variableSymbol,
+    {
+      prefix: row.bankAccountPrefix,
+      number: row.bankAccountNumber,
+      bankCode: row.bankCode,
+    },
+    row.paymentReminderAt,
   );
 
 export type StoredSubmission = {
@@ -175,16 +189,27 @@ export class RegistrationsRepository {
       });
 
       const decidedAt = new Date();
-      await tx.registrationTerm.createMany({
-        data: terms.map((term) => ({
-          registrationId: registration.id,
-          termId: term.id,
-          eventId: event.id,
-          status: decideParticipation(toTermCapacity(term)),
-          priceMinor: term.priceMinor,
-          decidedAt,
-        })),
-      });
+      const decided = terms.map((term) => ({
+        registrationId: registration.id,
+        termId: term.id,
+        eventId: event.id,
+        status: decideParticipation(toTermCapacity(term)),
+        priceMinor: term.priceMinor,
+        decidedAt,
+      }));
+      await tx.registrationTerm.createMany({ data: decided });
+      // Set once, from the confirmation moment (S2-16); nothing is due otherwise.
+      if (amountDueMinor(decided) > 0) {
+        await tx.registration.update({
+          where: { id: registration.id },
+          data: {
+            paymentReminderAt: paymentReminderAt(
+              decidedAt,
+              event.paymentReminderDays,
+            ),
+          },
+        });
+      }
 
       await tx.emailDelivery.create({
         data: {

@@ -71,6 +71,10 @@ export class Config {
   @IsNotEmpty()
   readonly emailFrom!: string;
 
+  @Env('EMAIL_ALLOWED_RECIPIENT', { expose: true })
+  @IsOptional()
+  readonly emailAllowedRecipient?: string;
+
   @Env('SMTP_HOST', { expose: true })
   @IsOptional()
   readonly smtpHost?: string;
