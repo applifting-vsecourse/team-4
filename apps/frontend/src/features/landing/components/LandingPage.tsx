@@ -292,7 +292,6 @@ function OrganizerButton({
   )
 }
 
-// Participant magic-link access is S2-13; link it here once that route exists.
 function MyRegistrationsButton({
   variant = "outline",
   size = "default",
@@ -301,13 +300,15 @@ function MyRegistrationsButton({
 }: EntryButtonProps) {
   return (
     <Button
+      asChild
       variant={variant}
       size={size}
       className={className}
-      disabled
     >
-      Moje přihlášky
-      {hasArrow ? <ArrowRight aria-hidden /> : null}
+      <Link to={ROUTES.myRegistrations}>
+        Moje přihlášky
+        {hasArrow ? <ArrowRight aria-hidden /> : null}
+      </Link>
     </Button>
   )
 }
