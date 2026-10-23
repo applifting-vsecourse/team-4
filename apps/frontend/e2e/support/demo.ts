@@ -125,7 +125,22 @@ export const expect: typeof baseExpect = isDemo
     })
   : baseExpect
 
+const captions = new WeakMap<Page, string>()
+
+// A full page load (goto, reload) replaces the document and with it the
+// caption, so each page restores its current caption after every load.
 async function showCaption(page: Page, text: string) {
+  if (!captions.has(page)) {
+    page.on("load", () => {
+      const current = captions.get(page)
+      if (current) void renderCaption(page, current).catch(() => undefined)
+    })
+  }
+  captions.set(page, text)
+  await renderCaption(page, text)
+}
+
+async function renderCaption(page: Page, text: string) {
   await page.evaluate(
     ({ id, text }) => {
       let caption = document.getElementById(id)
