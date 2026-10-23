@@ -27,6 +27,7 @@ const resultSelect = {
   bankAccountNumber: true,
   bankCode: true,
   paymentReminderAt: true,
+  event: { select: { name: true, location: true } },
   terms: {
     orderBy: [{ term: { startDate: 'asc' } }, { termId: 'asc' }],
     select: {
@@ -63,6 +64,7 @@ const toResult = (
       bankCode: row.bankCode,
     },
     row.paymentReminderAt,
+    { name: row.event.name, location: row.event.location },
   );
 
 export type StoredSubmission = {
@@ -99,7 +101,7 @@ export class RegistrationsRepository {
       select: {
         ...resultSelect,
         payloadHash: true,
-        event: { select: { publicId: true } },
+        event: { select: { publicId: true, name: true, location: true } },
       },
     });
     if (!row) return null;

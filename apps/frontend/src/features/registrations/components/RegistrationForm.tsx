@@ -4,6 +4,7 @@ import { CalendarX, Loader2 } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 
+import { ROUTES } from "@/app/routes"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -283,8 +284,16 @@ function SubmitErrorAlert({ error }: { error: RegistrationSubmitError }) {
         <AlertTitle>Přihláška s tímto e-mailem již existuje</AlertTitle>
         <AlertDescription>
           Na tuto akci je s tímto e-mailem už přihláška uložená. Novou jsme nevytvořili a údaje té
-          existující tady nezobrazujeme.
+          existující tady nezobrazujeme. Přihlášku uvidíte po ověření odkazem z e-mailu.
         </AlertDescription>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-2 w-fit"
+          asChild
+        >
+          <a href={ROUTES.myRegistrations}>Vyžádat přihlašovací odkaz</a>
+        </Button>
       </Alert>
     )
   }

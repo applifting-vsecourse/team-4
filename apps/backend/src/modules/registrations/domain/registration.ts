@@ -121,6 +121,9 @@ export type PaymentInstructions = {
   reminderAt: Date;
 };
 
+/** The event a registration belongs to, as its participant sees it. */
+export type EventSummary = { name: string; location: string };
+
 export type RegistrationTermResult = {
   termId: string;
   label: string;
@@ -144,6 +147,7 @@ export class RegistrationResultModel {
     public readonly variableSymbol: string,
     public readonly account: BankAccount,
     public readonly reminderAt: Date | null,
+    public readonly event: EventSummary,
   ) {}
 
   /** Σ confirmed terms (S2-16); 0 for waitlisted-only or free terms. */

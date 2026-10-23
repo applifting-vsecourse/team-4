@@ -91,6 +91,7 @@ describe('RegistrationResultModel', () => {
       '1001',
       { prefix: null, number: '123456789', bankCode: '0800' },
       new Date('2027-07-11T10:00:00Z'),
+      { name: 'Tábor', location: 'Jizerka' },
     );
     expect(result.selectedPriceMinor).toBe(450_051);
     expect(result.amountDueMinor).toBe(450_050);
@@ -116,6 +117,7 @@ describe('RegistrationResultModel', () => {
       '1002',
       { prefix: null, number: '123456789', bankCode: '0800' },
       null,
+      { name: 'Tábor', location: 'Jizerka' },
     );
     expect(result.amountDueMinor).toBe(0);
     expect(result.paymentInstructions).toBeNull();

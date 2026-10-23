@@ -43,6 +43,7 @@ const TERMS: SelectableTerm[] = [
 const RESULT: RegistrationResult = {
   id: "0190c0de-0000-7000-8000-000000000099",
   receivedAt: "2026-10-20T12:03:00.000Z",
+  event: { name: "Letní tábor", location: "Jizerka" },
   firstName: "Jana",
   lastName: "Nováková",
   email: "jana@example.com",
@@ -66,7 +67,21 @@ const RESULT: RegistrationResult = {
     },
   ],
   selectedPriceMinor: 450_050,
+  amountDueMinor: 450_050,
+  paymentInstructions: {
+    amountMinor: 450_050,
+    variableSymbol: "2027094",
+    account: { prefix: null, number: "2501234567", bankCode: "2010" },
+    // 28 June 2027, 10:00 in Prague.
+    reminderAt: "2027-06-28T08:00:00.000Z",
+  },
 }
+
+/** The value next to a label in the payment summary, Intl's no-break spaces as plain ones. */
+const valueOf = (label: string) =>
+  screen
+    .getByText(label, { selector: "dt" })
+    .nextElementSibling?.textContent?.replace(/\u00a0/g, " ")
 
 const respondWith = (body: unknown) => ({ json: () => Promise.resolve(body) })
 const failWith = (status: number, body: unknown) => ({
@@ -221,6 +236,41 @@ describe("submitting", () => {
       screen.getByText("Pokud se místo uvolní a bude vám přiděleno, dáme vám vědět e-mailem."),
     ).toBeInTheDocument()
     expect(screen.getByText(/20\. 10\. 2026 14:03/)).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Letní tábor" })).toBeInTheDocument()
+    // Payment summary: the whole selection, what the confirmed terms owe, and the stored instructions.
+    expect(valueOf("Cena výběru")).toBe("4 500,50 Kč")
+    expect(valueOf("K úhradě za potvrzené termíny")).toBe("4 500,50 Kč")
+    expect(valueOf("Zaplaceno")).toBe("0 Kč")
+    expect(valueOf("Zbývá zaplatit")).toBe("4 500,50 Kč")
+    expect(valueOf("Datum připomenutí platby")).toBe("28. 6. 2027 (Europe/Prague)")
+    expect(valueOf("Číslo účtu")).toBe("2501234567/2010")
+    expect(valueOf("Variabilní symbol")).toBe("2027094")
+    expect(screen.queryByText(/splatnost/i)).not.toBeInTheDocument()
+    // No session is opened: other registrations stay behind the magic link.
+    expect(screen.getByRole("link", { name: "Moje přihlášky" })).toHaveAttribute(
+      "href",
+      "/my-registrations",
+    )
+  })
+
+  it("says nothing is owed when every confirmed term is free or waitlisted", async () => {
+    post.mockReturnValue(
+      respondWith({
+        ...RESULT,
+        terms: RESULT.terms.map((term) => ({ ...term, status: "waitlisted" })),
+        amountDueMinor: 0,
+        paymentInstructions: null,
+      }),
+    )
+    renderForm()
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await fillContact()
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText("Nyní nemáte platební povinnost.")).toBeInTheDocument()
+    expect(screen.queryByText("Zbývá zaplatit")).not.toBeInTheDocument()
+    expect(screen.queryByText("Datum připomenutí platby")).not.toBeInTheDocument()
+    expect(screen.queryByText("Variabilní symbol")).not.toBeInTheDocument()
   })
 
   it("keeps the form after a failure and retries with the same submission key", async () => {
@@ -259,6 +309,10 @@ describe("submitting", () => {
 
     expect(await screen.findByText("Přihláška s tímto e-mailem již existuje")).toBeInTheDocument()
     expect(screen.queryByText("Potvrzeno")).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Vyžádat přihlašovací odkaz" })).toHaveAttribute(
+      "href",
+      "/my-registrations",
+    )
     expect(screen.getByLabelText("E-mail")).toHaveValue("jana@example.com")
   })
 
