@@ -5,7 +5,7 @@ import { ClipboardList, Loader2, RefreshCw, X } from "lucide-react"
 import { ROUTES } from "@/app/routes"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -180,61 +180,59 @@ function RegistrationsResult({
       <p className="text-sm text-muted-foreground">
         Zobrazeno {registrations.length} z {total} · od nejstarší přihlášky
       </p>
-      <Card>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Účastník</TableHead>
-                <TableHead>Termíny</TableHead>
-                <TableHead>Přijato</TableHead>
-                <TableHead>Platba</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {registrations.map((registration) => {
-                const balance = describeBalance(registration.balanceMinor)
-                return (
-                  <TableRow key={registration.id}>
-                    <TableCell>
-                      <Link
-                        to={ROUTES.registration}
-                        params={{ organizationId, eventId, registrationId: registration.id }}
-                        className="font-medium text-foreground underline-offset-4 hover:underline"
-                      >
-                        {registration.firstName} {registration.lastName}
-                      </Link>
-                      <p className="text-xs text-muted-foreground">{registration.email}</p>
-                      <p className="text-xs text-muted-foreground">{registration.phone}</p>
-                    </TableCell>
-                    <TableCell>
-                      <ul className="space-y-1">
-                        {registration.terms.map((term) => (
-                          <li
-                            key={term.termId}
-                            className="flex items-center gap-2"
-                          >
-                            <span>{term.label}</span>
-                            <ParticipationBadge status={term.status} />
-                          </li>
-                        ))}
-                      </ul>
-                    </TableCell>
-                    <TableCell>{formatPragueDateTime(registration.receivedAt)}</TableCell>
-                    <TableCell>
-                      <PaymentStateBadge state={registration.paymentState} />
-                      {balance.amount ? (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {balance.label} {balance.amount}
-                        </p>
-                      ) : null}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
+      <Card padding="none">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Účastník</TableHead>
+              <TableHead>Termíny</TableHead>
+              <TableHead>Přijato</TableHead>
+              <TableHead>Platba</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {registrations.map((registration) => {
+              const balance = describeBalance(registration.balanceMinor)
+              return (
+                <TableRow key={registration.id}>
+                  <TableCell>
+                    <Link
+                      to={ROUTES.registration}
+                      params={{ organizationId, eventId, registrationId: registration.id }}
+                      className="font-medium text-foreground underline-offset-4 hover:underline"
+                    >
+                      {registration.firstName} {registration.lastName}
+                    </Link>
+                    <p className="text-xs text-muted-foreground">{registration.email}</p>
+                    <p className="text-xs text-muted-foreground">{registration.phone}</p>
+                  </TableCell>
+                  <TableCell>
+                    <ul className="space-y-1">
+                      {registration.terms.map((term) => (
+                        <li
+                          key={term.termId}
+                          className="flex items-center gap-2"
+                        >
+                          <span>{term.label}</span>
+                          <ParticipationBadge status={term.status} />
+                        </li>
+                      ))}
+                    </ul>
+                  </TableCell>
+                  <TableCell>{formatPragueDateTime(registration.receivedAt)}</TableCell>
+                  <TableCell>
+                    <PaymentStateBadge state={registration.paymentState} />
+                    {balance.amount ? (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {balance.label} {balance.amount}
+                      </p>
+                    ) : null}
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
       </Card>
     </div>
   )

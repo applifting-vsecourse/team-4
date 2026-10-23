@@ -106,7 +106,7 @@ export function DataDisplaySection() {
         title="Tabulka"
         description="Na úzké obrazovce se tabulka posouvá uvnitř svého kontejneru, ne celá stránka."
       >
-        <div className="rounded-lg border border-border bg-card">
+        <Card padding="none">
           <Table>
             <TableCaption className="sr-only">Přihlášky na Letní tábor 2027</TableCaption>
             <TableHeader>
@@ -134,7 +134,7 @@ export function DataDisplaySection() {
               ))}
             </TableBody>
           </Table>
-        </div>
+        </Card>
       </ShowcaseSection>
 
       <ShowcaseSection
