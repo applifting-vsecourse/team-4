@@ -37,4 +37,4 @@ pnpm frontend demo            # walkthrough for the PO: pauses after every step
 pnpm frontend demo:autoplay   # the same walkthrough without pauses
 ```
 
-`demo` opens a visible, slowed-down browser, captions each step in the page and types visibly. After each step it stops in the Playwright Inspector; press Resume (F8) to continue. `DEMO_SLOWMO=600` changes the speed. Scenarios mark their steps with `step()` and fill fields with `type()` from `e2e/support/demo.ts`.
+`demo` opens a visible, slowed-down browser that fills the screen, captions each step in the page, types visibly and smoothly scrolls whatever it clicks or checks into the middle of the window. After each step it stops in the Playwright Inspector; press Resume (F8) to continue. `demo:autoplay` runs at half that speed. `DEMO_SLOWMO=<ms per action>` sets the pace for either (default 350, autoplay 700). Scenarios mark their steps with `step()` and fill fields with `type()` from `e2e/support/demo.ts`.
