@@ -1,19 +1,11 @@
 import { CircleCheck } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { formatCalendarRange, formatPragueDateTime } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 
-import {
-  type ParticipationStatus,
-  type RegistrationResult as Result,
-} from "@/features/registrations/api/registrationSchemas"
-
-const STATUS: Record<ParticipationStatus, { label: string; variant: "success" | "warning" }> = {
-  confirmed: { label: "Potvrzeno", variant: "success" },
-  waitlisted: { label: "Náhradník", variant: "warning" },
-}
+import { type RegistrationResult as Result } from "@/features/registrations/api/registrationSchemas"
+import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
 
 // What the server saved for the registration just submitted, term by term
 // (S2-08). A minimal view from the POST response; S2-14 (#93) completes it.
@@ -48,7 +40,6 @@ export function RegistrationResult({ result }: { result: Result }) {
       <Card>
         <ul className="-my-6 divide-y divide-border">
           {result.terms.map((term) => {
-            const status = STATUS[term.status]
             return (
               <li
                 key={term.termId}
@@ -61,7 +52,7 @@ export function RegistrationResult({ result }: { result: Result }) {
                     <span className="font-mono">{formatCzk(term.priceMinor)}</span>
                   </p>
                 </div>
-                <Badge variant={status.variant}>{status.label}</Badge>
+                <ParticipationBadge status={term.status} />
               </li>
             )
           })}
