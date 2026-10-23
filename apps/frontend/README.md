@@ -24,3 +24,17 @@ pnpm frontend build
 ```
 
 The frontend runs at http://localhost:3050 and builds to `build`. See the [root README](../../README.md) for full setup. Browser-visible environment variables use the `VITE_` prefix and are baked in at build time. Define akc.io design requirements in [DESIGN.md](../../DESIGN.md).
+
+## End-to-end tests and PO demo
+
+Playwright scenarios in `e2e/` drive the real app: frontend, backend and database. Locally they reuse the running dev servers (`pnpm dev`); in CI Playwright starts them.
+
+```sh
+pnpm frontend exec playwright install chromium  # once
+pnpm frontend test:e2e        # headless, as in CI
+pnpm frontend test:e2e:ui     # Playwright UI mode: steps, time travel, watch
+pnpm frontend demo            # walkthrough for the PO: pauses after every step
+pnpm frontend demo:autoplay   # the same walkthrough without pauses
+```
+
+`demo` opens a visible, slowed-down browser, captions each step in the page and types visibly. After each step it stops in the Playwright Inspector; press Resume (F8) to continue. `DEMO_SLOWMO=600` changes the speed. Scenarios mark their steps with `step()` and fill fields with `type()` from `e2e/support/demo.ts`.
