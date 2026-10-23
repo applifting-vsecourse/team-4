@@ -14,6 +14,7 @@ export type ApiErrorCode =
   | "event_unavailable"
   | "already_registered"
   | "submission_key_reused"
+  | "received_on_future"
   | "magic_link_invalid"
   | "participant_session_required"
 

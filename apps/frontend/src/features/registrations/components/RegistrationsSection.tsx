@@ -188,6 +188,9 @@ function RegistrationsResult({
               <TableHead>Termíny</TableHead>
               <TableHead>Přijato</TableHead>
               <TableHead>Platba</TableHead>
+              <TableHead>
+                <span className="sr-only">Otevřít</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -227,6 +230,21 @@ function RegistrationsResult({
                         {balance.label} {balance.amount}
                       </p>
                     ) : null}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                    >
+                      <Link
+                        to={ROUTES.registration}
+                        params={{ organizationId, eventId, registrationId: registration.id }}
+                        aria-label={`Otevřít přihlášku ${registration.firstName} ${registration.lastName}`}
+                      >
+                        Otevřít
+                      </Link>
+                    </Button>
                   </TableCell>
                 </TableRow>
               )

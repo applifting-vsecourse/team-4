@@ -31,7 +31,20 @@ vi.mock("@/lib/api-client", () => ({
 }))
 
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children }: { children: React.ReactNode }) => <a href="#detail">{children}</a>,
+  Link: ({
+    children,
+    "aria-label": label,
+  }: {
+    children: React.ReactNode
+    "aria-label"?: string
+  }) => (
+    <a
+      href="#detail"
+      aria-label={label}
+    >
+      {children}
+    </a>
+  ),
 }))
 
 // jsdom lacks what the Radix select uses for pointer and scrolling.
@@ -119,6 +132,14 @@ describe("RegistrationsSection", () => {
     expect(within(row).getByText("Částečně zaplaceno")).toBeInTheDocument()
     expect(within(row).getByText("Dluh 6 000 Kč")).toBeInTheDocument()
     expect(screen.getByText("Zobrazeno 1 z 1 · od nejstarší přihlášky")).toBeInTheDocument()
+  })
+
+  it("gives every registration a clear button to its detail", async () => {
+    responses.push({ total: 1, registrations: [registration()] })
+    renderSection()
+
+    const button = await screen.findByRole("link", { name: "Otevřít přihlášku Eliška Svobodová" })
+    expect(button).toHaveTextContent("Otevřít")
   })
 
   it("tells an event without registrations from filters without a match", async () => {
