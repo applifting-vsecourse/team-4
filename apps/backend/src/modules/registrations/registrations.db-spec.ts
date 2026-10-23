@@ -2,11 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { PrismaModule } from '@/core/prisma/prisma.module';
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { EventScope } from '@/modules/events/repositories/events.repository';
+import { ParticipantAccessService } from '@/modules/participant-access/services/participant-access.service';
 import { PublicRegistrationsController } from '@/modules/registrations/controllers/public-registrations.controller';
 import { RegistrationsRepository } from '@/modules/registrations/repositories/registrations.repository';
+import { RegistrationConfirmationService } from '@/modules/registrations/services/registration-confirmation.service';
 import { RegistrationsService } from '@/modules/registrations/services/registrations.service';
 import { RoomsRepository } from '@/modules/rooms/repositories/rooms.repository';
 import { RoomsService } from '@/modules/rooms/services/rooms.service';
+import { confirmationProviders, Mailbox } from '@/testing/confirmation-mail';
 import {
   CreatedEvent,
   createEvent,
@@ -16,6 +19,13 @@ import {
 } from '@/testing/factories';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+
+// react-email's renderer cannot load under jest (see `render-markup.ts`), so
+// the props are rendered as JSON; the template itself has its own spec.
+jest.mock('@/core/email/render', () => ({
+  renderEmail: (_template: unknown, props: object): Promise<string> =>
+    Promise.resolve(JSON.stringify(props)),
+}));
 
 // S2-08 through the public HTTP API against a real database: validation, the
 // event and term locks, the per-term decision, uniqueness and retries, and
@@ -27,6 +37,8 @@ let app: INestApplication;
 let baseUrl: string;
 let prisma: PrismaService;
 let rooms: RoomsService;
+let confirmation: RegistrationConfirmationService;
+const mailbox = new Mailbox();
 
 beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({
@@ -37,6 +49,7 @@ beforeAll(async () => {
       RegistrationsRepository,
       RoomsService,
       RoomsRepository,
+      ...confirmationProviders(mailbox),
     ],
   }).compile();
   app = moduleRef.createNestApplication();
@@ -44,6 +57,7 @@ beforeAll(async () => {
   baseUrl = await app.getUrl();
   prisma = app.get(PrismaService);
   rooms = app.get(RoomsService);
+  confirmation = app.get(RegistrationConfirmationService);
 });
 
 afterAll(() => app.close());
@@ -143,8 +157,14 @@ const confirmedIn = (termId: string): Promise<number> =>
 const registrationsOf = (eventId: string): Promise<number> =>
   prisma.registration.count({ where: { eventId } });
 
+// Earlier tests do not wait for their e-mail; let it land before the next one starts.
+beforeEach(async () => {
+  await confirmation.settle();
+  mailbox.reset();
+});
+
 describe('saving a registration', () => {
-  it('stores the submission with a decision per term and queues one confirmation e-mail', async () => {
+  it('stores the submission with a decision per term and records one confirmation e-mail', async () => {
     const f = await eventWith({ rooms: [{ bedCount: 1, termIndexes: [0] }] });
     const body = form(f.termIds, { email: '  Jana.Novakova@Example.TEST ' });
 
@@ -167,6 +187,7 @@ describe('saving a registration', () => {
     ).toEqual(['T1', 'T2']);
     expect(response.body).not.toHaveProperty('capacity');
 
+    await confirmation.settle();
     const stored = await prisma.registration.findUniqueOrThrow({
       where: { id: response.body.id },
       include: { terms: true, participantAccount: true, emails: true },
@@ -195,7 +216,7 @@ describe('saving a registration', () => {
     expect(stored.emails).toEqual([
       expect.objectContaining({
         type: 'registration_confirmation',
-        status: 'pending',
+        status: 'accepted',
         recipientEmail: 'Jana.Novakova@Example.TEST',
       }),
     ]);
@@ -692,5 +713,185 @@ describe('validation', () => {
 
     expect(response.status).toBe(201);
     expect(response.body.phone).toBe(stored);
+  });
+});
+
+describe('confirmation e-mail (S2-15)', () => {
+  type Sent = {
+    eventName: string;
+    terms: { label: string; status: string; priceMinor: number }[];
+    selectedPriceMinor: number;
+    payment: {
+      amountMinor: number;
+      variableSymbol: string;
+      account: { number: string; bankCode: string };
+      reminderAt: string;
+    } | null;
+    url: string;
+  };
+
+  const lastMail = (): { to: string; subject: string; props: Sent } => {
+    const mail = mailbox.sent[mailbox.sent.length - 1];
+    return {
+      to: mail.to,
+      subject: mail.subject,
+      props: JSON.parse(mail.html) as Sent,
+    };
+  };
+
+  const tokenOf = (url: string): string =>
+    new URL(url).searchParams.get('token') as string;
+
+  it('sends the saved result to the contact e-mail, with a link that opens the participant list', async () => {
+    const f = await eventWith({ rooms: [{ bedCount: 1, termIndexes: [0] }] });
+    const email = `mixed-${randomUUID().slice(0, 8)}@example.test`;
+
+    const response = await submit(f.publicId, form(f.termIds, { email }));
+    await confirmation.settle();
+
+    expect(mailbox.sent).toHaveLength(1);
+    const { to, subject, props } = lastMail();
+    expect(to).toBe(email);
+    expect(subject).toBe(`akc.io — přihláška přijata: ${f.event.name}`);
+    expect(props.eventName).toBe(f.event.name);
+    expect(props.terms).toEqual([
+      expect.objectContaining({
+        label: 'T1',
+        status: 'confirmed',
+        priceMinor: 450_050,
+      }),
+      expect.objectContaining({
+        label: 'T2',
+        status: 'waitlisted',
+        priceMinor: 390_000,
+      }),
+    ]);
+    const stored = await prisma.registration.findUniqueOrThrow({
+      where: { id: response.body.id },
+    });
+    // The price of the selection is not the amount to pay: the waitlisted term owes nothing.
+    expect(props.selectedPriceMinor).toBe(840_050);
+    expect(props.payment).toMatchObject({
+      amountMinor: 450_050,
+      variableSymbol: stored.variableSymbol,
+      account: { number: '123457' },
+    });
+    expect(new Date(props.payment!.reminderAt)).toEqual(
+      stored.paymentReminderAt,
+    );
+
+    // The link is single-use and signs the participant in; the e-mail is
+    // not stored, only the hash of the token.
+    const access = app.get(ParticipantAccessService);
+    const session = await access.openSession(tokenOf(props.url));
+    expect(await access.identify(session.token)).toMatchObject({
+      email: email,
+    });
+    await expect(access.openSession(tokenOf(props.url))).rejects.toMatchObject({
+      response: { code: 'magic_link_invalid' },
+    });
+    const delivery = await prisma.emailDelivery.findFirstOrThrow({
+      where: { registrationId: response.body.id },
+    });
+    expect(delivery).toMatchObject({
+      status: 'accepted',
+      providerMessageId: 'msg-1',
+      errorMessage: null,
+    });
+  });
+
+  it('asks for no payment from a waitlisted-only or free result', async () => {
+    const waitlisted = await eventWith();
+    await submit(waitlisted.publicId, form(waitlisted.termIds));
+    const free = await eventWith({
+      terms: [{ ...T1, priceMinor: 0 }],
+      rooms: [{ bedCount: 1, termIndexes: [0] }],
+    });
+    const freeResponse = await submit(free.publicId, form(free.termIds));
+    await confirmation.settle();
+
+    expect(mailbox.sent).toHaveLength(2);
+    for (const mail of mailbox.sent) {
+      expect((JSON.parse(mail.html) as Sent).payment).toBeNull();
+    }
+    const stored = await prisma.registration.findUniqueOrThrow({
+      where: { id: freeResponse.body.id },
+    });
+    expect(stored.paymentReminderAt).toBeNull();
+  });
+
+  it('keeps the registration and records a failure without the token when sending fails', async () => {
+    const f = await eventWith({ rooms: [{ bedCount: 1, termIndexes: [0] }] });
+    mailbox.failWith = 'provider rejected the message';
+    mailbox.echoBodyInError = true;
+
+    const response = await submit(f.publicId, form(f.termIds));
+    await confirmation.settle();
+
+    expect(response.status).toBe(201);
+    expect(await registrationsOf(f.event.id)).toBe(1);
+    const delivery = await prisma.emailDelivery.findFirstOrThrow({
+      where: { registrationId: response.body.id },
+    });
+    expect(delivery.status).toBe('failed');
+    expect(delivery.errorMessage).toContain('provider rejected the message');
+    const link = await prisma.participantMagicLink.findFirstOrThrow({
+      where: { participantAccountId: delivery.participantAccountId! },
+    });
+    expect(link.consumedAt).toBeNull();
+    // Nothing that could open the account may reach the log row.
+    expect(delivery.errorMessage).not.toMatch(/token=|[A-Za-z0-9_-]{43}/);
+
+    // No automatic retry, and the failed row is not queued again.
+    await confirmation.settle();
+    expect(mailbox.sent).toHaveLength(0);
+    expect(
+      await prisma.emailDelivery.count({
+        where: { registrationId: response.body.id },
+      }),
+    ).toBe(1);
+  });
+
+  it('does not send for a repeat, a duplicate or a rolled-back submission', async () => {
+    const f = await eventWith({
+      rooms: [{ bedCount: 2, termIndexes: [0, 1] }],
+    });
+    const body = form(f.termIds);
+
+    const first = await submit(f.publicId, body);
+    const repeat = await submit(f.publicId, body);
+    const duplicate = await submit(
+      f.publicId,
+      form(f.termIds, { email: body.email.toUpperCase() }),
+    );
+    const unknownTerm = await submit(
+      f.publicId,
+      form([randomUUID()], {
+        email: `rolled-${randomUUID().slice(0, 8)}@example.test`,
+      }),
+    );
+    await confirmation.settle();
+
+    expect([
+      first.status,
+      repeat.status,
+      duplicate.status,
+      unknownTerm.status,
+    ]).toEqual([201, 200, 409, 400]);
+    expect(mailbox.sent).toHaveLength(1);
+    expect(
+      await prisma.emailDelivery.count({
+        where: { registrationId: first.body.id },
+      }),
+    ).toBe(1);
+  });
+
+  it('does not send for an event that is not open', async () => {
+    const f = await eventWith({ status: 'draft' });
+    const response = await submit(f.publicId, form(f.termIds));
+    await confirmation.settle();
+
+    expect(response.status).toBe(404);
+    expect(mailbox.sent).toHaveLength(0);
   });
 });

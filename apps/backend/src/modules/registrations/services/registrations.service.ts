@@ -4,6 +4,7 @@ import {
   submissionHash,
 } from '@/modules/registrations/domain/registration';
 import { RegistrationsRepository } from '@/modules/registrations/repositories/registrations.repository';
+import { RegistrationConfirmationService } from '@/modules/registrations/services/registration-confirmation.service';
 import { isUniqueViolation } from '@/modules/rooms/repositories/rooms.repository';
 import {
   BadRequestException,
@@ -46,7 +47,10 @@ export type SubmitResult = {
 
 @Injectable()
 export class RegistrationsService {
-  constructor(private readonly repository: RegistrationsRepository) {}
+  constructor(
+    private readonly repository: RegistrationsRepository,
+    private readonly confirmation: RegistrationConfirmationService,
+  ) {}
 
   /**
    * A repeat of a saved submission (same key and content) returns the stored
@@ -82,6 +86,8 @@ export class RegistrationsService {
         message: 'Vyberte termíny této akce.',
       });
     }
+    // Only after the commit: a rolled-back submit never sends anything.
+    this.confirmation.dispatch(outcome.result.id);
     return { created: true, result: outcome.result };
   }
 

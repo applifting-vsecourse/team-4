@@ -1,5 +1,8 @@
 import { ResendConfig } from '@/core/email/adapters/resend/interfaces/resend-config.interface';
-import { EmailService } from '@/core/email/interfaces/email-service.interface';
+import {
+  EmailService,
+  SendResult,
+} from '@/core/email/interfaces/email-service.interface';
 import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
 
@@ -12,8 +15,12 @@ export class ResendAdapter implements EmailService {
     this.client = new Resend(config.apiKey);
   }
 
-  async sendEmail(to: string, subject: string, html: string): Promise<void> {
-    const { error } = await this.client.emails.send({
+  async sendEmail(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<SendResult> {
+    const { data, error } = await this.client.emails.send({
       from: this.config.from,
       to,
       subject,
@@ -24,5 +31,6 @@ export class ResendAdapter implements EmailService {
       this.logger.error(`Resend delivery failed: ${error.message}`, error);
       throw new Error(`Resend delivery failed: ${error.message}`);
     }
+    return { sent: true, messageId: data?.id ?? null };
   }
 }

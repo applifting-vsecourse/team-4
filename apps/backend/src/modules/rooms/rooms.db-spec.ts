@@ -8,6 +8,7 @@ import { RegistrationsService } from '@/modules/registrations/services/registrat
 import { RoomsController } from '@/modules/rooms/controllers/rooms.controller';
 import { RoomsRepository } from '@/modules/rooms/repositories/rooms.repository';
 import { RoomsService } from '@/modules/rooms/services/rooms.service';
+import { confirmationProviders, Mailbox } from '@/testing/confirmation-mail';
 import {
   createEvent,
   createOrganization,
@@ -22,6 +23,13 @@ import { Test } from '@nestjs/testing';
 // validation, service rules, the term row locks and the constraints together. Only the
 // BetterAuth session is replaced: the `x-test-user` header names the caller.
 // Needs a migrated Postgres in DATABASE_URL: `pnpm backend test:db`.
+
+// react-email's renderer cannot load under jest (see `render-markup.ts`), so
+// the props are rendered as JSON; the template itself has its own spec.
+jest.mock('@/core/email/render', () => ({
+  renderEmail: (_template: unknown, props: object): Promise<string> =>
+    Promise.resolve(JSON.stringify(props)),
+}));
 
 // The real guard pulls in BetterAuth, which is ESM-only and cannot load under
 // Jest's CommonJS runtime, so the whole guard module is replaced (jest.mock is
@@ -59,6 +67,7 @@ beforeAll(async () => {
       RoomsRepository,
       RegistrationsService,
       RegistrationsRepository,
+      ...confirmationProviders(new Mailbox()),
     ],
   }).compile();
   app = moduleRef.createNestApplication();

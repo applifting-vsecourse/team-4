@@ -89,6 +89,12 @@ type OpenEventRow = {
   paymentReminderDays: number | null;
 };
 
+export type PendingConfirmation = {
+  deliveryId: string;
+  accountId: string;
+  result: RegistrationResultModel;
+};
+
 @Injectable()
 export class RegistrationsRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -227,6 +233,52 @@ export class RegistrationsRepository {
         select: resultSelect,
       });
       return { kind: 'created', result: toResult(saved) };
+    });
+  }
+
+  /**
+   * The saved registration and its queued confirmation, or `null` when the
+   * e-mail was already handed over, failed, or never queued.
+   */
+  async findPendingConfirmation(
+    registrationId: string,
+  ): Promise<PendingConfirmation | null> {
+    const delivery = await this.prisma.emailDelivery.findFirst({
+      where: {
+        registrationId,
+        type: 'registration_confirmation',
+        status: 'pending',
+      },
+      select: {
+        id: true,
+        registration: {
+          select: { ...resultSelect, participantAccountId: true },
+        },
+      },
+    });
+    if (!delivery?.registration) return null;
+    return {
+      deliveryId: delivery.id,
+      accountId: delivery.registration.participantAccountId,
+      result: toResult(delivery.registration),
+    };
+  }
+
+  async markConfirmation(
+    deliveryId: string,
+    outcome:
+      | { status: 'accepted'; providerMessageId: string | null }
+      | { status: 'failed'; error: string },
+  ): Promise<void> {
+    await this.prisma.emailDelivery.update({
+      where: { id: deliveryId },
+      data:
+        outcome.status === 'accepted'
+          ? {
+              status: 'accepted',
+              providerMessageId: outcome.providerMessageId,
+            }
+          : { status: 'failed', errorMessage: outcome.error },
     });
   }
 }

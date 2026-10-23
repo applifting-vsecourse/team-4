@@ -4,7 +4,7 @@ import { RecipientRestrictedEmailService } from './recipient-restricted-email.se
 describe('RecipientRestrictedEmailService', () => {
   const build = () => {
     const inner: jest.Mocked<EmailService> = {
-      sendEmail: jest.fn().mockResolvedValue(undefined),
+      sendEmail: jest.fn().mockResolvedValue({ sent: true, messageId: 'm1' }),
     };
     return {
       inner,
@@ -17,7 +17,9 @@ describe('RecipientRestrictedEmailService', () => {
 
   it('forwards mail to the allowed address, ignoring case and whitespace', async () => {
     const { inner, service } = build();
-    await service.sendEmail(' allowed@example.com ', 'Hi', '<p>x</p>');
+    await expect(
+      service.sendEmail(' allowed@example.com ', 'Hi', '<p>x</p>'),
+    ).resolves.toEqual({ sent: true, messageId: 'm1' });
     expect(inner.sendEmail).toHaveBeenCalledWith(
       ' allowed@example.com ',
       'Hi',
@@ -29,7 +31,7 @@ describe('RecipientRestrictedEmailService', () => {
     const { inner, service } = build();
     await expect(
       service.sendEmail('other@example.com', 'Hi', '<p>x</p>'),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ sent: false, messageId: null });
     expect(inner.sendEmail).not.toHaveBeenCalled();
   });
 });
