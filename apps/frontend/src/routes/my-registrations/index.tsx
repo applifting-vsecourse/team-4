@@ -5,12 +5,13 @@ import { Seo } from "@/components/Seo"
 
 import { participantSessionQueryOptions } from "@/features/participant-access/api/participantQueryOptions"
 import { MagicLinkRequest } from "@/features/participant-access/components/MagicLinkRequest"
-import { MyRegistrationsShell } from "@/features/participant-access/components/MyRegistrationsShell"
 import { ParticipantLayout } from "@/features/participant-access/components/ParticipantLayout"
 import { ParticipantLogoutButton } from "@/features/participant-access/components/ParticipantLogoutButton"
+import { ParticipantSessionEnded } from "@/features/participant-access/components/ParticipantSessionEnded"
+import { ParticipantRegistrationList } from "@/features/registrations/components/ParticipantRegistrationList"
 
 // Participant access without a password (S2-13): the e-mail link opens the
-// registrations of its own account; without a session the visitor can ask for
+// registrations of its own account (list: S2-14); without a session the visitor can ask for
 // a new link. The organizer sign-in is separate.
 export const Route = createFileRoute("/my-registrations/")({
   loader: ({ context }) => context.queryClient.ensureQueryData(participantSessionQueryOptions()),
@@ -37,7 +38,10 @@ function MyRegistrationsPage() {
     <>
       <Seo title="Moje přihlášky" />
       <ParticipantLayout action={<ParticipantLogoutButton />}>
-        <MyRegistrationsShell participant={participant} />
+        <ParticipantRegistrationList
+          email={participant.email}
+          sessionEnded={<ParticipantSessionEnded />}
+        />
       </ParticipantLayout>
     </>
   )

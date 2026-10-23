@@ -75,6 +75,14 @@ export class PaymentInstructionsDto {
   reminderAt!: string;
 }
 
+export class EventSummaryDto {
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty()
+  location!: string;
+}
+
 /** What the submitter sees right after saving (S2-14); nothing of other registrations. */
 export class RegistrationResultDto {
   @ApiProperty({ format: 'uuid' })
@@ -88,6 +96,9 @@ export class RegistrationResultDto {
 
   @ApiProperty()
   lastName!: string;
+
+  @ApiProperty({ type: EventSummaryDto })
+  event!: EventSummaryDto;
 
   @ApiProperty({ description: 'As submitted, trimmed.' })
   email!: string;
@@ -126,6 +137,7 @@ export class RegistrationResultDto {
     return {
       id: model.id,
       receivedAt: model.receivedAt.toISOString(),
+      event: { ...model.event },
       firstName: model.firstName,
       lastName: model.lastName,
       email: model.email,

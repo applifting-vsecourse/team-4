@@ -12,6 +12,7 @@ export const ROUTES = {
   editEvent: "/organizations/$organizationId/events/$eventId/edit",
   publicEvent: "/e/$publicId",
   myRegistrations: "/my-registrations",
+  myRegistration: "/my-registrations/$registrationId",
   login: "/login",
   signup: "/signup",
   designSystem: "/design-system",

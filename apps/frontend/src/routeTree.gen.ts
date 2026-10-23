@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as EPublicIdRouteImport } from './routes/e/$publicId'
 import { Route as MyRegistrationsIndexRouteImport } from './routes/my-registrations/index'
+import { Route as MyRegistrationsRegistrationIdRouteImport } from './routes/my-registrations/$registrationId'
 import { Route as MyRegistrationsVerifyRouteImport } from './routes/my-registrations/verify'
 import { Route as ProtectedPagesOrganizationsIndexRouteImport } from './routes/_ProtectedPages/organizations/index'
 import { Route as ProtectedPagesOrganizationsOrganizationIdRouteImport } from './routes/_ProtectedPages/organizations/$organizationId'
@@ -63,6 +64,12 @@ const MyRegistrationsIndexRoute = MyRegistrationsIndexRouteImport.update({
   path: '/my-registrations/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MyRegistrationsRegistrationIdRoute =
+  MyRegistrationsRegistrationIdRouteImport.update({
+    id: '/my-registrations/$registrationId',
+    path: '/my-registrations/$registrationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const MyRegistrationsVerifyRoute = MyRegistrationsVerifyRouteImport.update({
   id: '/my-registrations/verify',
   path: '/my-registrations/verify',
@@ -151,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/e/$publicId': typeof EPublicIdRoute
+  '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
   '/my-registrations/verify': typeof MyRegistrationsVerifyRoute
   '/my-registrations/': typeof MyRegistrationsIndexRoute
   '/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdRouteWithChildren
@@ -171,6 +179,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/e/$publicId': typeof EPublicIdRoute
+  '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
   '/my-registrations/verify': typeof MyRegistrationsVerifyRoute
   '/my-registrations': typeof MyRegistrationsIndexRoute
   '/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
@@ -192,6 +201,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/e/$publicId': typeof EPublicIdRoute
+  '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
   '/my-registrations/verify': typeof MyRegistrationsVerifyRoute
   '/my-registrations/': typeof MyRegistrationsIndexRoute
   '/_ProtectedPages/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdRouteWithChildren
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/e/$publicId'
+    | '/my-registrations/$registrationId'
     | '/my-registrations/verify'
     | '/my-registrations/'
     | '/organizations/$organizationId'
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/e/$publicId'
+    | '/my-registrations/$registrationId'
     | '/my-registrations/verify'
     | '/my-registrations'
     | '/organizations/new'
@@ -254,6 +266,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/e/$publicId'
+    | '/my-registrations/$registrationId'
     | '/my-registrations/verify'
     | '/my-registrations/'
     | '/_ProtectedPages/organizations/$organizationId'
@@ -276,6 +289,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
   EPublicIdRoute: typeof EPublicIdRoute
+  MyRegistrationsRegistrationIdRoute: typeof MyRegistrationsRegistrationIdRoute
   MyRegistrationsVerifyRoute: typeof MyRegistrationsVerifyRoute
   MyRegistrationsIndexRoute: typeof MyRegistrationsIndexRoute
 }
@@ -329,6 +343,13 @@ declare module '@tanstack/react-router' {
       path: '/my-registrations'
       fullPath: '/my-registrations/'
       preLoaderRoute: typeof MyRegistrationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-registrations/$registrationId': {
+      id: '/my-registrations/$registrationId'
+      path: '/my-registrations/$registrationId'
+      fullPath: '/my-registrations/$registrationId'
+      preLoaderRoute: typeof MyRegistrationsRegistrationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-registrations/verify': {
@@ -478,6 +499,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
   EPublicIdRoute: EPublicIdRoute,
+  MyRegistrationsRegistrationIdRoute: MyRegistrationsRegistrationIdRoute,
   MyRegistrationsVerifyRoute: MyRegistrationsVerifyRoute,
   MyRegistrationsIndexRoute: MyRegistrationsIndexRoute,
 }
