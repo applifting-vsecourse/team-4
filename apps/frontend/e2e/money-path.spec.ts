@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 
-import { isDemo, step, type } from "./support/demo"
+import { contextOptions, isDemo, step, type } from "./support/demo"
 import { definition, pickDate } from "./support/ui"
 
 // The money path end to end, through the real UI, API and database: an
@@ -86,7 +86,7 @@ test("an organizer opens an event, participants register and payments settle the
   })
 
   // Participants are anonymous visitors in their own browser.
-  const visitorContext = await browser.newContext({ locale: "cs-CZ", timezoneId: "Europe/Prague" })
+  const visitorContext = await browser.newContext(contextOptions)
   const visitor = await visitorContext.newPage()
 
   const register = async (firstName: string, lastName: string, email: string) => {
