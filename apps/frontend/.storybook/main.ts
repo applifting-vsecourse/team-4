@@ -1,9 +1,8 @@
 import type { StorybookConfig } from "@storybook/react-vite"
 
-// Storybook reuses vite.config.ts. The router plugin would regenerate
-// src/routeTree.gen.ts and the checker would lint inside Storybook, so both
-// are dropped here; stories never render the app's route tree.
-const EXCLUDED_PLUGIN_PREFIXES = ["tanstack-router", "vite-plugin-checker"]
+import { withoutAppOnlyPlugins } from "./storybook-config"
+
+// Storybook reuses vite.config.ts minus the app-only plugins.
 
 const config: StorybookConfig = {
   framework: "@storybook/react-vite",
@@ -20,10 +19,7 @@ const config: StorybookConfig = {
   stories: ["../src/**/*.stories.tsx"],
   viteFinal: (viteConfig) => ({
     ...viteConfig,
-    plugins: (viteConfig.plugins ?? []).flat().filter((plugin) => {
-      const name = plugin && "name" in plugin ? plugin.name : ""
-      return !EXCLUDED_PLUGIN_PREFIXES.some((prefix) => name.startsWith(prefix))
-    }),
+    plugins: withoutAppOnlyPlugins(viteConfig.plugins ?? []),
   }),
 }
 

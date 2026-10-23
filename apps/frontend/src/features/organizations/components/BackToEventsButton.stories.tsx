@@ -16,6 +16,8 @@ const meta = {
   play: async ({ canvas }) => {
     const link = await canvas.findByRole("link", { name: "Zpět na přehled akcí" })
     await expect(link).toHaveAttribute("href", `/organizations/${ORGANIZATION.id}`)
+    // Tailwind is applied: the kit button has horizontal padding.
+    await expect(getComputedStyle(link).paddingLeft).not.toBe("0px")
   },
 } satisfies Meta<typeof BackToEventsButton>
 
