@@ -14,6 +14,7 @@ import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { eventRegistrationQueryOptions } from "@/features/registrations/api/eventRegistrationQueryOptions"
+import { RecordPaymentDialog } from "@/features/registrations/components/RecordPaymentDialog"
 import { RegistrationDetail } from "@/features/registrations/components/RegistrationDetail"
 
 // Správa akce → Přihlášky → Detail účastníka (S2-11): the organizer's view of
@@ -57,18 +58,25 @@ function RegistrationPage() {
         title={name}
         description={event.name}
         actions={
-          <Button
-            asChild
-            variant="ghost"
-          >
-            <Link
-              to={ROUTES.eventRegistrations}
-              params={{ organizationId, eventId }}
+          <>
+            <Button
+              asChild
+              variant="ghost"
             >
-              <ArrowLeft />
-              Zpět na přihlášky
-            </Link>
-          </Button>
+              <Link
+                to={ROUTES.eventRegistrations}
+                params={{ organizationId, eventId }}
+              >
+                <ArrowLeft />
+                Zpět na přihlášky
+              </Link>
+            </Button>
+            <RecordPaymentDialog
+              organizationId={organizationId}
+              eventId={eventId}
+              registrationId={registrationId}
+            />
+          </>
         }
       />
       <RegistrationDetail

@@ -54,3 +54,15 @@ const pragueDate = new Intl.DateTimeFormat("cs-CZ", {
 export function formatPragueDate(value: string) {
   return pragueDate.format(new Date(value))
 }
+
+const pragueDay = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Prague",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+})
+
+/** Today's calendar date in Prague as `yyyy-MM-dd`, whatever the viewer's zone. */
+export function todayInPrague(now: Date = new Date()) {
+  return pragueDay.format(now)
+}
