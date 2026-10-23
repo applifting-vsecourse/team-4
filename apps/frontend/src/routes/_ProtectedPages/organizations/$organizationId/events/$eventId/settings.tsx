@@ -9,6 +9,7 @@ import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
+import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventLockedAlert } from "@/features/events/components/EventLockedAlert"
@@ -17,6 +18,7 @@ import { PaymentSettingsSection } from "@/features/events/components/PaymentSett
 import { RegistrationSection } from "@/features/events/components/RegistrationSection"
 import { TermsSection } from "@/features/events/components/TermsSection"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
+import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
 
 // Configuration of one event, ordered from basic details to opening registration.
 export const Route = createFileRoute(
@@ -116,6 +118,7 @@ function EventPage() {
 
 // A foreign and a missing event look the same (S2-03, Wireframy N1).
 function Unavailable() {
+  const { user } = useSession()
   const { organizationId } = Route.useParams()
   const { data: organization } = useQuery(organizationQueryOptions(organizationId))
   return (
@@ -131,14 +134,10 @@ function Unavailable() {
       />
       <RecordUnavailable
         action={
-          <Button asChild>
-            <Link
-              to={ROUTES.organization}
-              params={{ organizationId }}
-            >
-              Zpět na přehled akcí
-            </Link>
-          </Button>
+          <BackToEventsButton
+            organizationId={organizationId}
+            userId={user?.id}
+          />
         }
       />
     </section>

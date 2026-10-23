@@ -8,11 +8,13 @@ import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 
+import { useSession } from "@/features/auth/hooks/useSession"
 import { eventsQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventsEmptyState } from "@/features/events/components/EventsEmptyState"
 import { EventsTable } from "@/features/events/components/EventsTable"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
+import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
 
 // "Akce a turnusy": the events of one own organization (Wireframy O5, W02).
 export const Route = createFileRoute("/_ProtectedPages/organizations/$organizationId/")({
@@ -69,14 +71,17 @@ function OrganizationEventsPage() {
 
 // A foreign and a missing organization look the same (S2-03, Wireframy N1).
 function OrganizationUnavailable() {
+  const { organizationId } = Route.useParams()
+  const { user } = useSession()
   return (
     <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
       <PageHeader title="Akce a turnusy" />
       <RecordUnavailable
         action={
-          <Button asChild>
-            <Link to={ROUTES.organizations}>Zpět na moje organizace</Link>
-          </Button>
+          <BackToEventsButton
+            organizationId={organizationId}
+            userId={user?.id}
+          />
         }
       />
     </section>
