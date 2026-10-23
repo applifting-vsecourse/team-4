@@ -22,11 +22,28 @@ export default defineConfig({
     locale: "cs-CZ",
     timezoneId: "Europe/Prague",
     headless: !isDemo,
-    launchOptions: { slowMo: isDemo ? Number(process.env.DEMO_SLOWMO ?? 350) : 0 },
+    launchOptions: isDemo
+      ? {
+          slowMo: Number(process.env.DEMO_SLOWMO ?? 350),
+          args: ["--start-maximized"],
+          // Hides the "controlled by automated test software" bar.
+          ignoreDefaultArgs: ["--enable-automation"],
+        }
+      : {},
     trace: isCI ? "retain-on-failure" : "off",
     screenshot: "only-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      // Tests render at a fixed 1280×720 so they behave the same everywhere.
+      // A demo follows the real window instead, so it fills a maximized or
+      // fullscreen browser (a null viewport cannot have a scale factor).
+      use: isDemo
+        ? { ...devices["Desktop Chrome"], viewport: null, deviceScaleFactor: undefined }
+        : devices["Desktop Chrome"],
+    },
+  ],
   webServer: [
     {
       command: "pnpm --filter backend start",

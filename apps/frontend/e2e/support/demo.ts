@@ -10,6 +10,17 @@ export const isDemo = process.env.DEMO === "1"
 /** DEMO_PAUSE=0 plays the walkthrough through without stopping (autoplay). */
 const shouldPause = isDemo && process.env.DEMO_PAUSE !== "0"
 
+/**
+ * Options for extra browser contexts (another person's window). In a demo
+ * the page follows the window size, like the main page, instead of a fixed
+ * 1280×720 viewport.
+ */
+export const contextOptions = {
+  locale: "cs-CZ",
+  timezoneId: "Europe/Prague",
+  ...(isDemo ? { viewport: null } : {}),
+}
+
 const CAPTION_ID = "e2e-demo-caption"
 
 async function showCaption(page: Page, text: string) {
