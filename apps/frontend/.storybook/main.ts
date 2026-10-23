@@ -7,6 +7,7 @@ const EXCLUDED_PLUGIN_PREFIXES = ["tanstack-router", "vite-plugin-checker"]
 
 const config: StorybookConfig = {
   framework: "@storybook/react-vite",
+  addons: ["@storybook/addon-vitest", "@storybook/addon-a11y"],
   stories: ["../src/**/*.stories.tsx"],
   viteFinal: (viteConfig) => ({
     ...viteConfig,

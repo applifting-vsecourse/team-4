@@ -17,10 +17,14 @@ export type Theme = "light" | "dark"
 export type QueryData = [QueryKey, unknown][]
 
 // A fresh client per story, so no story sees another's cache. `retry: false`
-// turns a failed request into the error state at once.
+// turns a failed request into the error state at once; `staleTime: Infinity`
+// keeps seeded `queryData` from being refetched (and replaced by a network
+// error) on mount.
 export const withQueryClient: Decorator = (Story, context) => {
   const [client] = useState(() => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    })
     const queryData = (context.parameters.queryData ?? []) as QueryData
     for (const [queryKey, data] of queryData) queryClient.setQueryData(queryKey, data)
     return queryClient
