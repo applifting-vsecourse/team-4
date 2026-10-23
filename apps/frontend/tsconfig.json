@@ -31,6 +31,8 @@
     "vite.config.ts",
     "vitest.config.ts",
     "prettier.config.js",
-    "eslint.config.js"
+    "eslint.config.js",
+    ".storybook/**/*.ts",
+    ".storybook/**/*.tsx"
   ]
 }

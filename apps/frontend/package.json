@@ -13,7 +13,9 @@
     "format:check": "prettier --check './src/**/*.{ts,tsx,css,js,cjs,mjs,json}'",
     "format:write": "prettier --write './src/**/*.{ts,tsx,css,js,cjs,mjs,json}'",
     "lint:check": "eslint './src/**/*.{ts,tsx,js,cjs,mjs}'",
-    "lint:fix": "eslint --fix './src/**/*.{ts,tsx,js,cjs,mjs}'"
+    "lint:fix": "eslint --fix './src/**/*.{ts,tsx,js,cjs,mjs}'",
+    "storybook": "storybook dev -p 6006 --no-open",
+    "build-storybook": "storybook build -o storybook-static"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
@@ -47,6 +49,7 @@
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@parcel/watcher": "^2.6.0",
     "@shadcn/lint": "catalog:lint",
+    "@storybook/react-vite": "10.6.3",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/eslint-plugin-query": "catalog:lint",
     "@tanstack/eslint-plugin-router": "catalog:lint",
@@ -71,6 +74,7 @@
     "jsdom": "^30.0.1",
     "prettier-plugin-sort-json": "^4.2.0",
     "prettier-plugin-tailwindcss": "^0.8.1",
+    "storybook": "10.6.3",
     "tailwindcss": "^4.3.3",
     "typescript-eslint": "catalog:lint",
     "vite": "^8.2.1",
