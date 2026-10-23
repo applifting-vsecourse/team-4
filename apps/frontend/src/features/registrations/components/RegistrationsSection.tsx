@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { ClipboardList, Loader2, RefreshCw, X } from "lucide-react"
+import { ArrowRight, ClipboardList, Loader2, RefreshCw, X } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -188,6 +188,9 @@ function RegistrationsResult({
               <TableHead>Termíny</TableHead>
               <TableHead>Přijato</TableHead>
               <TableHead>Platba</TableHead>
+              <TableHead>
+                <span className="sr-only">Akce</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -227,6 +230,22 @@ function RegistrationsResult({
                         {balance.label} {balance.amount}
                       </p>
                     ) : null}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Link
+                        to={ROUTES.registration}
+                        params={{ organizationId, eventId, registrationId: registration.id }}
+                        aria-label={`Detail přihlášky ${registration.firstName} ${registration.lastName}`}
+                      >
+                        Detail
+                        <ArrowRight />
+                      </Link>
+                    </Button>
                   </TableCell>
                 </TableRow>
               )
