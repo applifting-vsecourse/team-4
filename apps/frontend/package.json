@@ -13,7 +13,11 @@
     "format:check": "prettier --check './src/**/*.{ts,tsx,css,js,cjs,mjs,json}'",
     "format:write": "prettier --write './src/**/*.{ts,tsx,css,js,cjs,mjs,json}'",
     "lint:check": "eslint './src/**/*.{ts,tsx,js,cjs,mjs}'",
-    "lint:fix": "eslint --fix './src/**/*.{ts,tsx,js,cjs,mjs}'"
+    "lint:fix": "eslint --fix './src/**/*.{ts,tsx,js,cjs,mjs}'",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "demo": "DEMO=1 playwright test",
+    "demo:autoplay": "DEMO=1 DEMO_PAUSE=0 DEMO_SLOWMO=700 playwright test"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
@@ -46,6 +50,7 @@
     "@eslint/js": "catalog:lint",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@parcel/watcher": "^2.6.0",
+    "@playwright/test": "1.64.1",
     "@shadcn/lint": "catalog:lint",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/eslint-plugin-query": "catalog:lint",
