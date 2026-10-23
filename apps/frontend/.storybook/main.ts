@@ -7,7 +7,13 @@ const EXCLUDED_PLUGIN_PREFIXES = ["tanstack-router", "vite-plugin-checker"]
 
 const config: StorybookConfig = {
   framework: "@storybook/react-vite",
-  addons: ["@storybook/addon-vitest", "@storybook/addon-a11y", "msw-storybook-addon"],
+  addons: [
+    "@storybook/addon-vitest",
+    "@storybook/addon-a11y",
+    "msw-storybook-addon",
+    // MCP server for agents at http://localhost:6006/mcp (see .mcp.json).
+    "@storybook/addon-mcp",
+  ],
   // Serves mockServiceWorker.js for MSW. Kept out of public/ so it never
   // ships in the production build.
   staticDirs: ["./public"],

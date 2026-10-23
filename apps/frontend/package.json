@@ -51,6 +51,7 @@
     "@parcel/watcher": "^2.6.0",
     "@shadcn/lint": "catalog:lint",
     "@storybook/addon-a11y": "10.6.3",
+    "@storybook/addon-mcp": "10.6.3",
     "@storybook/addon-vitest": "10.6.3",
     "@storybook/react-vite": "10.6.3",
     "@tailwindcss/vite": "^4.3.3",

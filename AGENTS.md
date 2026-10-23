@@ -24,5 +24,12 @@ Frontend stack (`apps/frontend`): Vite + React 19, Tailwind v4, shadcn/ui, TypeS
 - Do not, without asking the developer: add theme tokens, add lint-disable
   comments, edit the lint config (including `SHADCN_LEGACY_FILES`), or edit
   `src/components/ui` just to make a violation go away.
+- New or changed UI starts as `<Component>.stories.tsx` with fixtures for
+  loading, empty, error, filled, `mobile360` and dark, before any API wiring.
+  Fixtures live in `features/<feature>/fixtures/` and parse with the feature's
+  zod schemas. Components that fetch get data through MSW handlers in
+  `features/<feature>/fixtures/handlers.ts` (`msw.use()` in `beforeEach`), or
+  through `parameters.queryData` for already cached queries.
+  `pnpm frontend test:stories` is the evidence; do not open the browser to check.
 - After any UI change, run `pnpm check` and fix every error before finishing.
   `pnpm check-all` still gates handoff.
