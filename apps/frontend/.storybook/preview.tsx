@@ -1,4 +1,5 @@
 import type { Preview } from "@storybook/react-vite"
+import { mswLoader } from "msw-storybook-addon/csf3"
 
 import "@/styles/global.css"
 
@@ -7,6 +8,8 @@ import { withQueryClient, withRouter, withTheme } from "./decorators"
 const preview: Preview = {
   // The first decorator is the innermost: theme → query client → router.
   decorators: [withTheme, withQueryClient, withRouter],
+  // Starts the MSW worker; stories add handlers with `msw.use()` in `beforeEach`.
+  loaders: [mswLoader()],
   globalTypes: {
     theme: {
       description: "Colour theme",

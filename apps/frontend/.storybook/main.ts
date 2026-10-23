@@ -7,7 +7,10 @@ const EXCLUDED_PLUGIN_PREFIXES = ["tanstack-router", "vite-plugin-checker"]
 
 const config: StorybookConfig = {
   framework: "@storybook/react-vite",
-  addons: ["@storybook/addon-vitest", "@storybook/addon-a11y"],
+  addons: ["@storybook/addon-vitest", "@storybook/addon-a11y", "msw-storybook-addon"],
+  // Serves mockServiceWorker.js for MSW. Kept out of public/ so it never
+  // ships in the production build.
+  staticDirs: ["./public"],
   stories: ["../src/**/*.stories.tsx"],
   viteFinal: (viteConfig) => ({
     ...viteConfig,
