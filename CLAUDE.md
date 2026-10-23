@@ -84,3 +84,9 @@ for that PR commit; requirements, CI and post-handoff QA still apply. Preserve
 findings and record a manual waiver, never a fabricated Copilot pass. A new
 commit needs a new waiver or review; recheck edited/deleted commands.
 Never manufacture passing gate evidence or bypass merge protection.
+
+### PRs handling
+
+When a user asks to open a PR on their behalf, be concise in the body text as if it was written by human.
+
+Always reference the item that you've worked on, example: "Closes #XX".
