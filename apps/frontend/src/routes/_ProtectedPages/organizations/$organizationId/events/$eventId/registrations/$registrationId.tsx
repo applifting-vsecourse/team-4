@@ -1,6 +1,5 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, Link, useRouter, type ErrorComponentProps } from "@tanstack/react-router"
-import { ArrowLeft } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { PageHeader } from "@/components/PageHeader"
@@ -52,31 +51,25 @@ function RegistrationPage() {
             organizationId={organizationId}
             organizationName={organization.name}
             event={event}
-            current="Přihlášky"
+            section={
+              <Link
+                to={ROUTES.eventRegistrations}
+                params={{ organizationId, eventId }}
+              >
+                Přihlášky
+              </Link>
+            }
+            current="Detail účastníka"
           />
         }
         title={name}
         description={event.name}
         actions={
-          <>
-            <Button
-              asChild
-              variant="ghost"
-            >
-              <Link
-                to={ROUTES.eventRegistrations}
-                params={{ organizationId, eventId }}
-              >
-                <ArrowLeft />
-                Zpět na přihlášky
-              </Link>
-            </Button>
-            <RecordPaymentDialog
-              organizationId={organizationId}
-              eventId={eventId}
-              registrationId={registrationId}
-            />
-          </>
+          <RecordPaymentDialog
+            organizationId={organizationId}
+            eventId={eventId}
+            registrationId={registrationId}
+          />
         }
       />
       <RegistrationDetail

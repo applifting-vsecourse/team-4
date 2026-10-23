@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { ArrowRight, ClipboardList, Loader2, RefreshCw, X } from "lucide-react"
+import { ClipboardList, Loader2, RefreshCw, X } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -189,7 +189,7 @@ function RegistrationsResult({
               <TableHead>Přijato</TableHead>
               <TableHead>Platba</TableHead>
               <TableHead>
-                <span className="sr-only">Akce</span>
+                <span className="sr-only">Otevřít</span>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -231,19 +231,18 @@ function RegistrationsResult({
                       </p>
                     ) : null}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     <Button
                       asChild
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
                     >
                       <Link
                         to={ROUTES.registration}
                         params={{ organizationId, eventId, registrationId: registration.id }}
-                        aria-label={`Detail přihlášky ${registration.firstName} ${registration.lastName}`}
+                        aria-label={`Otevřít přihlášku ${registration.firstName} ${registration.lastName}`}
                       >
-                        Detail
-                        <ArrowRight />
+                        Otevřít
                       </Link>
                     </Button>
                   </TableCell>

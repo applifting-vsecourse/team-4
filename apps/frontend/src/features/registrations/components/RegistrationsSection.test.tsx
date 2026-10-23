@@ -138,8 +138,8 @@ describe("RegistrationsSection", () => {
     responses.push({ total: 1, registrations: [registration()] })
     renderSection()
 
-    const button = await screen.findByRole("link", { name: "Detail přihlášky Eliška Svobodová" })
-    expect(button).toHaveTextContent("Detail")
+    const button = await screen.findByRole("link", { name: "Otevřít přihlášku Eliška Svobodová" })
+    expect(button).toHaveTextContent("Otevřít")
   })
 
   it("tells an event without registrations from filters without a match", async () => {

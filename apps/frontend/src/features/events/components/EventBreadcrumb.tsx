@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
@@ -15,6 +16,8 @@ type EventBreadcrumbProps = {
   organizationName?: string
   /** The event, when the page belongs to one. */
   event?: { id: string; name: string }
+  /** A link to the section the current page belongs to, e.g. "Přihlášky". */
+  section?: ReactNode
   /** Last crumb, e.g. "Termíny". Without it the last link is the current page. */
   current?: string
 }
@@ -24,6 +27,7 @@ export function EventBreadcrumb({
   organizationId,
   organizationName,
   event,
+  section,
   current,
 }: EventBreadcrumbProps) {
   const isEventsPage = !event && !current
@@ -68,6 +72,14 @@ export function EventBreadcrumb({
                   </Link>
                 </BreadcrumbLink>
               )}
+            </BreadcrumbItem>
+          </>
+        ) : null}
+        {section ? (
+          <>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>{section}</BreadcrumbLink>
             </BreadcrumbItem>
           </>
         ) : null}
