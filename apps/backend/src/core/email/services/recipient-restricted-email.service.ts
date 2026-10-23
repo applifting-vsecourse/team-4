@@ -1,4 +1,7 @@
-import { EmailService } from '@/core/email/interfaces/email-service.interface';
+import {
+  EmailService,
+  SendResult,
+} from '@/core/email/interfaces/email-service.interface';
 import { Logger } from '@nestjs/common';
 
 /**
@@ -17,14 +20,18 @@ export class RecipientRestrictedEmailService implements EmailService {
     this.allowedRecipient = normalize(allowedRecipient);
   }
 
-  async sendEmail(to: string, subject: string, html: string): Promise<void> {
+  async sendEmail(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<SendResult> {
     if (normalize(to) !== this.allowedRecipient) {
       this.logger.warn(
         `Email "${subject}" not sent: recipient is not the allowed address (EMAIL_ALLOWED_RECIPIENT)`,
       );
-      return;
+      return { sent: false, messageId: null };
     }
-    await this.inner.sendEmail(to, subject, html);
+    return this.inner.sendEmail(to, subject, html);
   }
 }
 

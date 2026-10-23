@@ -13,6 +13,7 @@ import { RegistrationsRepository } from './repositories/registrations.repository
 import { EventRegistrationsService } from './services/event-registrations.service';
 import { ParticipantRegistrationsService } from './services/participant-registrations.service';
 import { PaymentsService } from './services/payments.service';
+import { RegistrationConfirmationService } from './services/registration-confirmation.service';
 import { RegistrationsService } from './services/registrations.service';
 
 @Module({
@@ -25,6 +26,7 @@ import { RegistrationsService } from './services/registrations.service';
   ],
   providers: [
     RegistrationsService,
+    RegistrationConfirmationService,
     RegistrationsRepository,
     EventRegistrationsService,
     EventRegistrationsRepository,

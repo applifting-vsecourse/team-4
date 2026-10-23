@@ -1,5 +1,8 @@
 import { SMTPConfig } from '@/core/email/adapters/smtp/interfaces/smtp-config.interface';
-import { EmailService } from '@/core/email/interfaces/email-service.interface';
+import {
+  EmailService,
+  SendResult,
+} from '@/core/email/interfaces/email-service.interface';
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 
@@ -19,12 +22,17 @@ export class SMTPAdapter implements EmailService {
     });
   }
 
-  async sendEmail(to: string, subject: string, html: string): Promise<void> {
-    await this.transporter.sendMail({
+  async sendEmail(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<SendResult> {
+    const info = await this.transporter.sendMail({
       from: this.config.user,
       to,
       subject,
       html,
     });
+    return { sent: true, messageId: info.messageId ?? null };
   }
 }

@@ -314,10 +314,14 @@ hundreds of registrations, do not justify stored totals.
 
 ### 3.11 E-mail log (R13)
 
-- An `EmailDelivery` row is created as `pending` **after** the registration transaction
-  commits. It becomes `accepted` with `providerMessageId` once Resend accepts the
-  message, or `failed` with a **sanitized** `errorMessage`. There is no automatic retry
-  (S2-15).
+- The `pending` `EmailDelivery` row is created **in** the registration transaction
+  (§3.7); the e-mail is rendered and sent only after it commits, and only for a newly
+  saved registration (a repeat or duplicate sends nothing). The row becomes `accepted`
+  with `providerMessageId` once the provider accepts the message, or `failed` with a
+  **sanitized** `errorMessage`. There is no automatic retry (S2-15).
+- The confirmation carries its own magic link (R12), issued when it is sent. It is not
+  counted by a delivery row of its own and is not subject to the request limit, but it
+  is stored like any link and so counts toward the next request's limit window.
 - "Accepted" is deliberately not "delivered". A `delivered`/`bounced` state can be
   added later from Resend webhooks (F50).
 - The e-mail body is **not stored**, because it contains the magic-link token.

@@ -58,6 +58,23 @@ export class ParticipantAccessService {
     this.sending.add(sending);
   }
 
+  /**
+   * A fresh single-use link for the confirmation e-mail of a new registration.
+   * Returns the full URL; the caller must keep it out of logs and storage.
+   */
+  async issueConfirmationLink(
+    accountId: string,
+    now = new Date(),
+  ): Promise<string> {
+    const token = newToken();
+    await this.repository.issueConfirmationLink(
+      accountId,
+      hashToken(token),
+      now,
+    );
+    return this.linkUrl(token);
+  }
+
   /** Resolves when e-mails started so far have been handed over or failed. */
   async settleDeliveries(): Promise<void> {
     await Promise.all([...this.sending]);
@@ -95,13 +112,17 @@ export class ParticipantAccessService {
     await this.repository.revokeSession(hashToken(sessionToken), now);
   }
 
+  private linkUrl(token: string): string {
+    return `${this.config.frontendUrl}/my-registrations/verify?token=${token}`;
+  }
+
   private async deliver(
     deliveryId: string,
     to: string,
     token: string,
   ): Promise<void> {
     try {
-      const url = `${this.config.frontendUrl}/my-registrations/verify?token=${token}`;
+      const url = this.linkUrl(token);
       const html = await renderEmail(ParticipantMagicLink, { url });
       await this.email.sendEmail(to, 'Přihlašovací odkaz do akc.io', html);
       await this.repository.markDelivery(deliveryId, { status: 'accepted' });

@@ -62,6 +62,26 @@ export class ParticipantAccessRepository {
   }
 
   /**
+   * Stores a link (by hash) for an account that was just registered, to be
+   * sent inside its confirmation e-mail. No delivery row (the confirmation
+   * has its own) and no limit check: the participant did not ask for it.
+   */
+  async issueConfirmationLink(
+    accountId: string,
+    tokenHash: string,
+    now: Date,
+  ): Promise<void> {
+    await this.prisma.participantMagicLink.create({
+      data: {
+        participantAccountId: accountId,
+        tokenHash,
+        createdAt: now,
+        expiresAt: new Date(now.getTime() + MAGIC_LINK_TTL_MS),
+      },
+    });
+  }
+
+  /**
    * Spends a link exactly once and opens a session. The conditional update is
    * a single atomic statement: of concurrent uses one wins, the rest see the
    * link already consumed. `null` when the link is unknown, used or expired.
