@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test"
 
+import { DEMO_SLOWMO } from "./e2e/support/speed"
+
 // End-to-end tests against the real app: frontend, backend and database.
 // Locally they reuse the running dev servers; in CI Playwright starts them.
 //
@@ -24,7 +26,7 @@ export default defineConfig({
     headless: !isDemo,
     launchOptions: isDemo
       ? {
-          slowMo: Number(process.env.DEMO_SLOWMO ?? 350),
+          slowMo: DEMO_SLOWMO,
           args: ["--start-maximized"],
           // Hides the "controlled by automated test software" bar.
           ignoreDefaultArgs: ["--enable-automation"],

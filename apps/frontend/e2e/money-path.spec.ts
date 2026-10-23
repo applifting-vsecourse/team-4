@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test"
+import { test } from "@playwright/test"
 
-import { contextOptions, isDemo, step, type } from "./support/demo"
+import { contextOptions, expect, isDemo, step, type } from "./support/demo"
 import { definition, pickDate } from "./support/ui"
 
 // The money path end to end, through the real UI, API and database: an
