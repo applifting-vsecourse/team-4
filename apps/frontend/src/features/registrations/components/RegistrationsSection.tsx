@@ -113,6 +113,7 @@ export function RegistrationsSection({
         />
       ) : query.isPending ? (
         <div
+          role="status"
           className="space-y-2"
           aria-label="Načítání přihlášek"
         >

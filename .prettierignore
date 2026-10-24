@@ -8,3 +8,6 @@ apps/backend/src/generated/
 
 # Vendored agent skills (managed by `npx skills`, see skills-lock.json)
 .claude/skills/
+
+# Superpowers plan execution scratch (git-ignored)
+.superpowers

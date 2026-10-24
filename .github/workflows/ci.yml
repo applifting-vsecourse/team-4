@@ -76,6 +76,12 @@ jobs:
       - name: Test frontend
         run: pnpm frontend test:ci
 
+      - name: Install Playwright Chromium
+        run: pnpm --filter frontend exec playwright install --with-deps chromium
+
+      - name: Test frontend stories
+        run: pnpm frontend test:stories
+
       - name: Build backend
         run: pnpm backend build
 
