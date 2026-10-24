@@ -44,6 +44,9 @@ const preview: Preview = {
   },
   initialGlobals: { theme: "light" },
   parameters: {
+    // The clickable prototype and the workflows first, then whole pages, then
+    // components.
+    options: { storySort: { order: ["Prototype", "Workflows", "Pages", "*"] } },
     // Accessibility violations fail the story test.
     a11y: { test: "error" },
     viewport: {

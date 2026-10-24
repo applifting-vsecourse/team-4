@@ -6,14 +6,15 @@ Read this before writing or changing any UI. Everything here applies to `apps/fr
 
 ## Sources
 
-| What                                      | Where                                                                                                                                                                          |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Tokens, colours, type (canonical)         | Figma library **Design system**: <https://www.figma.com/design/hsSa2s0GRl0UgsT645F2ir/Design-system>, frame `6002:3` "Design system preview"                                   |
-| Screen layouts                            | Figma file **Wireframy**: <https://www.figma.com/design/IxX3hZQjTZcGF381RD7h0w/Wireframy> (layout only, see below)                                                             |
-| Tokens in code                            | `apps/frontend/src/styles/global.css`                                                                                                                                          |
-| Components in code                        | `apps/frontend/src/components/ui/`                                                                                                                                             |
-| Live preview of all tokens and components | `/design-system` in the running dev app (`src/routes/design-system.tsx`, dev only, 404 in production builds)                                                                   |
-| Component previews (stories per state)    | `pnpm frontend storybook` → <http://localhost:6006>; `*.stories.tsx` next to each component, fixtures in `features/<feature>/fixtures/`; agents use the `storybook` MCP server |
+| What                                          | Where                                                                                                                                                                          |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Tokens, colours, type (canonical)             | Figma library **Design system**: <https://www.figma.com/design/hsSa2s0GRl0UgsT645F2ir/Design-system>, frame `6002:3` "Design system preview"                                   |
+| Screen layouts                                | Figma file **Wireframy**: <https://www.figma.com/design/IxX3hZQjTZcGF381RD7h0w/Wireframy> (layout only, see below)                                                             |
+| Tokens in code                                | `apps/frontend/src/styles/global.css`                                                                                                                                          |
+| Components in code                            | `apps/frontend/src/components/ui/`                                                                                                                                             |
+| Live preview of all tokens and components     | `/design-system` in the running dev app (`src/routes/design-system.tsx`, dev only, 404 in production builds)                                                                   |
+| Component previews (stories per state)        | `pnpm frontend storybook` → <http://localhost:6006>; `*.stories.tsx` next to each component, fixtures in `features/<feature>/fixtures/`; agents use the `storybook` MCP server |
+| Page previews, workflows, clickable prototype | Storybook sections _Prototype_, _Workflows_ and _Pages_: the real routes on an in-memory backend; see `apps/frontend/src/prototype/README.md`                                  |
 
 Wireframy is attached to the older _shadcn ui kit community edition_ library, so its colours and fonts are out of date. Take **layout and structure** from Wireframy and **all visual values** from Design system and this file. Where two Wireframy frames share a name, the one with actual UI is current (for "Akce a turnusy" that is `88:2100`; `88:2093` is a text mapping to docs).
 

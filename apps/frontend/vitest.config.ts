@@ -29,6 +29,10 @@ export default defineConfig({
         // Vitest does not read vite.config.ts, so the styling and asset
         // plugins previews need are listed here.
         plugins: [tailwindcss(), svgr(), storybookTest({ configDir: ".storybook" })],
+        // Page previews import the whole app. Scanning the stories up front
+        // finds its dependencies before the first test; found mid-run, Vite
+        // re-optimizes and reloads the browser, which fails the running file.
+        optimizeDeps: { entries: [".storybook/preview.tsx", "src/**/*.stories.tsx"] },
         test: {
           name: "storybook",
           browser: {

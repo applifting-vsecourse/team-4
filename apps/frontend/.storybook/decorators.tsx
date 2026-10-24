@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type ComponentType } from "react"
 import type { Decorator } from "@storybook/react-vite"
 import { QueryClient, QueryClientProvider, type QueryKey } from "@tanstack/react-query"
 import {
@@ -54,14 +54,23 @@ export const withTheme: Decorator = (Story, context) => {
 }
 
 // A one-route router so <Link> and router hooks work. `parameters.route` sets
-// the current URL.
-export const withRouter: Decorator = (Story, context) => {
+// the current URL. Page previews (src/prototype) run the app's own router and
+// set `parameters.appRouter`, so they get no second one around it.
+export const withRouter: Decorator = (Story, context) =>
+  context.parameters.appRouter ? (
+    <Story />
+  ) : (
+    <OneRouteRouter
+      Story={Story}
+      route={(context.parameters.route ?? "/") as string}
+    />
+  )
+
+function OneRouteRouter({ Story, route }: { Story: ComponentType; route: string }) {
   const [router] = useState(() =>
     createRouter({
       routeTree: createRootRoute({ component: () => <Story /> }),
-      history: createMemoryHistory({
-        initialEntries: [(context.parameters.route ?? "/") as string],
-      }),
+      history: createMemoryHistory({ initialEntries: [route] }),
     }),
   )
   return <RouterProvider router={router} />
