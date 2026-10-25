@@ -1,6 +1,6 @@
 import { test } from "@playwright/test"
 
-import { contextOptions, endDemo, expect, isDemo, step, type } from "./support/demo"
+import { contextOptions, endDemo, expect, step, type } from "./support/demo"
 import { definition, pickDate } from "./support/ui"
 
 // The money path end to end, through the real UI, API and database: an
@@ -113,8 +113,6 @@ test("an organizer opens an event, participants register and payments settle the
     const result = await register("Petr", "Svoboda", `petr-${run}@example.test`)
     await expect(result.getByText("Náhradník")).toBeVisible()
   })
-
-  if (isDemo) await page.bringToFront()
 
   await step(page, "9 · Pořadatelka vidí obsazenost a obě přihlášky", async () => {
     await page.getByRole("link", { name: "Ubytování" }).first().click()

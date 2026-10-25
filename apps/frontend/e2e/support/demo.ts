@@ -1,7 +1,7 @@
 import { expect as baseExpect, test, type Locator, type Page } from "@playwright/test"
 
 import { EXTRA_VIDEO_DIR, isRecording, RECORDING_SIZE } from "./recording"
-import { DEMO_TYPING_DELAY } from "./speed"
+import { DEMO_NAVIGATION_HOLD, DEMO_TYPING_DELAY } from "./speed"
 
 // One scenario, two audiences. As a test it runs headless and fast. With
 // DEMO=1 it becomes a guided walkthrough: every `step` first shows its caption
@@ -78,11 +78,35 @@ const REVEALED_ACTIONS = [
   "uncheck",
 ] as const
 
+/** Page methods that leave the current page. */
+const LEAVING_ACTIONS = ["goto", "reload", "goBack"] as const
+
+const lastNavigation = new WeakMap<Page, number>()
+
+/** Notes when `page` last opened another page (also within the app). */
+function trackNavigations(page: Page) {
+  if (lastNavigation.has(page)) return
+  lastNavigation.set(page, 0)
+  page.on("framenavigated", (frame) => {
+    if (frame === page.mainFrame()) lastNavigation.set(page, Date.now())
+  })
+}
+
+/**
+ * A page that has just opened stays on screen for DEMO_NAVIGATION_HOLD before
+ * the demo acts on it or leaves it, so the audience sees every page it passes.
+ */
+async function holdAfterNavigation(page: Page) {
+  const remaining = (lastNavigation.get(page) ?? 0) + DEMO_NAVIGATION_HOLD - Date.now()
+  if (remaining > 0) await page.waitForTimeout(remaining)
+}
+
 let hasRevealingActions = false
 
 // Playwright scrolls before an action too, but it jumps and stops at the
 // window edge, under the caption. Locator is not exported as a value, so the
-// prototype comes from an instance; demo mode only.
+// prototype comes from an instance; demo mode only. Actions and navigations
+// also wait until a newly opened page has been seen.
 function revealBeforeActions(page: Page) {
   if (hasRevealingActions) return
   hasRevealingActions = true
@@ -93,7 +117,19 @@ function revealBeforeActions(page: Page) {
   for (const name of REVEALED_ACTIONS) {
     const action = prototype[name]!
     prototype[name] = async function (this: Locator, ...args: unknown[]) {
+      await holdAfterNavigation(this.page())
       await reveal(this)
+      return action.apply(this, args)
+    }
+  }
+  const pagePrototype = Object.getPrototypeOf(page) as Record<
+    string,
+    (this: Page, ...args: unknown[]) => Promise<unknown>
+  >
+  for (const name of LEAVING_ACTIONS) {
+    const action = pagePrototype[name]!
+    pagePrototype[name] = async function (this: Page, ...args: unknown[]) {
+      await holdAfterNavigation(this)
       return action.apply(this, args)
     }
   }
@@ -188,11 +224,10 @@ const NEXT_KEYS = ["ArrowRight", "PageDown"]
 
 /**
  * Waits in the page, not in the Playwright Inspector: no extra window per
- * browser and nothing highlighted. Brings the page's window to the front so
- * the key reaches it.
+ * browser and nothing highlighted. The page must be in front, so the key
+ * reaches it.
  */
 async function waitForPresenter(page: Page, label = "Spustit →") {
-  await page.bringToFront()
   await page.evaluate(
     ({ id, keys, label }) =>
       new Promise<void>((resolve) => {
@@ -231,16 +266,80 @@ async function waitForPresenter(page: Page, label = "Spustit →") {
   )
 }
 
+/** The page whose window the audience sees. */
+let frontPage: Page | undefined
+const arrangedPages = new WeakSet<Page>()
+
+/** The browser window that shows `page`, with its screen bounds. */
+async function windowOf(page: Page) {
+  const session = await page.context().newCDPSession(page)
+  const { windowId, bounds } = await session.send("Browser.getWindowForTarget")
+  return { session, windowId, bounds }
+}
+
 /**
- * A named step of the scenario. In demo mode it captions the page, waits for
- * the presenter before acting, and keeps the caption while the step runs.
+ * Fits a window for the audience the first time it is shown: a desktop one
+ * (its page follows the window size) goes fullscreen, a phone-sized one moves
+ * to the middle of the window in front. Playwright sizes a phone window but
+ * leaves it in the corner. Cosmetic: if the window manager refuses, the
+ * window stays as it is.
+ */
+async function arrangeWindow(page: Page) {
+  if (isRecording || arrangedPages.has(page)) return
+  arrangedPages.add(page)
+  const target = await windowOf(page)
+  try {
+    if (page.viewportSize() === null) {
+      await target.session.send("Browser.setWindowBounds", {
+        windowId: target.windowId,
+        bounds: { windowState: "fullscreen" },
+      })
+    } else if (frontPage && !frontPage.isClosed()) {
+      const main = await windowOf(frontPage)
+      await main.session.detach()
+      const { width = 0, height = 0 } = target.bounds
+      const { left = 0, top = 0, width: mainWidth = 0, height: mainHeight = 0 } = main.bounds
+      await target.session.send("Browser.setWindowBounds", {
+        windowId: target.windowId,
+        bounds: {
+          left: left + Math.max(0, Math.round((mainWidth - width) / 2)),
+          top: top + Math.max(0, Math.round((mainHeight - height) / 2)),
+        },
+      })
+    }
+  } catch {
+    // The window keeps its size and place.
+  } finally {
+    await target.session.detach()
+  }
+}
+
+/** Brings the window of `page` to the front, fitted the first time. */
+async function present(page: Page) {
+  if (frontPage === page) return
+  await arrangeWindow(page)
+  await page.bringToFront()
+  frontPage = page
+}
+
+/**
+ * A named step of the scenario. In demo mode it captions the window in front
+ * and waits for the presenter there; only then does it switch to the step's
+ * own window, if that is another one, and act.
  */
 export async function step<T>(page: Page, title: string, body: () => Promise<T>): Promise<T> {
   return test.step(title, async () => {
     if (isDemo) {
       revealBeforeActions(page)
-      await showCaption(page, title)
-      if (shouldPause) await waitForPresenter(page)
+      trackNavigations(page)
+      const stage = shouldPause && frontPage && !frontPage.isClosed() ? frontPage : page
+      await present(stage)
+      await showCaption(stage, title)
+      if (shouldPause) await waitForPresenter(stage)
+      if (stage !== page) {
+        await present(page)
+        await showCaption(page, title)
+      }
     }
     return body()
   })
@@ -252,8 +351,9 @@ export async function step<T>(page: Page, title: string, body: () => Promise<T>)
  */
 export async function endDemo(page: Page) {
   if (!shouldPause) return
-  await showCaption(page, "Konec ukázky")
-  await waitForPresenter(page, "Ukončit")
+  const stage = frontPage && !frontPage.isClosed() ? frontPage : page
+  await showCaption(stage, "Konec ukázky")
+  await waitForPresenter(stage, "Ukončit")
 }
 
 /** Fills a field; in demo mode types it key by key so the audience sees it. */

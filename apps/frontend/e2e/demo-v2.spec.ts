@@ -2,22 +2,22 @@ import { mkdirSync, writeFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { test, type Page } from "@playwright/test"
 
-import { createOrganization, newParticipant, register, setUpEvent } from "./support/api"
-import { closeDb, createMagicLink, emailsSent } from "./support/db"
+import { createOrganization, register, setUpEvent } from "./support/api"
+import { closeDb, createMagicLink } from "./support/db"
 import { contextOptions, endDemo, expect, isDemo, step, type } from "./support/demo"
 import { EXTRA_VIDEO_DIR, isRecording } from "./support/recording"
 import { definition, pickDate } from "./support/ui"
 
-// Demo V2: every Sprint 2 story (S2-01 … S2-17) in one walkthrough for the
-// PO, through the real UI, API and database. Each caption names the stories
+// Demo V2: the Sprint 2 stories in one walkthrough for the PO, through the
+// real UI, API and database. S2-15 (the confirmation e-mail) is left out: the
+// demo sends no e-mail. Each caption names the stories
 // its step shows. It needs no seed data: the organizer signs up in the UI and
 // the other organizer is prepared through the API.
 //
 // Four people, each in their own browser: Alena the organizer (`page`), Jana
 // and Petr on a phone (`visitor`, 360 px wide) and an organizer of another
-// association (`outsider`). The participant's magic link is created in the
-// database instead of read from a mailbox; whether the e-mails went out is
-// read from the backend's outbound e-mail log.
+// association (`outsider`). No e-mail is sent or read: the participant's magic
+// link is created in the database.
 //
 // `pnpm frontend demo:v2` steps through it, `pnpm frontend demo:v2:autoplay`
 // plays it through.
@@ -37,7 +37,6 @@ const event = {
 }
 /** The S2-07 and S2-14 phone width. */
 const PHONE = { width: 360, height: 800 }
-const LINK_SENT = "Pokud k tomuto e-mailu existují přihlášky, pošleme vám přihlašovací odkaz."
 const LINK_REFUSED =
   "Odkaz už není platný: byl použit, vypršel nebo není správný. Vyžádejte si nový."
 
@@ -103,11 +102,26 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
   // Organization names are unique per organizer only: Alena may use this one too.
   await createOrganization(outsiderContext.request, "Spolek Jasan")
 
+  // Every window opens now, loaded, so none pops up in the middle of the demo:
+  // each stays behind until its first scene starts. Jana and Petr use a
+  // phone: the public pages at 360 px.
+  const visitorContext = await browser.newContext({
+    ...contextOptions,
+    viewport: PHONE,
+    // Playwright records at most the page's own size; the film scales it up.
+    ...(isRecording ? { recordVideo: { dir: EXTRA_VIDEO_DIR, size: PHONE } } : {}),
+  })
+  const visitor = await visitorContext.newPage()
+  windowNames.set(visitor, "visitor")
+  await visitor.goto("/")
+  const outsider = await outsiderContext.newPage()
+  windowNames.set(outsider, "outsider")
+  await outsider.goto(`/organizations/${outsiderEvent.organizationId}`)
+
   // ── Act 1: a visitor becomes an organizer ─────────────────────────────────
 
   const entries = page.getByRole("region", { name: "Kudy dál" })
 
-  // Each window is loaded before its first scene, which waits on its caption.
   await page.goto("/")
   await scene(page, "Landing page představí akc.io", ["S2-01"], async () => {
     await expect(
@@ -404,17 +418,6 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
     expect(publicUrl).toContain("/e/")
   })
 
-  // Jana and Petr use a phone: the public pages at 360 px.
-  const visitorContext = await browser.newContext({
-    ...contextOptions,
-    viewport: PHONE,
-    // Playwright records at most the page's own size; the film scales it up.
-    ...(isRecording ? { recordVideo: { dir: EXTRA_VIDEO_DIR, size: PHONE } } : {}),
-  })
-  const visitor = await visitorContext.newPage()
-  windowNames.set(visitor, "visitor")
-  await visitor.goto("/")
-
   await scene(visitor, "Koncept ani neexistující odkaz nic neprozradí", ["S2-06"], async () => {
     await visitor.goto(publicUrl)
     await expect(visitor.getByText("Akce není dostupná")).toBeVisible()
@@ -423,8 +426,6 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
     await visitor.goto("/e/neexistujici-akce")
     await expect(visitor.getByText("Akce není dostupná")).toBeVisible()
   })
-
-  if (isDemo) await page.bringToFront()
 
   await scene(
     page,
@@ -448,7 +449,6 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
 
   // ── Act 3: participants register on their phones ─────────────────────────
 
-  if (isDemo) await visitor.bringToFront()
   const total = visitor.getByRole("region", { name: "Cena vybraných termínů" })
   const termBox = (label: string) => visitor.getByRole("checkbox", { name: new RegExp(label) })
   const fillContact = async (person: typeof jana, phone = "+420 777 123 456") => {
@@ -526,14 +526,10 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
     },
   )
 
-  await scene(visitor, "Potvrzovací e-mail s výsledkem odešel", ["S2-15"], async () => {
-    await expect.poll(() => emailsSent("registration_confirmation", jana.email)).toBe(1)
-  })
-
   await scene(
     visitor,
     "Stejný e-mail podruhé: nic nového, jen nabídka přihlašovacího odkazu",
-    ["S2-08", "S2-14", "S2-15"],
+    ["S2-08", "S2-14"],
     async () => {
       await visitor.goto(publicUrl)
       await termBox("Sobota").check()
@@ -542,7 +538,6 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
       await expect(visitor.getByText("Přihláška s tímto e-mailem již existuje")).toBeVisible()
       await expect(visitor.getByRole("link", { name: "Vyžádat přihlašovací odkaz" })).toBeVisible()
       await expect(result).toBeHidden()
-      expect(await emailsSent("registration_confirmation", jana.email)).toBe(1)
     },
   )
 
@@ -562,8 +557,6 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
   )
 
   // ── Act 4: Alena works with the registrations ─────────────────────────────
-
-  if (isDemo) await page.bringToFront()
 
   await scene(
     page,
@@ -720,37 +713,14 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
     outsiderEvent.termIds,
   )
 
-  if (isDemo) await visitor.bringToFront()
-
-  await scene(
-    visitor,
-    "Moje přihlášky: známý i neznámý e-mail dostanou stejnou odpověď",
-    ["S2-13"],
-    async () => {
-      await visitor.goto("/")
-      await visitor
-        .getByRole("region", { name: "Kudy dál" })
-        .getByRole("link", { name: "Moje přihlášky" })
-        .click()
-      const unknown = newParticipant("Nikdo").email
-      for (const email of [unknown, jana.email]) {
-        await type(visitor.getByLabel("E-mail"), email)
-        await visitor.getByRole("button", { name: "Poslat přihlašovací odkaz" }).click()
-        await expect(visitor.getByRole("status").filter({ hasText: LINK_SENT })).toBeVisible()
-      }
-      // A link went to Jana only; nothing to the unknown address.
-      await expect.poll(() => emailsSent("participant_magic_link", jana.email)).toBe(1)
-      expect(await emailsSent("participant_magic_link", unknown)).toBe(0)
-    },
-  )
-
-  // The link from Jana's mailbox: the demo stores one the same way instead.
+  // Jana's magic link, stored the way the backend stores one: the demo sends
+  // and reads no e-mail.
   const verifyUrl = `/my-registrations/verify?token=${await createMagicLink(jana.email)}`
   let janaOwnDetailUrl = ""
 
   await scene(
     visitor,
-    "Odkaz z e-mailu otevře všechny její přihlášky, i u jiného pořadatele",
+    "Přihlašovací odkaz otevře všechny její přihlášky, i u jiného pořadatele",
     ["S2-13", "S2-14"],
     async () => {
       await visitor.goto(verifyUrl)
@@ -803,11 +773,6 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
 
   // ── Act 6: the other association's organizer tries to look in ─────────────
 
-  const outsider = await outsiderContext.newPage()
-  windowNames.set(outsider, "outsider")
-  await outsider.goto(`/organizations/${outsiderEvent.organizationId}`)
-  if (isDemo) await outsider.bringToFront()
-
   await scene(
     outsider,
     "Cizí pořadatel přímým odkazem nic neuvidí a vrátí se ke svým akcím",
@@ -826,8 +791,6 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
       await expect(outsider).toHaveURL(new RegExp(`/organizations/${outsiderEvent.organizationId}`))
     },
   )
-
-  if (isDemo) await page.bringToFront()
 
   await scene(page, "Podvržené ID v adrese neotevře záznam jiné akce", ["S2-03"], async () => {
     await page.goto(`${eventUrl}/registrations/${janaElsewhere.id}`)

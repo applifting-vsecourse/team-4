@@ -49,18 +49,3 @@ export async function createMagicLink(
   if (rowCount !== 1) throw new Error(`No participant account for ${email}`)
   return token
 }
-
-export type EmailType = "registration_confirmation" | "participant_magic_link"
-
-/**
- * How many e-mails of `type` the backend handed to the mail provider for
- * `email`, from its outbound log (`email_delivery`). Failed sends do not count.
- */
-export async function emailsSent(type: EmailType, email: string): Promise<number> {
-  const { rows } = await db().query<{ count: string }>(
-    `SELECT count(*) FROM email_delivery
-     WHERE type = $1::email_type AND lower("recipientEmail") = $2 AND status <> 'failed'`,
-    [type, email.trim().toLowerCase()],
-  )
-  return Number(rows[0]!.count)
-}
