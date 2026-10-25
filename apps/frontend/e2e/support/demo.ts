@@ -161,6 +161,10 @@ async function renderCaption(page: Page, text: string) {
           left: "50%",
           bottom: "24px",
           transform: "translateX(-50%)",
+          // Wraps within the window, also on a 360 px phone page.
+          width: "max-content",
+          maxWidth: "calc(100vw - 32px)",
+          textAlign: "center",
           zIndex: "2147483647",
           padding: "10px 18px",
           borderRadius: "999px",
