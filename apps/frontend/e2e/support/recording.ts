@@ -5,6 +5,8 @@
 // needs a fixed size, so a recorded demo renders at RECORDING_SIZE instead of
 // following the window.
 
+import { fileURLToPath } from "node:url"
+
 export const isRecording = process.env.DEMO_RECORD === "1"
 
 export const RECORDING_SIZE = { width: 1920, height: 1080 }
@@ -13,4 +15,4 @@ export const RECORDING_SIZE = { width: 1920, height: 1080 }
  * Where extra windows (another person's browser) save their video. The main
  * page's video lands in that test's folder under test-results.
  */
-export const EXTRA_VIDEO_DIR = new URL("../../test-results/videos/", import.meta.url).pathname
+export const EXTRA_VIDEO_DIR = fileURLToPath(new URL("../../test-results/videos/", import.meta.url))

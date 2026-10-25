@@ -60,6 +60,7 @@ export type OpenEvent = {
   publicId: string
   termIds: string[]
   name: string
+  location: string
 }
 
 type EventDetail = { id: string; publicId: string; terms: { id: string; label: string }[] }
@@ -75,11 +76,12 @@ export async function setUpEvent(
   const organizer = await signUpOrganizer(request)
   const organization = await createOrganization(request)
   const name = `Letní tábor ${uniqueSuffix()}`
+  const location = `Tábořiště ${uniqueSuffix()}`
   const eventPath = `/organizations/${organization.id}/events`
   const created = await post<EventDetail>(request, eventPath, {
     name,
     description: "Týden v lesích.",
-    location: "Tábořiště Hrachov",
+    location,
   })
   const path = `${eventPath}/${created.id}`
 
@@ -115,6 +117,7 @@ export async function setUpEvent(
     publicId: created.publicId,
     termIds,
     name,
+    location,
   }
 }
 

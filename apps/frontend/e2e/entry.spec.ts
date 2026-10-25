@@ -65,4 +65,7 @@ test("signing up with a used e-mail offers to sign in instead", async ({ page, p
   await expect(page.getByText("Účet s tímto e-mailem už existuje.")).toBeVisible()
   await expect(page.getByRole("link", { name: "Přejít na přihlášení" })).toBeVisible()
   await expect(page).toHaveURL(/\/signup/)
+  // Not signed in: the organizer area sends the visitor to sign in.
+  await page.goto("/organizations")
+  await expect(page).toHaveURL(/\/login/)
 })

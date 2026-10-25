@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto"
+import { randomBytes } from "node:crypto"
 import { expect, test } from "@playwright/test"
 
 import { createOrganization, setUpEvent, signUpOrganizer } from "./support/api"
@@ -21,8 +21,11 @@ test("a draft's public link and an unknown one show the same unavailable page", 
   await visitor.goto(`/e/${draft.publicId}`)
   await expect(visitor.getByText("Akce není dostupná")).toBeVisible()
   await expect(visitor.getByText(draft.name)).toBeHidden()
+  await expect(visitor.getByText(draft.location)).toBeHidden()
+  await expect(visitor.getByText(terms[0]!.label)).toBeHidden()
 
-  await visitor.goto(`/e/${randomUUID()}`)
+  // Well-formed, like a real link (12 base64url characters), but unknown.
+  await visitor.goto(`/e/${randomBytes(9).toString("base64url")}`)
   await expect(visitor.getByText("Akce není dostupná")).toBeVisible()
   await visitorContext.close()
 })

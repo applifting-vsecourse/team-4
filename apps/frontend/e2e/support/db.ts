@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto"
 import { existsSync, readFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
 import { parseEnv } from "node:util"
 import pg from "pg"
 
@@ -7,7 +8,7 @@ import pg from "pg"
 // magic link is created here, the same way the backend stores one, so a test
 // can open it without sending or reading any message.
 
-const BACKEND_ENV = new URL("../../../backend/.env", import.meta.url).pathname
+const BACKEND_ENV = fileURLToPath(new URL("../../../backend/.env", import.meta.url))
 
 /** The backend's database: the env variable (CI), else the backend's .env. */
 function databaseUrl() {

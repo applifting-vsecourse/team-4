@@ -72,7 +72,10 @@ test("after logging out the detail URL shows nothing private", async ({ browser,
   await expect(page.getByRole("heading", { name: event.name, level: 1 })).toBeVisible()
   const detailUrl = page.url()
 
-  await page.getByRole("button", { name: "Odhlásit se" }).click()
+  const logout = page.getByRole("button", { name: "Odhlásit se" })
+  await logout.click()
+  // The logout request must finish before the next navigation could cancel it.
+  await expect(logout).toBeHidden()
   await page.goto(detailUrl)
   await expect(page.getByRole("button", { name: "Poslat přihlašovací odkaz" })).toBeVisible()
   await expect(page.getByText(event.name)).toBeHidden()
