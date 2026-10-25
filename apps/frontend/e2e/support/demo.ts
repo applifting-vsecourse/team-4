@@ -4,11 +4,12 @@ import { EXTRA_VIDEO_DIR, isRecording, RECORDING_SIZE } from "./recording"
 import { DEMO_TYPING_DELAY } from "./speed"
 
 // One scenario, two audiences. As a test it runs headless and fast. With
-// DEMO=1 it becomes a guided walkthrough: every `step` shows a caption in the
-// page and then pauses in the Playwright Inspector until the presenter
-// presses Resume, `type` types visibly instead of pasting, and whatever the
-// scenario clicks, fills or checks is first scrolled smoothly into the middle
-// of the window. DEMO_PAUSE=0 plays it through without pauses.
+// DEMO=1 it becomes a guided walkthrough: every `step` first shows its caption
+// in the page and waits until the presenter presses → or PageDown (a slide
+// clicker) or clicks "Spustit" in the caption, and only then acts. `type` types
+// visibly instead of pasting, and whatever the scenario clicks, fills or
+// checks is first scrolled smoothly into the middle of the window.
+// DEMO_PAUSE=0 plays it through without pauses.
 
 export const isDemo = process.env.DEMO === "1"
 /** DEMO_PAUSE=0 plays the walkthrough through without stopping (autoplay). */
@@ -182,25 +183,77 @@ async function renderCaption(page: Page, text: string) {
   )
 }
 
+/** Keys that continue a paused demo: arrow right, and what slide clickers send. */
+const NEXT_KEYS = ["ArrowRight", "PageDown"]
+
 /**
- * A named step of the scenario. In demo mode it captions the page while the
- * step runs and pauses afterwards, unless `shouldPauseAfter: false`.
+ * Waits in the page, not in the Playwright Inspector: no extra window per
+ * browser and nothing highlighted. Brings the page's window to the front so
+ * the key reaches it.
  */
-export async function step<T>(
-  page: Page,
-  title: string,
-  body: () => Promise<T>,
-  { shouldPauseAfter = true }: { shouldPauseAfter?: boolean } = {},
-): Promise<T> {
+async function waitForPresenter(page: Page, label = "Spustit →") {
+  await page.bringToFront()
+  await page.evaluate(
+    ({ id, keys, label }) =>
+      new Promise<void>((resolve) => {
+        const next = document.createElement("button")
+        next.type = "button"
+        next.textContent = label
+        Object.assign(next.style, {
+          marginLeft: "12px",
+          padding: "2px 12px",
+          border: "1px solid rgba(249, 250, 251, 0.5)",
+          borderRadius: "999px",
+          background: "transparent",
+          color: "inherit",
+          font: "inherit",
+          cursor: "pointer",
+          pointerEvents: "auto",
+        })
+        document.getElementById(id)?.appendChild(next)
+
+        const onKey = (event: KeyboardEvent) => {
+          if (!keys.includes(event.key)) return
+          // The key only drives the demo, never the page under it.
+          event.preventDefault()
+          event.stopPropagation()
+          finish()
+        }
+        const finish = () => {
+          window.removeEventListener("keydown", onKey, true)
+          next.remove()
+          resolve()
+        }
+        window.addEventListener("keydown", onKey, true)
+        next.addEventListener("click", finish)
+      }),
+    { id: CAPTION_ID, keys: NEXT_KEYS, label },
+  )
+}
+
+/**
+ * A named step of the scenario. In demo mode it captions the page, waits for
+ * the presenter before acting, and keeps the caption while the step runs.
+ */
+export async function step<T>(page: Page, title: string, body: () => Promise<T>): Promise<T> {
   return test.step(title, async () => {
     if (isDemo) {
       revealBeforeActions(page)
       await showCaption(page, title)
+      if (shouldPause) await waitForPresenter(page)
     }
-    const result = await body()
-    if (shouldPause && shouldPauseAfter) await page.pause()
-    return result
+    return body()
   })
+}
+
+/**
+ * The demo's last stop: a step waits before it acts, so without this the
+ * browser would close as soon as the last step's result appears.
+ */
+export async function endDemo(page: Page) {
+  if (!shouldPause) return
+  await showCaption(page, "Konec ukázky")
+  await waitForPresenter(page, "Ukončit")
 }
 
 /** Fills a field; in demo mode types it key by key so the audience sees it. */

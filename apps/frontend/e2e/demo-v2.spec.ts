@@ -1,8 +1,11 @@
+import { mkdirSync, writeFileSync } from "node:fs"
+import { fileURLToPath } from "node:url"
 import { test, type Page } from "@playwright/test"
 
 import { createOrganization, newParticipant, register, setUpEvent } from "./support/api"
 import { closeDb, createMagicLink, emailsSent } from "./support/db"
-import { contextOptions, expect, isDemo, step, type } from "./support/demo"
+import { contextOptions, endDemo, expect, isDemo, step, type } from "./support/demo"
+import { EXTRA_VIDEO_DIR, isRecording } from "./support/recording"
 import { definition, pickDate } from "./support/ui"
 
 // Demo V2: every Sprint 2 story (S2-01 … S2-17) in one walkthrough for the
@@ -40,9 +43,39 @@ const LINK_REFUSED =
 
 let sceneNumber = 0
 
+// Recording (DEMO_RECORD=1) saves one video per window. To cut them into one
+// film, the timeline notes which window each scene shows and when, and when
+// each window's video ended.
+const RECORDING_DIR = fileURLToPath(new URL("../test-results/demo-v2-recording/", import.meta.url))
+/** A recorded scene stays on screen this long after its last check, to be read. */
+const SCENE_HOLD_MS = 2_500
+const windowNames = new Map<Page, string>()
+const timeline = {
+  scenes: [] as { at: number; window: string; caption: string }[],
+  windows: {} as Record<string, { video: string; closedAt: number }>,
+}
+
 /** A numbered step whose caption ends with the stories it presents. */
-const scene = <T>(who: Page, title: string, stories: string[], body: () => Promise<T>) =>
-  step(who, `${++sceneNumber} · ${title} — ${stories.join(", ")}`, body)
+const scene = <T>(who: Page, title: string, stories: string[], body: () => Promise<T>) => {
+  const caption = `${++sceneNumber} · ${title} — ${stories.join(", ")}`
+  return step(who, caption, async () => {
+    if (isRecording) {
+      timeline.scenes.push({ at: Date.now(), window: windowNames.get(who)!, caption })
+    }
+    const result = await body()
+    if (isRecording) await who.waitForTimeout(SCENE_HOLD_MS)
+    return result
+  })
+}
+
+/** Ends the recording of `page`'s window and saves its video under `name`. */
+async function saveVideo(page: Page, name: string) {
+  const closedAt = Date.now()
+  await page.close()
+  const video = `${RECORDING_DIR}${name}.webm`
+  await page.video()!.saveAs(video)
+  timeline.windows[name] = { video, closedAt }
+}
 
 /** S2-01, S2-07, S2-14: nothing wider than the window, so no sideways scrolling. */
 async function expectNoSidewaysScroll(page: Page) {
@@ -59,6 +92,7 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
   browser,
 }) => {
   test.setTimeout(isDemo ? 0 : 300_000)
+  windowNames.set(page, "organizer")
 
   // Another association's organizer with an open event, behind the scenes.
   const outsiderContext = await browser.newContext(contextOptions)
@@ -73,8 +107,9 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
 
   const entries = page.getByRole("region", { name: "Kudy dál" })
 
+  // Each window is loaded before its first scene, which waits on its caption.
+  await page.goto("/")
   await scene(page, "Landing page představí akc.io", ["S2-01"], async () => {
-    await page.goto("/")
     await expect(
       page.getByRole("heading", {
         name: "Přihlášky, ubytování a platby pro vaše akce na jednom místě",
@@ -370,8 +405,15 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
   })
 
   // Jana and Petr use a phone: the public pages at 360 px.
-  const visitorContext = await browser.newContext({ ...contextOptions, viewport: PHONE })
+  const visitorContext = await browser.newContext({
+    ...contextOptions,
+    viewport: PHONE,
+    // Playwright records at most the page's own size; the film scales it up.
+    ...(isRecording ? { recordVideo: { dir: EXTRA_VIDEO_DIR, size: PHONE } } : {}),
+  })
   const visitor = await visitorContext.newPage()
+  windowNames.set(visitor, "visitor")
+  await visitor.goto("/")
 
   await scene(visitor, "Koncept ani neexistující odkaz nic neprozradí", ["S2-06"], async () => {
     await visitor.goto(publicUrl)
@@ -762,6 +804,8 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
   // ── Act 6: the other association's organizer tries to look in ─────────────
 
   const outsider = await outsiderContext.newPage()
+  windowNames.set(outsider, "outsider")
+  await outsider.goto(`/organizations/${outsiderEvent.organizationId}`)
   if (isDemo) await outsider.bringToFront()
 
   await scene(
@@ -806,6 +850,13 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
     await secondTab.close()
   })
 
+  await endDemo(page)
+
+  if (isRecording) {
+    for (const [window, name] of windowNames) await saveVideo(window, name)
+    mkdirSync(RECORDING_DIR, { recursive: true })
+    writeFileSync(`${RECORDING_DIR}timeline.json`, JSON.stringify(timeline, null, 2))
+  }
   await visitorContext.close()
   await outsiderContext.close()
 })

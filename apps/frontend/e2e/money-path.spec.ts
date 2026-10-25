@@ -1,6 +1,6 @@
 import { test } from "@playwright/test"
 
-import { contextOptions, expect, isDemo, step, type } from "./support/demo"
+import { contextOptions, endDemo, expect, isDemo, step, type } from "./support/demo"
 import { definition, pickDate } from "./support/ui"
 
 // The money path end to end, through the real UI, API and database: an
@@ -20,8 +20,9 @@ test("an organizer opens an event, participants register and payments settle the
   page,
   browser,
 }) => {
+  // Each window is loaded before its first step, which waits on its caption.
+  await page.goto("/signup")
   await step(page, "1 · Pořadatelka si založí účet a organizaci", async () => {
-    await page.goto("/signup")
     await type(page.getByLabel("Jméno"), organizer.name)
     await type(page.getByLabel("E-mail"), organizer.email)
     await type(page.getByLabel("Heslo"), organizer.password)
@@ -88,6 +89,7 @@ test("an organizer opens an event, participants register and payments settle the
   // Participants are anonymous visitors in their own browser.
   const visitorContext = await browser.newContext(contextOptions)
   const visitor = await visitorContext.newPage()
+  await visitor.goto(publicUrl)
 
   const register = async (firstName: string, lastName: string, email: string) => {
     await visitor.goto(publicUrl)
@@ -148,6 +150,8 @@ test("an organizer opens an event, participants register and payments settle the
     await expect(page.getByText("Zaplaceno", { exact: true }).first()).toBeVisible()
     await expect(definition(page, "Přijato")).toHaveText("4 500 Kč")
   })
+
+  await endDemo(page)
 
   await visitorContext.close()
 })

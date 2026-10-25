@@ -33,14 +33,14 @@ Playwright scenarios in `e2e/` drive the real app: frontend, backend and databas
 pnpm frontend exec playwright install chromium  # once
 pnpm frontend test:e2e        # headless, as in CI
 pnpm frontend test:e2e:ui     # Playwright UI mode: steps, time travel, watch
-pnpm frontend demo            # walkthrough for the PO: pauses after every step
+pnpm frontend demo            # walkthrough for the PO: pauses after every step (→ continues)
 pnpm frontend demo:autoplay   # the same walkthrough without pauses
 pnpm frontend demo:record     # autoplay, recorded to video
 pnpm frontend demo:v2         # demo V2: every Sprint 2 story, pauses after every step
 pnpm frontend demo:v2:autoplay
 ```
 
-`demo` opens a visible, slowed-down browser that fills the screen, captions each step in the page, types visibly and smoothly scrolls whatever it clicks or checks into the middle of the window. After each step it stops in the Playwright Inspector; press Resume (F8) to continue. `demo:autoplay` runs at half that speed. `demo`, `demo:autoplay` and `demo:record` run only the money path (`e2e/money-path.spec.ts`); `demo:v2` and `demo:v2:autoplay` run demo V2 (`e2e/demo-v2.spec.ts`), whose captions name the stories each step shows (S2-01 … S2-17). `DEMO_SLOWMO=<ms per action>` sets the pace for either (default 350, autoplay 700). Scenarios mark their steps with `step()` and fill fields with `type()` from `e2e/support/demo.ts`.
+`demo` opens a visible, slowed-down browser that fills the screen, captions each step in the page, types visibly and smoothly scrolls whatever it clicks or checks into the middle of the window. Each step first shows its caption and waits, with the page already loaded: press → or PageDown (what slide clickers send) or click "Spustit" in the caption to run it. The Playwright Inspector does not open. `demo:autoplay` runs at half that speed. `demo`, `demo:autoplay` and `demo:record` run only the money path (`e2e/money-path.spec.ts`); `demo:v2` and `demo:v2:autoplay` run demo V2 (`e2e/demo-v2.spec.ts`), whose captions name the stories each step shows (S2-01 … S2-17). `DEMO_SLOWMO=<ms per action>` sets the pace for either (default 350, autoplay 700). Scenarios mark their steps with `step()` and fill fields with `type()` from `e2e/support/demo.ts`.
 
 `demo:record` renders at 1920×1080 and saves one video per browser window: the organizer's in `test-results/<test>/video.webm`, the participant's in `test-results/videos/`. The next run overwrites them.
 
