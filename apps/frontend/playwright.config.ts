@@ -16,7 +16,8 @@ export default defineConfig({
   // Demo pauses for as long as the presenter needs.
   timeout: isDemo ? 0 : 90_000,
   expect: { timeout: 10_000 },
-  retries: isCI ? 1 : 0,
+  // A retry would let a flaky test pass unnoticed.
+  retries: 0,
   workers: 1,
   reporter: isCI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
