@@ -11,6 +11,7 @@ import {
   Tailwind,
   Text,
 } from 'react-email';
+import { EmailBrand } from './email-brand';
 import * as React from 'react';
 
 export interface ParticipantMagicLinkProps {
@@ -26,7 +27,8 @@ export const ParticipantMagicLink = ({
     <Tailwind>
       <Body className="bg-gray-50 font-sans py-10">
         <Container className="bg-white rounded-lg mx-auto p-8 max-w-xl">
-          <Heading className="text-2xl font-bold text-gray-900 m-0">
+          <EmailBrand url={url} />
+          <Heading className="text-2xl font-bold text-gray-900 mt-6 mb-0">
             Vaše přihlášky v akc.io
           </Heading>
           <Text className="text-gray-700 text-base leading-6 mt-4">
