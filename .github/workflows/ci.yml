@@ -95,4 +95,5 @@ jobs:
         with:
           name: playwright-report-${{ github.sha }}
           path: apps/frontend/playwright-report
+          if-no-files-found: error
           retention-days: 7

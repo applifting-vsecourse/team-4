@@ -69,10 +69,13 @@ const scene = <T>(who: Page, title: string, stories: string[], body: () => Promi
 
 /** Ends the recording of `page`'s window and saves its video under `name`. */
 async function saveVideo(page: Page, name: string) {
+  const recording = page.video()
+  if (!recording) throw new Error(`Video recording is not enabled for the ${name} window`)
+  mkdirSync(RECORDING_DIR, { recursive: true })
   const closedAt = Date.now()
   await page.close()
   const video = `${RECORDING_DIR}${name}.webm`
-  await page.video()!.saveAs(video)
+  await recording.saveAs(video)
   timeline.windows[name] = { video, closedAt }
 }
 
@@ -817,7 +820,6 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
 
   if (isRecording) {
     for (const [window, name] of windowNames) await saveVideo(window, name)
-    mkdirSync(RECORDING_DIR, { recursive: true })
     writeFileSync(`${RECORDING_DIR}timeline.json`, JSON.stringify(timeline, null, 2))
   }
   await visitorContext.close()
