@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto"
-
 import { type APIRequestContext, type APIResponse } from "@playwright/test"
 
 // Test setup through the REST API, so a scenario spends its time in the
@@ -67,11 +66,11 @@ type EventDetail = { id: string; publicId: string; terms: { id: string; label: s
 
 /**
  * A new organizer with an organization and an event with these terms, rooms
- * and payment settings, open for registration unless `open: false`.
+ * and payment settings, open for registration unless `isOpen: false`.
  */
 export async function setUpEvent(
   request: APIRequestContext,
-  { terms, rooms = [], open = true }: { terms: TermSpec[]; rooms?: RoomSpec[]; open?: boolean },
+  { terms, rooms = [], isOpen = true }: { terms: TermSpec[]; rooms?: RoomSpec[]; isOpen?: boolean },
 ): Promise<OpenEvent> {
   const organizer = await signUpOrganizer(request)
   const organization = await createOrganization(request)
@@ -107,7 +106,7 @@ export async function setUpEvent(
       headers,
     }),
   )
-  if (open) await post(request, `${path}/open-registration`)
+  if (isOpen) await post(request, `${path}/open-registration`)
 
   return {
     organizer,

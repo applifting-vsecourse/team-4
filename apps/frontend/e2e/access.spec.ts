@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto"
-
 import { expect, test } from "@playwright/test"
 
 import { createOrganization, setUpEvent, signUpOrganizer } from "./support/api"
@@ -15,7 +14,7 @@ test("a draft's public link and an unknown one show the same unavailable page", 
   page,
   browser,
 }) => {
-  const draft = await setUpEvent(page.request, { terms, open: false })
+  const draft = await setUpEvent(page.request, { terms, isOpen: false })
 
   const visitorContext = await browser.newContext()
   const visitor = await visitorContext.newPage()

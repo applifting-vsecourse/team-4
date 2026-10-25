@@ -34,7 +34,9 @@ test("an overpayment shows as Přeplatek in the detail and, without a reload, in
   await page.goto(registrationsUrl(event))
   const row = page.getByRole("row", { name: new RegExp(anna.firstName) })
   await expect(row).toContainText("Nezaplaceno")
-  await page.getByRole("link", { name: `Otevřít přihlášku ${anna.firstName} ${anna.lastName}` }).click()
+  await page
+    .getByRole("link", { name: `Otevřít přihlášku ${anna.firstName} ${anna.lastName}` })
+    .click()
 
   await recordPayment(page, "1200")
   await expect(definition(page, "Přeplatek")).toHaveText("200 Kč")

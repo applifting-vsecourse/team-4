@@ -1,7 +1,6 @@
 import { createHash, randomBytes } from "node:crypto"
 import { existsSync, readFileSync } from "node:fs"
 import { parseEnv } from "node:util"
-
 import pg from "pg"
 
 // Direct database access for what the UI only reaches through e-mail: a

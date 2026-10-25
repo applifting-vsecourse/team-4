@@ -180,13 +180,13 @@ async function renderCaption(page: Page, text: string) {
 
 /**
  * A named step of the scenario. In demo mode it captions the page while the
- * step runs and pauses afterwards, unless `pause: false`.
+ * step runs and pauses afterwards, unless `shouldPauseAfter: false`.
  */
 export async function step<T>(
   page: Page,
   title: string,
   body: () => Promise<T>,
-  { pause = true }: { pause?: boolean } = {},
+  { shouldPauseAfter = true }: { shouldPauseAfter?: boolean } = {},
 ): Promise<T> {
   return test.step(title, async () => {
     if (isDemo) {
@@ -194,7 +194,7 @@ export async function step<T>(
       await showCaption(page, title)
     }
     const result = await body()
-    if (shouldPause && pause) await page.pause()
+    if (shouldPause && shouldPauseAfter) await page.pause()
     return result
   })
 }
