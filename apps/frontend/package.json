@@ -19,9 +19,10 @@
     "demo": "DEMO=1 playwright test e2e/money-path.spec.ts",
     "demo:autoplay": "DEMO=1 DEMO_PAUSE=0 DEMO_SLOWMO=700 playwright test e2e/money-path.spec.ts",
     "demo:record": "DEMO=1 DEMO_PAUSE=0 DEMO_SLOWMO=700 DEMO_RECORD=1 playwright test e2e/money-path.spec.ts",
-    "demo:v2": "DEMO=1 playwright test e2e/demo-v2.spec.ts",
-    "demo:v2:autoplay": "DEMO=1 DEMO_PAUSE=0 DEMO_SLOWMO=700 playwright test e2e/demo-v2.spec.ts",
-    "demo:v2:record": "DEMO=1 DEMO_PAUSE=0 DEMO_SLOWMO=700 DEMO_RECORD=1 playwright test e2e/demo-v2.spec.ts"
+    "demo:v2": "DEMO=1 playwright test e2e/sprint-review.spec.ts",
+    "demo:v2:autoplay": "DEMO=1 DEMO_PAUSE=0 playwright test e2e/sprint-review.spec.ts",
+    "demo:v2:record": "DEMO=1 DEMO_PAUSE=0 DEMO_SLOWMO=700 DEMO_RECORD=1 playwright test e2e/demo-v2.spec.ts",
+    "demo:v2:full": "DEMO=1 playwright test e2e/demo-v2.spec.ts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

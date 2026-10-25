@@ -22,7 +22,7 @@ export default defineConfig({
   workers: 1,
   reporter: isCI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
-    baseURL: "http://localhost:3050",
+    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3050",
     locale: "cs-CZ",
     timezoneId: "Europe/Prague",
     headless: !isDemo,
@@ -56,20 +56,22 @@ export default defineConfig({
           : devices["Desktop Chrome"],
     },
   ],
-  webServer: [
-    {
-      command: "pnpm --filter backend start",
-      url: "http://localhost:4050/api/health",
-      reuseExistingServer: !isCI,
-      cwd: "../..",
-      timeout: 180_000,
-    },
-    {
-      command: "pnpm --filter frontend dev",
-      url: "http://localhost:3050",
-      reuseExistingServer: !isCI,
-      cwd: "../..",
-      timeout: 120_000,
-    },
-  ],
+  webServer: process.env.E2E_BASE_URL
+    ? undefined
+    : [
+        {
+          command: "pnpm --filter backend start",
+          url: "http://localhost:4050/api/health",
+          reuseExistingServer: !isCI,
+          cwd: "../..",
+          timeout: 180_000,
+        },
+        {
+          command: "pnpm --filter frontend dev",
+          url: "http://localhost:3050",
+          reuseExistingServer: !isCI,
+          cwd: "../..",
+          timeout: 120_000,
+        },
+      ],
 })

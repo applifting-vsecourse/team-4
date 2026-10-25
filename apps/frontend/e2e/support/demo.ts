@@ -1,7 +1,7 @@
 import { expect as baseExpect, test, type Locator, type Page } from "@playwright/test"
 
 import { EXTRA_VIDEO_DIR, isRecording, RECORDING_SIZE } from "./recording"
-import { DEMO_NAVIGATION_HOLD, DEMO_TYPING_DELAY } from "./speed"
+import { DEMO_NAVIGATION_HOLD, DEMO_SCROLL_DURATION, DEMO_TYPING_DELAY } from "./speed"
 
 // One scenario, two audiences. As a test it runs headless and fast. With
 // DEMO=1 it becomes a guided walkthrough: every `step` first shows its caption
@@ -34,32 +34,123 @@ export const contextOptions = {
 }
 
 const CAPTION_ID = "e2e-demo-caption"
+let isPlaybackPaused = false
+const playbackPages = new Set<Page>()
+const resumeWaiters = new Set<() => void>()
+
+/** Stops between browser actions; an already submitted action can finish. */
+async function waitForPlayback() {
+  if (!isPlaybackPaused) return
+  await new Promise<void>((resolve) => resumeWaiters.add(resolve))
+}
+
+async function updatePlaybackStatus(page: Page) {
+  await page.evaluate(
+    ({ id, isPaused }) => {
+      const caption = document.getElementById(id)
+      if (!caption) return
+      const title = caption.dataset.title ?? ""
+      if (caption.firstChild) {
+        caption.firstChild.textContent = isPaused ? `⏸ Pauza · Alt+P pokračovat · ${title}` : title
+      }
+    },
+    { id: CAPTION_ID, isPaused: isPlaybackPaused },
+  )
+}
+
+async function installPlaybackControls(page: Page) {
+  if (playbackPages.has(page)) return
+  playbackPages.add(page)
+  page.once("close", () => playbackPages.delete(page))
+  await page.exposeBinding("__demoTogglePlayback", async () => {
+    isPlaybackPaused = !isPlaybackPaused
+    await Promise.all(
+      [...playbackPages].map((target) => updatePlaybackStatus(target).catch(() => undefined)),
+    )
+    if (!isPlaybackPaused) {
+      for (const resume of resumeWaiters) resume()
+      resumeWaiters.clear()
+    }
+  })
+  const listen = () => {
+    window.addEventListener(
+      "keydown",
+      (event) => {
+        const target = event.target
+        const isEditing =
+          target instanceof HTMLElement &&
+          Boolean(target.closest('input, textarea, select, [contenteditable="true"]'))
+        const isShortcut = event.altKey && event.code === "KeyP"
+        const isSpace =
+          event.code === "Space" && !isEditing && !event.altKey && !event.ctrlKey && !event.metaKey
+        if ((!isShortcut && !isSpace) || event.repeat) return
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        const controls = window as unknown as { __demoTogglePlayback: () => Promise<void> }
+        void controls.__demoTogglePlayback()
+      },
+      true,
+    )
+  }
+  await page.addInitScript(listen)
+  await page.evaluate(listen)
+}
+
 /** Space kept free at the window edges; the caption sits at the bottom. */
 const EDGE_MARGIN = 96
-/** Upper bound for one smooth scroll; long ones take Chrome over a second. */
-const SMOOTH_SCROLL_TIMEOUT_MS = 2_500
-
 /**
- * Smoothly scrolls the first element of `locator` to the middle of the window
- * unless it is already well inside it. Best effort: an element that does not
- * appear soon is left to the action or assertion that follows.
+ * Reveals a control with a timed animation, including scrollable dialogs.
+ * Native smooth scrolling has browser-controlled speed, so it cannot honor
+ * the presentation pace. Measure its destination synchronously, restore the
+ * starting positions before painting, then animate the scrolling ancestors.
  */
 async function reveal(locator: Locator) {
   await locator
     .first()
     .evaluate(
-      (element, { margin, timeout }) => {
+      (element, { margin, duration }) => {
         const box = element.getBoundingClientRect()
         if (box.top >= margin && box.bottom <= window.innerHeight - margin) return
-        // Resolves when the smooth scroll has finished, whatever its length.
-        const scrolled = new Promise<void>((resolve) => {
-          window.addEventListener("scrollend", () => resolve(), { capture: true, once: true })
-          setTimeout(resolve, timeout)
+
+        const ancestors = []
+        for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+          ancestors.push({ element: parent, top: parent.scrollTop, left: parent.scrollLeft })
+        }
+        element.scrollIntoView({ behavior: "instant", block: "center" })
+        const movements = ancestors
+          .map((ancestor) => ({
+            ...ancestor,
+            targetTop: ancestor.element.scrollTop,
+            targetLeft: ancestor.element.scrollLeft,
+          }))
+          .filter(
+            (movement) =>
+              movement.top !== movement.targetTop || movement.left !== movement.targetLeft,
+          )
+        for (const movement of movements) {
+          movement.element.scrollTo({ top: movement.top, left: movement.left, behavior: "instant" })
+        }
+        if (movements.length === 0) return
+
+        return new Promise<void>((resolve) => {
+          const started = performance.now()
+          const animate = (now: number) => {
+            const progress = Math.min(1, (now - started) / duration)
+            const eased = progress < 0.5 ? 4 * progress ** 3 : 1 - (-2 * progress + 2) ** 3 / 2
+            for (const movement of movements) {
+              movement.element.scrollTo({
+                top: movement.top + (movement.targetTop - movement.top) * eased,
+                left: movement.left + (movement.targetLeft - movement.left) * eased,
+                behavior: "instant",
+              })
+            }
+            if (progress < 1) requestAnimationFrame(animate)
+            else resolve()
+          }
+          requestAnimationFrame(animate)
         })
-        element.scrollIntoView({ behavior: "smooth", block: "center" })
-        return scrolled
       },
-      { margin: EDGE_MARGIN, timeout: SMOOTH_SCROLL_TIMEOUT_MS },
+      { margin: EDGE_MARGIN, duration: DEMO_SCROLL_DURATION },
       { timeout: 2_000 },
     )
     .catch(() => undefined)
@@ -117,8 +208,11 @@ function revealBeforeActions(page: Page) {
   for (const name of REVEALED_ACTIONS) {
     const action = prototype[name]!
     prototype[name] = async function (this: Locator, ...args: unknown[]) {
+      await waitForPlayback()
       await holdAfterNavigation(this.page())
+      await waitForPlayback()
       await reveal(this)
+      await waitForPlayback()
       return action.apply(this, args)
     }
   }
@@ -129,7 +223,9 @@ function revealBeforeActions(page: Page) {
   for (const name of LEAVING_ACTIONS) {
     const action = pagePrototype[name]!
     pagePrototype[name] = async function (this: Page, ...args: unknown[]) {
+      await waitForPlayback()
       await holdAfterNavigation(this)
+      await waitForPlayback()
       return action.apply(this, args)
     }
   }
@@ -150,7 +246,9 @@ function revealingMatchers<T extends object>(matchers: T, locator: Locator): T {
       const value: unknown = Reflect.get(target, property, receiver)
       if (typeof value !== "function" || UNREVEALED_MATCHERS.has(property)) return value
       return async (...args: unknown[]) => {
+        await waitForPlayback()
         await reveal(locator)
+        await waitForPlayback()
         return (value as (...a: unknown[]) => unknown).apply(target, args)
       }
     },
@@ -175,6 +273,7 @@ const captions = new WeakMap<Page, string>()
 // A full page load (goto, reload) replaces the document and with it the
 // caption, so each page restores its current caption after every load.
 async function showCaption(page: Page, text: string) {
+  await installPlaybackControls(page)
   if (!captions.has(page)) {
     page.on("load", () => {
       const current = captions.get(page)
@@ -213,10 +312,12 @@ async function renderCaption(page: Page, text: string) {
         })
         document.body.appendChild(caption)
       }
+      caption.dataset.title = text
       caption.textContent = text
     },
     { id: CAPTION_ID, text },
   )
+  await updatePlaybackStatus(page)
 }
 
 /** Keys that continue a paused demo: arrow right, and what slide clickers send. */
@@ -248,7 +349,12 @@ async function waitForPresenter(page: Page, label = "Spustit →") {
         document.getElementById(id)?.appendChild(next)
 
         const onKey = (event: KeyboardEvent) => {
-          if (!keys.includes(event.key)) return
+          if (
+            !keys.includes(event.key) ||
+            document.getElementById(id)?.textContent?.startsWith("⏸")
+          ) {
+            return
+          }
           // The key only drives the demo, never the page under it.
           event.preventDefault()
           event.stopPropagation()
@@ -260,7 +366,9 @@ async function waitForPresenter(page: Page, label = "Spustit →") {
           resolve()
         }
         window.addEventListener("keydown", onKey, true)
-        next.addEventListener("click", finish)
+        next.addEventListener("click", () => {
+          if (!document.getElementById(id)?.textContent?.startsWith("⏸")) finish()
+        })
       }),
     { id: CAPTION_ID, keys: NEXT_KEYS, label },
   )
@@ -341,6 +449,7 @@ export async function step<T>(page: Page, title: string, body: () => Promise<T>)
         await showCaption(page, title)
       }
     }
+    if (isDemo) await waitForPlayback()
     return body()
   })
 }
