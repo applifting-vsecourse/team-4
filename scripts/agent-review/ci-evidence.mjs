@@ -36,6 +36,8 @@ export async function ciEvidence({ repo, pr, sha, get }) {
             'Test frontend',
             'Build backend',
             'Build frontend',
+            'End-to-end tests',
+            'Upload Playwright report',
           ].includes(step.name)
         )
           steps.push({

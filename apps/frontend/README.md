@@ -55,3 +55,10 @@ Specs besides the demo set up their data through the API (`e2e/support/api.ts`) 
 - `entry.spec.ts`: the two ways in from the landing page, wrong password, an e-mail already signed up
 
 No e-mail is sent or read: `e2e/support/db.ts` stores a magic link in the database the way the backend does and the test opens it. It uses `DATABASE_URL`, or the one in `apps/backend/.env`.
+
+For a deployed target, set `E2E_BASE_URL=https://your-staging.example`. API setup
+uses that origin's `/api` and sends the frontend origin in auth requests. If the
+backend is hosted separately, also set `E2E_API_URL=https://your-api.example/api`.
+Without either variable, setup uses `http://localhost:4050/api` and the frontend
+uses `http://localhost:3050`. Database-backed scenarios still require
+`DATABASE_URL` pointing to the target deployment's test database.

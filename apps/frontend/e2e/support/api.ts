@@ -5,9 +5,16 @@ import { type APIRequestContext, type APIResponse } from "@playwright/test"
 // browser only on what it checks. Pass `page.request` to act as the
 // organizer of that page: it shares the page's cookies.
 
-export const API_URL = "http://localhost:4050/api"
+const frontendUrl = process.env.E2E_BASE_URL ?? "http://localhost:3050"
+// Deployed frontends proxy /api on their own origin; local development uses
+// a separate backend port. E2E_API_URL also supports deployments with a
+// separate API host and must include the API path (usually /api).
+export const API_URL = (
+  process.env.E2E_API_URL ??
+  (process.env.E2E_BASE_URL ? new URL("/api", frontendUrl).href : "http://localhost:4050/api")
+).replace(/\/$/, "")
 /** BetterAuth and CORS accept writes only from the frontend's origin. */
-const headers = { Origin: "http://localhost:3050" }
+const headers = { Origin: new URL(frontendUrl).origin }
 
 const run = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 let counter = 0
