@@ -1,5 +1,6 @@
 import { expect as baseExpect, test, type Locator, type Page } from "@playwright/test"
 
+import { EXTRA_VIDEO_DIR, isRecording, RECORDING_SIZE } from "./recording"
 import { DEMO_TYPING_DELAY } from "./speed"
 
 // One scenario, two audiences. As a test it runs headless and fast. With
@@ -16,12 +17,19 @@ const shouldPause = isDemo && process.env.DEMO_PAUSE !== "0"
 /**
  * Options for extra browser contexts (another person's window). In a demo
  * the page follows the window size, like the main page, instead of a fixed
- * 1280×720 viewport.
+ * 1280×720 viewport; a recorded demo saves this window's video too.
  */
 export const contextOptions = {
   locale: "cs-CZ",
   timezoneId: "Europe/Prague",
-  ...(isDemo ? { viewport: null } : {}),
+  ...(isRecording
+    ? {
+        viewport: RECORDING_SIZE,
+        recordVideo: { dir: EXTRA_VIDEO_DIR, size: RECORDING_SIZE },
+      }
+    : isDemo
+      ? { viewport: null }
+      : {}),
 }
 
 const CAPTION_ID = "e2e-demo-caption"

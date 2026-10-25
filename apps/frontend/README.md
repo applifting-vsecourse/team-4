@@ -35,6 +35,9 @@ pnpm frontend test:e2e        # headless, as in CI
 pnpm frontend test:e2e:ui     # Playwright UI mode: steps, time travel, watch
 pnpm frontend demo            # walkthrough for the PO: pauses after every step
 pnpm frontend demo:autoplay   # the same walkthrough without pauses
+pnpm frontend demo:record     # autoplay, recorded to video
 ```
 
-`demo` opens a visible, slowed-down browser that fills the screen, captions each step in the page, types visibly and smoothly scrolls whatever it clicks or checks into the middle of the window. After each step it stops in the Playwright Inspector; press Resume (F8) to continue. `demo:autoplay` runs at half that speed. `DEMO_SLOWMO=<ms per action>` sets the pace for either (default 350, autoplay 700). Scenarios mark their steps with `step()` and fill fields with `type()` from `e2e/support/demo.ts`.
+`demo` opens a visible, slowed-down browser that fills the screen, captions each step in the page, types visibly and smoothly scrolls whatever it clicks or checks into the middle of the window. After each step it stops in the Playwright Inspector; press Resume (F8) to continue. `demo:autoplay` runs at half that speed. The demo commands run only the money path (`e2e/money-path.spec.ts`). `DEMO_SLOWMO=<ms per action>` sets the pace for either (default 350, autoplay 700). Scenarios mark their steps with `step()` and fill fields with `type()` from `e2e/support/demo.ts`.
+
+`demo:record` renders at 1920×1080 and saves one video per browser window: the organizer's in `test-results/<test>/video.webm`, the participant's in `test-results/videos/`. The next run overwrites them.

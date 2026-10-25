@@ -1,5 +1,6 @@
 import { defineConfig, devices } from "@playwright/test"
 
+import { isRecording, RECORDING_SIZE } from "./e2e/support/recording"
 import { DEMO_SLOWMO } from "./e2e/support/speed"
 
 // End-to-end tests against the real app: frontend, backend and database.
@@ -28,7 +29,8 @@ export default defineConfig({
     launchOptions: isDemo
       ? {
           slowMo: DEMO_SLOWMO,
-          args: ["--start-maximized"],
+          // A recording has a fixed size; anything else fills the screen.
+          args: isRecording ? [] : ["--start-maximized"],
           // Hides the "controlled by automated test software" bar.
           ignoreDefaultArgs: ["--enable-automation"],
         }
@@ -42,9 +44,16 @@ export default defineConfig({
       // Tests render at a fixed 1280×720 so they behave the same everywhere.
       // A demo follows the real window instead, so it fills a maximized or
       // fullscreen browser (a null viewport cannot have a scale factor).
-      use: isDemo
-        ? { ...devices["Desktop Chrome"], viewport: null, deviceScaleFactor: undefined }
-        : devices["Desktop Chrome"],
+      // A recording (DEMO_RECORD=1) renders at the video's size.
+      use: isRecording
+        ? {
+            ...devices["Desktop Chrome"],
+            viewport: RECORDING_SIZE,
+            video: { mode: "on", size: RECORDING_SIZE },
+          }
+        : isDemo
+          ? { ...devices["Desktop Chrome"], viewport: null, deviceScaleFactor: undefined }
+          : devices["Desktop Chrome"],
     },
   ],
   webServer: [
