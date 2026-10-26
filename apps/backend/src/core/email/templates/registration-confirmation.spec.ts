@@ -101,6 +101,13 @@ describe('RegistrationConfirmation', () => {
     expect(text(html)).toContain('platí 15 minut');
   });
 
+  it('opens with the akc.io icon next to the wordmark', async () => {
+    const out = await render([confirmed], payment);
+    expect(out).toMatch(
+      /<img[^>]+src="http:\/\/app\.test\/apple-touch-icon\.png"[^>]*>[\s\S]*akc\.io/,
+    );
+  });
+
   it('leaves no unfilled placeholders', async () => {
     const out = await render([confirmed, waitlisted], payment);
     expect(out).not.toMatch(/\{\{|undefined|null|NaN/);

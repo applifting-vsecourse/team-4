@@ -126,15 +126,13 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField()
   const body = error ? String(error?.message ?? "") : props.children
 
-  if (!body) {
-    return null
-  }
-
+  // Rendered even without a message: its reserved line keeps the fields below
+  // from jumping when an error appears.
   return (
     <p
       data-slot="form-message"
       id={formMessageId}
-      className={cn("text-sm text-destructive", className)}
+      className={cn("min-h-5 text-sm text-destructive", className)}
       {...props}
     >
       {body}

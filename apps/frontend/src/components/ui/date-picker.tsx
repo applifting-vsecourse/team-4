@@ -10,6 +10,10 @@ import { cn } from "@/lib/utils"
 
 const CALENDAR_DATE = "yyyy-MM-dd"
 
+// Without an end, react-day-picker stops at December of the current year, so
+// terms for next season could not be picked.
+const YEARS_AHEAD = 5
+
 // A calendar date has no time zone, so it is parsed and formatted in the
 // viewer's local calendar: the chosen day is the stored day.
 function toDate(value: string) {
@@ -69,6 +73,7 @@ function DatePicker({
           captionLayout="dropdown"
           selected={selected}
           defaultMonth={selected}
+          endMonth={new Date(new Date().getFullYear() + YEARS_AHEAD, 11)}
           onSelect={(date) => {
             onChange(date ? format(date, CALENDAR_DATE) : "")
             setOpen(false)

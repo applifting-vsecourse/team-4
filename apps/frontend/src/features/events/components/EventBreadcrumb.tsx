@@ -34,7 +34,7 @@ export function EventBreadcrumb({
   const isEventPage = Boolean(event) && !current
 
   return (
-    <Breadcrumb className="mb-2">
+    <Breadcrumb className="mb-4">
       <BreadcrumbList>
         {organizationName ? (
           <>

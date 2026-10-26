@@ -24,3 +24,41 @@ pnpm frontend build
 ```
 
 The frontend runs at http://localhost:3050 and builds to `build`. See the [root README](../../README.md) for full setup. Browser-visible environment variables use the `VITE_` prefix and are baked in at build time. Define akc.io design requirements in [DESIGN.md](../../DESIGN.md).
+
+## End-to-end tests and PO demo
+
+Playwright scenarios in `e2e/` drive the real app: frontend, backend and database. Locally they reuse the running dev servers (`pnpm dev`); in CI Playwright starts them.
+
+```sh
+pnpm frontend exec playwright install chromium  # once
+pnpm frontend test:e2e        # headless, as in CI
+pnpm frontend test:e2e:ui     # Playwright UI mode: steps, time travel, watch
+pnpm frontend demo            # walkthrough for the PO: pauses after every step (→ continues)
+pnpm frontend demo:autoplay   # the same walkthrough without pauses
+pnpm frontend demo:record     # autoplay, recorded to video
+pnpm frontend demo:v2         # demo V2: every Sprint 2 story, pauses after every step
+pnpm frontend demo:v2:autoplay
+```
+
+`demo` opens a visible, slowed-down browser that fills the screen, captions each step in the page, types visibly and smoothly scrolls whatever it clicks or checks into the middle of the window. Each step first shows its caption and waits, with the page already loaded: press → or PageDown (what slide clickers send) or click "Spustit" in the caption to run it. The Playwright Inspector does not open. Desktop windows go fullscreen and a phone window is centred; when the next step belongs to another window, the demo switches to it only after "Spustit". Every page it opens stays on screen for at least four times `DEMO_SLOWMO` before it acts or moves on. `demo:autoplay` runs at half that speed. `demo`, `demo:autoplay` and `demo:record` run only the money path (`e2e/money-path.spec.ts`); `demo:v2` and `demo:v2:autoplay` run demo V2 (`e2e/demo-v2.spec.ts`), whose captions name the stories each step shows (S2-01 … S2-17 except S2-15, the e-mail). `DEMO_SLOWMO=<ms per action>` sets the pace for either (default 350, autoplay 700). Scenarios mark their steps with `step()` and fill fields with `type()` from `e2e/support/demo.ts`.
+
+`demo:record` renders at 1920×1080 and saves one video per browser window: the organizer's in `test-results/<test>/video.webm`, the participant's in `test-results/videos/`. The next run overwrites them.
+
+Specs besides the demo set up their data through the API (`e2e/support/api.ts`) and check only what the browser shows:
+
+- `money-path.spec.ts`: the PO demo, from organizer sign-up to a settled debt
+- `demo-v2.spec.ts`: demo V2, the Sprint 2 stories in one walkthrough; the participant uses a 360 px phone window; no e-mail is sent or read, the magic link comes from the database
+- `mixed-terms.spec.ts`: a registration confirmed in one term and waitlisted in another, and occupancy per term
+- `payments.spec.ts`: overpayments and the registration list catching up after a payment
+- `participant-access.spec.ts`: the participant's own view after a magic link, a used or expired link, logout
+- `access.spec.ts`: a draft's public link and another organization's event stay closed
+- `entry.spec.ts`: the two ways in from the landing page, wrong password, an e-mail already signed up
+
+No e-mail is sent or read: `e2e/support/db.ts` stores a magic link in the database the way the backend does and the test opens it. It uses `DATABASE_URL`, or the one in `apps/backend/.env`.
+
+For a deployed target, set `E2E_BASE_URL=https://your-staging.example`. API setup
+uses that origin's `/api` and sends the frontend origin in auth requests. If the
+backend is hosted separately, also set `E2E_API_URL=https://your-api.example/api`.
+Without either variable, setup uses `http://localhost:4050/api` and the frontend
+uses `http://localhost:3050`. Database-backed scenarios still require
+`DATABASE_URL` pointing to the target deployment's test database.

@@ -1,5 +1,13 @@
 import { Link, useMatchRoute } from "@tanstack/react-router"
-import { BedDouble, ClipboardList, CreditCard, LayoutDashboard, Mail, Settings } from "lucide-react"
+import {
+  ArrowUpRight,
+  BedDouble,
+  ClipboardList,
+  CreditCard,
+  LayoutDashboard,
+  Mail,
+  Settings,
+} from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Badge } from "@/components/ui/badge"
@@ -74,19 +82,46 @@ export function EventNavigation({ organizationId, eventId, isSidebar = false }: 
           </SidebarMenuItem>
         )
       }
+      const tileContent = (
+        <span className="flex min-h-28 w-full flex-col justify-between gap-6">
+          <span className="flex w-full items-start justify-between gap-4">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted">
+              <section.icon
+                aria-hidden="true"
+                className="size-6 text-muted-foreground"
+              />
+            </span>
+            {to ? (
+              <ArrowUpRight
+                aria-hidden="true"
+                className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transition-none"
+              />
+            ) : (
+              <Badge variant="secondary">Připravujeme</Badge>
+            )}
+          </span>
+          <span className="block w-full min-w-0 text-base font-semibold break-words">
+            {section.label}
+          </span>
+        </span>
+      )
       return (
-        <li key={section.label}>
+        <li
+          key={section.label}
+          className="flex"
+        >
           {to ? (
             <Button
               asChild
               variant="outline"
-              className="h-auto w-full justify-start gap-3 py-4 whitespace-normal"
+              size="lg"
+              className="group h-auto min-h-40 w-full flex-col text-left whitespace-normal"
             >
               <Link
                 to={to}
                 params={params}
               >
-                {content}
+                {tileContent}
               </Link>
             </Button>
           ) : (
@@ -94,9 +129,10 @@ export function EventNavigation({ organizationId, eventId, isSidebar = false }: 
               disabled
               aria-label={`${section.label} Připravujeme`}
               variant="outline"
-              className="h-auto w-full justify-start gap-3 py-4 whitespace-normal"
+              size="lg"
+              className="h-auto min-h-40 w-full flex-col text-left whitespace-normal"
             >
-              {content}
+              {tileContent}
             </Button>
           )}
         </li>
@@ -106,7 +142,7 @@ export function EventNavigation({ organizationId, eventId, isSidebar = false }: 
     <SidebarMenu>{items}</SidebarMenu>
   ) : (
     <nav aria-label="Části akce">
-      <ul className="grid gap-3 sm:grid-cols-2">{items}</ul>
+      <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">{items}</ul>
     </nav>
   )
 }

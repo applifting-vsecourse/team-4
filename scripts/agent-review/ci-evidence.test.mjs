@@ -99,3 +99,19 @@ test('review prompt distinguishes CI execution evidence from untested runtime ca
   assert.match(prompt, /Passing clean-database/);
   assert.match(prompt, /different, untested scenario/);
 });
+
+test('E2E execution and versioned report upload are included with their actual conclusions', async () => {
+  const steps = [
+    { name: 'End-to-end tests', status: 'completed', conclusion: 'failure' },
+    {
+      name: 'Upload Playwright report',
+      status: 'completed',
+      conclusion: 'success',
+    },
+  ];
+  const result = await evidence(
+    [base],
+    [{ name: 'verify', head_sha: sha, steps }],
+  );
+  assert.deepEqual(result.steps, steps);
+});
