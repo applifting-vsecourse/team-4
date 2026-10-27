@@ -71,6 +71,9 @@ Before you hand work to the developer (report it done, commit, push or open a PR
 
 ### Delivery gates
 
+Never commit or push changes directly to `main`. All changes to `main` must go
+through a pull request from another branch, including documentation and configuration changes.
+
 Every implementation PR links its issues with `Closes #N`. Leave the issue In
 Progress until its requirements are approved. Record requirements approval once
 on the issue; implementation commits do not invalidate it. The PM may approve
