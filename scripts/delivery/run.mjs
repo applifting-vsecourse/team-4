@@ -1,3 +1,4 @@
+import { severityFor, sameSeverity, validateSeverity } from './severity.mjs';
 import { eventScope } from '../automation/events.mjs';
 import { evaluate } from './lib.mjs';
 import { issueRequirements, scopeHash } from './requirements.mjs';
@@ -115,9 +116,20 @@ for (const pr of candidates) {
       console.log(`#${pr.number}: waiting for prerequisite (${pr.base.ref})`);
       continue;
     }
-    const issues = linkedIssues ?? (await issuesFor(pr));
-    const reviews = await list(`/repos/${repo}/pulls/${pr.number}/reviews`);
-    const comments = await list(`/repos/${repo}/issues/${pr.number}/comments`);
+    const files = await list(`/repos/${repo}/pulls/${pr.number}/files`);
+    if (files.length !== pr.changed_files)
+      throw new Error('Incomplete changed-file coverage');
+    validateSeverity(pr, files);
+    const issues =
+      severityFor(pr) === 'low' ? [] : (linkedIssues ?? (await issuesFor(pr)));
+    const reviews =
+      severityFor(pr) === 'low'
+        ? []
+        : await list(`/repos/${repo}/pulls/${pr.number}/reviews`);
+    const comments =
+      severityFor(pr) === 'low'
+        ? []
+        : await list(`/repos/${repo}/issues/${pr.number}/comments`);
     const scopes = new Map();
     for (const issue of issues) {
       const content = await api(`/repos/${repo}/issues/${issue.number}`);
@@ -138,13 +150,16 @@ for (const pr of candidates) {
       current.state !== 'open' ||
       current.base.ref !== pr.base.ref ||
       current.draft !== pr.draft ||
-      current.body !== pr.body
+      current.body !== pr.body ||
+      !sameSeverity(current, pr)
     )
       throw new Error('PR changed during evaluation');
     const summary = result.pass
-      ? copilotWaiver({ pr, comments })
-        ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
-        : 'Requirements and agent review passed before QA approved this commit.'
+      ? severityFor(pr) === 'low'
+        ? 'Low severity: issue linkage, requirements, code review and QA are not required; CI remains required.'
+        : copilotWaiver({ pr, comments })
+          ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
+          : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; agent review passed before QA approved this commit.`
       : result.reasons.join(' ');
     for (const issue of issues) {
       if (

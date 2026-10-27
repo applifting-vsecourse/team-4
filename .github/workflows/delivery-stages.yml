@@ -11,6 +11,8 @@ on:
     types:
       [
         opened,
+        labeled,
+        unlabeled,
         synchronize,
         reopened,
         edited,

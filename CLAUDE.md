@@ -74,25 +74,29 @@ Before you hand work to the developer (report it done, commit, push or open a PR
 Never commit or push changes directly to `main`. All changes to `main` must go
 through a pull request from another branch, including documentation and configuration changes.
 
-Every implementation PR links its issues with `Closes #N`. Leave the issue In
-Progress until its requirements are approved. Record requirements approval once
-on the issue; implementation commits do not invalidate it. The PM may approve
-through a linked PR review or `/requirements-approve` on the issue. A repository
-collaborator may request fresh scope review with `/requirements-rereview`.
-Changes to requirement text or the issue title invalidate scope approval.
-Checking completion boxes and updating the `Evidence dokončení` section do not.
+PR severity is selected by `severity:low`, `severity:standard` or `severity:high`;
+unlabelled PRs default to Standard. Mixed/unknown severity labels block delivery.
+Low requires CI but skips linked issues, requirements approval, code review and
+QA. It is limited to documentation/text and isolated test files; executable or
+configuration changes cannot use Low. Enforcement changes always require High.
+Standard requires `Closes #N`, independent Copilot review and current-commit QA,
+without requirements approval. High additionally requires issue-level scope
+approval from David (`darebakdavca`) or Bogdan (`rmnskb`) before code review, with
+no PR-author exemption. Either may approve via a linked PR review or an explicit
+`/requirements-approve` issue comment. Collaborators may request fresh scope review
+with `/requirements-rereview`. Requirement/title changes invalidate scope approval;
+checkbox and `Evidence dokončení` updates do not. Implementation commits preserve
+unchanged scope approval but require fresh code review and QA.
 
-PRs authored by `darebakdavca` remain exempt from requirements review. Code review
-and QA always apply to the current commit; new code goes through Code Review
-again without repeating unchanged requirements approval. `MatejKrones` approves
-QA after the testing handoff; on Matej’s PRs, David performs QA. Do not request
-Matej automatically at PR creation; request the QA owner only after successful
-independent review when handing the current commit to Ready for Testing. GitHub’s code-owner approval requirement is
-redundant with the named delivery gates and is disabled; CODEOWNERS routes only
-David's requirements requests. See [the delivery workflow](docs/delivery-workflow.md).
+`MatejKrones` approves QA after the testing handoff; on Matej's PRs, David performs
+QA. Request QA only after independent review passes and the current commit enters
+Ready for Testing. Low PRs receive no automated QA request. CODEOWNERS routes
+David/Bogdan enforcement-path requests; code-owner approval is disabled. GitHub's
+blanket approval count is zero after severity installation; Delivery stages
+enforces the named approvals. See [the delivery workflow](docs/delivery-workflow.md).
 Only `darebakdavca` may waive Copilot review with a standalone PR comment
 `/copilot-waive <full-current-SHA> <reason>`. A waiver replaces only Copilot review
-for that PR commit; requirements, CI and post-handoff QA still apply. Preserve
+for that PR commit; CI and severity-specific requirements/QA still apply. Preserve
 findings and record a manual waiver, never a fabricated Copilot pass. A new
 commit needs a new waiver or review; recheck edited/deleted commands.
 Never manufacture passing gate evidence or bypass merge protection.

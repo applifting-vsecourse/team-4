@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { severityFor, sameSeverity } from '../delivery/severity.mjs';
 import { eventScope, includesIssue } from '../automation/events.mjs';
 // Polls the project board for issues in "Ready for Code Review", reviews every
 // linked open PR with the Copilot CLI and moves the issue to "Ready for
@@ -310,6 +311,7 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
     meta.state !== 'open' ||
     meta.base.ref !== 'main' ||
     sha !== requirements.sha ||
+    severityFor(meta) !== requirements.severity ||
     requirementsApproval(meta, currentReviews)?.id !== requirements.reviewId
   ) {
     return {
@@ -447,7 +449,7 @@ async function processIssue(board, item) {
       }
       if (pr.state !== 'open' || pr.base.ref !== 'main')
         throw new Error(`PR #${number} is not open against main`);
-      all.push({ pr, reviews });
+      if (severityFor(pr) !== 'low') all.push({ pr, reviews });
     }
     const currentIssue = await api(
       cfg.githubToken,
@@ -491,6 +493,11 @@ async function processIssue(board, item) {
     }
   }
   const initial = await snapshots();
+  if (!initial.length) {
+    console.log('  -> no linked Standard/High PRs need review or QA');
+    return;
+  }
+  const reviewPrNumbers = initial.map(({ pr }) => pr.number);
   const transition = requirementsTransition(item.status?.name, initial);
   if (transition.review && item.status?.name === STATUS_TESTING) {
     for (const { pr, reviews } of initial) {
@@ -540,23 +547,24 @@ async function processIssue(board, item) {
     if (!record)
       record = await postComment(
         pr.number,
-        `${marker}\n${approval.exempt ? 'Requirements review is exempt because the PR author is darebakdavca' : `Issue requirements approved by @${reviewersFor(pr.user.login).requirements}`} for commit \`${pr.head.sha}\`. Issue #${issue.number}: ready for code review.`,
+        `${marker}\n${approval.exempt ? 'Standard severity: requirements approval is not required' : `Issue requirements approved by @${approval.reviewer ?? reviewersFor(pr.user.login).requirements}`} for commit \`${pr.head.sha}\`. Issue #${issue.number}: ready for code review.`,
       );
     requirementRecords.set(pr.number, {
       ...record,
       created_at: record.created_at ?? new Date().toISOString(),
       sha: pr.head.sha,
       reviewId: approval.id,
+      severity: severityFor(pr),
     });
   }
   const rules = await readRules();
   const results = [];
-  for (const pr of prNumbers) {
+  for (const pr of reviewPrNumbers) {
     results.push(
       await reviewPr({
         pr,
         issue,
-        prCount: prNumbers.length,
+        prCount: reviewPrNumbers.length,
         rules,
         requirements: requirementRecords.get(pr),
       }),
@@ -580,8 +588,11 @@ async function processIssue(board, item) {
   const stillApproved = requirementsTransition(item.status.name, current);
   if (
     !stillApproved.review ||
+    current.length !== initial.length ||
     current.some(
       ({ pr }) =>
+        !initial.some((s) => s.pr.number === pr.number) ||
+        !sameSeverity(pr, initial.find((s) => s.pr.number === pr.number).pr) ||
         pr.head.sha !==
           initial.find((s) => s.pr.number === pr.number).pr.head.sha ||
         pr.state !== 'open' ||

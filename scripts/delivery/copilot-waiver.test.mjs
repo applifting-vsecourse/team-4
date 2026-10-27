@@ -12,6 +12,7 @@ const at = (s) => `2026-10-17T09:00:${String(s).padStart(2, '0')}Z`;
 function fixture() {
   const pr = {
     number: 12,
+    labels: [{ name: 'severity:high' }],
     head: { sha },
     user: { login: 'developer' },
     draft: false,
@@ -238,6 +239,7 @@ async function checkScenario(mode) {
     state: 'open',
     base: { ref: 'main' },
     draft: false,
+    changed_files: 1,
     issue_url: 'https://api.github.com/repos/owner/repo/issues/12',
   };
   const issue = { number: 78, title: 'Task', body: 'Scope' };
@@ -259,7 +261,8 @@ async function checkScenario(mode) {
   const comments = [
     command,
     bot(
-      requirementsMarker(12, sha, 78, `author-exempt:${scope.version}`) + '\n',
+      requirementsMarker(12, sha, 78, `severity-standard:${scope.version}`) +
+        '\n',
       '2000-01-01',
     ),
     bot(
@@ -327,6 +330,8 @@ async function checkScenario(mode) {
           },
         },
       };
+    else if (path.endsWith('/pulls/12/files'))
+      data = [{ filename: 'apps/backend/src/example.ts' }];
     else if (path === `/repos/owner/repo/statuses/${sha}`) {
       if (options.method !== 'POST') throw new Error('Status requires POST');
       statuses.push(body);
@@ -594,7 +599,7 @@ test('waiver plus QA and handoffs still requires an actual scope approval', () =
   assert.equal(result.pass, false);
   assert.ok(
     result.reasons.includes(
-      'Issue #78 needs requirements approval by darebakdavca.',
+      'Issue #78 needs requirements approval by darebakdavca or rmnskb.',
     ),
   );
 });

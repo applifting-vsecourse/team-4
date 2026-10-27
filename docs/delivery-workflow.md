@@ -4,20 +4,51 @@ Requirements approval accepts the issue's product direction and scope. It is not
 an approval of every subsequent code edit. Code review and QA independently
 check the implementation being merged.
 
-## Requirements
+## Severity and required gates
+
+Select one PR label: `severity:low`, `severity:standard` or `severity:high`.
+No severity label means Standard. Multiple or unknown `severity:` labels block
+merging. Classify by risk and use the highest level in mixed changes. The author
+sets the label; collaborators may escalate it. The gate reads live labels and
+re-evaluates on label changes, pushes, reviews and scheduled reconciliation.
+
+| Gate                                     | Low      | Standard (default) | High                               |
+| ---------------------------------------- | -------- | ------------------ | ---------------------------------- |
+| CI (`verify`)                            | Required | Required           | Required                           |
+| `Closes #N` issue link                   | Optional | Required           | Required                           |
+| Requirements approval                    | Skipped  | Skipped            | David or Bogdan before code review |
+| Independent Copilot code review          | Skipped  | Required           | Required                           |
+| Human QA of current commit after handoff | Skipped  | Required           | Required                           |
+
+Low allows documentation/text files (`.md`, `.txt`) and isolated `.test`/`.spec`
+JavaScript/TypeScript files. Application code, configuration, dependency changes
+and migrations cannot use Low, even for copy or formatting edits. Removed and
+renamed paths are checked too. Changes to `.github/`, delivery/review/automation
+scripts, `AGENTS.md`, `CLAUDE.md` or this policy always require High. Draft PRs
+never pass. Low linked PRs are excluded from the issue's code-review/QA workflow.
+An issue linked only to Low PRs does not receive an automated testing handoff.
+
+Use Standard for routine features, UI work and bug fixes. Use High for
+permissions/authentication, payments, destructive operations, migrations,
+deployment and approval-workflow changes. File checks enforce the Low boundary
+and High for review enforcement; authors and reviewers classify other domain
+risks. A label is not an automatic assessment of code behavior.
+
+## Requirements (High only)
 
 Open a PR targeting main, link the issue with `Closes #N`, and leave its card In
-Progress. David (`darebakdavca`) approves requirements through an approving review
-on any linked implementation PR, or by posting `/requirements-approve` on the
-issue. The bot records that approval on the issue, bound to its title/body and
-current scope-review cycle. One issue approval covers its linked implementation
-PRs. David's own PRs are exempt; this exemption never approves other authors'
-PRs by itself.
+Progress. David (`darebakdavca`) or Bogdan (`rmnskb`) approves requirements through
+an approving review on a linked implementation PR, or `/requirements-approve`
+on the issue. One approval from either is sufficient. The bot records approval
+on the issue, bound to its title/body and current scope-review cycle. One issue
+approval covers its linked High implementation PRs. High has no author exemption;
+self-authored PR reviews cannot seed a grant, while explicit issue commands are
+available to both product owners. Standard enters code review without this grant.
 
 Once scope approval is recorded, implementation commits, technical review
 findings and GitHub's automatic stale-review dismissal do not invalidate it.
 A developer fixing a color token needs fresh code review, not another PM review.
-Only an active issue with requirements approval can enter Ready for Code Review.
+An active issue enters Ready for Code Review once every linked Standard/High PR satisfies its severity policy.
 
 If the solution changes materially, a repository collaborator posts this as a
 standalone issue comment:
@@ -26,12 +57,12 @@ standalone issue comment:
 /requirements-rereview
 ```
 
-The bot records the request and returns non-exempt work to In Progress. David
+The bot records the request and returns non-exempt work to In Progress. David or Bogdan
 must submit a new requirements approval or `/requirements-approve` afterward.
 Deleting the request after the bot has processed it cannot resurrect the old
 approval. Editing the issue title or requirement text invalidates its previous scope approval;
 old review IDs and commands already consumed cannot approve the changed scope.
-Outsiders cannot request re-review, and only David can grant scope approval.
+Outsiders cannot request re-review, and only David or Bogdan can grant scope approval.
 
 Agent findings that indicate a changed product scope should be assessed by the
 team and flagged using the same command. Automation does not infer intent from
@@ -39,7 +70,7 @@ arbitrary code changes. Draft PRs remain blocked.
 
 ## Code review and QA
 
-For each current PR commit, the bot records that the issue's requirements policy
+For each current PR commit, the bot records that each PR's severity and requirements policy
 is satisfied, runs independent Copilot review, and moves the issue to Ready for
 Testing only if all linked PRs pass. Each new commit needs fresh agent review and
 QA; a previously tested commit cannot approve a replacement commit. A new commit
@@ -48,18 +79,18 @@ if the issue scope is unchanged.
 
 Matej (`MatejKrones`) tests the exact commit in the testing handoff, then submits
 an approving PR review. For Matej-authored PRs, David substitutes for QA. On
-David-authored PRs, requirements remain exempt but Matej's QA is still required.
+David-authored Standard/High PRs, Matej's QA is required.
 QA must happen after the handoff. A manual board move or early approval is not
 QA evidence. Do not merge to obtain a test build: QA needs the PR version before
 merge. Use [local QA preparation](local-qa.md); setup instructions are not repeated
 in GitHub handoffs. Binary files are excluded from automated text review without
 separate approval and listed in coverage; binary-only PRs still need CI and QA.
 
-| PR author    | Requirements                 | QA after testing handoff |
-| ------------ | ---------------------------- | ------------------------ |
-| darebakdavca | Exempt for this PR           | MatejKrones              |
-| MatejKrones  | David's issue-level approval | darebakdavca             |
-| Anyone else  | David's issue-level approval | MatejKrones              |
+| PR author    | Requirements                                   | QA after testing handoff |
+| ------------ | ---------------------------------------------- | ------------------------ |
+| darebakdavca | David or Bogdan for High; skipped for Standard | MatejKrones              |
+| MatejKrones  | David or Bogdan for High; skipped for Standard | darebakdavca             |
+| Anyone else  | David or Bogdan for High; skipped for Standard | MatejKrones              |
 
 When David covers both requirements and QA, he approves the issue scope first
 and the tested current commit afterward. His scope approval survives later
@@ -102,8 +133,8 @@ trigger reconciliation; scheduled polling remains the fallback.
 
 ## Reviewer requests and merge rules
 
-Matej is not automatically requested at PR creation. CODEOWNERS lists David only
-for workflow/enforcement paths; he is not requested on his own PRs. The bot's
+Matej is not automatically requested at PR creation. CODEOWNERS lists David and Bogdan
+for workflow/enforcement paths; GitHub does not request an author to review their own PR. The bot's
 Ready for Testing comment identifies the QA owner, then the bot sends that person
 a GitHub review request: MatejKrones, or darebakdavca on Matej-authored PRs.
 Repeated runs preserve an existing request and do not request already-valid QA
@@ -115,9 +146,10 @@ QA evidence. Manually added reviewers are preserved. Dry runs send no requests.
 
 Disable the native `require_code_owner_review` requirement: otherwise a sole
 code owner authoring a PR can be blocked by a redundant owner-approval gate.
-The named reviewer requirements remain enforced by Delivery stages. GitHub still
-requires one current human approval, dismisses stale reviews on pushes, requires
-last-push approval and resolved review threads, and enforces `verify`
+The named reviewer requirements remain enforced by Delivery stages. GitHub uses zero blanket required approvals and disables last-push/extra
+unattributed-change approval, so Low can merge without reviews. Delivery stages
+enforces the designated current-commit QA approval for Standard/High. GitHub still
+dismisses stale reviews on pushes, requires resolved review threads and enforces `verify`
 and `Delivery stages` checks from GitHub Actions (app ID 15368). No standing
 bypass actors are configured. Do not disable stale-review dismissal: QA must
 still approve the current commit.
@@ -165,6 +197,29 @@ workflow. To put any released version on the stage, run that workflow with
 higher tag by hand; the next merge continues from it.
 
 Redeploying an older version does not roll back database migrations.
+
+## Installing severity approvals
+
+Merge the workflow changes through the existing gates first. Both workflows load
+trusted code from `main`; a feature branch cannot install the new gate itself.
+Then run:
+
+```sh
+node scripts/delivery/install-severity.mjs
+node scripts/delivery/install-severity.mjs --apply
+```
+
+The first command is read-only. Both verify that the trusted scripts and workflows
+match `main`. Apply creates the three severity labels and updates `Protect main`,
+preserving required CI/delivery checks, stale-review dismissal, conversation
+resolution, PR-only merges and other rules. It removes only the blanket approval
+count, last-push approval and extra approval for unattributed changes. There is no
+standing bypass. Reconcile all open PRs using the Delivery stage enforcement
+workflow; validate Low with no issue/reviews, Standard without scope approval,
+and High blocked until David/Bogdan approves. New policy markers prevent old
+requirements-exemption handoffs from being reused. A severity change during review
+invalidates the in-flight result. Returning to a previous severity may reuse valid
+evidence for the same head and unchanged policy/scope.
 
 ## Configuration and validation
 
