@@ -1,7 +1,21 @@
-import { expect as baseExpect, test, type Locator, type Page } from "@playwright/test"
+import {
+  expect as baseExpect,
+  test,
+  type Frame,
+  type Locator,
+  type Page,
+  type Request,
+} from "@playwright/test"
 
+import { DemoHistory } from "./demo-history"
 import { EXTRA_VIDEO_DIR, isRecording, RECORDING_SIZE } from "./recording"
-import { DEMO_NAVIGATION_HOLD, DEMO_SCROLL_DURATION, DEMO_TYPING_DELAY } from "./speed"
+import {
+  DEMO_NAVIGATION_HOLD,
+  DEMO_SCROLL_DURATION,
+  DEMO_SCROLL_HOLD,
+  DEMO_SUBMIT_HOLD,
+  DEMO_TYPING_DELAY,
+} from "./speed"
 
 // One scenario, two audiences. As a test it runs headless and fast. With
 // DEMO=1 it becomes a guided walkthrough: every `step` first shows its caption
@@ -33,7 +47,34 @@ export const contextOptions = {
       : {}),
 }
 
+const quickDemoPages = new WeakSet<Page>()
+
+/** Limit faster pacing to a single sequence, restoring the normal pace afterwards. */
+export async function withQuickDemoPace<T>(page: Page, body: () => Promise<T>): Promise<T> {
+  const isAlreadyQuick = quickDemoPages.has(page)
+  if (isDemo) quickDemoPages.add(page)
+  try {
+    return await body()
+  } finally {
+    if (!isAlreadyQuick) quickDemoPages.delete(page)
+  }
+}
+
+function pacing(page: Page) {
+  return quickDemoPages.has(page)
+    ? { navigation: 350, scroll: 500, afterScroll: 250, afterSubmit: 500, typing: 25 }
+    : {
+        navigation: DEMO_NAVIGATION_HOLD,
+        scroll: DEMO_SCROLL_DURATION,
+        afterScroll: DEMO_SCROLL_HOLD,
+        afterSubmit: DEMO_SUBMIT_HOLD,
+        typing: DEMO_TYPING_DELAY,
+      }
+}
+
 const CAPTION_ID = "e2e-demo-caption"
+const history = new DemoHistory()
+const presenterPages = new WeakSet<Page>()
 let isPlaybackPaused = false
 const playbackPages = new Set<Page>()
 const resumeWaiters = new Set<() => void>()
@@ -46,23 +87,29 @@ async function waitForPlayback() {
 
 async function updatePlaybackStatus(page: Page) {
   await page.evaluate(
-    ({ id, isPaused }) => {
+    ({ id, isPaused, reviewTitle }) => {
+      document.documentElement.dataset.demoPaused = String(isPaused)
       const caption = document.getElementById(id)
       if (!caption) return
       const title = caption.dataset.title ?? ""
       if (caption.firstChild) {
-        caption.firstChild.textContent = isPaused ? `⏸ Pauza · Alt+P pokračovat · ${title}` : title
+        caption.firstChild.textContent =
+          reviewTitle ?? (isPaused ? `⏸ Pauza · Alt+P pokračovat · ${title}` : title)
       }
     },
-    { id: CAPTION_ID, isPaused: isPlaybackPaused },
+    { id: CAPTION_ID, isPaused: isPlaybackPaused, reviewTitle: history.reviewTitle },
   )
 }
 
 async function installPlaybackControls(page: Page) {
   if (playbackPages.has(page)) return
   playbackPages.add(page)
-  page.once("close", () => playbackPages.delete(page))
+  page.once("close", () => {
+    playbackPages.delete(page)
+    if (playbackPages.size === 0) history.clear()
+  })
   await page.exposeBinding("__demoTogglePlayback", async () => {
+    if (history.isReviewing) return
     isPlaybackPaused = !isPlaybackPaused
     await Promise.all(
       [...playbackPages].map((target) => updatePlaybackStatus(target).catch(() => undefined)),
@@ -72,10 +119,44 @@ async function installPlaybackControls(page: Page) {
       resumeWaiters.clear()
     }
   })
+  await page.exposeBinding("__demoNavigate", async (_source, key: string) => {
+    if (!presenterPages.has(page)) return
+    if (["ArrowLeft", "PageUp"].includes(key)) {
+      await history.previous(page)
+      await updatePlaybackStatus(page)
+    } else if (NEXT_KEYS.includes(key)) {
+      if (await history.next(page)) {
+        await updatePlaybackStatus(page)
+      } else {
+        await page.evaluate((key) => {
+          window.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }))
+        }, key)
+      }
+    }
+  })
   const listen = () => {
+    const controls = window as unknown as {
+      __demoControlsInstalled?: boolean
+      __demoTogglePlayback: () => Promise<void>
+      __demoNavigate: (key: string) => Promise<void>
+    }
+    if (controls.__demoControlsInstalled) return
+    controls.__demoControlsInstalled = true
     window.addEventListener(
       "keydown",
       (event) => {
+        const isPrevious = ["ArrowLeft", "PageUp"].includes(event.key)
+        const isNext = ["ArrowRight", "PageDown"].includes(event.key)
+        if (
+          isPrevious ||
+          (isNext &&
+            (window !== window.top || document.documentElement.dataset.demoReviewing === "true"))
+        ) {
+          event.preventDefault()
+          event.stopImmediatePropagation()
+          if (!event.repeat) void controls.__demoNavigate(event.key)
+          return
+        }
         const target = event.target
         const isEditing =
           target instanceof HTMLElement &&
@@ -86,14 +167,13 @@ async function installPlaybackControls(page: Page) {
         if ((!isShortcut && !isSpace) || event.repeat) return
         event.preventDefault()
         event.stopImmediatePropagation()
-        const controls = window as unknown as { __demoTogglePlayback: () => Promise<void> }
         void controls.__demoTogglePlayback()
       },
       true,
     )
   }
   await page.addInitScript(listen)
-  await page.evaluate(listen)
+  await Promise.all(page.frames().map((frame) => frame.evaluate(listen)))
 }
 
 /** Space kept free at the window edges; the caption sits at the bottom. */
@@ -105,12 +185,12 @@ const EDGE_MARGIN = 96
  * starting positions before painting, then animate the scrolling ancestors.
  */
 async function reveal(locator: Locator) {
-  await locator
+  const didScroll = await locator
     .first()
     .evaluate(
       (element, { margin, duration }) => {
         const box = element.getBoundingClientRect()
-        if (box.top >= margin && box.bottom <= window.innerHeight - margin) return
+        if (box.top >= margin && box.bottom <= window.innerHeight - margin) return false
 
         const ancestors = []
         for (let parent = element.parentElement; parent; parent = parent.parentElement) {
@@ -130,9 +210,9 @@ async function reveal(locator: Locator) {
         for (const movement of movements) {
           movement.element.scrollTo({ top: movement.top, left: movement.left, behavior: "instant" })
         }
-        if (movements.length === 0) return
+        if (movements.length === 0) return false
 
-        return new Promise<void>((resolve) => {
+        return new Promise<boolean>((resolve) => {
           const started = performance.now()
           const animate = (now: number) => {
             const progress = Math.min(1, (now - started) / duration)
@@ -145,15 +225,46 @@ async function reveal(locator: Locator) {
               })
             }
             if (progress < 1) requestAnimationFrame(animate)
-            else resolve()
+            else resolve(true)
           }
           requestAnimationFrame(animate)
         })
       },
-      { margin: EDGE_MARGIN, duration: DEMO_SCROLL_DURATION },
+      { margin: EDGE_MARGIN, duration: pacing(locator.page()).scroll },
       { timeout: 2_000 },
     )
-    .catch(() => undefined)
+    .catch(() => false)
+  if (didScroll) await locator.page().waitForTimeout(pacing(locator.page()).afterScroll)
+}
+
+/** Slowly tours the whole page; the presenter can pause even during scrolling. */
+export async function scrollPage(page: Page) {
+  if (!isDemo) return
+  await waitForPlayback()
+  await page.evaluate(() => document.fonts.ready.then(() => undefined))
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const root = document.scrollingElement ?? document.documentElement
+        const destination = root.scrollHeight - root.clientHeight
+        let position = root.scrollTop
+        let previous = performance.now()
+        const animate = (now: number) => {
+          const elapsed = Math.min(now - previous, 100)
+          previous = now
+          if (document.documentElement.dataset.demoPaused !== "true") {
+            // Constant reading pace, independent of the distance to the footer.
+            position = Math.min(destination, position + elapsed * 0.16)
+            root.scrollTo({ top: position, behavior: "instant" })
+          }
+          if (position < destination) requestAnimationFrame(animate)
+          else resolve()
+        }
+        requestAnimationFrame(animate)
+      }),
+  )
+  await page.waitForTimeout(DEMO_SCROLL_HOLD)
+  await waitForPlayback()
 }
 
 const REVEALED_ACTIONS = [
@@ -174,12 +285,57 @@ const LEAVING_ACTIONS = ["goto", "reload", "goBack"] as const
 
 const lastNavigation = new WeakMap<Page, number>()
 
+const mutations = new WeakMap<Page, { pending: Set<Request>; finishedAt: number }>()
+
+/** Wait for writes to finish, then leave their result visible before continuing. */
+async function holdAfterSubmission(page: Page, submittedAt = 0) {
+  const state = mutations.get(page)
+  const deadline = Date.now() + 15_000
+  while (state?.pending.size) {
+    if (Date.now() >= deadline) {
+      throw new Error("Demo: odeslání formuláře se nedokončilo do 15 sekund.")
+    }
+    await page.waitForTimeout(100)
+  }
+  const finishedAt = Math.max(state?.finishedAt ?? 0, submittedAt)
+  const remaining = finishedAt + pacing(page).afterSubmit - Date.now()
+  if (remaining > 0) await page.waitForTimeout(remaining)
+}
+
+/** Recognize native form submission, including Enter and client-side validation. */
+async function isFormSubmission(locator: Locator, name: string, args: unknown[]) {
+  if (name !== "click" && !(name === "press" && args[0] === "Enter")) return false
+  return locator
+    .evaluate((element, action) => {
+      const control = element.closest("button, input")
+      if (action === "press") return Boolean(element.closest("form"))
+      return (
+        (control instanceof HTMLButtonElement || control instanceof HTMLInputElement) &&
+        control.type === "submit" &&
+        Boolean(control.form)
+      )
+    }, name)
+    .catch(() => false)
+}
+
 /** Notes when `page` last opened another page (also within the app). */
 function trackNavigations(page: Page) {
   if (lastNavigation.has(page)) return
   lastNavigation.set(page, 0)
+  const state = { pending: new Set<Request>(), finishedAt: 0 }
+  mutations.set(page, state)
+  page.on("request", (request) => {
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method())) state.pending.add(request)
+  })
+  const finished = (request: Request) => {
+    if (state.pending.delete(request)) state.finishedAt = Date.now()
+  }
+  page.on("requestfinished", finished)
+  page.on("requestfailed", finished)
   page.on("framenavigated", (frame) => {
-    if (frame === page.mainFrame()) lastNavigation.set(page, Date.now())
+    if (frame === page.mainFrame() || frame.name() === "demo-participant") {
+      lastNavigation.set(page, Date.now())
+    }
   })
 }
 
@@ -188,7 +344,7 @@ function trackNavigations(page: Page) {
  * the demo acts on it or leaves it, so the audience sees every page it passes.
  */
 async function holdAfterNavigation(page: Page) {
-  const remaining = (lastNavigation.get(page) ?? 0) + DEMO_NAVIGATION_HOLD - Date.now()
+  const remaining = (lastNavigation.get(page) ?? 0) + pacing(page).navigation - Date.now()
   if (remaining > 0) await page.waitForTimeout(remaining)
 }
 
@@ -209,12 +365,31 @@ function revealBeforeActions(page: Page) {
     const action = prototype[name]!
     prototype[name] = async function (this: Locator, ...args: unknown[]) {
       await waitForPlayback()
+      await holdAfterSubmission(this.page())
       await holdAfterNavigation(this.page())
       await waitForPlayback()
       await reveal(this)
       await waitForPlayback()
-      return action.apply(this, args)
+      const submittedAt = (await isFormSubmission(this, name, args)) ? Date.now() : 0
+      const result = await action.apply(this, args)
+      await holdAfterSubmission(this.page(), submittedAt)
+      await waitForPlayback()
+      return result
     }
+  }
+  // The centered mobile app navigates within a frame, but keeps the same
+  // navigation holds and pause gates as the desktop page.
+  const framePrototype = Object.getPrototypeOf(page.mainFrame()) as Record<
+    string,
+    (this: Frame, ...args: unknown[]) => Promise<unknown>
+  >
+  const navigateFrame = framePrototype.goto!
+  framePrototype.goto = async function (this: Frame, ...args: unknown[]) {
+    await waitForPlayback()
+    await holdAfterSubmission(this.page())
+    await holdAfterNavigation(this.page())
+    await waitForPlayback()
+    return navigateFrame.apply(this, args)
   }
   const pagePrototype = Object.getPrototypeOf(page) as Record<
     string,
@@ -224,6 +399,7 @@ function revealBeforeActions(page: Page) {
     const action = pagePrototype[name]!
     pagePrototype[name] = async function (this: Page, ...args: unknown[]) {
       await waitForPlayback()
+      await holdAfterSubmission(this)
       await holdAfterNavigation(this)
       await waitForPlayback()
       return action.apply(this, args)
@@ -247,6 +423,7 @@ function revealingMatchers<T extends object>(matchers: T, locator: Locator): T {
       if (typeof value !== "function" || UNREVEALED_MATCHERS.has(property)) return value
       return async (...args: unknown[]) => {
         await waitForPlayback()
+        await holdAfterSubmission(locator.page())
         await reveal(locator)
         await waitForPlayback()
         return (value as (...a: unknown[]) => unknown).apply(target, args)
@@ -329,49 +506,61 @@ const NEXT_KEYS = ["ArrowRight", "PageDown"]
  * reaches it.
  */
 async function waitForPresenter(page: Page, label = "Spustit →") {
-  await page.evaluate(
-    ({ id, keys, label }) =>
-      new Promise<void>((resolve) => {
-        const next = document.createElement("button")
-        next.type = "button"
-        next.textContent = label
-        Object.assign(next.style, {
-          marginLeft: "12px",
-          padding: "2px 12px",
-          border: "1px solid rgba(249, 250, 251, 0.5)",
-          borderRadius: "999px",
-          background: "transparent",
-          color: "inherit",
-          font: "inherit",
-          cursor: "pointer",
-          pointerEvents: "auto",
-        })
-        document.getElementById(id)?.appendChild(next)
+  presenterPages.add(page)
+  try {
+    await page.evaluate(
+      ({ id, keys, label }) =>
+        new Promise<void>((resolve) => {
+          const next = document.createElement("button")
+          next.type = "button"
+          next.textContent = label
+          Object.assign(next.style, {
+            marginLeft: "12px",
+            padding: "2px 12px",
+            border: "1px solid rgba(249, 250, 251, 0.5)",
+            borderRadius: "999px",
+            background: "transparent",
+            color: "inherit",
+            font: "inherit",
+            cursor: "pointer",
+            pointerEvents: "auto",
+          })
+          document.getElementById(id)?.appendChild(next)
 
-        const onKey = (event: KeyboardEvent) => {
-          if (
-            !keys.includes(event.key) ||
-            document.getElementById(id)?.textContent?.startsWith("⏸")
-          ) {
-            return
+          const onKey = (event: KeyboardEvent) => {
+            if (
+              !keys.includes(event.key) ||
+              event.repeat ||
+              document.documentElement.dataset.demoReviewing === "true" ||
+              document.getElementById(id)?.textContent?.startsWith("⏸")
+            ) {
+              return
+            }
+            // The key only drives the demo, never the page under it.
+            event.preventDefault()
+            event.stopPropagation()
+            finish()
           }
-          // The key only drives the demo, never the page under it.
-          event.preventDefault()
-          event.stopPropagation()
-          finish()
-        }
-        const finish = () => {
-          window.removeEventListener("keydown", onKey, true)
-          next.remove()
-          resolve()
-        }
-        window.addEventListener("keydown", onKey, true)
-        next.addEventListener("click", () => {
-          if (!document.getElementById(id)?.textContent?.startsWith("⏸")) finish()
-        })
-      }),
-    { id: CAPTION_ID, keys: NEXT_KEYS, label },
-  )
+          const finish = () => {
+            window.removeEventListener("keydown", onKey, true)
+            next.remove()
+            resolve()
+          }
+          window.addEventListener("keydown", onKey, true)
+          next.addEventListener("click", () => {
+            if (
+              document.documentElement.dataset.demoReviewing !== "true" &&
+              !document.getElementById(id)?.textContent?.startsWith("⏸")
+            ) {
+              finish()
+            }
+          })
+        }),
+      { id: CAPTION_ID, keys: NEXT_KEYS, label },
+    )
+  } finally {
+    presenterPages.delete(page)
+  }
 }
 
 /** The page whose window the audience sees. */
@@ -387,7 +576,7 @@ async function windowOf(page: Page) {
 
 /**
  * Fits a window for the audience the first time it is shown: a desktop one
- * (its page follows the window size) goes fullscreen, a phone-sized one moves
+ * (its page follows the window size) is maximized, a phone-sized one moves
  * to the middle of the window in front. Playwright sizes a phone window but
  * leaves it in the corner. Cosmetic: if the window manager refuses, the
  * window stays as it is.
@@ -400,7 +589,7 @@ async function arrangeWindow(page: Page) {
     if (page.viewportSize() === null) {
       await target.session.send("Browser.setWindowBounds", {
         windowId: target.windowId,
-        bounds: { windowState: "fullscreen" },
+        bounds: { windowState: "maximized" },
       })
     } else if (frontPage && !frontPage.isClosed()) {
       const main = await windowOf(frontPage)
@@ -425,8 +614,8 @@ async function arrangeWindow(page: Page) {
 /** Brings the window of `page` to the front, fitted the first time. */
 async function present(page: Page) {
   if (frontPage === page) return
-  await arrangeWindow(page)
   await page.bringToFront()
+  await arrangeWindow(page)
   frontPage = page
 }
 
@@ -450,7 +639,9 @@ export async function step<T>(page: Page, title: string, body: () => Promise<T>)
       }
     }
     if (isDemo) await waitForPlayback()
-    return body()
+    const result = await body()
+    if (shouldPause && !isRecording) await history.record(page, title)
+    return result
   })
 }
 
@@ -465,12 +656,44 @@ export async function endDemo(page: Page) {
   await waitForPresenter(stage, "Ukončit")
 }
 
-/** Fills a field; in demo mode types it key by key so the audience sees it. */
-export async function type(field: Locator, text: string) {
-  if (isDemo) {
-    await field.clear()
-    await field.pressSequentially(text, { delay: DEMO_TYPING_DELAY })
-  } else {
+/** Types visibly; quick entry removes the browser's extra delay between fields. */
+export async function type(
+  field: Locator,
+  text: string,
+  {
+    shouldClear = true,
+    pace = "normal",
+  }: { shouldClear?: boolean; pace?: "normal" | "quick" } = {},
+) {
+  if (!isDemo) {
     await field.fill(text)
+    return
+  }
+  if (pace === "normal" && !quickDemoPages.has(field.page())) {
+    if (shouldClear) await field.clear()
+    await field.pressSequentially(text, { delay: DEMO_TYPING_DELAY })
+    return
+  }
+
+  const page = field.page()
+  await waitForPlayback()
+  await holdAfterSubmission(page)
+  await holdAfterNavigation(page)
+  await reveal(field)
+  await waitForPlayback()
+  if (shouldClear) await field.clear()
+  await field.evaluate((element) => (element as HTMLElement).focus())
+  const session = await page.context().newCDPSession(page)
+  try {
+    for (const character of text) {
+      await waitForPlayback()
+      // Public Chromium input events retain visible input and React updates,
+      // without the launch-level slowMo pause after each completed field.
+      await session.send("Input.insertText", { text: character })
+      await page.waitForTimeout(pacing(page).typing)
+    }
+    await page.waitForTimeout(200)
+  } finally {
+    await session.detach()
   }
 }

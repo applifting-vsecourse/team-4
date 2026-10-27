@@ -1,7 +1,18 @@
 import { test } from "@playwright/test"
 
 import { closeDb, createMagicLink } from "./support/db"
-import { contextOptions, endDemo, expect, isDemo, step, type } from "./support/demo"
+import {
+  contextOptions,
+  endDemo,
+  expect,
+  isDemo,
+  scrollPage,
+  step,
+  type,
+  withQuickDemoPace,
+} from "./support/demo"
+import { createMobileStage, MOBILE_VIEWPORT, openMobileSignInLink } from "./support/mobile-stage"
+import { isRecording } from "./support/recording"
 import { definition, pickDate } from "./support/ui"
 
 // Presentation path; exhaustive validations remain in demo-v2.spec.ts.
@@ -35,11 +46,14 @@ test("Sprint Review: organizátor na desktopu, účastnice na mobilu", async ({ 
   const mobileContext = await browser.newContext({
     ...contextOptions,
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3050",
-    viewport: { width: 360, height: 800 },
+    viewport: isDemo && !isRecording ? null : MOBILE_VIEWPORT,
   })
   mobileContext.setDefaultTimeout(15_000)
   mobileContext.setDefaultNavigationTimeout(30_000)
-  const mobile = await mobileContext.newPage()
+  const { window: mobileWindow, content: mobile } = await createMobileStage(
+    mobileContext,
+    process.env.E2E_BASE_URL ?? "http://localhost:3050",
+  )
   const nav = (name: string) =>
     page.getByRole("link", { name, exact: true }).filter({ visible: true }).first()
   const mobileFits = async () => {
@@ -55,17 +69,13 @@ test("Sprint Review: organizátor na desktopu, účastnice na mobilu", async ({ 
   try {
     await page.goto("/")
     await step(page, "Úvod · Landing page akc.io — S2-01", async () => {
-      await expect(
-        page.getByRole("heading", {
+      await page
+        .getByRole("heading", {
           name: "Přihlášky, ubytování a platby pro vaše akce na jednom místě",
           level: 1,
-        }),
-      ).toBeVisible()
-      // Autoplay also gives the audience time to see the introduction.
-      // Guided mode waits for the presenter again at the next step.
-      if (isDemo && process.env.DEMO_PAUSE === "0") await page.waitForTimeout(6_000)
-    })
-    await step(page, "Dva vstupy · Účastník a organizátor — S2-01", async () => {
+        })
+        .waitFor({ state: "visible" })
+      await scrollPage(page)
       const entries = page.getByRole("region", { name: "Kudy dál" })
       await expect(entries.getByRole("link", { name: "Moje přihlášky", exact: true })).toBeVisible()
       await expect(entries.getByRole("link", { name: "Organizátor", exact: true })).toBeVisible()
@@ -78,14 +88,24 @@ test("Sprint Review: organizátor na desktopu, účastnice na mobilu", async ({ 
         .getByRole("region", { name: "Kudy dál" })
         .getByRole("link", { name: "Organizátor", exact: true })
         .click()
-      await page.getByRole("link", { name: "Registrovat organizátora" }).click()
-      await type(page.getByLabel("Jméno"), organizer.name)
-      await type(page.getByLabel("E-mail"), organizer.email)
-      await type(page.getByLabel("Heslo"), organizer.password)
-      await page.getByRole("button", { name: "Zaregistrovat se" }).click()
-      await page.getByRole("link", { name: "Založit organizaci" }).click()
-      await type(page.getByLabel("Název organizace"), "Spolek Jasan")
-      await page.getByRole("button", { name: "Založit organizaci" }).click()
+      await withQuickDemoPace(page, async () => {
+        await page.getByRole("link", { name: "Registrovat organizátora" }).click()
+        await type(page.getByLabel("Jméno"), organizer.name, { shouldClear: false, pace: "quick" })
+        await type(page.getByLabel("E-mail"), organizer.email, {
+          shouldClear: false,
+          pace: "quick",
+        })
+        await type(page.getByLabel("Heslo"), organizer.password, {
+          shouldClear: false,
+          pace: "quick",
+        })
+        await page.getByRole("button", { name: "Zaregistrovat se" }).click()
+      })
+      await withQuickDemoPace(page, async () => {
+        await page.getByRole("link", { name: "Založit organizaci" }).click()
+        await type(page.getByLabel("Název organizace"), "Spolek Jasan", { shouldClear: false })
+        await page.getByRole("button", { name: "Založit organizaci" }).click()
+      })
       await expect(page.getByRole("heading", { name: "Akce a turnusy", level: 1 })).toBeVisible()
     })
 
@@ -106,14 +126,27 @@ test("Sprint Review: organizátor na desktopu, účastnice na mobilu", async ({ 
           ["Sobota", "2026-11-07", "1000"],
           ["Neděle", "2026-11-08", "1500"],
         ]) {
-          await page.getByRole("button", { name: "Přidat termín" }).click()
-          const dialog = page.getByRole("dialog", { name: "Nový termín" })
-          await type(dialog.getByLabel("Označení"), label!)
-          await pickDate(page, dialog.getByLabel("Začátek"), date!)
-          await pickDate(page, dialog.getByLabel("Konec"), date!)
-          await type(dialog.getByLabel("Cena (Kč)"), price!)
-          await dialog.getByRole("button", { name: "Uložit termín" }).click()
-          await expect(dialog).toBeHidden()
+          const createTerm = async () => {
+            await page.getByRole("button", { name: "Přidat termín" }).click()
+            const dialog = page.getByRole("dialog", { name: "Nový termín" })
+            const pace = label === "Neděle" ? "quick" : "normal"
+            await type(dialog.getByLabel("Označení"), label!, {
+              pace,
+              shouldClear: pace !== "quick",
+            })
+            await withQuickDemoPace(page, async () => {
+              await pickDate(page, dialog.getByLabel("Začátek"), date!, { pace: "quick" })
+              await pickDate(page, dialog.getByLabel("Konec"), date!, { pace: "quick" })
+            })
+            await type(dialog.getByLabel("Cena (Kč)"), price!, {
+              pace,
+              shouldClear: pace !== "quick",
+            })
+            await dialog.getByRole("button", { name: "Uložit termín" }).click()
+            await expect(dialog).toBeHidden()
+          }
+          if (label === "Neděle") await withQuickDemoPace(page, createTerm)
+          else await createTerm()
         }
       },
     )
@@ -124,6 +157,8 @@ test("Sprint Review: organizátor na desktopu, účastnice na mobilu", async ({ 
       await type(page.getByLabel("Počet dní do připomenutí platby"), "14")
       await page.getByRole("button", { name: "Uložit platební nastavení" }).click()
       await expect(page.getByRole("button", { name: "Otevřít přihlašování" })).toBeEnabled()
+      // Keep the readiness checklist visible for the presenter before opening rooms.
+      if (isDemo) await page.waitForTimeout(5_000)
       await nav("Ubytování").click()
       await page.getByRole("button", { name: "Přidat pokoj" }).click()
       const dialog = page.getByRole("dialog", { name: "Nový pokoj" })
@@ -142,7 +177,7 @@ test("Sprint Review: organizátor na desktopu, účastnice na mobilu", async ({ 
       await expect(page.getByText("Přihlašování je otevřené")).toBeVisible()
     })
 
-    await step(mobile, "5/9 · Jana se přihlásí z telefonu — S2-07, S2-08", async () => {
+    await step(mobileWindow, "5/9 · Jana se přihlásí z telefonu — S2-07, S2-08", async () => {
       await mobile.goto(new URL(new URL(publicUrl).pathname, page.url()).href)
       await expect(mobile.getByRole("heading", { name: eventName })).toBeVisible()
       await mobileFits()
@@ -151,16 +186,18 @@ test("Sprint Review: organizátor na desktopu, účastnice na mobilu", async ({ 
       await expect(mobile.getByRole("region", { name: "Cena vybraných termínů" })).toContainText(
         "2 500 Kč",
       )
-      await type(mobile.getByLabel("Jméno"), participant.firstName)
-      await type(mobile.getByLabel("Příjmení"), participant.lastName)
-      await type(mobile.getByLabel("E-mail"), participant.email)
-      await type(mobile.getByLabel("Telefon"), "+420 777 123 456")
+      await withQuickDemoPace(mobileWindow, async () => {
+        await type(mobile.getByLabel("Jméno"), participant.firstName, { shouldClear: false })
+        await type(mobile.getByLabel("Příjmení"), participant.lastName, { shouldClear: false })
+        await type(mobile.getByLabel("E-mail"), participant.email, { shouldClear: false })
+        await type(mobile.getByLabel("Telefon"), "+420 777 123 456", { shouldClear: false })
+      })
       await mobile.getByRole("button", { name: "Odeslat přihlášku" }).click()
       await expect(mobile.getByRole("region", { name: "Přihláška je uložená" })).toBeVisible()
     })
 
     await step(
-      mobile,
+      mobileWindow,
       "6/9 · Potvrzení obou termínů a pokyny k platbě — S2-14, S2-16",
       async () => {
         const result = mobile.getByRole("region", { name: "Přihláška je uložená" })
@@ -184,8 +221,13 @@ test("Sprint Review: organizátor na desktopu, účastnice na mobilu", async ({ 
           occupancy.getByRole("row", { name: new RegExp(`${label} .* 12 1 11 0$`) }),
         ).toBeVisible()
       }
+      // Leave time to explain both occupancy rows before switching screens.
+      if (isDemo) await page.waitForTimeout(5_000)
       await nav("Přihlášky").click()
-      await page.getByRole("link", { name: /Otevřít přihlášku Jana Nováková/ }).click()
+      const janaRegistration = page.getByRole("link", { name: /Otevřít přihlášku Jana Nováková/ })
+      await expect(janaRegistration).toBeVisible()
+      if (isDemo) await page.waitForTimeout(4_000)
+      await janaRegistration.click()
       registrationId = new URL(page.url()).pathname.split("/").at(-1)!
       await expect(definition(page, "Dluh")).toHaveText("2 500 Kč")
     })
@@ -199,13 +241,28 @@ test("Sprint Review: organizátor na desktopu, účastnice na mobilu", async ({ 
       await expect(page.locator("dt").filter({ hasText: /^Vyrovnáno$/ })).toBeVisible()
     })
 
-    await step(mobile, "9/9 · Jana se vrací ke své přihlášce — S2-13, S2-14", async () => {
+    await step(mobileWindow, "9/9 · Jana se vrací ke své přihlášce — S2-13, S2-14", async () => {
+      await mobile.goto("/")
+      await mobile
+        .getByRole("heading", {
+          name: "Přihlášky, ubytování a platby pro vaše akce na jednom místě",
+          level: 1,
+        })
+        .waitFor({ state: "visible" })
+      await mobileFits()
+      await mobile
+        .getByRole("region", { name: "Kudy dál" })
+        .getByRole("link", { name: "Moje přihlášky", exact: true })
+        .click()
       if (isRemote) {
-        await mobile.goto("/my-registrations")
         await type(mobile.getByLabel("E-mail"), participant.email)
         await mobile.getByRole("button", { name: "Poslat přihlašovací odkaz" }).click()
-        // Open the received link in THIS mobile window, preserving its context.
-        // No production database access or fabricated delivery evidence.
+        await openMobileSignInLink(
+          mobileWindow,
+          mobile,
+          process.env.E2E_BASE_URL ?? "http://localhost:3050",
+        )
+        // The received link opens inside the centered participant frame.
         await expect(
           mobile
             .getByRole("link", { name: `Detail přihlášky ${eventName}` })
@@ -223,7 +280,7 @@ test("Sprint Review: organizátor na desktopu, účastnice na mobilu", async ({ 
       await expect(definition(mobile, "Zaplaceno")).toHaveText("2 500 Kč")
       await mobileFits()
     })
-    await endDemo(mobile)
+    await endDemo(mobileWindow)
   } finally {
     await mobileContext.close()
   }
