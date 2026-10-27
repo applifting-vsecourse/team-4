@@ -7,6 +7,7 @@ function run(
   approved,
   revokeBeforeReview = false,
   author = 'developer',
+  severity = 'high',
 ) {
   // Exercise the real runner with an in-memory GitHub API. A deliberately
   // oversized diff prevents any external Copilot call in the approved case.
@@ -20,7 +21,7 @@ function run(
     const comments = [];
     let resetSent=false;
     const sha = 'a'.repeat(40);
-    const pr = {number: 12, user:{login:${JSON.stringify(author)}}, head:{sha}, state:'open', base:{ref:'main'}, draft:false};
+    const pr = {labels:[{name:'severity:'+${JSON.stringify(severity)}}],number: 12, user:{login:${JSON.stringify(author)}}, head:{sha}, state:'open', base:{ref:'main'}, draft:false};
     globalThis.fetch = async (url, options = {}) => {
       const path = new URL(url).pathname;
       const body = options.body ? JSON.parse(options.body) : {};
@@ -116,8 +117,8 @@ test('real runner stops when scope re-review is explicitly requested before agen
   ]);
 });
 
-test('real runner records the explicit author exemption and starts review on David PRs without approval', () => {
-  const result = run('In Progress', false, false, 'darebakdavca');
+test('real runner starts Standard code review without scope approval', () => {
+  const result = run('In Progress', false, false, 'developer', 'standard');
   assert.equal(result.status, 'Ready for Code Review');
   assert.deepEqual(result.calls.slice(0, 3), [
     'status:Ready for Code Review',

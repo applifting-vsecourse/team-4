@@ -15,6 +15,7 @@ const issue = {
 const at = (n) => `2026-10-16T20:00:${String(n).padStart(2, '0')}Z`;
 const pr = {
   number: 104,
+  labels: [{ name: 'severity:high' }],
   user: { login: 'JakubHerr' },
   draft: false,
   head: { sha: 'a'.repeat(40) },
@@ -212,14 +213,29 @@ test('code and QA remain commit-specific despite persistent requirements approva
   data.reviews[1].commit_id = pr.head.sha;
   assert.equal(evaluate(data).pass, false);
 });
-test('scope changes alter David exemption evidence without requiring human requirements approval', () => {
+test('scope changes require new approval on High David PRs too', () => {
   const own = { ...pr, user: { login: 'darebakdavca' } };
-  const a = issueRequirements(issue, [], []);
-  const b = issueRequirements({ ...issue, body: 'Changed' }, [], []);
-  assert.notEqual(
-    requirementsApproval({ ...own, requirementsVersion: a.version }, []).id,
-    requirementsApproval({ ...own, requirementsVersion: b.version }, []).id,
+  assert.equal(requirementsApproval(own, []), null);
+});
+test('Bogdan grants and persists issue scope approval through commands and reviews', () => {
+  const decision = issueRequirements(
+    issue,
+    [command('/requirements-approve', 21, 'rmnskb')],
+    [],
   );
+  assert.equal(decision.approval.reviewer, 'rmnskb');
+  const stored = issueRequirements(
+    issue,
+    [bot('issue-requirements', decision.grantRecord)],
+    [],
+  );
+  assert.equal(stored.approval.id, decision.approval.id);
+  const fromReview = issueRequirements(
+    issue,
+    [],
+    [{ pr, reviews: [{ ...review, user: { login: 'rmnskb' } }] }],
+  );
+  assert.equal(fromReview.approval.reviewer, 'rmnskb');
 });
 
 test('an unused historical QA approval cannot approve a subsequently edited scope', () => {
@@ -314,5 +330,27 @@ test('issues with no body have a stable empty scope', () => {
   assert.equal(
     scopeHash({ ...issue, body: null }),
     scopeHash({ ...issue, body: '' }),
+  );
+});
+
+test('a Standard QA approval cannot seed High scope approval', () => {
+  assert.equal(
+    issueRequirements(
+      issue,
+      [],
+      [{ pr: { ...pr, labels: [] }, reviews: [review] }],
+    ).approval,
+    null,
+  );
+});
+test('Standard scope changes refresh review markers without waiting for approval', () => {
+  const a = issueRequirements(issue, [], []);
+  const b = issueRequirements({ ...issue, body: 'New scope' }, [], []);
+  const standard = { ...pr, labels: [] };
+  assert.notEqual(
+    requirementsApproval({ ...standard, requirementsVersion: a.version }, [])
+      .id,
+    requirementsApproval({ ...standard, requirementsVersion: b.version }, [])
+      .id,
   );
 });

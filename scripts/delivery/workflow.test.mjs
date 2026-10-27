@@ -33,3 +33,10 @@ test('stacked PR events are received by both workflows', () => {
   assert.ok(!workflow.includes('branches: [main]'));
   assert.ok(!review.includes('branches: [main]'));
 });
+
+test('both workflows reconcile severity label additions and removals', () => {
+  for (const source of [workflow, review]) {
+    assert.ok(source.includes('        labeled,'));
+    assert.ok(source.includes('        unlabeled,'));
+  }
+});

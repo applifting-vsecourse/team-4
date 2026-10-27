@@ -24,6 +24,7 @@ function fixture() {
   return {
     pr: {
       number: 12,
+      labels: [{ name: 'severity:high' }],
       head: { sha },
       user: { login: 'developer' },
       draft: false,
@@ -130,9 +131,11 @@ for (const [author, substitute] of [
   test(`${author}: ${author === PM ? 'QA is required after handoff without requirements approval' : 'substitute must approve requirements then QA separately'}`, () => {
     const f = fixture();
     f.pr.user.login = author;
-    if (author === PM)
+    if (author === PM) {
+      f.pr.labels = [];
       f.comments[2].body =
-        requirementsMarker(12, sha, 78, 'author-exempt') + '\nAuthor exemption';
+        requirementsMarker(12, sha, 78, 'severity-standard') + '\nPolicy skip';
+    }
     f.reviews = [review(substitute, 1)];
     assert.equal(evaluate(f).pass, false);
     f.reviews.push(review(substitute, 4));
@@ -143,9 +146,11 @@ for (const [author, substitute] of [
   test(`${author}: author approval and unrelated reviewers cannot substitute`, () => {
     const f = fixture();
     f.pr.user.login = author;
-    if (author === PM)
+    if (author === PM) {
+      f.pr.labels = [];
       f.comments[2].body =
-        requirementsMarker(12, sha, 78, 'author-exempt') + '\nAuthor exemption';
+        requirementsMarker(12, sha, 78, 'severity-standard') + '\nPolicy skip';
+    }
     f.reviews = [
       review(author, 1),
       review(author, 4),
@@ -231,58 +236,19 @@ test('empty linkage cannot start review and backlog cards do not advance automat
   );
 });
 
-test('David author exemption needs no requirements review but still needs agent review, handoff and Matej QA', () => {
-  const f = fixture();
-  f.pr.user.login = PM;
-  f.reviews = [];
-  f.comments[2].body =
-    requirementsMarker(12, sha, 78, 'author-exempt') + '\nAuthor exemption';
-  assert.equal(requirementsApproval(f.pr, f.reviews).exempt, true);
-  assert.equal(requirementsTransition('In Progress', [f]).review, true);
-  assert.equal(evaluate(f).pass, false);
-  f.reviews = [review(QA, 4)];
-  assert.equal(evaluate(f).pass, true);
-  f.comments[0].body = f.comments[0].body.replace(
-    'result=pass',
-    'result=findings',
-  );
-  assert.equal(evaluate(f).pass, false);
-});
-test('author exemption applies only to David, and never permits drafts', () => {
-  for (const author of [QA, 'developer']) {
+test('High severity requires scope approval even for David and Bogdan', () => {
+  for (const author of [PM, 'rmnskb']) {
     const f = fixture();
     f.pr.user.login = author;
     assert.equal(requirementsApproval(f.pr, []), null);
+    assert.equal(
+      requirementsTransition('In Progress', [{ pr: f.pr, reviews: [] }]).review,
+      false,
+    );
   }
-  const f = fixture();
-  f.pr.user.login = PM;
-  f.pr.draft = true;
-  assert.equal(requirementsApproval(f.pr, []), null);
 });
-
-test('an exempt PR cannot advance an issue while another linked PR lacks requirements approval', () => {
-  const own = fixture();
-  own.pr.user.login = PM;
-  own.reviews = [];
-  const other = fixture();
-  other.reviews = [];
-  assert.equal(
-    requirementsTransition('In Progress', [own, other]).review,
-    false,
-  );
-  other.reviews = [review(PM, 1)];
-  assert.equal(
-    requirementsTransition('In Progress', [own, other]).review,
-    true,
-  );
-});
-test('new commits on exempt PRs still invalidate agent review and QA', () => {
+test('Bogdan can approve High requirements', () => {
   const f = fixture();
-  f.pr.user.login = PM;
-  f.reviews = [review(QA, 4)];
-  f.comments[2].body =
-    requirementsMarker(12, sha, 78, 'author-exempt') + '\nAuthor exemption';
-  f.pr.head.sha = 'b'.repeat(40);
-  assert.equal(requirementsApproval(f.pr, []).exempt, true);
-  assert.equal(evaluate(f).pass, false);
+  f.reviews[0].user.login = 'rmnskb';
+  assert.equal(evaluate(f).pass, true);
 });

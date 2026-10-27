@@ -18,8 +18,7 @@ function fixture(options = {}) {
     requirements: { id: 'scope-grant', submitted_at: '2000-01-01' },
     requirementsVersion: 'version',
   };
-  const approvalId =
-    pr.user.login === 'darebakdavca' ? 'author-exempt:version' : 'scope-grant';
+  const approvalId = 'severity-standard:version';
   const comment = (body, created_at) => ({
     user: { login: 'github-actions[bot]' },
     body: body + '\n',

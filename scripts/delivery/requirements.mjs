@@ -1,5 +1,6 @@
+import { severityFor } from './severity.mjs';
 import { createHash } from 'node:crypto';
-import { PM } from './lib.mjs';
+import { isRequirementsApprover } from './lib.mjs';
 
 const BOT = 'github-actions[bot]';
 // Only explicit delivery evidence is excluded. Requirement text, links and
@@ -58,7 +59,9 @@ export function issueRequirements(issue, comments, snapshots) {
   const scope = scopeHash(issue);
   const grants = comments
     .map((c) => readRecord(c, 'issue-requirements'))
-    .filter((r) => r?.issue === issue.number && r.reviewer === PM);
+    .filter(
+      (r) => r?.issue === issue.number && isRequirementsApprover(r.reviewer),
+    );
   const resets = comments
     .map((c) => readRecord(c, 'requirements-reset'))
     .filter((r) => r?.issue === issue.number);
@@ -109,26 +112,31 @@ export function issueRequirements(issue, comments, snapshots) {
   const consumed = new Set(grants.map((r) => r.source));
   const sources = [];
   for (const { pr, reviews } of snapshots) {
-    // Author exemption never becomes a transferable approval of other PRs.
-    if (pr.user.login.toLowerCase() === PM.toLowerCase()) continue;
+    // Standard QA reviews must never become implicit High scope approval.
+    if (severityFor(pr) !== 'high') continue;
+    // Self-authored PR reviews cannot grant independent scope approval.
+    // Explicit issue commands remain available to both product owners.
     for (const r of reviews)
       if (
-        r.user?.login.toLowerCase() === PM.toLowerCase() &&
+        isRequirementsApprover(r.user?.login) &&
+        r.user.login.toLowerCase() !== pr.user.login.toLowerCase() &&
         r.state === 'APPROVED'
       ) {
         sources.push({
           source: `review:${pr.number}:${r.id}`,
+          reviewer: r.user.login,
           submitted_at: r.submitted_at,
         });
       }
   }
   for (const c of comments)
     if (
-      c.user?.login.toLowerCase() === PM.toLowerCase() &&
+      isRequirementsApprover(c.user?.login) &&
       /^\/requirements-approve\s*$/.test((c.body ?? '').trim())
     ) {
       sources.push({
         source: `comment:${c.id}:${date(c)}`,
+        reviewer: c.user.login,
         submitted_at: date(c),
       });
     }
@@ -145,7 +153,6 @@ export function issueRequirements(issue, comments, snapshots) {
     issue: issue.number,
     scope,
     cycle,
-    reviewer: PM,
     ...fresh,
   };
   return {

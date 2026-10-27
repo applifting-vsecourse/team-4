@@ -39,6 +39,13 @@ async function scenario(options) {
   const comments = new Map([[78, []]]);
   const prs = (options.authors ?? ['darebakdavca']).map((author, i) => ({
     number: 12 + i,
+    labels: [
+      {
+        name:
+          options.severityByPr?.[12 + i] ??
+          (options.unapproved ? 'severity:high' : 'severity:standard'),
+      },
+    ],
     issue_url: `https://api.github.com/repos/owner/repo/issues/${12 + i}`,
     user: { login: author },
     head: { sha },
@@ -655,4 +662,22 @@ test('binary-only PR reaches QA with explicit skipped coverage and no Copilot ca
         c.includes('image.png'),
     ),
   );
+});
+
+test('Low PRs linked to an issue skip both review and QA handoff', () => {
+  const r = run({ severityByPr: { 12: 'severity:low' } });
+  assert.equal(
+    r.calls.some((c) => c.startsWith('request:') || c.startsWith('handoff:')),
+    false,
+  );
+  assert.deepEqual(r.handoffs, [0]);
+});
+test('mixed Low and Standard linked PRs hand only Standard to QA', () => {
+  const r = run({
+    authors: ['developer', 'MatejKrones'],
+    severityByPr: { 12: 'severity:low' },
+  });
+  assert.equal(r.status, 'Ready for Testing');
+  assert.deepEqual(r.requested, { 12: [], 13: ['darebakdavca'] });
+  assert.deepEqual(r.handoffs, [0, 1]);
 });

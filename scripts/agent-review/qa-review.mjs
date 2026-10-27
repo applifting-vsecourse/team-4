@@ -1,3 +1,4 @@
+import { severityFor, sameSeverity } from '../delivery/severity.mjs';
 import { copilotWaiver, waiverMarker } from '../delivery/copilot-waiver.mjs';
 import {
   evaluate,
@@ -35,6 +36,8 @@ export async function ensureQaReviewRequest({
   if (
     copilotWaiver({ pr: current, comments })?.source !== waiver?.source ||
     current.head.sha !== pr.head.sha ||
+    !sameSeverity(current, pr) ||
+    severityFor(current) === 'low' ||
     current.state !== 'open' ||
     current.draft ||
     current.base.ref !== 'main' ||

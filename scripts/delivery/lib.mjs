@@ -1,12 +1,18 @@
+import { severityFor } from './severity.mjs';
 import { copilotWaiver, waiverMarker } from './copilot-waiver.mjs';
 
 export const PM = 'darebakdavca';
+export const REQUIREMENTS_APPROVERS = [PM, 'rmnskb'];
+export const isRequirementsApprover = (login) =>
+  REQUIREMENTS_APPROVERS.some(
+    (name) => name.toLowerCase() === login?.toLowerCase(),
+  );
 export const QA = 'MatejKrones';
 
 export function reviewersFor(author) {
   const login = author.toLowerCase();
   return {
-    requirements: login === PM.toLowerCase() ? null : PM,
+    requirements: REQUIREMENTS_APPROVERS.join(' or '),
     qa: login === QA.toLowerCase() ? PM : QA,
   };
 }
@@ -24,21 +30,23 @@ export function approved(review, sha) {
 }
 
 export function requirementsApproval(pr, reviews) {
-  const login = reviewersFor(pr.user.login).requirements;
   if (pr.draft) return null;
-  if (login === null)
+  if (severityFor(pr) !== 'high')
     return {
-      id: pr.requirementsVersion
-        ? `author-exempt:${pr.requirementsVersion}`
-        : 'author-exempt',
+      id: `severity-${severityFor(pr)}${pr.requirementsVersion ? ':' + pr.requirementsVersion : ''}`,
       exempt: true,
       commit_id: pr.head.sha,
     };
   if (Object.hasOwn(pr, 'requirements')) return pr.requirements;
   const ordered = reviews
-    .filter((r) => r.user?.login.toLowerCase() === login.toLowerCase())
+    .filter(
+      (r) =>
+        isRequirementsApprover(r.user?.login) &&
+        r.user.login.toLowerCase() !== pr.user.login.toLowerCase(),
+    )
+    .filter((r) => !['COMMENTED', 'PENDING'].includes(r.state))
     .sort((a, b) => a.id - b.id);
-  if (latestReview(ordered, login)?.state !== 'APPROVED') return null;
+  if (ordered.at(-1)?.state !== 'APPROVED') return null;
   const reset =
     ordered
       .filter((r) => ['CHANGES_REQUESTED', 'DISMISSED'].includes(r.state))
@@ -81,6 +89,17 @@ export function readyMarker(pr, sha, issue) {
 
 export function evaluate({ pr, issues, reviews, comments }) {
   const reasons = [];
+  let severity;
+  try {
+    severity = severityFor(pr);
+  } catch (error) {
+    return { pass: false, reasons: [error.message] };
+  }
+  if (severity === 'low')
+    return {
+      pass: !pr.draft,
+      reasons: pr.draft ? ['PR is still a draft.'] : [],
+    };
   const sha = pr.head.sha;
   const roles = reviewersFor(pr.user.login);
   const qa = latestReview(reviews, roles.qa);
@@ -100,8 +119,7 @@ export function evaluate({ pr, issues, reviews, comments }) {
         : pr,
       reviews,
     );
-    // Requirements are unconditional. A Copilot waiver cannot substitute for
-    // scope approval or its current-commit code-review handoff record.
+    // High severity requires scope approval; Standard records a policy skip.
     if (!pm) {
       reasons.push(
         `Issue #${issue.number} needs requirements approval by ${roles.requirements}.`,
