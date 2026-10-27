@@ -7,8 +7,6 @@ akc.io is an event management product, developed as a pnpm monorepo with two app
 
 Organize backend features into controllers, DTOs, services, domain models and repositories. Organize frontend features into API schemas, query options, hooks and components. Keep shared infrastructure outside feature folders.
 
-@AGENTS.md
-
 **Before writing or changing any UI, read [`DESIGN.md`](DESIGN.md).** It is the akc.io design system: tokens, components and how to add them (#79).
 
 ## Sitemap and story context
@@ -44,6 +42,17 @@ This rule covers private local stories in `docs/user-stories/` and `docs/sprints
 
 If implementation reveals a gap or conflict, report it to the PM and propose a change in your response; leave the story unchanged. When the PM explicitly requests story changes, make only the authorized changes. Reading stories and reporting implementation progress remain allowed.
 
+### UI rules
+
+Frontend stack (`apps/frontend`): Vite + React 19, Tailwind v4, shadcn/ui, TypeScript.
+
+- Before building UI, look up existing components through the shadcn MCP or `pnpm dlx shadcn@latest docs <component>`. Add missing ones from `apps/frontend` with `pnpm dlx shadcn@latest add <name>`. Never hand-roll a primitive shadcn provides. In this monorepo, shadcn CLI commands run from the root need `-c apps/frontend`.
+- A freshly added `src/components/ui` file can fail the token rules (upstream arbitrary values). Report those findings to the developer instead of editing the file or the lint config.
+- Semantic tokens only (`bg-background`, `text-muted-foreground`, `bg-destructive`, …). No raw palette colors, arbitrary values (`p-[13px]`) or inline styles.
+- Pages control layout only. Appearance comes from component variants and sizes; if none fits, ask instead of restyling with `className`.
+- Do not, without asking the developer: add theme tokens, add lint-disable comments, edit the lint config (including `SHADCN_LEGACY_FILES`), or edit `src/components/ui` just to make a violation go away.
+- After any UI change, run `pnpm check` and fix every error before finishing. `pnpm check-all` still gates handoff.
+
 ### UI controls come from the kit
 
 Need a control that isn't in `src/components/ui/`? Add it with `pnpm dlx shadcn@latest add <name>` — don't hand-roll one in a feature folder, even where a native input would do the job. One accessibility implementation to reason about beats a per-control judgement call.
@@ -61,6 +70,9 @@ Don't reach for the browser to check your own work. Tests and type-checks are th
 Before you hand work to the developer (report it done, commit, push or open a PR), run `pnpm check-all` from the repo root and fix every failure. CI additionally validates migrations and database constraints. Running single checks or Prettier from the root is not enough, because each app has its own Prettier config.
 
 ### Delivery gates
+
+Never commit or push changes directly to `main`. All changes to `main` must go
+through a pull request from another branch, including documentation and configuration changes.
 
 Every implementation PR links its issues with `Closes #N`. Leave the issue In
 Progress until its requirements are approved. Record requirements approval once
