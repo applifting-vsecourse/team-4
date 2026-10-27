@@ -13,9 +13,3 @@
 ## Screenshots
 
 <!-- If the UI changed -->
-
-## Checklist
-
-- [ ] I read my own Files changed, top to bottom
-- [ ] I ran an agent review and answered its comments
-- [ ] I can explain every change
