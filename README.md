@@ -1,75 +1,50 @@
 # akc.io
 
-akc.io is an event management platform being developed by Team 4 for the VŠE 4IT580 course. It aims to bring registrations, accommodation, participant payments and organizer workflows into one place, with a self-service area for participants.
+Event management platform developed by **Team 4 for VŠE 4IT580**. Organizers prepare events, collect registrations and track payments; participants register from a phone and access their registrations through an email magic link.
 
-The planned platform serves events such as camps, sports training camps, company retreats and summer schools. Organizers manage events and their teams; participants discover events, apply and keep track of their registration and payments.
+**[Open the deployed application](https://team-4.vsepractical.applifting.dev)** · **[Product backlog](https://github.com/applifting-vsecourse/team-4/issues)** · **[Pull requests and reviews](https://github.com/applifting-vsecourse/team-4/pulls?q=is%3Apr)** · **[CI runs](https://github.com/applifting-vsecourse/team-4/actions/workflows/ci.yml)**
 
-## Project scope
+## What to evaluate
 
-The MVP backlog covers:
+The implemented core journey covers organizer sign-up, organization and event creation, dates with prices and capacities, room setup, opening registration, participant registration, payment instructions, manual payment recording and participant self-service. The [guided Sprint Review demo](docs/sprint-review-2.md) connects this journey to its user stories and shows the organizer on desktop and participant on mobile.
 
-- **Events and registration:** multiple events and dates with separate prices and capacities, registration windows, participant types, age-dependent fields and participation terms.
-- **Accommodation and attendance:** rooms and beds, accommodation preferences, capacity tracking, waiting lists and configurable manual or automatic decisions.
-- **Payments and cancellations:** payment instructions with a variable symbol and QR code, bank CSV imports, payment matching, balances, reminders and cancellation fees.
-- **Participant self-service:** access through a one-time link or code, registration and payment overviews, and changes or cancellations within organizer-defined rules.
-- **Organizer workspace:** dashboards, participant filters and CSV exports, participant details, internal notes and change history.
-- **Organizations and access:** team invitations, roles and permissions, separation of organization data, and consent records including legal guardians.
-- **Public discovery and communication:** a landing page, event catalog, shareable event details and transactional emails.
-- **Operations:** monitoring, backups and recovery checks, separate environments, automated deployment, critical end-to-end tests and protection against concurrent capacity overbooking.
+The wider backlog also includes accommodation allocation, waiting lists, bank imports and cancellation workflows. These are planned scope, not a claim that every feature is complete. **GitHub issues and their acceptance criteria are the source of truth** for scope and delivery status; the [sitemap](docs/sitemap.md) describes the target navigation.
 
-Installment payment plans (F22) and refunds (F31) are outside the MVP scope. See the [feature coverage map](docs/user-stories/coverage.md) for individual requirements and dependencies.
+## Engineering and delivery
 
-## Current status
+| Practice                       | How it works / evidence                                                                                                                                                                                                                                                      |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Traceable delivery**         | Standard and High PRs link their user stories with `Closes #N`. Automation moves linked issues through code review and testing, retaining review findings and QA handoffs.                                                                                                   |
+| **Independent code review**    | Copilot reviews Standard and High PRs against the issue scope. New commits require fresh review; a recorded, commit-specific manual waiver is available to the designated maintainer.                                                                                        |
+| **Human acceptance testing**   | A designated teammate tests the exact PR commit after the review handoff. New commits require fresh QA, preventing approval of an older version from accepting changed code.                                                                                                 |
+| **Risk-based merge gates**     | Standard requires CI, an issue link, independent review and human QA. High additionally requires product scope approval. Low is limited to documentation/text and isolated tests and still requires CI. Enforcement changes require High.                                    |
+| **Automated verification**     | CI runs lint, formatting, type checks, unit tests, builds, migrations against a clean PostgreSQL database, database constraint tests and Playwright end-to-end tests. Playwright reports are uploaded as artifacts. The delivery automation itself also has automated tests. |
+| **Deployment and releases**    | Pushes to `main` build Docker images and deploy the course stage through Coolify. Successful CI on `main` triggers a versioned GitHub Release with linked delivered issues.                                                                                                  |
+| **Shared UI and architecture** | A documented Figma-backed design system, semantic tokens and reusable shadcn/ui controls support consistent responsive screens. Backend modules separate HTTP, business rules and persistence; frontend features separate API schemas, queries and components.               |
 
-This repository currently contains the akc.io application foundation and product backlog. The application includes account sign-up and sign-in, a basic home page, an authenticated dashboard placeholder, welcome and health API endpoints, and email infrastructure. The database schema contains authentication tables only.
+See [review, QA and merge policy](docs/delivery-workflow.md), [automated code review](docs/agent-code-review.md), [local PR testing](docs/local-qa.md) and [release history](https://github.com/applifting-vsecourse/team-4/releases) for details and evidence. Workflow definitions live in [.github/workflows](.github/workflows).
 
-The event, accommodation and payment workflows described above are planned requirements, not implemented features. Local demo data can be added with `pnpm backend seed`; see the seed source for accounts.
+## Technology
 
-## Product documentation
-
-- [Feature breakdown](Akc.io_feature_breakdown_final.xlsx) — source workbook describing the project scope.
-- [User stories](docs/user-stories/README.md) — 74 stories covering 62 features, including 72 MVP stories and two stories outside the MVP.
-- [Coverage map](docs/user-stories/coverage.md) — links between source features and stories.
-- [Story manifest](docs/user-stories/manifest.json) — import metadata, priorities and approval status.
-
-Stories and their acceptance criteria are written in Czech. To validate the story files and preview the GitHub issue import without creating issues, run:
-
-```sh
-python3 docs/user-stories/import.py
-```
-
-See the [user story guide](docs/user-stories/README.md) for the import workflow.
-
-## Technology and structure
-
-The project is a TypeScript pnpm monorepo with two applications.
-
-| Area        | Technologies                                                                        |
-| ----------- | ----------------------------------------------------------------------------------- |
-| Frontend    | React, Vite, TanStack Router and Query, Tailwind CSS, shadcn/ui, Lucide, ky and Zod |
-| Backend     | NestJS, Prisma, PostgreSQL, BetterAuth, Swagger and React Email                     |
-| Development | ESLint, Prettier, Jest, Vitest, Husky and lint-staged                               |
-| Deployment  | Docker Compose and GitHub Actions                                                   |
+| Area     | Stack                                                                           |
+| -------- | ------------------------------------------------------------------------------- |
+| Frontend | React 19, TypeScript, Vite, TanStack Router/Query, Tailwind CSS, shadcn/ui, Zod |
+| Backend  | NestJS, Prisma, PostgreSQL, BetterAuth, Swagger, React Email                    |
+| Testing  | Jest, Vitest, Playwright, database integration tests                            |
+| Delivery | pnpm monorepo, GitHub Actions, Docker, Coolify                                  |
 
 ```text
-apps/
-  backend/       NestJS API, Prisma schema and migrations, email templates
-  frontend/      React application, routes, features and shared UI components
-docs/
-  user-stories/  Product backlog, coverage map and issue import tools
-scripts/         Local environment setup
-.github/         CI, deployment workflow and issue template
+apps/backend/   API modules, database schema/migrations and email templates
+apps/frontend/ Routes, feature components, shared UI and end-to-end tests
+scripts/       Review gates, QA preparation, releases and local setup
+docs/          Architecture, navigation, delivery policy and demo guides
 ```
 
-Backend features live in `apps/backend/src/modules`, with infrastructure in `src/core` and `src/shared`. Frontend routes live in `apps/frontend/src/routes`, features in `src/features`, and reusable controls in `src/components/ui`.
-
-See the [backend README](apps/backend/README.md) and [frontend README](apps/frontend/README.md) for application-specific guidance.
+Architecture: [data model](docs/architecture/data-model.md) · [design system](DESIGN.md) · [backend guide](apps/backend/README.md) · [frontend guide](apps/frontend/README.md).
 
 ## Run locally
 
-Prerequisites: Node.js 24 (see [.nvmrc](.nvmrc)), pnpm 10.15.0 and Docker with Compose. Start Docker before running the application.
-
-From the repository root:
+Prerequisites: **Node.js 24**, **pnpm 10.15.0** and **Docker with Compose** running.
 
 ```sh
 corepack enable
@@ -77,67 +52,28 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-`pnpm dev` creates missing application environment files from their examples, starts PostgreSQL, applies migrations, runs the demo seed entry point and starts both development servers. Existing environment files are preserved.
+`pnpm dev` creates missing environment files, starts PostgreSQL, applies migrations, runs the seed entry point and starts both apps. Existing environment files are preserved. See the [backend](apps/backend/.env.example) and [frontend](apps/frontend/.env.example) environment examples for configuration. The default console mailer prints emails, including access links, in the backend output.
 
-| Service            | Address                                  |
-| ------------------ | ---------------------------------------- |
-| Frontend           | http://localhost:3050                    |
-| API                | http://localhost:4050/api                |
-| Swagger            | http://localhost:4050/api/docs           |
-| Auth documentation | http://localhost:4050/api/auth/reference |
+| Service                   | Local address                  |
+| ------------------------- | ------------------------------ |
+| Application               | http://localhost:3050          |
+| API                       | http://localhost:4050/api      |
+| Swagger API documentation | http://localhost:4050/api/docs |
 
-Local configuration lives in [apps/backend/.env.example](apps/backend/.env.example) and [apps/frontend/.env.example](apps/frontend/.env.example), copied to each application's `.env`. The root `.env` is used by the production Docker Compose stack, not by `pnpm dev`.
+Stop servers with `Ctrl+C`; stop the database with `pnpm dev:down`.
 
-Email verification and password reset messages use the console mailer by default, so check the backend output for those messages. Resend and SMTP adapters are also available. Without a verified Resend domain, set `RESEND_API_KEY`, keep the sandbox `EMAIL_FROM` and set `EMAIL_ALLOWED_RECIPIENT` to the Resend account owner's address; mail to any other recipient is dropped with a warning.
-
-Stop the development servers with `Ctrl+C`. Stop the local PostgreSQL container with:
+## Verify and demonstrate
 
 ```sh
-pnpm dev:down
+pnpm check-all                  # Local checks: automation, lint, types, unit tests, builds, formatting
+pnpm frontend test:e2e          # Playwright end-to-end tests
+pnpm frontend demo:v2           # Guided organizer + mobile participant demonstration
 ```
 
-For testing an open PR, use [local QA preparation](docs/local-qa.md).
+CI additionally applies migrations to a clean database and runs database constraint tests. See the [demo guide](docs/sprint-review-2.md) for controls and remote email setup. The demo creates persistent application data.
 
-## Development commands
-
-Run these commands from the repository root:
-
-| Command                              | Purpose                                                                                     |
-| ------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `pnpm check-all`                     | Generate Prisma; run automation tests, lint, type checks, unit tests, builds and formatting |
-| `pnpm backend test`                  | Run backend tests with Jest                                                                 |
-| `pnpm frontend test:ci`              | Run frontend tests with Vitest                                                              |
-| `pnpm frontend type-check`           | Check frontend TypeScript types                                                             |
-| `pnpm format`                        | Format repository and application files                                                     |
-| `pnpm backend prisma:migrations:run` | Create and apply development migrations after schema changes                                |
-| `pnpm backend prisma:studio`         | Open the database browser                                                                   |
-| `pnpm backend seed`                  | Run the project seed entry point                                                            |
-| `pnpm backend email:dev`             | Preview email templates                                                                     |
-
-The test runners currently allow empty test suites. Passing checks alone does not demonstrate completion of the planned product workflows.
-
-Read [AGENTS.md](AGENTS.md) for repository conventions and [DESIGN.md](DESIGN.md) before UI work. The design document is currently empty.
-
-## Database
-
-Local PostgreSQL runs on port **5433**, with `akcio` as the database name, username and local development password.
-
-The initial migrations are intended for a fresh database. If reusing a database from the previous application, use a new database rather than applying this baseline to it. `pnpm backend db:reset` recreates a disposable development database and **deletes its data**.
-
-## Deployment
-
-The root Docker Compose stack runs PostgreSQL, the backend and the frontend:
-
-```sh
-cp .env.example .env
-# Set deployment secrets, database credentials, BACKEND_URL and FRONTEND_URL.
-docker compose up --build
-```
-
-Use [.env.example](.env.example) as the configuration reference. Replace placeholder secrets before deploying. The frontend API URL is embedded at build time, so changing `BACKEND_URL` requires rebuilding the frontend. Production startup applies migrations without seeding.
-
-GitHub Actions includes [CI](.github/workflows/ci.yml) and a [course registry/Coolify deployment workflow](.github/workflows/deploy.yml). Configure repository secrets and deployment destinations before using the deployment workflow.
+The [course deployment](https://team-4.vsepractical.applifting.dev) is a shared staging environment. Deployment configuration and version redeployment instructions are documented in the [delivery workflow](docs/delivery-workflow.md#releases-and-the-stage).
 
 ## License
 
-akc.io is licensed under the [MIT license](LICENSE.txt).
+[MIT](LICENSE.txt).
