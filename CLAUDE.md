@@ -34,6 +34,10 @@ Do not retain or introduce backward compatibility for previous product names, st
 
 Deliberately sparse — this file grows as the team learns what it expects from generated code. Add rules here when you find yourself repeating the same review feedback.
 
+### Sync with main before starting an issue
+
+Before starting work on any issue, fetch the latest `origin/main` and merge it into the issue's working branch. Create new issue branches from the latest `origin/main`. Resolve any merge conflicts before implementation so the work uses the current shared UI, components and application behavior. Preserve unrelated local changes; do not discard them to make the merge possible. If they prevent a safe merge, report the blocker before starting implementation.
+
 ### User stories are owned by the PM
 
 User stories are read-only for agents by default. Only David, acting as PM, may explicitly authorize an agent to create, edit, delete, regenerate, import or synchronize user stories. A request to implement a story, fix code, update documentation or complete a feature is not authorization to change the story.
@@ -41,6 +45,19 @@ User stories are read-only for agents by default. Only David, acting as PM, may 
 This rule covers private local stories in `docs/user-stories/` and `docs/sprints/*/stories/`, their requirements, acceptance criteria, scope, priorities and approval metadata, the source feature workbook, and corresponding GitHub issue titles and bodies. Do not run `docs/user-stories/import.py --execute` without explicit PM authorization, because it writes story content to GitHub.
 
 If implementation reveals a gap or conflict, report it to the PM and propose a change in your response; leave the story unchanged. When the PM explicitly requests story changes, make only the authorized changes. Reading stories and reporting implementation progress remain allowed.
+
+### Issue structure and backlog refinement
+
+When the PM authorizes story creation or refinement, keep issues concise and use these sections:
+
+- `User story` — who needs what and why.
+- `Akceptační kritéria` — observable, verifiable completion conditions, including relevant empty and error states.
+- `Podklady` — required for UI stories; may initially be empty. After the issue enters Sprint Backlog, the UX designer adds direct links to the proposed screens and relevant states in Storybook. UI implementation starts only once the necessary design references are available on that story.
+- `Mimo rozsah` — include only when needed to clarify boundaries.
+
+Keep navigation context to a concrete destination where needed (for example, `Umístění: správa akce → Pokoje`). Shared background and source materials can remain on the parent issue; Storybook links for the specific UI belong on the implementing story. Keep the GitHub issue template short; workflow instructions belong here rather than in template comments. Resolve outstanding product decisions with the PM before dependent implementation and incorporate the agreed behavior into the acceptance criteria. Do not add an `Otevřené otázky` section. Avoid provenance prose, duplicate status information and separate `Stav refinementu` sections. Track status and sprint assignment in GitHub Projects.
+
+Select existing product backlog issues for a sprint directly when their whole scope fits; do not create sprint-specific copies. When a broader requirement needs splitting, retain it as a parent issue and use GitHub's native parent/sub-issue relationship for independently acceptable product outcomes. Preserve deferred acceptance criteria in open sub-issues in Product Backlog without a sprint. Assign selected sub-issues to the sprint; keep the parent open without a sprint until its full retained scope is delivered and accepted. Do not duplicate relationship links or explanatory comments manually. A completed sprint slice does not complete its broader parent; removing a requirement requires an explicit PM decision.
 
 ### UI rules
 
@@ -83,7 +100,7 @@ Standard requires `Closes #N`, independent Copilot review and current-commit QA,
 without requirements approval. High additionally requires issue-level scope
 approval from David (`darebakdavca`) or Bogdan (`rmnskb`) before code review, with
 no PR-author exemption. Either may approve via a linked PR review or an explicit
-`/requirements-approve` issue comment. Collaborators may request fresh scope review
+`/requirements-approve` issue or linked PR comment. PR commands approve the linked closing issues and are recorded on those issues. Collaborators may request fresh scope review
 with `/requirements-rereview`. Requirement/title changes invalidate scope approval;
 checkbox and `Evidence dokončení` updates do not. Implementation commits preserve
 unchanged scope approval but require fresh code review and QA.
@@ -91,7 +108,7 @@ unchanged scope approval but require fresh code review and QA.
 `MatejKrones` approves QA after the testing handoff; on Matej's PRs, David performs
 QA. Request QA only after independent review passes and the current commit enters
 Ready for Testing. Low PRs receive no automated QA request. CODEOWNERS routes
-David/Bogdan enforcement-path requests; code-owner approval is disabled. GitHub's
+David enforcement-path requests; code-owner approval is disabled. GitHub's
 blanket approval count is zero after severity installation; Delivery stages
 enforces the named approvals. See [the delivery workflow](docs/delivery-workflow.md).
 Only `darebakdavca` may waive Copilot review with a standalone PR comment
@@ -103,6 +120,11 @@ Never manufacture passing gate evidence or bypass merge protection.
 
 ### PRs handling
 
-When a user asks to open a PR on their behalf, be concise in the body text as if it was written by human.
+Use `.github/pull_request_template.md` as the starting point for PR descriptions. Keep the body concise and written for a reviewer who has not seen the conversation:
 
-Always reference the item that you've worked on, example: "Closes #XX".
+- `What`: describe the concrete problem and resulting behavior in one or two sentences; scale detail to the change.
+- `Why`: link the story or issue. Use `Closes #N` only when the PR completes that issue; use `Refs #N` for partial work or a broader parent that remains open.
+- `How to test`: include actionable reviewer steps when useful. Do not fill this section with agent verification logs, routine successful checks (`pnpm check-all`, formatting, link checks, `git diff --check`) or file inventories. CI reports routine automated results; mention failures or verification limitations only when they affect the review.
+- `Screenshots`: include relevant visuals for UI changes when available; do not fabricate evidence.
+
+Keep the template headings (`What`, `Why`, `How to test`, `Screenshots`), including for small documentation PRs. Keep each section brief; where a section does not apply, state that concisely rather than removing the heading. Remove template comments. Describe the final scope, without conversational history or abandoned approaches. Continue running all required checks before handoff; keeping their routine results out of the PR body does not waive validation.

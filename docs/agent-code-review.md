@@ -87,7 +87,7 @@ pnpm agent-review:test   # jednotkové testy rozhodovací logiky (běží i v CI
 Requirements approval is recorded on the issue and survives implementation commits
 and native stale-review dismissal. Only scope edits or an explicit trusted
 `/requirements-rereview` request invalidate that record. David can approve through
-a new PR review or `/requirements-approve` on the issue. His own PRs remain
+a new PR review or `/requirements-approve` on the issue or a linked open High PR targeting main. His own PRs remain
 exempt. Code review, testing handoffs and QA still apply to the exact current
 commit. See [the delivery workflow](delivery-workflow.md) for commands, reviewer
 roles and merge configuration.

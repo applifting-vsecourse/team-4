@@ -111,11 +111,25 @@ export function issueRequirements(issue, comments, snapshots) {
     };
   const consumed = new Set(grants.map((r) => r.source));
   const sources = [];
-  for (const { pr, reviews } of snapshots) {
+  for (const { pr, reviews, comments: prComments = [] } of snapshots) {
     // Standard QA reviews must never become implicit High scope approval.
     if (severityFor(pr) !== 'high') continue;
+    // Callers supply only PRs linked to this issue through closing references.
+    // A PR command is an explicit scope grant, including on the owner's own PR.
+    if (pr.state === 'open' && pr.base?.ref === 'main' && !pr.draft)
+      for (const c of prComments)
+        if (
+          isRequirementsApprover(c.user?.login) &&
+          /^\/requirements-approve\s*$/.test((c.body ?? '').trim())
+        ) {
+          sources.push({
+            source: `pr-comment:${pr.number}:${c.id}:${date(c)}`,
+            reviewer: c.user.login,
+            submitted_at: date(c),
+          });
+        }
     // Self-authored PR reviews cannot grant independent scope approval.
-    // Explicit issue commands remain available to both product owners.
+    // Explicit issue and PR commands remain available to both product owners.
     for (const r of reviews)
       if (
         isRequirementsApprover(r.user?.login) &&

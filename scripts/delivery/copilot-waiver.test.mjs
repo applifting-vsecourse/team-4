@@ -274,6 +274,24 @@ async function checkScenario(mode) {
       '2003-01-01',
     ),
   ];
+  if (mode === 'pr-requirements') {
+    pr.labels = [{ name: 'severity:high' }];
+    comments.push({
+      id: 50,
+      user: { login: 'darebakdavca' },
+      body: '/requirements-approve',
+      created_at: '1999-01-01',
+    });
+    const decision = issueRequirements(
+      issue,
+      [],
+      [{ pr, reviews: [], comments }],
+    );
+    comments[1] = bot(
+      requirementsMarker(12, sha, 78, decision.approval.id) + '\n',
+      '2000-01-01',
+    );
+  }
   if (mode === 'forged') command.user.login = 'collaborator';
   if (mode === 'deleted') comments.shift();
   const reviews =
@@ -408,6 +426,7 @@ async function checkScenario(mode) {
 
 for (const mode of [
   'valid',
+  'pr-requirements',
   'no-qa',
   'forged',
   'deleted',
@@ -468,9 +487,13 @@ for (const mode of [
       'patch-error',
       'report-error',
     ].includes(mode);
-    const passes = ['valid', 'no-legacy', 'scoped-pr', 'scoped-issue'].includes(
-      mode,
-    );
+    const passes = [
+      'valid',
+      'pr-requirements',
+      'no-legacy',
+      'scoped-pr',
+      'scoped-issue',
+    ].includes(mode);
     assert.equal(statuses.length, 2);
     assert.equal(statuses[0].state, 'pending');
     assert.equal(
