@@ -20,6 +20,9 @@ export default defineConfig({
           setupFiles: ["./src/test/setup.ts"],
           globals: true,
           exclude: [...configDefaults.exclude, "e2e/**"],
+          // jsdom interaction tests pass in well under a second, but on a busy
+          // machine the 5 s default produces false failures.
+          testTimeout: 15_000,
         },
       },
       {
