@@ -54,13 +54,17 @@ export const withTheme: Decorator = (Story, context) => {
 }
 
 // A one-route router so <Link> and router hooks work. `parameters.route` sets
-// the current URL.
-export const withRouter: Decorator = (Story, context) => (
-  <OneRouteRouter
-    Story={Story}
-    route={(context.parameters.route ?? "/") as string}
-  />
-)
+// the current URL. Screen previews (src/screens) run the app's own router and
+// set `parameters.appRouter`, so they get no second one around it.
+export const withRouter: Decorator = (Story, context) =>
+  context.parameters.appRouter ? (
+    <Story />
+  ) : (
+    <OneRouteRouter
+      Story={Story}
+      route={(context.parameters.route ?? "/") as string}
+    />
+  )
 
 function OneRouteRouter({ Story, route }: { Story: ComponentType; route: string }) {
   const [router] = useState(() =>
