@@ -89,7 +89,7 @@ const candidates =
     : scope.type === 'pr'
       ? [await api(`/repos/${repo}/pulls/${scope.number}`)]
       : await list(`/repos/${repo}/pulls?state=open`);
-for (const pr of candidates) {
+for (let pr of candidates) {
   if (pr.state !== 'open') continue;
   // Commit statuses do not become synthetic jobs in an unrelated Actions suite.
   // Start blocked so an API error cannot leave a previous passing verdict current.
@@ -101,6 +101,11 @@ for (const pr of candidates) {
       target_url: runUrl,
     });
   try {
+    // The list-pulls endpoint returns summaries without changed_files.
+    // Load the full PR before comparing the paginated file list with its count.
+    if (!Number.isInteger(pr.changed_files))
+      pr = await api(`/repos/${repo}/pulls/${pr.number}`);
+    if (pr.state !== 'open') continue;
     let linkedIssues;
     if (scope.type === 'issue' || onlyIssue) {
       linkedIssues = await issuesFor(pr);
