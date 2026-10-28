@@ -7,7 +7,7 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empt
 
 import { type PublicEvent } from "@/features/public-events/api/publicEventSchemas"
 
-// Wireframy V1: a draft and an unknown event, with no data of any event.
+// A draft and an unknown event, with no data of any event.
 export function PublicEventUnavailable() {
   return (
     <Empty className="border border-dashed">

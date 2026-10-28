@@ -21,7 +21,7 @@ type EventsTableProps = {
   events: EventSummary[]
 }
 
-// Wireframy W02 "Akce": the events of one organization.
+// The events of one organization.
 export function EventsTable({ organizationId, events }: EventsTableProps) {
   return (
     <Card className="p-0">

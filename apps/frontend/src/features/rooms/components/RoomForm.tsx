@@ -60,7 +60,7 @@ type RoomFormProps = {
   onSubmit: (input: RoomInput) => void | Promise<void>
 }
 
-// Adding and editing a room share this form (Wireframy P2). A room has the
+// Adding and editing a room share this form. A room has the
 // same number of beds in every term it is available in, and may be saved
 // without any term.
 export function RoomForm({

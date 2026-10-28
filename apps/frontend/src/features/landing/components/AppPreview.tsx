@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
-// Static picture of the organizer's "Akce a turnusy" screen (Figma 372:5158).
+// Static picture of the organizer's "Akce a turnusy" screen.
 // Navigation lists only what Sprint 2 delivers; sample events are for adults.
 
 type NavItem = { label: string; icon: LucideIcon; isActive?: boolean }

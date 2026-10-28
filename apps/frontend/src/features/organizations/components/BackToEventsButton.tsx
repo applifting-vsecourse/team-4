@@ -14,7 +14,7 @@ type BackToEventsButtonProps = {
   userId?: string
 }
 
-// The way out of "Záznam není dostupný" (S2-03, Wireframy N1): the event list
+// The way out of "Záznam není dostupný" (S2-03): the event list
 // of an own organization, never the foreign one the link pointed to.
 export function BackToEventsButton({ organizationId, userId }: BackToEventsButtonProps) {
   const { organizations, isPending, error } = useOrganizations()

@@ -16,7 +16,7 @@ import { EventsTable } from "@/features/events/components/EventsTable"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
 
-// "Akce a turnusy": the events of one own organization (Wireframy O5, W02).
+// "Akce a turnusy": the events of one own organization.
 export const Route = createFileRoute("/_ProtectedPages/organizations/$organizationId/")({
   loader: ({ context, params }) =>
     Promise.all([
@@ -69,7 +69,7 @@ function OrganizationEventsPage() {
   )
 }
 
-// A foreign and a missing organization look the same (S2-03, Wireframy N1).
+// A foreign and a missing organization look the same (S2-03).
 function OrganizationUnavailable() {
   const { organizationId } = Route.useParams()
   const { user } = useSession()

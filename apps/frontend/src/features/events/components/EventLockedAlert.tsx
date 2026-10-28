@@ -4,7 +4,7 @@ import { Alert, AlertTitle } from "@/components/ui/alert"
 
 import { type EventStatus } from "@/features/events/api/eventSchemas"
 
-// The lock comes from the first opening and survives closing (E6, E7).
+// The lock comes from the first opening and survives closing.
 export function EventLockedAlert({ status }: { status: EventStatus }) {
   return (
     <Alert>

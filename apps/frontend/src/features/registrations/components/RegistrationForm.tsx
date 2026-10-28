@@ -70,7 +70,7 @@ type RegistrationFormProps = {
   onSubmit: (values: RegistrationFormValues) => void
 }
 
-// The fixed form of an adult participant (S2-07, Wireframy F1). Free beds,
+// The fixed form of an adult participant (S2-07). Free beds,
 // occupancy and waitlisting are deliberately absent: the server decides each
 // term when saving (S2-08), and a full term can be selected like any other.
 export function RegistrationForm({

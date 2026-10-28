@@ -8,7 +8,7 @@ type RecordUnavailableProps = {
   action: ReactNode
 }
 
-// A foreign and a missing record look the same (S2-03, Wireframy N1).
+// A foreign and a missing record look the same (S2-03).
 export function RecordUnavailable({ action }: RecordUnavailableProps) {
   return (
     <Empty className="border border-dashed">

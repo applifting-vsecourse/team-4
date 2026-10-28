@@ -48,7 +48,7 @@ type EventFormProps = {
   onCancel: () => void
 }
 
-// Creating and editing an event share this form (E1). The values stay filled
+// Creating and editing an event share this form. The values stay filled
 // in after a failed attempt: the form is never reset on error.
 export function EventForm({
   initialValues = EMPTY,

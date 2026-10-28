@@ -21,8 +21,7 @@ import { AppPreview } from "./AppPreview"
 import { EntryCard } from "./EntryCard"
 import { LandingSection } from "./LandingSection"
 
-// Sections follow the wireframe (Figma 72:7549 / 72:7208); hero copy is the text
-// approved in S2-01. Only what Sprint 2 delivers: no public catalog, adult
+// Hero copy is the text approved in S2-01. Only what Sprint 2 delivers: no public catalog, adult
 // participants only, rooms and beds without assigning people to rooms.
 
 const FEATURES = [
@@ -46,7 +45,7 @@ const FEATURES = [
 // Placeholders until PO delivers contact details and legal texts.
 const FOOTER_PLACEHOLDERS = ["Kontakt", "Ochrana osobních údajů", "Podmínky použití"]
 
-// Header and footer run wider (1 280 px) than the sections (1 120 px), as in the wireframe.
+// Header and footer run wider (1 280 px) than the sections (1 120 px).
 const FRAME_CLASS = "mx-auto flex w-full max-w-320 px-4 md:px-8"
 
 export function LandingPage() {

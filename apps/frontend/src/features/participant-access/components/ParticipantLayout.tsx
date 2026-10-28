@@ -4,7 +4,7 @@ import { HeaderLogo } from "@/components/Header/HeaderLogo"
 import { ThemeSwitcher } from "@/components/Header/ThemeSwitcher"
 
 type ParticipantLayoutProps = {
-  // Right side of the header: "Odhlásit se" once signed in (Figma M2).
+  // Right side of the header: "Odhlásit se" once signed in.
   action?: ReactNode
   children: ReactNode
 }

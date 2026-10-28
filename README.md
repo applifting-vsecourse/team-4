@@ -8,7 +8,7 @@ Event management platform developed by **Team 4 for VŠE 4IT580**. Organizers pr
 
 The implemented core journey covers organizer sign-up, organization and event creation, dates with prices and capacities, room setup, opening registration, participant registration, payment instructions, manual payment recording and participant self-service. The [guided Sprint Review demo](docs/sprint-review-2.md) connects this journey to its user stories and shows the organizer on desktop and participant on mobile.
 
-The wider backlog also includes accommodation allocation, waiting lists, bank imports and cancellation workflows. These are planned scope, not a claim that every feature is complete. **GitHub issues and their acceptance criteria are the source of truth** for scope and delivery status; the [sitemap](docs/sitemap.md) describes the target navigation.
+The wider backlog also includes accommodation allocation, waiting lists, bank imports and cancellation workflows. These are planned scope, not a claim that every feature is complete. **GitHub issues and their acceptance criteria are the source of truth** for scope and delivery status.
 
 ## Engineering and delivery
 
@@ -20,7 +20,7 @@ The wider backlog also includes accommodation allocation, waiting lists, bank im
 | **Risk-based merge gates**     | Standard requires CI, an issue link, independent review and human QA. High additionally requires product scope approval. Low is limited to documentation/text and isolated tests and still requires CI. Enforcement changes require High.                                    |
 | **Automated verification**     | CI runs lint, formatting, type checks, unit tests, builds, migrations against a clean PostgreSQL database, database constraint tests and Playwright end-to-end tests. Playwright reports are uploaded as artifacts. The delivery automation itself also has automated tests. |
 | **Deployment and releases**    | Pushes to `main` build Docker images and deploy the course stage through Coolify. Successful CI on `main` triggers a versioned GitHub Release with linked delivered issues.                                                                                                  |
-| **Shared UI and architecture** | A documented Figma-backed design system, semantic tokens and reusable shadcn/ui controls support consistent responsive screens. Backend modules separate HTTP, business rules and persistence; frontend features separate API schemas, queries and components.               |
+| **Shared UI and architecture** | A documented design system, semantic tokens and reusable shadcn/ui controls support consistent responsive screens. Backend modules separate HTTP, business rules and persistence; frontend features separate API schemas, queries and components.                            |
 
 See [review, QA and merge policy](docs/delivery-workflow.md), [automated code review](docs/agent-code-review.md), [local PR testing](docs/local-qa.md) and [release history](https://github.com/applifting-vsecourse/team-4/releases) for details and evidence. Workflow definitions live in [.github/workflows](.github/workflows).
 
@@ -61,6 +61,10 @@ pnpm dev
 | Swagger API documentation | http://localhost:4050/api/docs |
 
 Stop servers with `Ctrl+C`; stop the database with `pnpm dev:down`.
+
+## Screen previews
+
+Storybook shows every screen with fixture data, without the backend: `pnpm frontend storybook`, then open http://localhost:6006.
 
 ## Verify and demonstrate
 

@@ -34,7 +34,7 @@ const BackToList = () => (
   </Button>
 )
 
-// One own registration (S2-14, Wireframy M3): terms, payment summary with the
+// One own registration (S2-14): terms, payment summary with the
 // stored instructions, and the history of received payments.
 type ParticipantRegistrationDetailProps = {
   registrationId: string

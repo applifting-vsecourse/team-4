@@ -17,7 +17,7 @@ import { ParticipantTermList } from "@/features/registrations/components/Partici
 import { RefreshButton } from "@/features/registrations/components/RefreshButton"
 import { isSessionRefused } from "@/features/registrations/lib/sessionExpired"
 
-// "Moje přihlášky" (S2-14, Wireframy M2): every registration of the verified
+// "Moje přihlášky" (S2-14): every registration of the verified
 // participant, with the status of each term and the payment summary. A failed
 // refresh keeps the last data and says so; a failed first load is never shown
 // as "no registrations".

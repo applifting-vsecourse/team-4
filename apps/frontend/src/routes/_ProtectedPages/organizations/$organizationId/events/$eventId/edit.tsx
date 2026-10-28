@@ -115,7 +115,7 @@ function EditEventPage() {
   )
 }
 
-// A foreign and a missing event look the same (S2-03, Wireframy N1).
+// A foreign and a missing event look the same (S2-03).
 function Unavailable() {
   const { user } = useSession()
   const { organizationId } = Route.useParams()
