@@ -33,6 +33,8 @@
     "prettier.config.js",
     "eslint.config.js",
     "playwright.config.ts",
-    "e2e/**/*.ts"
+    "e2e/**/*.ts",
+    ".storybook/**/*.ts",
+    ".storybook/**/*.tsx"
   ]
 }

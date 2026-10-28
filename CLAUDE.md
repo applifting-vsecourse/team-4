@@ -68,6 +68,7 @@ Frontend stack (`apps/frontend`): Vite + React 19, Tailwind v4, shadcn/ui, TypeS
 - Semantic tokens only (`bg-background`, `text-muted-foreground`, `bg-destructive`, …). No raw palette colors, arbitrary values (`p-[13px]`) or inline styles.
 - Pages control layout only. Appearance comes from component variants and sizes; if none fits, ask instead of restyling with `className`.
 - Do not, without asking the developer: add theme tokens, add lint-disable comments, edit the lint config (including `SHADCN_LEGACY_FILES`), or edit `src/components/ui` just to make a violation go away.
+- Every screen has a light desktop preview in Storybook (`pnpm frontend storybook`). Its data comes from fixtures parsed with the feature's zod schemas and served through MSW; an API request without a handler fails instead of reaching the backend. `pnpm frontend test:stories` renders every story in Chromium with its `play` checks and the accessibility check; it is the evidence for UI work, and agents run it through the Storybook MCP server too.
 - After any UI change, run `pnpm check` and fix every error before finishing. `pnpm check-all` still gates handoff.
 
 ### UI controls come from the kit

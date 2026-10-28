@@ -13,6 +13,7 @@ Read this before writing or changing any UI. Everything here applies to `apps/fr
 | Tokens in code                            | `apps/frontend/src/styles/global.css`                                                                                                        |
 | Components in code                        | `apps/frontend/src/components/ui/`                                                                                                           |
 | Live preview of all tokens and components | `/design-system` in the running dev app (`src/routes/design-system.tsx`, dev only, 404 in production builds)                                 |
+| Screen previews                           | Storybook: `pnpm frontend storybook` → <http://localhost:6006>, one light desktop story per screen with fixture data                         |
 
 Wireframy is attached to the older _shadcn ui kit community edition_ library, so its colours and fonts are out of date. Take **layout and structure** from Wireframy and **all visual values** from Design system and this file. Where two Wireframy frames share a name, the one with actual UI is current (for "Akce a turnusy" that is `88:2100`; `88:2093` is a text mapping to docs).
 
