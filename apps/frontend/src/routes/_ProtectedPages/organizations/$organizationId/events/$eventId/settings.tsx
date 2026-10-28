@@ -15,12 +15,14 @@ import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventLockedAlert } from "@/features/events/components/EventLockedAlert"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { PaymentSettingsSection } from "@/features/events/components/PaymentSettingsSection"
+import { PublicationSection } from "@/features/events/components/PublicationSection"
 import { RegistrationSection } from "@/features/events/components/RegistrationSection"
 import { TermsSection } from "@/features/events/components/TermsSection"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
 
-// Configuration of one event, ordered from basic details to opening registration.
+// Configuration of one event, ordered from basic details to opening registration
+// and publishing in the catalog.
 export const Route = createFileRoute(
   "/_ProtectedPages/organizations/$organizationId/events/$eventId/settings",
 )({
@@ -108,6 +110,10 @@ function EventPage() {
           event={event}
         />
         <RegistrationSection
+          organizationId={organizationId}
+          event={event}
+        />
+        <PublicationSection
           organizationId={organizationId}
           event={event}
         />

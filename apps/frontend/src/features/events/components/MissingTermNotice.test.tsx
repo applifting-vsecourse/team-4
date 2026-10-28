@@ -34,6 +34,7 @@ const EVENT: EventDetail = {
   paymentSettings: null,
   publicId: "abcdefghijkl",
   openingBlockers: [],
+  isPublished: false,
 }
 const TERM: EventDetail["terms"][number] = {
   id: "term-a",

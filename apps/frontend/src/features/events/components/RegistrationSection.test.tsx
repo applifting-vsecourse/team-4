@@ -46,6 +46,7 @@ const READY: EventDetail = {
   paymentSettings: null,
   publicId: "abcdefghijkl",
   openingBlockers: [],
+  isPublished: false,
 }
 
 const OPENED: EventDetail = { ...READY, status: "open", isLocked: true }
