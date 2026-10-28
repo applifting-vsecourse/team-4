@@ -120,6 +120,11 @@ Never manufacture passing gate evidence or bypass merge protection.
 
 ### PRs handling
 
-When a user asks to open a PR on their behalf, be concise in the body text as if it was written by human.
+Use `.github/pull_request_template.md` as the starting point for PR descriptions. Keep the body concise and written for a reviewer who has not seen the conversation:
 
-Always reference the item that you've worked on, example: "Closes #XX".
+- `What`: describe the concrete problem and resulting behavior in one or two sentences; scale detail to the change.
+- `Why`: link the story or issue. Use `Closes #N` only when the PR completes that issue; use `Refs #N` for partial work or a broader parent that remains open.
+- `How to test`: include actionable reviewer steps when useful. Do not fill this section with agent verification logs, routine successful checks (`pnpm check-all`, formatting, link checks, `git diff --check`) or file inventories. CI reports routine automated results; mention failures or verification limitations only when they affect the review.
+- `Screenshots`: include relevant visuals for UI changes when available; do not fabricate evidence.
+
+Keep the template headings (`What`, `Why`, `How to test`, `Screenshots`), including for small documentation PRs. Keep each section brief; where a section does not apply, state that concisely rather than removing the heading. Remove template comments. Describe the final scope, without conversational history or abandoned approaches. Continue running all required checks before handoff; keeping their routine results out of the PR body does not waive validation.
