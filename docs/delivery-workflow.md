@@ -133,7 +133,7 @@ trigger reconciliation; scheduled polling remains the fallback.
 
 ## Reviewer requests and merge rules
 
-Matej is not automatically requested at PR creation. CODEOWNERS lists David and Bogdan
+Matej is not automatically requested at PR creation. CODEOWNERS lists David
 for workflow/enforcement paths; GitHub does not request an author to review their own PR. The bot's
 Ready for Testing comment identifies the QA owner, then the bot sends that person
 a GitHub review request: MatejKrones, or darebakdavca on Matej-authored PRs.

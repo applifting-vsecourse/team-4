@@ -1,8 +1,8 @@
 # Changes to the enforcement boundary require High severity; David or Bogdan can approve requirements.
-/.github/ @darebakdavca @rmnskb
-/scripts/agent-review/ @darebakdavca @rmnskb
-/scripts/delivery/ @darebakdavca @rmnskb
-/scripts/automation/ @darebakdavca @rmnskb
-/CLAUDE.md @darebakdavca @rmnskb
-/AGENTS.md @darebakdavca @rmnskb
-/docs/delivery-workflow.md @darebakdavca @rmnskb
+/.github/ @darebakdavca
+/scripts/agent-review/ @darebakdavca
+/scripts/delivery/ @darebakdavca
+/scripts/automation/ @darebakdavca
+/CLAUDE.md @darebakdavca
+/AGENTS.md @darebakdavca
+/docs/delivery-workflow.md @darebakdavca

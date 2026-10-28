@@ -108,7 +108,7 @@ unchanged scope approval but require fresh code review and QA.
 `MatejKrones` approves QA after the testing handoff; on Matej's PRs, David performs
 QA. Request QA only after independent review passes and the current commit enters
 Ready for Testing. Low PRs receive no automated QA request. CODEOWNERS routes
-David/Bogdan enforcement-path requests; code-owner approval is disabled. GitHub's
+David enforcement-path requests; code-owner approval is disabled. GitHub's
 blanket approval count is zero after severity installation; Delivery stages
 enforces the named approvals. See [the delivery workflow](docs/delivery-workflow.md).
 Only `darebakdavca` may waive Copilot review with a standalone PR comment
