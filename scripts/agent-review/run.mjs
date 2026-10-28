@@ -300,10 +300,11 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
     cfg.githubToken,
     `/repos/${cfg.repo}/issues/${issue.number}`,
   );
+  const comments = await listComments(pr);
   const preflight = issueRequirements(
     currentIssue,
     await listComments(issue.number),
-    [{ pr: meta, reviews: currentReviews }],
+    [{ pr: meta, reviews: currentReviews, comments }],
   );
   meta.requirements = preflight.approval;
   meta.requirementsVersion = preflight.version;
@@ -321,7 +322,6 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
       reason: 'Requirements or code changed before review',
     };
   }
-  const comments = await listComments(pr);
   const waiver = copilotWaiver({ pr: meta, comments });
   if (waiver) {
     const observation = waiverObservation(meta, waiver);
@@ -449,7 +449,8 @@ async function processIssue(board, item) {
       }
       if (pr.state !== 'open' || pr.base.ref !== 'main')
         throw new Error(`PR #${number} is not open against main`);
-      if (severityFor(pr) !== 'low') all.push({ pr, reviews });
+      if (severityFor(pr) !== 'low')
+        all.push({ pr, reviews, comments: await listComments(number) });
     }
     const currentIssue = await api(
       cfg.githubToken,

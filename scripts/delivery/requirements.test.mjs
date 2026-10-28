@@ -354,3 +354,84 @@ test('Standard scope changes refresh review markers without waiting for approval
       .id,
   );
 });
+
+const linkedPr = { ...pr, state: 'open', base: { ref: 'main' } };
+const prCommand = command('/requirements-approve', 40, 'darebakdavca');
+const prSnapshot = (changes = {}, comments = [prCommand]) => ({
+  pr: { ...linkedPr, ...changes },
+  reviews: [],
+  comments,
+});
+
+test('PR commands grant persistent issue scope approval, including on an owner-authored PR', () => {
+  for (const login of ['darebakdavca', 'rmnskb']) {
+    const decision = issueRequirements(
+      issue,
+      [],
+      [prSnapshot({ user: { login } }, [{ ...prCommand, user: { login } }])],
+    );
+    assert.equal(decision.approval.reviewer, login);
+    assert.equal(decision.grantRecord.source, 'pr-comment:104:40:' + at(3));
+    const after = issueRequirements(
+      issue,
+      [bot('issue-requirements', decision.grantRecord)],
+      [prSnapshot({ head: { sha: 'b'.repeat(40) } }, [])],
+    );
+    assert.deepEqual(after.approval, decision.approval);
+    assert.equal(after.grantRecord, undefined);
+  }
+});
+
+test('PR commands reject unauthorized authors, quoted commands and ineligible PRs', () => {
+  for (const comments of [
+    [command('/requirements-approve')],
+    [{ ...prCommand, body: '> /requirements-approve' }],
+    [{ ...prCommand, body: '/requirements-approve\nExtra text' }],
+    [],
+  ])
+    assert.equal(
+      issueRequirements(issue, [], [prSnapshot({}, comments)]).approval,
+      null,
+    );
+  for (const changes of [
+    { labels: [] },
+    { labels: [{ name: 'severity:low' }] },
+    { state: 'closed' },
+    { base: { ref: 'feature/base' } },
+    { draft: true },
+  ])
+    assert.equal(
+      issueRequirements(issue, [], [prSnapshot(changes)]).approval,
+      null,
+    );
+  assert.equal(issueRequirements(issue, [], []).approval, null);
+});
+
+test('consumed PR commands cannot reapprove edited scope or a new review cycle', () => {
+  const first = issueRequirements(issue, [], [prSnapshot()]);
+  const comments = [bot('issue-requirements', first.grantRecord)];
+  const changed = { ...issue, body: 'Changed scope', updated_at: at(5) };
+  const blocked = issueRequirements(changed, comments, [prSnapshot()]);
+  assert.equal(blocked.approval, null);
+  comments.push(bot('requirements-reset', blocked.resetRecord));
+  const renewed = issueRequirements(changed, comments, [
+    prSnapshot({}, [{ ...prCommand, updated_at: at(6) }]),
+  ]);
+  assert.ok(renewed.approval);
+  assert.equal(renewed.grantRecord.source, 'pr-comment:104:40:' + at(6));
+  const rereviewComments = [
+    bot('issue-requirements', first.grantRecord),
+    command('/requirements-rereview', 41, 'JakubHerr', 'COLLABORATOR', 5),
+  ];
+  assert.equal(
+    issueRequirements(issue, rereviewComments, [prSnapshot()]).approval,
+    null,
+  );
+  assert.ok(
+    issueRequirements(issue, rereviewComments, [
+      prSnapshot({}, [
+        command('/requirements-approve', 42, 'rmnskb', 'COLLABORATOR', 6),
+      ]),
+    ]).approval,
+  );
+});

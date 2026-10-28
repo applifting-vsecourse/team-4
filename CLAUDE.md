@@ -100,7 +100,7 @@ Standard requires `Closes #N`, independent Copilot review and current-commit QA,
 without requirements approval. High additionally requires issue-level scope
 approval from David (`darebakdavca`) or Bogdan (`rmnskb`) before code review, with
 no PR-author exemption. Either may approve via a linked PR review or an explicit
-`/requirements-approve` issue comment. Collaborators may request fresh scope review
+`/requirements-approve` issue or linked PR comment. PR commands approve the linked closing issues and are recorded on those issues. Collaborators may request fresh scope review
 with `/requirements-rereview`. Requirement/title changes invalidate scope approval;
 checkbox and `Evidence dokončení` updates do not. Implementation commits preserve
 unchanged scope approval but require fresh code review and QA.

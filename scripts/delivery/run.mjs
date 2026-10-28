@@ -137,7 +137,7 @@ for (const pr of candidates) {
       const scope = issueRequirements(
         content,
         await list(`/repos/${repo}/issues/${issue.number}/comments`),
-        [{ pr, reviews }],
+        [{ pr, reviews, comments }],
       );
       issue.requirements = scope.approval;
       issue.requirementsVersion = scope.version;

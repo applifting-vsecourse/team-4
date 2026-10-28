@@ -33,7 +33,7 @@ async function scenario(options) {
   };
   let status = options.existingHandoff
     ? 'Ready for Testing'
-    : 'Ready for Code Review';
+    : (options.initialStatus ?? 'Ready for Code Review');
   const calls = [];
   const requested = new Map();
   const comments = new Map([[78, []]]);
@@ -140,6 +140,13 @@ async function scenario(options) {
         html_url: `https://github.com/owner/repo/pull/${pr.number}#issuecomment-${100 + pr.number}`,
       });
     }
+    if (options.prRequirementsCommand)
+      comments.get(pr.number).push({
+        id: 500 + pr.number,
+        user: { login: options.prRequirementsCommand },
+        body: '/requirements-approve',
+        created_at: '2004-01-01T00:00:00Z',
+      });
     requested.set(pr.number, []);
   }
   if (options.progressEdit) {
@@ -341,6 +348,7 @@ async function scenario(options) {
     JSON.stringify({
       status,
       calls,
+      issueComments: comments.get(78).map((c) => c.body),
       requested: Object.fromEntries(requested),
       prComments: Object.fromEntries(
         prs.map((pr) => [
@@ -680,4 +688,23 @@ test('mixed Low and Standard linked PRs hand only Standard to QA', () => {
   assert.equal(r.status, 'Ready for Testing');
   assert.deepEqual(r.requested, { 12: [], 13: ['darebakdavca'] });
   assert.deepEqual(r.handoffs, [0, 1]);
+});
+
+test('PR requirements command is recorded on the issue and advances High work only once', () => {
+  const r = run({
+    unapproved: true,
+    authors: ['darebakdavca'],
+    prRequirementsCommand: 'darebakdavca',
+    initialStatus: 'In Progress',
+    waiver: true,
+    runs: 2,
+  });
+  assert.equal(r.status, 'Ready for Testing');
+  const grants = r.issueComments.filter((c) =>
+    c.startsWith('<!-- issue-requirements '),
+  );
+  assert.equal(grants.length, 1);
+  assert.match(grants[0], /pr-comment:12:512:/);
+  assert.ok(r.calls.includes('status:Ready for Code Review'));
+  assert.deepEqual(r.handoffs, [1]);
 });

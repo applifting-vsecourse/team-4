@@ -39,11 +39,13 @@ risks. A label is not an automatic assessment of code behavior.
 Open a PR targeting main, link the issue with `Closes #N`, and leave its card In
 Progress. David (`darebakdavca`) or Bogdan (`rmnskb`) approves requirements through
 an approving review on a linked implementation PR, or `/requirements-approve`
-on the issue. One approval from either is sufficient. The bot records approval
+as a standalone comment on the issue or its linked PR. On an open High PR targeting
+main, the command approves all linked closing issues in this repository; a PR
+without closing issues grants no approval. One approval from either is sufficient. The bot records approval
 on the issue, bound to its title/body and current scope-review cycle. One issue
 approval covers its linked High implementation PRs. High has no author exemption;
-self-authored PR reviews cannot seed a grant, while explicit issue commands are
-available to both product owners. Standard enters code review without this grant.
+self-authored PR reviews cannot seed a grant, while explicit issue and PR commands are
+available to both product owners, including on their own PRs. Standard enters code review without this grant.
 
 Once scope approval is recorded, implementation commits, technical review
 findings and GitHub's automatic stale-review dismissal do not invalidate it.
