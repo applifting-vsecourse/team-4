@@ -210,7 +210,7 @@ function FieldError({
     <div
       role="alert"
       data-slot="field-error"
-      className={cn("text-sm font-normal text-destructive", className)}
+      className={cn("text-sm font-normal text-destructive group-data-[disabled=true]/field:opacity-50", className)}
       {...props}
     >
       {content}

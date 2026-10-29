@@ -9,24 +9,41 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-import {
-  CapacityConflictAlert,
-  type CapacityConflict,
-} from "@/features/rooms/components/CapacityConflictAlert"
+import { capacityConflictMessage } from "@/features/rooms/components/CapacityConflictAlert"
 
 type DeleteRoomCapacityDialogProps = {
   isOpen: boolean
   label: string
-  conflicts?: CapacityConflict[]
+  /** Terms the deletion would drop below their confirmed participants. */
+  conflictTerms?: string
 }
 
-// Deleting a room (F11-1); refused when a term would drop below its confirmed
-// participants. Design only: the conflicts are passed in.
+// Deleting a room (F11-1). When a term would drop below its confirmed
+// participants, there is nothing to confirm: the dialog only says why the
+// room can't be deleted. Design only: the affected terms are passed in.
 export function DeleteRoomCapacityDialog({
   isOpen,
   label,
-  conflicts = [],
+  conflictTerms,
 }: DeleteRoomCapacityDialogProps) {
+  if (conflictTerms) {
+    return (
+      <Dialog open={isOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pokoj „{label}“ nelze odstranit</DialogTitle>
+            <DialogDescription>{capacityConflictMessage(conflictTerms)}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Zavřít</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
   return (
     <Dialog open={isOpen}>
       <DialogContent>
@@ -36,17 +53,11 @@ export function DeleteRoomCapacityDialog({
             Pokoj se z akce trvale odstraní a kapacita termínů, ve kterých byl dostupný, se sníží.
           </DialogDescription>
         </DialogHeader>
-        {conflicts.length > 0 ? <CapacityConflictAlert conflicts={conflicts} /> : null}
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="outline">Zrušit</Button>
           </DialogClose>
-          <Button
-            variant="destructive"
-            disabled={conflicts.length > 0}
-          >
-            Odstranit
-          </Button>
+          <Button variant="destructive">Odstranit</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

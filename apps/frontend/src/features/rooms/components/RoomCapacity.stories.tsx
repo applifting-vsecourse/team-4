@@ -10,7 +10,7 @@ import {
   Mail,
   Settings,
 } from "lucide-react"
-import { expect, screen, waitFor } from "storybook/test"
+import { expect, screen, userEvent, waitFor } from "storybook/test"
 
 import { BrandMark } from "@/components/BrandMark"
 import { PageHeader } from "@/components/PageHeader"
@@ -35,7 +35,6 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 
-import { type CapacityConflict } from "@/features/rooms/components/CapacityConflictAlert"
 import { DeleteRoomCapacityDialog } from "@/features/rooms/components/DeleteRoomCapacityDialog"
 import {
   RoomCapacityDialog,
@@ -143,6 +142,8 @@ const AUGUST_SETTING: RoomTermSetting = {
 
 const CHATKA_1: RoomTermSetting[] = [JULY_SETTING, AUGUST_SETTING]
 
+const AUGUST_OFF: RoomTermSetting[] = [JULY_SETTING, { ...AUGUST_SETTING, isAvailable: false }]
+
 const INVALID: RoomTermSetting[] = [
   { ...JULY_SETTING, beds: "-1", bedsError: "Zadejte nezáporné celé číslo." },
   { ...AUGUST_SETTING, extraBeds: "1,5", extraBedsError: "Zadejte nezáporné celé číslo." },
@@ -151,16 +152,8 @@ const INVALID: RoomTermSetting[] = [
 const LOWERED: RoomTermSetting[] = [{ ...JULY_SETTING, beds: "5", extraBeds: "0" }, AUGUST_SETTING]
 
 const NEW_ROOM: RoomTermSetting[] = [
-  { ...JULY_SETTING, isAvailable: false, beds: "", extraBeds: "" },
-  { ...AUGUST_SETTING, isAvailable: false, beds: "", extraBeds: "" },
-]
-
-const LOWER_CONFLICTS: CapacityConflict[] = [
-  { termLabel: "Turnus 1", dates: "4.–17. 7. 2027", proposedCapacity: 22, confirmed: 23 },
-]
-
-const DELETE_CONFLICTS: CapacityConflict[] = [
-  { termLabel: "Turnus 1", dates: "4.–17. 7. 2027", proposedCapacity: 17, confirmed: 23 },
+  { ...JULY_SETTING, beds: "", extraBeds: "" },
+  { ...AUGUST_SETTING, beds: "", extraBeds: "" },
 ]
 
 const SIDEBAR_STYLE = { "--sidebar-width": "14rem" } as CSSProperties
@@ -324,6 +317,33 @@ export const EditRoom: Story = {
   play: showsDialog("Upravit pokoj Chatka 1"),
 }
 
+/** A term switched off: its bed fields are disabled, the values stay. */
+export const TermSwitchedOff: Story = {
+  args: {
+    children: (
+      <RoomCapacityDialog
+        isOpen
+        isEdit
+        label="Chatka 1"
+        terms={AUGUST_OFF}
+      />
+    ),
+  },
+  play: async () => {
+    await showsDialog("Upravit pokoj Chatka 1")()
+    const julyBeds = screen.getAllByRole("textbox", { name: "Základní lůžka" })[0]
+    const augustBeds = screen.getAllByRole("textbox", { name: "Základní lůžka" })[1]
+    await expect(augustBeds).toBeDisabled()
+    await expect(julyBeds).toBeEnabled()
+
+    const [julySwitch] = screen.getAllByRole("switch", { name: "Dostupný v termínu" })
+    await userEvent.click(julySwitch!)
+    await expect(julyBeds).toBeDisabled()
+    await userEvent.click(julySwitch!)
+    await expect(julyBeds).toBeEnabled()
+  },
+}
+
 /** A negative or decimal value is marked and the change is not saved. */
 export const InvalidValues: Story = {
   args: {
@@ -349,7 +369,7 @@ export const BelowConfirmed: Story = {
         isEdit
         label="Chatka 1"
         terms={LOWERED}
-        conflicts={LOWER_CONFLICTS}
+        conflictTerms="Turnus 1"
       />
     ),
   },
@@ -373,17 +393,16 @@ export const SaveFailed: Story = {
   play: showsDialog("Upravit pokoj Chatka 1"),
 }
 
-/** Deleting a room that the confirmed participants of a term need is refused. */
+/** Deleting a room the confirmed participants need: a notice, nothing to confirm. */
 export const DeleteConflict: Story = {
-  parameters: contrastWarning,
   args: {
     children: (
       <DeleteRoomCapacityDialog
         isOpen
         label="Chatka 1"
-        conflicts={DELETE_CONFLICTS}
+        conflictTerms="Turnus 1"
       />
     ),
   },
-  play: showsDialog("Odstranit pokoj „Chatka 1“?"),
+  play: showsDialog("Pokoj „Chatka 1“ nelze odstranit"),
 }
