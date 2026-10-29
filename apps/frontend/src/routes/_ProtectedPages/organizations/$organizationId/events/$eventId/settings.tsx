@@ -21,8 +21,7 @@ import { TermsSection } from "@/features/events/components/TermsSection"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
 
-// Configuration of one event, ordered from basic details to opening registration
-// and publishing in the catalog.
+// Configuration of one event, ordered from basic details to opening registration.
 export const Route = createFileRoute(
   "/_ProtectedPages/organizations/$organizationId/events/$eventId/settings",
 )({
@@ -113,10 +112,7 @@ function EventPage() {
           organizationId={organizationId}
           event={event}
         />
-        <PublicationSection
-          organizationId={organizationId}
-          event={event}
-        />
+        <PublicationSection />
       </div>
     </section>
   )

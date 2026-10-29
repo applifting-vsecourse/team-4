@@ -45,8 +45,6 @@ export const eventDetailSchema = z.object({
   paymentSettings: paymentSettingsSchema.nullable(),
   publicId: z.string(),
   openingBlockers: z.array(openingBlockerSchema),
-  // Listed in the public catalog; independent of the registration status (F54-1).
-  isPublished: z.boolean(),
 })
 
 export type OpeningBlocker = z.infer<typeof openingBlockerSchema>

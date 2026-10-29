@@ -28,7 +28,6 @@ const EVENT: EventDetail = {
   paymentSettings: null,
   publicId: "abcdefghijkl",
   openingBlockers: ["terms", "paymentSettings"],
-  isPublished: false,
 }
 
 const SAVED = {

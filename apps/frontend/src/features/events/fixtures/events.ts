@@ -45,7 +45,6 @@ export const OPEN_EVENT: EventDetail = eventDetailSchema.parse({
   },
   publicId: "letni-tabor-2027",
   openingBlockers: [],
-  isPublished: true,
 })
 
 /** Autumn weekend still in preparation: editable, one term. */
@@ -69,7 +68,6 @@ export const DRAFT_EVENT: EventDetail = eventDetailSchema.parse({
   paymentSettings: null,
   publicId: "podzimni-vikend-2027",
   openingBlockers: ["paymentSettings"],
-  isPublished: false,
 })
 
 const toSummary = (event: EventDetail): EventSummary => ({
