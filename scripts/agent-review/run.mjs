@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 import { severityFor, sameSeverity } from '../delivery/severity.mjs';
-import { eventScope, includesIssue } from '../automation/events.mjs';
+import {
+  eventScope,
+  includesIssue,
+  pullRequestsLinkedToIssue,
+} from '../automation/events.mjs';
 // Polls the project board for issues in "Ready for Code Review", reviews every
 // linked open PR with the Copilot CLI and moves the issue to "Ready for
 // Testing" only when all of them pass for their current commit.
@@ -144,9 +148,19 @@ async function loadBoard() {
                 ... on Issue {
                   number title body state
                   repository { nameWithOwner }
-                  closedByPullRequestsReferences(first: 20, includeClosedPrs: false) {
+                  closedByPullRequestsReferences(first: 100, includeClosedPrs: false) {
                     pageInfo { hasNextPage }
                     nodes { number state repository { nameWithOwner } }
+                  }
+                  timelineItems(first: 100, itemTypes: [CROSS_REFERENCED_EVENT]) {
+                    pageInfo { hasNextPage }
+                    nodes {
+                      __typename
+                      ... on CrossReferencedEvent {
+                        source { __typename ... on PullRequest { number state repository { nameWithOwner } } }
+                        target { __typename ... on Issue { number repository { nameWithOwner } } }
+                      }
+                    }
                   }
                 }
               }
@@ -423,9 +437,14 @@ async function processIssue(board, item) {
   const issue = item.content;
   console.log(`#${issue.number} ${issue.title}`);
 
-  if (issue.closedByPullRequestsReferences.pageInfo.hasNextPage)
-    throw new Error('More than 20 linked PRs; refusing partial review');
-  const prNumbers = issue.closedByPullRequestsReferences.nodes
+  if (
+    issue.closedByPullRequestsReferences.pageInfo.hasNextPage ||
+    issue.timelineItems?.pageInfo?.hasNextPage
+  )
+    throw new Error(
+      'More than 100 linked PR references; refusing partial review',
+    );
+  const prNumbers = pullRequestsLinkedToIssue(issue)
     .filter(
       (p) => p.state === 'OPEN' && p.repository.nameWithOwner === cfg.repo,
     )

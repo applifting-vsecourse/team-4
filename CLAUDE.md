@@ -98,11 +98,13 @@ unlabelled PRs default to Standard. Mixed/unknown severity labels block delivery
 Low requires CI but skips linked issues, requirements approval, code review and
 QA. It is limited to documentation/text and isolated test files; executable or
 configuration changes cannot use Low. Enforcement changes always require High.
-Standard requires `Closes #N`, independent Copilot review and current-commit QA,
-without requirements approval. High additionally requires issue-level scope
-approval from David (`darebakdavca`) or Bogdan (`rmnskb`) before code review, with
-no PR-author exemption. Either may approve via a linked PR review or an explicit
-`/requirements-approve` issue or linked PR comment. PR commands approve the linked closing issues and are recorded on those issues. Collaborators may request fresh scope review
+Standard requires an issue link (`Closes #N` for completed work or `Refs #N` for
+partial work), independent Copilot review and current-commit QA, without
+requirements approval. High additionally requires issue-level scope approval
+from David (`darebakdavca`) or Bogdan (`rmnskb`) before code review, with no
+PR-author exemption. Either may approve via a linked PR review or an explicit
+`/requirements-approve` issue or linked PR comment. PR commands approve linked
+issues and are recorded on those issues. Collaborators may request fresh scope review
 with `/requirements-rereview`. Requirement/title changes invalidate scope approval;
 checkbox and `Evidence dokončení` updates do not. Implementation commits preserve
 unchanged scope approval but require fresh code review and QA.

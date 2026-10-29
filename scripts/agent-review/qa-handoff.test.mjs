@@ -196,11 +196,36 @@ async function scenario(options) {
                         repository: { nameWithOwner: 'owner/repo' },
                         closedByPullRequestsReferences: {
                           pageInfo: { hasNextPage: false },
-                          nodes: prs.map((pr) => ({
-                            number: pr.number,
-                            state: 'OPEN',
-                            repository: { nameWithOwner: 'owner/repo' },
-                          })),
+                          nodes: options.referencesOnly
+                            ? []
+                            : prs.map((pr) => ({
+                                number: pr.number,
+                                state: 'OPEN',
+                                repository: { nameWithOwner: 'owner/repo' },
+                              })),
+                        },
+                        timelineItems: {
+                          pageInfo: { hasNextPage: false },
+                          nodes: options.referencesOnly
+                            ? prs.map((pr) => ({
+                                __typename: 'CrossReferencedEvent',
+                                source: {
+                                  __typename: 'PullRequest',
+                                  number: pr.number,
+                                  state: 'OPEN',
+                                  repository: {
+                                    nameWithOwner: 'owner/repo',
+                                  },
+                                },
+                                target: {
+                                  __typename: 'Issue',
+                                  number: issue.number,
+                                  repository: {
+                                    nameWithOwner: 'owner/repo',
+                                  },
+                                },
+                              }))
+                            : [],
                         },
                       },
                     },
@@ -631,6 +656,13 @@ test('PR event does not review unrelated board issues', () => {
 
 test('PR event reviews its linked board issue', () => {
   const r = run({ eventPr: 12 });
+  assert.deepEqual(r.handoffs, [1]);
+  assert.deepEqual(r.requested, { 12: ['MatejKrones'] });
+  assert.ok(r.calls.includes('exit:0'));
+});
+
+test('PR event reviews an issue linked with a non-closing reference', () => {
+  const r = run({ eventPr: 12, referencesOnly: true });
   assert.deepEqual(r.handoffs, [1]);
   assert.deepEqual(r.requested, { 12: ['MatejKrones'] });
   assert.ok(r.calls.includes('exit:0'));

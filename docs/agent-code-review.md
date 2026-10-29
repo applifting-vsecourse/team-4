@@ -6,7 +6,7 @@ Technické zadání: [#78](https://github.com/applifting-vsecourse/team-4/issues
 
 1. Vývojář nechá issue v **In Progress**, otevře propojený PR a požádá o kontrolu požadavků. Teprve schválení rozsahu issue přesune issue automaticky do **Ready for Code Review**.
 2. Workflow reaguje na změny PR a odeslaná či zrušená review. Board navíc kontroluje plánovaně každých 5 minut; GitHub může plánované běhy zpozdit. Spouští se důvěryhodný kód z main, nikoli kód z PR.
-3. Pro každou issue v tomto sloupci najde všechny **otevřené PR propojené přes `Closes #N`** v popisu PR a každý z nich zrevidují agentem **GitHub Copilot CLI**. Agent dostane diff PR, text issue a pravidla z `CLAUDE.md` a `DESIGN.md` z větve `main`. Nemá žádné nástroje a nespouští kód z PR.
+3. Pro každou issue v tomto sloupci najde všechny **otevřené PR propojené přes `Closes #N` nebo `Refs #N`** a každý z nich zrevidují agentem **GitHub Copilot CLI**. Agent dostane diff PR, text issue a pravidla z `CLAUDE.md` a `DESIGN.md` z větve `main`. Nemá žádné nástroje a nespouští kód z PR.
 4. Výsledek se zapíše jako komentář **u PR** (revidovaný commit, blokující nálezy a poznámky) a odkaz na něj jako komentář **u issue**.
 5. Pokud **všechny** propojené PR prošly bez **blokujících** nálezů pro svůj aktuální commit nebo pro něj mají platnou ruční výjimku od Davida, karta se přesune do **Ready for Testing**. Bot zveřejní předání do QA a odešle GitHub žádost o review uživateli `MatejKrones`; u Matějových PR uživateli `darebakdavca`. Jinak karta zůstává v Ready for Code Review a komentář u issue uvádí důvod.
 

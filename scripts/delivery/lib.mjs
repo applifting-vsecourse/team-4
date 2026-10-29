@@ -105,7 +105,8 @@ export function evaluate({ pr, issues, reviews, comments }) {
   const qa = latestReview(reviews, roles.qa);
   const waiver = copilotWaiver({ pr, comments });
   if (pr.draft) reasons.push('PR is still a draft.');
-  if (!issues.length) reasons.push('Link at least one issue with Closes #N.');
+  if (!issues.length)
+    reasons.push('Link at least one issue with Closes #N or Refs #N.');
   if (!approved(qa, sha))
     reasons.push(`QA approval by ${roles.qa} is missing for this commit.`);
   for (const issue of issues) {

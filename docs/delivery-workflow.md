@@ -15,7 +15,7 @@ re-evaluates on label changes, pushes, reviews and scheduled reconciliation.
 | Gate                                     | Low      | Standard (default) | High                               |
 | ---------------------------------------- | -------- | ------------------ | ---------------------------------- |
 | CI (`verify`)                            | Required | Required           | Required                           |
-| `Closes #N` issue link                   | Optional | Required           | Required                           |
+| Issue link (`Closes #N` or `Refs #N`)    | Optional | Required           | Required                           |
 | Requirements approval                    | Skipped  | Skipped            | David or Bogdan before code review |
 | Independent Copilot code review          | Skipped  | Required           | Required                           |
 | Human QA of current commit after handoff | Skipped  | Required           | Required                           |
@@ -36,12 +36,13 @@ risks. A label is not an automatic assessment of code behavior.
 
 ## Requirements (High only)
 
-Open a PR targeting main, link the issue with `Closes #N`, and leave its card In
-Progress. David (`darebakdavca`) or Bogdan (`rmnskb`) approves requirements through
+Open a PR targeting main and link each issue with `Closes #N` if the PR completes
+it or `Refs #N` if the PR is partial. `Refs` leaves the issue open. Leave its card In Progress. David
+(`darebakdavca`) or Bogdan (`rmnskb`) approves requirements through
 an approving review on a linked implementation PR, or `/requirements-approve`
 as a standalone comment on the issue or its linked PR. On an open High PR targeting
-main, the command approves all linked closing issues in this repository; a PR
-without closing issues grants no approval. One approval from either is sufficient. The bot records approval
+main, the command approves all linked issues in this repository; a PR without
+an issue link grants no approval. One approval from either is sufficient. The bot records approval
 on the issue, bound to its title/body and current scope-review cycle. One issue
 approval covers its linked High implementation PRs. High has no author exemption;
 self-authored PR reviews cannot seed a grant, while explicit issue and PR commands are

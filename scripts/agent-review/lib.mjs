@@ -171,7 +171,7 @@ export function decideIssue(results) {
     return {
       outcome: 'blocked',
       reasons: [
-        'K issue není propojený žádný otevřený PR. Do popisu PR přidejte `Closes #N`.',
+        'K issue není propojený žádný otevřený PR. Do popisu PR přidejte `Closes #N` nebo `Refs #N`.',
       ],
     };
   }
