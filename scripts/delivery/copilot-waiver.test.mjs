@@ -234,6 +234,7 @@ async function checkScenario(mode) {
   const sha = 'a'.repeat(40);
   const pr = {
     number: 12,
+    body: mode === 'scoped-pr-ref' ? '## Why\n\nRefs #78' : '',
     user: { login: 'darebakdavca' },
     head: { sha },
     state: 'open',
@@ -307,7 +308,11 @@ async function checkScenario(mode) {
           },
         ];
   let eventDir;
-  if (['scoped-pr', 'scoped-issue', 'unrelated-issue'].includes(mode)) {
+  if (
+    ['scoped-pr', 'scoped-pr-ref', 'scoped-issue', 'unrelated-issue'].includes(
+      mode,
+    )
+  ) {
     const fs = await import('node:fs/promises');
     eventDir = await fs.mkdtemp(
       (await import('node:os')).tmpdir() + '/delivery-scope-',
@@ -318,7 +323,7 @@ async function checkScenario(mode) {
       process.env.GITHUB_EVENT_PATH,
       JSON.stringify({
         issue:
-          mode === 'scoped-pr'
+          mode === 'scoped-pr' || mode === 'scoped-pr-ref'
             ? { number: 12, pull_request: {} }
             : { number: mode === 'scoped-issue' ? 78 : 999 },
       }),
@@ -338,10 +343,17 @@ async function checkScenario(mode) {
         data: {
           repository: {
             pullRequest: {
+              number: 12,
               closingIssuesReferences: {
-                nodes: [
-                  { number: 78, repository: { nameWithOwner: 'owner/repo' } },
-                ],
+                nodes:
+                  mode === 'scoped-pr-ref'
+                    ? []
+                    : [
+                        {
+                          number: 78,
+                          repository: { nameWithOwner: 'owner/repo' },
+                        },
+                      ],
                 pageInfo: { hasNextPage: false },
               },
             },
@@ -441,6 +453,7 @@ for (const mode of [
   'retargeted',
   'stacked',
   'scoped-pr',
+  'scoped-pr-ref',
   'scoped-issue',
   'unrelated-issue',
   'scope-changed',
@@ -492,6 +505,7 @@ for (const mode of [
       'pr-requirements',
       'no-legacy',
       'scoped-pr',
+      'scoped-pr-ref',
       'scoped-issue',
     ].includes(mode);
     assert.equal(statuses.length, 2);

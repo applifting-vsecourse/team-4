@@ -4,6 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { eventScope, includesIssue } from '../automation/events.mjs';
+import {
+  pullRequestsLinkedToIssue,
+  referencedIssueNumbers,
+} from '../automation/issue-links.mjs';
 
 async function scope(name, payload) {
   const dir = await mkdtemp(join(tmpdir(), 'delivery-event-'));
@@ -50,7 +54,16 @@ test('scheduled and manual reconciliation scan all work; unknown events fail clo
 test('PR selection includes its issue but excludes an unrelated stacked PR issue', () => {
   const issue = {
     number: 86,
-    closedByPullRequestsReferences: { nodes: [{ number: 135 }] },
+    repository: { nameWithOwner: 'owner/repo' },
+    closedByPullRequestsReferences: {
+      nodes: [
+        {
+          number: 135,
+          state: 'OPEN',
+          repository: { nameWithOwner: 'owner/repo' },
+        },
+      ],
+    },
   };
   assert.equal(includesIssue({ type: 'pr', number: 135 }, issue), true);
   assert.equal(includesIssue({ type: 'pr', number: 144 }, issue), false);
@@ -75,8 +88,80 @@ test('CI completion selects its associated PRs without falling back to the full 
     });
   const issue = {
     number: 86,
-    closedByPullRequestsReferences: { nodes: [{ number: 135 }] },
+    repository: { nameWithOwner: 'owner/repo' },
+    closedByPullRequestsReferences: {
+      nodes: [
+        {
+          number: 135,
+          state: 'OPEN',
+          repository: { nameWithOwner: 'owner/repo' },
+        },
+      ],
+    },
   };
   assert.equal(includesIssue({ type: 'prs', numbers: [135] }, issue), true);
   assert.equal(includesIssue({ type: 'prs', numbers: [] }, issue), false);
+});
+
+test('PR and issue links include non-closing cross-references', () => {
+  const issue = {
+    number: 86,
+    repository: { nameWithOwner: 'owner/repo' },
+    closedByPullRequestsReferences: { nodes: [] },
+    timelineItems: {
+      pageInfo: { hasNextPage: false },
+      nodes: [
+        {
+          __typename: 'CrossReferencedEvent',
+          source: {
+            __typename: 'PullRequest',
+            number: 144,
+            state: 'OPEN',
+            repository: { nameWithOwner: 'owner/repo' },
+          },
+          target: {
+            __typename: 'Issue',
+            number: 86,
+            repository: { nameWithOwner: 'owner/repo' },
+          },
+        },
+        {
+          __typename: 'CrossReferencedEvent',
+          source: {
+            __typename: 'PullRequest',
+            number: 145,
+            state: 'OPEN',
+            repository: { nameWithOwner: 'owner/repo' },
+          },
+          target: {
+            __typename: 'Issue',
+            number: 89,
+            repository: { nameWithOwner: 'owner/repo' },
+          },
+        },
+      ],
+    },
+  };
+  assert.deepEqual(pullRequestsLinkedToIssue(issue), [
+    { number: 144, state: 'OPEN', repository: { nameWithOwner: 'owner/repo' } },
+  ]);
+  assert.equal(includesIssue({ type: 'pr', number: 144 }, issue), true);
+  assert.equal(includesIssue({ type: 'pr', number: 145 }, issue), false);
+
+  assert.deepEqual(
+    referencedIssueNumbers(
+      [
+        '## Why',
+        'Refs #86, #88 and #90.',
+        'References #91.',
+        '> Refs #91',
+        '```md',
+        'Refs #92',
+        '```',
+        '<!-- Refs #93 -->',
+        '`Refs #94`',
+      ].join('\n'),
+    ),
+    [86, 88, 90, 91],
+  );
 });

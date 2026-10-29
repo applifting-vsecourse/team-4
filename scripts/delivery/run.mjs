@@ -3,6 +3,7 @@ import { eventScope } from '../automation/events.mjs';
 import { evaluate } from './lib.mjs';
 import { issueRequirements, scopeHash } from './requirements.mjs';
 import { copilotWaiver } from './copilot-waiver.mjs';
+import { referencedIssueNumbers } from '../automation/issue-links.mjs';
 
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
@@ -44,11 +45,30 @@ async function issuesFor(pr) {
     },
   });
   if (response.errors) throw new Error('Cannot read closing issues');
-  const issues = response.data.repository.pullRequest.closingIssuesReferences;
-  if (issues.pageInfo.hasNextPage) throw new Error('Too many closing issues');
-  if (issues.nodes.some((i) => i.repository.nameWithOwner !== repo))
-    throw new Error('Cross-repository closing issues are not supported');
-  return issues.nodes;
+  const linked = response.data.repository.pullRequest.closingIssuesReferences;
+  if (linked.pageInfo.hasNextPage) throw new Error('Too many linked issues');
+  const references = await Promise.all(
+    referencedIssueNumbers(pr.body).map(async (number) => {
+      const issue = await api(`/repos/${repo}/issues/${number}`);
+      if (issue.pull_request)
+        throw new Error(`#${number} refers to a pull request, not an issue`);
+      return {
+        number: issue.number,
+        repository: { nameWithOwner: repo },
+      };
+    }),
+  );
+  const issues = [
+    ...new Map(
+      [...linked.nodes, ...references].map((issue) => [
+        `${issue.repository.nameWithOwner}#${issue.number}`,
+        issue,
+      ]),
+    ).values(),
+  ];
+  if (issues.some((i) => i.repository.nameWithOwner !== repo))
+    throw new Error('Cross-repository issue links are not supported');
+  return issues;
 }
 
 // GitHub requires both a status and a check run when they share a name.

@@ -198,6 +198,7 @@ test('decideIssue blocks when no PR is linked', () => {
   const d = decideIssue([]);
   assert.equal(d.outcome, 'blocked');
   assert.match(d.reasons[0], /Closes #N/);
+  assert.match(d.reasons[0], /Refs #N/);
 });
 
 test('buildPrompt contains issue, rules and diff, and skips empty rules', () => {

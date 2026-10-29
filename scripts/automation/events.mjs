@@ -1,4 +1,7 @@
 import { readFile } from 'node:fs/promises';
+import { pullRequestsLinkedToIssue } from './issue-links.mjs';
+
+export { pullRequestsLinkedToIssue };
 
 // Event payloads select work; all authorization still comes from live GitHub data.
 export async function eventScope(env = process.env) {
@@ -33,16 +36,13 @@ export async function eventScope(env = process.env) {
 }
 
 export function includesIssue(scope, issue) {
+  const linkedPullRequests = pullRequestsLinkedToIssue(issue);
   return (
     scope.type === 'all' ||
     (scope.type === 'issue' && scope.number === issue.number) ||
     (scope.type === 'prs' &&
-      issue.closedByPullRequestsReferences.nodes.some((p) =>
-        scope.numbers.includes(p.number),
-      )) ||
+      linkedPullRequests.some((p) => scope.numbers.includes(p.number))) ||
     (scope.type === 'pr' &&
-      issue.closedByPullRequestsReferences.nodes.some(
-        (p) => p.number === scope.number,
-      ))
+      linkedPullRequests.some((p) => p.number === scope.number))
   );
 }
