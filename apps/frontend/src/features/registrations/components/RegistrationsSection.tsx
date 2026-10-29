@@ -37,8 +37,7 @@ type RegistrationsSectionProps = {
   onFilterChange: (filter: RegistrationFilter) => void
 }
 
-// The registrations of one event, oldest first, with combined filters (S2-11,
-// Wireframy W04). "Aktualizovat" reloads with the same filters; a failed
+// The registrations of one event, oldest first, with combined filters (S2-11). "Aktualizovat" reloads with the same filters; a failed
 // reload keeps the last list and says so, and a failed first load is never
 // shown as an empty one.
 export function RegistrationsSection({

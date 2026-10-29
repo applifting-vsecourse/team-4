@@ -27,7 +27,7 @@ type RegistrationDetailProps = {
   onRefresh: () => unknown
 }
 
-// The organizer's view of one registration (S2-11, Wireframy W05): contacts,
+// The organizer's view of one registration (S2-11): contacts,
 // each term with its own status, and the payment summary with the payments.
 // Recording a payment (S2-12) refreshes it through the shared query key.
 export function RegistrationDetail({

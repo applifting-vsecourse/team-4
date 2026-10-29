@@ -36,7 +36,7 @@ type RegistrationSectionProps = {
   event: EventDetail
 }
 
-// Card "Přihlašování" of the event settings (S2-06, Wireframy O1–O3): the
+// Card "Přihlašování" of the event settings (S2-06): the
 // state, the permanent public link and the one-way opening. Closing and
 // reopening are deferred by the PM.
 export function RegistrationSection({ organizationId, event }: RegistrationSectionProps) {

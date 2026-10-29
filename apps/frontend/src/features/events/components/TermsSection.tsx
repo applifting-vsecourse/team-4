@@ -24,7 +24,7 @@ type TermsSectionProps = {
   event: EventDetail
 }
 
-// Terms of one event (E3, E4, E6). A locked event shows its terms read-only.
+// Terms of one event. A locked event shows its terms read-only.
 export function TermsSection({ organizationId, event }: TermsSectionProps) {
   const canEdit = !event.isLocked
 

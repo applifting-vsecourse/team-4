@@ -82,10 +82,14 @@ jobs:
       - name: Build frontend
         run: pnpm frontend build
 
-      # The money path end to end; Playwright starts the backend and frontend.
       - name: Install Playwright Chromium
         run: pnpm --filter frontend exec playwright install --with-deps chromium
 
+      # Every story renders in Chromium with its play checks and the a11y check.
+      - name: Test frontend stories
+        run: pnpm frontend test:stories
+
+      # The money path end to end; Playwright starts the backend and frontend.
       - name: End-to-end tests
         run: pnpm frontend test:e2e
 

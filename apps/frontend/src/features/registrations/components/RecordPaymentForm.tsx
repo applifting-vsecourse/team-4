@@ -42,7 +42,7 @@ type RecordPaymentFormProps = {
   onSubmit: (values: { amountMinor: number; receivedOn: string }) => void
 }
 
-// Amount in CZK and the day it arrived (Wireframy S2-12, frame B). Nothing is
+// Amount in CZK and the day it arrived (S2-12). Nothing is
 // sent while a value is invalid, and the typed values stay after a failed save.
 export function RecordPaymentForm({
   isLoading,

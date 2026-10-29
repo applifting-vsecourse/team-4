@@ -47,7 +47,7 @@ export function HeaderMenu() {
           className="rounded-full"
         >
           <Avatar className="size-8">
-            <AvatarFallback>{initials}</AvatarFallback>
+            <AvatarFallback className="text-foreground">{initials}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>

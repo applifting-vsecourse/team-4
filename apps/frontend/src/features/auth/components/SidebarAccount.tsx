@@ -23,8 +23,7 @@ function initialsOf(name: string) {
     .toUpperCase()
 }
 
-// The signed-in organizer at the bottom of the sidebar (Wireframy "Účet
-// organizátora"); the menu holds sign-out.
+// The signed-in organizer at the bottom of the sidebar; the menu holds sign-out.
 export function SidebarAccount() {
   const { user } = useSession()
   const signOut = useSignOut()

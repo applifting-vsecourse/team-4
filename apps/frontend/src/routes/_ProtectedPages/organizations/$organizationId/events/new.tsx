@@ -17,7 +17,6 @@ import { useCreateEvent } from "@/features/events/hooks/useEventMutations"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
 
-// Wireframy E1, E2.
 export const Route = createFileRoute("/_ProtectedPages/organizations/$organizationId/events/new")({
   loader: ({ context, params }) =>
     context.queryClient.ensureQueryData(organizationQueryOptions(params.organizationId)),

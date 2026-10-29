@@ -12,6 +12,7 @@
     "lint": "pnpm frontend lint:check",
     "check": "run-s \"frontend type-check\" \"frontend lint:check\" \"frontend test:ci\"",
     "check-all": "run-s \"backend prisma:generate\" agent-review:test qa:test \"backend lint:check\" \"backend test\" \"backend build\" \"frontend lint:check\" \"frontend type-check\" \"frontend test:ci\" \"frontend build\" format:check",
+    "check-stories": "run-s \"frontend test:stories\" \"frontend build-storybook\"",
     "format": "run-s format:root:write format:workspaces:write",
     "format:check": "run-s format:root:check format:workspaces:check",
     "format:root:write": "prettier \"**/*.{cjs,js,mjs,ts,json,md,yaml,yml}\" --write --list-different",

@@ -8,7 +8,7 @@ type LandingSectionProps = {
   isMuted?: boolean
 }
 
-// Full-width band with the page's content column (1 120 px max, as in the wireframe).
+// Full-width band with the page's content column (1 120 px max).
 export function LandingSection({ children, labelledBy, isMuted = false }: LandingSectionProps) {
   return (
     <section

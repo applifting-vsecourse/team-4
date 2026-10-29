@@ -22,7 +22,7 @@ type EventBreadcrumbProps = {
   current?: string
 }
 
-// "Organizace / Akce a turnusy / Akce / Termíny" (Wireframy E1, E3, N1).
+// "Organizace / Akce a turnusy / Akce / Termíny".
 export function EventBreadcrumb({
   organizationId,
   organizationName,

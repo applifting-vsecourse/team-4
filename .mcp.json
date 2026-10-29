@@ -4,9 +4,9 @@
       "command": "npx",
       "args": ["shadcn@latest", "mcp"]
     },
-    "figma": {
+    "storybook": {
       "type": "http",
-      "url": "https://mcp.figma.com/mcp"
+      "url": "http://localhost:6006/mcp"
     }
   }
 }

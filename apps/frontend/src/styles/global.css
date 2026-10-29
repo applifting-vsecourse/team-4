@@ -64,7 +64,7 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Type scale from the Figma kit: text-h1 ... text-h4 */
+  /* Type scale: text-h1 ... text-h4 */
   --text-h1: 2.5rem;
   --text-h1--line-height: 1;
   --text-h1--letter-spacing: -0.09375rem;
@@ -86,7 +86,7 @@
   --font-sans: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
-  /* Colours: Figma library "Design system" (hsSa2s0GRl0UgsT645F2ir), mode Light */
+  /* Colours: light theme */
   --background: #f9fafb;
   --foreground: #111827;
   --card: #ffffff;

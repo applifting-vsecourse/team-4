@@ -17,7 +17,7 @@ type EventLoadErrorProps = {
   backAction: ReactNode
 }
 
-// A foreign and a missing event look the same (S2-03, Wireframy N1). Any other
+// A foreign and a missing event look the same (S2-03). Any other
 // failure is a failed load that can be retried, never an event without terms (S2-17).
 export function EventLoadError({
   organizationId,

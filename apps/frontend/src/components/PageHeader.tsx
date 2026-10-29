@@ -12,7 +12,7 @@ type PageHeaderProps = {
 }
 
 // Top of a workspace page in the organization shell: breadcrumb, title with
-// actions and a short line under it (Wireframy E1, E3, O5).
+// actions and a short line under it.
 export function PageHeader({ breadcrumb, title, badge, actions, description }: PageHeaderProps) {
   return (
     <header className="mb-8">

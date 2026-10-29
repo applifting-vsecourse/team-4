@@ -61,7 +61,7 @@ type TermFormProps = {
   onSubmit: (input: TermInput) => void | Promise<void>
 }
 
-// Adding and editing a term share this form (E4). It has no capacity input:
+// Adding and editing a term share this form. It has no capacity input:
 // capacity comes from rooms and beds (S2-05).
 export function TermForm({
   initialValues,

@@ -9,16 +9,17 @@ Organize backend features into controllers, DTOs, services, domain models and re
 
 **Before writing or changing any UI, read [`DESIGN.md`](DESIGN.md).** It is the akc.io design system: tokens, components and how to add them (#79).
 
-## Sitemap and story context
+## Story context
 
-Before implementing a story, read [the sitemap](docs/sitemap.md), the GitHub issue and its sprint decisions. Identify the access area (public, participant, organization or event), data scope, existing destination and entry/exit paths before choosing routes or adding screens. The sitemap describes the target structure; the story defines the implementation scope. Do not implement deferred branches just because they appear in the map.
+Before implementing a story, read the GitHub issue and its sprint decisions. Identify the access area (public, participant, organization or event), data scope, existing destination and entry/exit paths before choosing routes or adding screens. The story defines the implementation scope.
 
-Reuse the relevant existing page. Report conflicts or proposed structural changes to the PM before changing the navigation structure. Keep the FigJam source, text sitemap and story navigation context aligned for explicitly authorized changes; follow the ownership and maintenance rules in the sitemap. GitHub issue titles and bodies are the single source of truth for user stories, including navigation context. Local Markdown copies are private PM working material, ignored by Git; they are not required for implementation and must not override the issue.
+Reuse the relevant existing page. Report conflicts or proposed structural changes to the PM before changing the navigation structure. GitHub issue titles and bodies are the single source of truth for user stories, including navigation context. Local Markdown copies are private PM working material, ignored by Git; they are not required for implementation and must not override the issue.
 
 ## Commands
 
 - `pnpm dev` — everything: env files, Postgres (Docker), migrate, run the seed entry point, both dev servers
-- `pnpm check-all` — lint + type-check + tests + build (CI also validates migrations and database constraints)
+- `pnpm check-all` — lint + type-check + unit tests + build (CI also validates migrations and database constraints)
+- `pnpm check-stories` — story tests in Chromium + Storybook build; once at the end of UI work, not after every change
 - `pnpm backend test` / `pnpm frontend test:ci` — unit tests
 - `pnpm backend prisma:migrations:run` — create/apply migrations after schema changes
 
@@ -68,7 +69,8 @@ Frontend stack (`apps/frontend`): Vite + React 19, Tailwind v4, shadcn/ui, TypeS
 - Semantic tokens only (`bg-background`, `text-muted-foreground`, `bg-destructive`, …). No raw palette colors, arbitrary values (`p-[13px]`) or inline styles.
 - Pages control layout only. Appearance comes from component variants and sizes; if none fits, ask instead of restyling with `className`.
 - Do not, without asking the developer: add theme tokens, add lint-disable comments, edit the lint config (including `SHADCN_LEGACY_FILES`), or edit `src/components/ui` just to make a violation go away.
-- After any UI change, run `pnpm check` and fix every error before finishing. `pnpm check-all` still gates handoff.
+- Every screen has a light desktop preview in Storybook (`pnpm frontend storybook`). Its data comes from fixtures parsed with the feature's zod schemas and served through MSW; an API request without a handler fails instead of reaching the backend. `pnpm frontend test:stories` renders every story in Chromium with its `play` checks and the accessibility check; it is the evidence for UI work, and agents run it through the Storybook MCP server too. While iterating, run only the affected file (`pnpm frontend test:stories <path>`).
+- After any UI change, run `pnpm check` and fix every error before finishing. `pnpm check-all` still gates handoff; UI work additionally runs `pnpm check-stories` once, at the end.
 
 ### UI controls come from the kit
 
@@ -84,7 +86,7 @@ Don't reach for the browser to check your own work. Tests and type-checks are th
 
 ### Run `pnpm check-all` before handing work back
 
-Before you hand work to the developer (report it done, commit, push or open a PR), run `pnpm check-all` from the repo root and fix every failure. CI additionally validates migrations and database constraints. Running single checks or Prettier from the root is not enough, because each app has its own Prettier config.
+Before you hand work to the developer (report it done, commit, push or open a PR), run `pnpm check-all` from the repo root and fix every failure. If you changed UI, stories or their fixtures, also run `pnpm check-stories` once at that point. CI additionally validates migrations and database constraints. Running single checks or Prettier from the root is not enough, because each app has its own Prettier config.
 
 ### Delivery gates
 

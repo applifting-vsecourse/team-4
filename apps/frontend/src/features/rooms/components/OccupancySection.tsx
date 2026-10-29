@@ -30,7 +30,7 @@ type OccupancySectionProps = {
 }
 
 // Capacity, confirmed, free beds and waiting participants of each term
-// (S2-10, Wireframy O1). The counts are read on demand only: "Aktualizovat"
+// (S2-10). The counts are read on demand only: "Aktualizovat"
 // reloads them, and a failed reload keeps the last good ones, labelled as such.
 export function OccupancySection({
   organizationId,

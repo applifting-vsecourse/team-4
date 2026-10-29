@@ -27,7 +27,7 @@ type MagicLinkRequestProps = {
   notice?: string
 }
 
-// Asking for a sign-in link (Figma M1): the form stays and the confirmation
+// Asking for a sign-in link: the form stays and the confirmation
 // appears under it, the same whatever the e-mail is.
 export function MagicLinkRequest({ notice }: MagicLinkRequestProps) {
   const request = useRequestMagicLink()

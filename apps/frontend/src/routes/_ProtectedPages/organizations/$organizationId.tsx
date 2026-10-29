@@ -13,8 +13,7 @@ import { organizationsQueryOptions } from "@/features/organizations/api/organiza
 import { OrganizationSidebar } from "@/features/organizations/components/OrganizationSidebar"
 import { rememberOrganization } from "@/features/organizations/lib/lastOrganization"
 
-// Shell of every page of one organization: sidebar + workspace (Wireframy
-// "Navigace" and "Pracovní plocha"). On a phone the sidebar opens as a sheet.
+// Shell of every page of one organization: sidebar + workspace. On a phone the sidebar opens as a sheet.
 export const Route = createFileRoute("/_ProtectedPages/organizations/$organizationId")({
   loader: async ({ context, params, preload: isPreload }) => {
     const [organizations, session] = await Promise.all([
@@ -29,7 +28,6 @@ export const Route = createFileRoute("/_ProtectedPages/organizations/$organizati
   component: OrganizationShell,
 })
 
-// The wireframe's navigation column is 224 px wide.
 const SIDEBAR_STYLE = { "--sidebar-width": "14rem" } as CSSProperties
 
 function OrganizationShell() {

@@ -5,7 +5,7 @@ import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 
-// Wireframy O5: an organization without events.
+// An organization without events.
 export function EventsEmptyState({ organizationId }: { organizationId: string }) {
   return (
     <Empty className="border border-dashed">

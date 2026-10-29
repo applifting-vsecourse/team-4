@@ -25,8 +25,7 @@ type RoomsSectionProps = {
   onChanged: () => unknown
 }
 
-// Rooms of one event and the terms they are available in (S2-05, Wireframy
-// P1); the capacity they give each term is in OccupancySection. Rooms stay
+// Rooms of one event and the terms they are available in (S2-05); the capacity they give each term is in OccupancySection. Rooms stay
 // editable after registration opens; the server protects the confirmed
 // participants.
 export function RoomsSection({ organizationId, eventId, overview, onChanged }: RoomsSectionProps) {
