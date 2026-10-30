@@ -9,13 +9,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-import { capacityConflictMessage } from "@/features/rooms/components/CapacityConflictAlert"
+import {
+  capacityConflictMessage,
+  type CapacityConflict,
+} from "@/features/rooms/components/CapacityConflictAlert"
 
 type DeleteRoomCapacityDialogProps = {
   isOpen: boolean
   label: string
   /** Terms the deletion would drop below their confirmed participants. */
-  conflictTerms?: string
+  conflicts?: CapacityConflict[]
 }
 
 // Deleting a room (F11-1). When a term would drop below its confirmed
@@ -24,15 +27,15 @@ type DeleteRoomCapacityDialogProps = {
 export function DeleteRoomCapacityDialog({
   isOpen,
   label,
-  conflictTerms,
+  conflicts,
 }: DeleteRoomCapacityDialogProps) {
-  if (conflictTerms) {
+  if (conflicts?.length) {
     return (
       <Dialog open={isOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Pokoj „{label}“ nelze odstranit</DialogTitle>
-            <DialogDescription>{capacityConflictMessage(conflictTerms)}</DialogDescription>
+            <DialogDescription>{capacityConflictMessage(conflicts)}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>

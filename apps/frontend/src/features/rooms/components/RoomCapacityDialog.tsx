@@ -23,7 +23,10 @@ import {
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 
-import { CapacityConflictAlert } from "@/features/rooms/components/CapacityConflictAlert"
+import {
+  CapacityConflictAlert,
+  type CapacityConflict,
+} from "@/features/rooms/components/CapacityConflictAlert"
 
 /** The settings of a room in one term, as entered. */
 export type RoomTermSetting = {
@@ -45,7 +48,7 @@ type RoomCapacityDialogProps = {
   label: string
   terms: RoomTermSetting[]
   /** Terms the change would drop below their confirmed participants. */
-  conflictTerms?: string
+  conflicts?: CapacityConflict[]
   errorMessage?: string
   isSaving?: boolean
 }
@@ -58,7 +61,7 @@ export function RoomCapacityDialog({
   isEdit = false,
   label,
   terms,
-  conflictTerms,
+  conflicts,
   errorMessage,
   isSaving = false,
 }: RoomCapacityDialogProps) {
@@ -76,7 +79,7 @@ export function RoomCapacityDialog({
           noValidate
           className="space-y-6"
         >
-          {conflictTerms ? <CapacityConflictAlert terms={conflictTerms} /> : null}
+          {conflicts?.length ? <CapacityConflictAlert conflicts={conflicts} /> : null}
           {errorMessage ? (
             <Alert variant="destructive">
               <AlertDescription>{errorMessage}</AlertDescription>

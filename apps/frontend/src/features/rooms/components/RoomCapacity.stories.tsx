@@ -151,6 +151,14 @@ const INVALID: RoomTermSetting[] = [
 
 const LOWERED: RoomTermSetting[] = [{ ...JULY_SETTING, beds: "5", extraBeds: "0" }, AUGUST_SETTING]
 
+const LOWERED_CONFLICT = [
+  { termLabel: "Turnus 1", proposedCapacity: 22, confirmedParticipants: 23 },
+]
+
+const DELETE_CONFLICT = [
+  { termLabel: "Turnus 1", proposedCapacity: 17, confirmedParticipants: 23 },
+]
+
 const NEW_ROOM: RoomTermSetting[] = [
   { ...JULY_SETTING, beds: "", extraBeds: "" },
   { ...AUGUST_SETTING, beds: "", extraBeds: "" },
@@ -369,7 +377,7 @@ export const BelowConfirmed: Story = {
         isEdit
         label="Chatka 1"
         terms={LOWERED}
-        conflictTerms="Turnus 1"
+        conflicts={LOWERED_CONFLICT}
       />
     ),
   },
@@ -400,7 +408,7 @@ export const DeleteConflict: Story = {
       <DeleteRoomCapacityDialog
         isOpen
         label="Chatka 1"
-        conflictTerms="Turnus 1"
+        conflicts={DELETE_CONFLICT}
       />
     ),
   },

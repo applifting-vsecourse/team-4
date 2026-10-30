@@ -1,16 +1,27 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-/** The terms that would drop below their confirmed participants, e.g. "Turnus 1". */
-export const capacityConflictMessage = (terms: string) =>
-  `Kapacita by klesla pod počet potvrzených účastníků: ${terms}`
+export type CapacityConflict = {
+  termLabel: string
+  proposedCapacity: number
+  confirmedParticipants: number
+}
+
+/** The terms and counts that would make a proposed room change invalid. */
+export const capacityConflictMessage = (conflicts: CapacityConflict[]) =>
+  `Kapacita by klesla pod počet potvrzených účastníků: ${conflicts
+    .map(
+      ({ termLabel, proposedCapacity, confirmedParticipants }) =>
+        `${termLabel} (nová kapacita ${proposedCapacity}, potvrzeno ${confirmedParticipants})`,
+    )
+    .join("; ")}`
 
 // A change that would drop a term below its confirmed participants is not
 // saved (F11-1). Design only: the affected terms are passed in.
-export function CapacityConflictAlert({ terms }: { terms: string }) {
+export function CapacityConflictAlert({ conflicts }: { conflicts: CapacityConflict[] }) {
   return (
     <Alert variant="destructive">
       <AlertTitle>Změnu nelze uložit</AlertTitle>
-      <AlertDescription>{capacityConflictMessage(terms)}</AlertDescription>
+      <AlertDescription>{capacityConflictMessage(conflicts)}</AlertDescription>
     </Alert>
   )
 }
