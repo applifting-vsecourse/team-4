@@ -72,6 +72,14 @@ Frontend stack (`apps/frontend`): Vite + React 19, Tailwind v4, shadcn/ui, TypeS
 - Every screen has a light desktop preview in Storybook (`pnpm frontend storybook`). Its data comes from fixtures parsed with the feature's zod schemas and served through MSW; an API request without a handler fails instead of reaching the backend. `pnpm frontend test:stories` renders every story in Chromium with its `play` checks and the accessibility check; it is the evidence for UI work, and agents run it through the Storybook MCP server too. While iterating, run only the affected file (`pnpm frontend test:stories <path>`).
 - After any UI change, run `pnpm check` and fix every error before finishing. `pnpm check-all` still gates handoff; UI work additionally runs `pnpm check-stories` once, at the end.
 
+### Storybook UI handoff
+
+- For UI-preparation work, create an isolated Storybook preview using existing design-system components and mocked data. Show the relevant states and interactions without wiring the preview into a product route, API or persistence.
+- Before implementing UI, read the issue and its `Podklady` links. The issue's acceptance criteria define behavior; the approved Storybook stories define the visual reference and the states to implement.
+- Do not start UI implementation when required Storybook references are missing, unapproved or conflict with the issue. Report the gap or conflict to the PM instead of guessing or expanding scope.
+- Reuse or adapt suitable preview components during implementation. Keep stories aligned with the implemented components and their relevant states so the UI is not maintained twice.
+- Issue titles, bodies and approval metadata are PM-owned. Add Storybook links or change issue status only with the PM's explicit authorization; otherwise hand the link to the PM to add.
+
 ### UI controls come from the kit
 
 Need a control that isn't in `src/components/ui/`? Add it with `pnpm dlx shadcn@latest add <name>` — don't hand-roll one in a feature folder, even where a native input would do the job. One accessibility implementation to reason about beats a per-control judgement call.
