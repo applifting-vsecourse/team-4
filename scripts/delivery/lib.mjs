@@ -29,6 +29,16 @@ export function approved(review, sha) {
   return review?.state === 'APPROVED' && review.commit_id === sha;
 }
 
+export function isStorybookPreview(pr) {
+  return pr.labels?.some((label) => label.name === 'design:storybook-preview') ?? false;
+}
+
+export function storybookPreviewApproval(pr, reviews) {
+  return REQUIREMENTS_APPROVERS.map((login) => latestReview(reviews, login))
+    .filter((review) => review?.user?.login.toLowerCase() !== pr.user.login.toLowerCase())
+    .find((review) => approved(review, pr.head.sha));
+}
+
 export function requirementsApproval(pr, reviews) {
   if (pr.draft) return null;
   if (severityFor(pr) !== 'high')
@@ -103,12 +113,20 @@ export function evaluate({ pr, issues, reviews, comments }) {
   const sha = pr.head.sha;
   const roles = reviewersFor(pr.user.login);
   const qa = latestReview(reviews, roles.qa);
+  const storybookPreview = isStorybookPreview(pr);
+  const previewApproval = storybookPreview
+    ? storybookPreviewApproval(pr, reviews)
+    : null;
   const waiver = copilotWaiver({ pr, comments });
   if (pr.draft) reasons.push('PR is still a draft.');
   if (!issues.length)
     reasons.push('Link at least one issue with Closes #N or Refs #N.');
-  if (!approved(qa, sha))
+  if (!storybookPreview && !approved(qa, sha))
     reasons.push(`QA approval by ${roles.qa} is missing for this commit.`);
+  if (storybookPreview && !previewApproval)
+    reasons.push(
+      `Storybook preview needs current-commit approval by ${REQUIREMENTS_APPROVERS.join(' or ')}.`,
+    );
   for (const issue of issues) {
     const pm = requirementsApproval(
       Object.hasOwn(issue, 'requirements')
@@ -184,6 +202,7 @@ export function evaluate({ pr, issues, reviews, comments }) {
       );
     }
     if (
+      !storybookPreview &&
       approved(qa, sha) &&
       (waiver || verdict) &&
       Date.parse(qa.submitted_at) <=
@@ -193,15 +212,18 @@ export function evaluate({ pr, issues, reviews, comments }) {
         `QA must approve after the latest agent review or manual waiver for issue #${issue.number}.`,
       );
     }
-    if (
-      !ready ||
-      !requirement ||
-      Date.parse(ready.created_at) < Date.parse(requirement.created_at)
+    if (!requirement) {
+      reasons.push(
+        `Issue #${issue.number} has not passed current requirements into code review.`,
+      );
+    } else if (
+      !storybookPreview &&
+      (!ready || Date.parse(ready.created_at) < Date.parse(requirement.created_at))
     ) {
       reasons.push(
         `Issue #${issue.number} has not passed requirements and agent review into Ready for Testing.`,
       );
-    } else if (pm && approved(qa, sha)) {
+    } else if (!storybookPreview && pm && approved(qa, sha)) {
       if (
         Date.parse(qa.submitted_at) <= Date.parse(ready.created_at) ||
         (!pm.exempt &&

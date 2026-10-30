@@ -1,6 +1,6 @@
 import { severityFor, sameSeverity, validateSeverity } from './severity.mjs';
 import { eventScope } from '../automation/events.mjs';
-import { evaluate } from './lib.mjs';
+import { evaluate, isStorybookPreview } from './lib.mjs';
 import { issueRequirements, scopeHash } from './requirements.mjs';
 import { copilotWaiver } from './copilot-waiver.mjs';
 import { referencedIssueNumbers } from '../automation/issue-links.mjs';
@@ -182,7 +182,9 @@ for (let pr of candidates) {
     const summary = result.pass
       ? severityFor(pr) === 'low'
         ? 'Low severity: issue linkage, requirements, code review and QA are not required; CI remains required.'
-        : copilotWaiver({ pr, comments })
+        : isStorybookPreview(pr)
+          ? 'Storybook design preview: CI, independent review and current PM approval passed; separate QA is skipped.'
+          : copilotWaiver({ pr, comments })
           ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
           : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; agent review passed before QA approved this commit.`
       : result.reasons.join(' ');
