@@ -6,11 +6,20 @@ Technické zadání: [#78](https://github.com/applifting-vsecourse/team-4/issues
 
 1. Vývojář nechá issue v **In Progress**, otevře propojený PR a požádá o kontrolu požadavků. Teprve schválení rozsahu issue přesune issue automaticky do **Ready for Code Review**.
 2. Workflow reaguje na změny PR a odeslaná či zrušená review. Board navíc kontroluje plánovaně každých 5 minut; GitHub může plánované běhy zpozdit. Spouští se důvěryhodný kód z main, nikoli kód z PR.
-3. Pro každou issue v tomto sloupci najde všechny **otevřené PR propojené přes `Closes #N` nebo `Refs #N`** a každý z nich zrevidují agentem **GitHub Copilot CLI**. Agent dostane diff PR, text issue a pravidla z `CLAUDE.md` a `DESIGN.md` z větve `main`. Nemá žádné nástroje a nespouští kód z PR.
+3. Pro každou issue v tomto sloupci najde všechny **otevřené PR propojené přes `Closes #N` nebo `Refs #N`** a každý z nich zrevidují agentem **GitHub Copilot CLI**. Agent dostane diff, název a popis PR, text issue a pravidla z `CLAUDE.md` a `DESIGN.md` z větve `main`. Nemá žádné nástroje a nespouští kód z PR.
 4. Výsledek se zapíše jako komentář **u PR** (revidovaný commit, blokující nálezy a poznámky) a odkaz na něj jako komentář **u issue**.
 5. Pokud **všechny** propojené PR prošly bez **blokujících** nálezů pro svůj aktuální commit nebo pro něj mají platnou ruční výjimku od Davida, karta se přesune do **Ready for Testing**. Bot zveřejní předání do QA a odešle GitHub žádost o review uživateli `MatejKrones`; u Matějových PR uživateli `darebakdavca`. Jinak karta zůstává v Ready for Code Review a komentář u issue uvádí důvod.
 
 Review nenahrazuje testování ani lidského reviewera.
+
+## Rozsah review
+
+Název a sekce `What`/`Why` v popisu PR určují konkrétní změnu, kterou autor předkládá. Issue poskytuje produktový kontext a kritéria; automatické review ale nesmí zaměnit rozsah issue za rozsah každého jednotlivého PR.
+
+- `Refs #N` označuje částečnou práci. Kritérium širšího příběhu není blocker jen proto, že ho tento PR nedokončuje; review ho použije jen tehdy, pokud PR tvrdí, že dané chování dodává, nebo ho svými změnami konkrétně rozbíjí.
+- `Closes #N` tvrdí, že PR dokončuje issue, proto se kontroluje celý rozsah issue.
+- Výslovně prezentační či návrhový PR může mít nefunkční ukládací tlačítko, lokální fixture data nebo chybějící napojení na API, pokud to odpovídá deklarovanému návrhovému rozsahu. Review přesto kontroluje, že samotný předložený návrh splňuje svůj deklarovaný účel a nezavádí konkrétní regresi.
+- Pokud deklarovaný rozsah odporuje issue nebo není dostatečně jasný, uveďte poznámku či požádejte o upřesnění. Nerozšiřujte potichu rozsah PR na kompletní implementaci celé issue.
 
 ## Co se považuje za úspěch
 
@@ -105,10 +114,10 @@ compares file and added/deleted-line counts against GitHub's PR metadata. A
 mismatch, oversized individual line or excessive context blocks
 review before it starts.
 
-Every batch receives the issue, main-branch repository rules and a complete file
+Every batch receives the PR title and description, issue, main-branch repository rules and a complete file
 manifest. It returns findings and a bounded summary of public contracts and
-cross-file interactions. A final review checks these summaries against the issue,
-rules and manifest for integration defects. This last pass uses summaries rather
+cross-file interactions. A final review checks these summaries against the declared
+PR scope, issue, rules and manifest for integration defects. This last pass uses summaries rather
 than all source at once; it supplements the complete line-by-line batch coverage.
 Any batch finding remains a finding regardless of the final verdict. Every batch
 and the final integration review must complete with valid output before a pass
