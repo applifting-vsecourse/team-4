@@ -1,33 +1,31 @@
-import { readApiError } from "@/lib/apiError"
+import { readApiError, type CapacityConflict } from "@/lib/apiError"
 
 export type RoomSaveError = {
   fieldError: { field: "label"; message: string } | null
   errorMessage: string | null
+  /** Terms the change would drop below their confirmed participants. */
+  conflicts: CapacityConflict[]
   /** The rooms changed meanwhile or are gone; reload them. */
   shouldRefresh: boolean
 }
 
-/** Maps a refused room write to the field or the form-level message. */
+/** Maps a refused room write to the field, the capacity conflict or the form-level message. */
 export function describeRoomError(error: unknown, fallback: string): RoomSaveError {
   const apiError = readApiError(error)
+  const none = { fieldError: null, errorMessage: null, conflicts: [], shouldRefresh: false }
   if (apiError.code === "room_label_taken" && apiError.message) {
-    return {
-      fieldError: { field: "label", message: apiError.message },
-      errorMessage: null,
-      shouldRefresh: false,
-    }
+    return { ...none, fieldError: { field: "label", message: apiError.message } }
   }
-  // The message names the term and says capacity cannot fall below confirmed
-  // participants; the saved room stays as it was.
-  if (apiError.code === "capacity_below_confirmed" && apiError.message) {
-    return { fieldError: null, errorMessage: apiError.message, shouldRefresh: true }
+  // The saved room stays as it was; the terms and counts are shown to the organizer.
+  if (apiError.code === "capacity_below_confirmed" && apiError.conflicts.length > 0) {
+    return { ...none, conflicts: apiError.conflicts, shouldRefresh: true }
   }
   if (apiError.status === 404 || apiError.code === "term_unknown") {
     return {
-      fieldError: null,
+      ...none,
       errorMessage: apiError.message ?? "Záznam není dostupný.",
       shouldRefresh: true,
     }
   }
-  return { fieldError: null, errorMessage: fallback, shouldRefresh: false }
+  return { ...none, errorMessage: fallback }
 }

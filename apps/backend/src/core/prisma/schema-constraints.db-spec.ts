@@ -126,29 +126,52 @@ describe('event_term', () => {
 });
 
 describe('room', () => {
-  it('rejects a room without beds and a duplicate label in one event', async () => {
+  it('rejects a duplicate label in one event', async () => {
     const { event } = await createEvent(prisma, {
       organizationId: (await createOrganization(prisma)).id,
-      rooms: [{ label: 'Pokoj 1', bedCount: 2, termIndexes: [] }],
+      rooms: [{ label: 'Pokoj 1', baseBeds: 2, termIndexes: [] }],
     });
 
     await expect(
-      prisma.room.create({
-        data: { eventId: event.id, label: 'Pokoj 2', bedCount: 0 },
-      }),
-    ).rejects.toThrow(/room_bed_count_chk/);
-    await expect(
-      prisma.room.create({
-        data: { eventId: event.id, label: 'Pokoj 1', bedCount: 1 },
-      }),
+      prisma.room.create({ data: { eventId: event.id, label: 'Pokoj 1' } }),
     ).rejects.toThrow(/Unique constraint/);
+  });
+
+  it('rejects negative base beds and extra beds in a term', async () => {
+    const organizationId = (await createOrganization(prisma)).id;
+    const { event, terms, rooms } = await createEvent(prisma, {
+      organizationId,
+      terms: SUMMER,
+      rooms: [{ baseBeds: 2, termIndexes: [] }],
+    });
+    const data = {
+      roomId: rooms[0].id,
+      termId: terms[0].id,
+      eventId: event.id,
+    };
+
+    await expect(
+      prisma.roomTermAvailability.create({
+        data: { ...data, baseBeds: -1, extraBeds: 0 },
+      }),
+    ).rejects.toThrow(/room_term_availability_base_beds_chk/);
+    await expect(
+      prisma.roomTermAvailability.create({
+        data: { ...data, baseBeds: 0, extraBeds: -1 },
+      }),
+    ).rejects.toThrow(/room_term_availability_extra_beds_chk/);
+    await expect(
+      prisma.roomTermAvailability.create({
+        data: { ...data, baseBeds: 0, extraBeds: 0 },
+      }),
+    ).resolves.toMatchObject({ isAvailable: true });
   });
 
   it('cannot be made available in a term of another event', async () => {
     const organizationId = (await createOrganization(prisma)).id;
     const first = await createEvent(prisma, {
       organizationId,
-      rooms: [{ bedCount: 2, termIndexes: [] }],
+      rooms: [{ baseBeds: 2, termIndexes: [] }],
     });
     const second = await createEvent(prisma, { organizationId, terms: SUMMER });
 
@@ -159,6 +182,7 @@ describe('room', () => {
             roomId: first.rooms[0].id,
             termId: second.terms[0].id,
             eventId,
+            baseBeds: 1,
           },
         }),
       ).rejects.toThrow(/Foreign key constraint/);

@@ -58,7 +58,7 @@ export async function createOrganization(
 
 export type TermSpec = { label: string; startDate: string; endDate: string; priceMinor: number }
 /** `terms` are indexes into the event's terms. */
-export type RoomSpec = { label: string; bedCount: number; terms: number[] }
+export type RoomSpec = { label: string; baseBeds: number; terms: number[] }
 
 export type OpenEvent = {
   organizer: Organizer
@@ -100,8 +100,12 @@ export async function setUpEvent(
   for (const room of rooms) {
     await post(request, `${path}/rooms`, {
       label: room.label,
-      bedCount: room.bedCount,
-      termIds: room.terms.map((index) => termIds[index]),
+      terms: room.terms.map((index) => ({
+        termId: termIds[index],
+        isAvailable: true,
+        baseBeds: room.baseBeds,
+        extraBeds: 0,
+      })),
     })
   }
   await json(

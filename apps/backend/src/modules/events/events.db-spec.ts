@@ -543,7 +543,7 @@ describe('payment settings', () => {
       organizationId: organization.id,
       status: 'open',
       terms: [{ startDate: '2027-07-01', endDate: '2027-07-07' }],
-      rooms: [{ bedCount: 2, termIndexes: [0] }],
+      rooms: [{ baseBeds: 2, termIndexes: [0] }],
     });
     const registration = await createRegistration(prisma, {
       event,

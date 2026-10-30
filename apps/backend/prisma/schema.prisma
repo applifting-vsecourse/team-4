@@ -205,7 +205,6 @@ model Room {
   // Trimmed, and unique per event ignoring case (hand-written index in the
   // migration, S2-05).
   label     String   @db.VarChar(100)
-  bedCount  Int
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
@@ -216,10 +215,15 @@ model Room {
   @@map("room")
 }
 
+// A room's settings in one term (F11-1). The beds are kept while the room is
+// unavailable; only an available room adds places to the term's capacity.
 model RoomTermAvailability {
-  roomId  String @db.Uuid
-  termId  String @db.Uuid
-  eventId String @db.Uuid
+  roomId      String  @db.Uuid
+  termId      String  @db.Uuid
+  eventId     String  @db.Uuid
+  isAvailable Boolean @default(true)
+  baseBeds    Int
+  extraBeds   Int     @default(0)
 
   room  Room      @relation(fields: [roomId, eventId], references: [id, eventId], onDelete: Cascade)
   term  EventTerm @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Cascade)

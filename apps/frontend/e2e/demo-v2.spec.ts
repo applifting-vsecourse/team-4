@@ -100,7 +100,7 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
   const outsiderContext = await browser.newContext(contextOptions)
   const outsiderEvent = await setUpEvent(outsiderContext.request, {
     terms: [{ label: "Chata", startDate: "2027-06-01", endDate: "2027-06-03", priceMinor: 80000 }],
-    rooms: [{ label: "Podkroví", bedCount: 4, terms: [0] }],
+    rooms: [{ label: "Podkroví", baseBeds: 4, terms: [0] }],
   })
   // Organization names are unique per organizer only: Alena may use this one too.
   await createOrganization(outsiderContext.request, "Spolek Jasan")
@@ -378,7 +378,7 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
 
   await scene(
     page,
-    "Pokoj s lůžky pro vybrané termíny; nulová lůžka a duplicitní označení se odmítnou",
+    "Pokoj s lůžky pro vybrané termíny; neplatný počet lůžek a duplicitní označení se odmítnou",
     ["S2-05"],
     async () => {
       await eventNavigation("Ubytování").click()
@@ -386,17 +386,22 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
       await page.getByRole("button", { name: "Přidat pokoj" }).click()
       const dialog = page.getByRole("dialog", { name: "Nový pokoj" })
       await type(dialog.getByLabel("Označení"), "Pokoj A")
-      await type(dialog.getByLabel("Počet lůžek"), "0")
-      await dialog.getByRole("checkbox", { name: /Sobota/ }).check()
+      const saturday = dialog.getByRole("group", { name: /Sobota/ })
+      const sunday = dialog.getByRole("group", { name: /Neděle/ })
+      await type(saturday.getByLabel("Základní lůžka"), "-1")
+      await type(saturday.getByLabel("Přistýlky"), "0")
+      await sunday.getByRole("switch", { name: "Dostupný v termínu" }).click()
       await dialog.getByRole("button", { name: "Uložit" }).click()
-      await expect(dialog.getByText("Počet lůžek musí být alespoň 1.")).toBeVisible()
-      await type(dialog.getByLabel("Počet lůžek"), "1")
+      await expect(saturday.getByText("Zadejte nezáporné celé číslo.")).toBeVisible()
+      await type(saturday.getByLabel("Základní lůžka"), "1")
       await dialog.getByRole("button", { name: "Uložit" }).click()
       await expect(dialog).toBeHidden()
 
-      await page.getByRole("button", { name: "Přidat pokoj" }).click()
+      await page.getByRole("button", { name: "Přidat pokoj" }).first().click()
       await type(dialog.getByLabel("Označení"), " pokoj a ")
-      await type(dialog.getByLabel("Počet lůžek"), "2")
+      await type(saturday.getByLabel("Základní lůžka"), "2")
+      await type(saturday.getByLabel("Přistýlky"), "0")
+      await sunday.getByRole("switch", { name: "Dostupný v termínu" }).click()
       await dialog.getByRole("button", { name: "Uložit" }).click()
       await expect(dialog.getByText("Pokoj s tímto označením už v akci existuje.")).toBeVisible()
       await dialog.getByRole("button", { name: "Zrušit" }).click()
@@ -579,8 +584,8 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
     ["S2-05", "S2-10"],
     async () => {
       await page.getByRole("button", { name: "Upravit pokoj Pokoj A" }).click()
-      const dialog = page.getByRole("dialog", { name: "Upravit pokoj" })
-      await type(dialog.getByLabel("Počet lůžek"), "2")
+      const dialog = page.getByRole("dialog", { name: "Upravit pokoj Pokoj A" })
+      await type(dialog.getByRole("group", { name: /Sobota/ }).getByLabel("Základní lůžka"), "2")
       await dialog.getByRole("button", { name: "Uložit" }).click()
       await expect(dialog).toBeHidden()
       await occupancy.getByRole("button", { name: "Aktualizovat" }).click()
@@ -592,8 +597,9 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
     await page.getByRole("button", { name: "Odstranit pokoj Pokoj A" }).click()
     const dialog = page.getByRole("dialog", { name: "Odstranit pokoj „Pokoj A“?" })
     await dialog.getByRole("button", { name: "Odstranit" }).click()
-    await expect(dialog.getByText(/Termín „Sobota“.*Kapacita nesmí klesnout/)).toBeVisible()
-    await dialog.getByRole("button", { name: "Zrušit" }).click()
+    const refused = page.getByRole("dialog", { name: "Pokoj „Pokoj A“ nelze odstranit" })
+    await expect(refused.getByText(/Sobota \(nová kapacita 0, potvrzeno 1\)/)).toBeVisible()
+    await refused.getByRole("button", { name: "Zavřít" }).click()
     await expect(page.getByRole("row", { name: /Pokoj A/ })).toBeVisible()
   })
 

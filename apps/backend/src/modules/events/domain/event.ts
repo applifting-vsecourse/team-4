@@ -115,6 +115,28 @@ export class PublicEventModel {
   ) {}
 }
 
-/** Capacity is never stored: it is the sum of beds available in the term. */
-export const capacityFromBeds = (bedCounts: number[]): number =>
-  bedCounts.reduce((sum, beds) => sum + beds, 0);
+/** A room's beds in one term; an unavailable room adds none (F11-1). */
+export type RoomBeds = {
+  isAvailable: boolean;
+  baseBeds: number;
+  extraBeds: number;
+};
+
+export type BedTotals = { baseBeds: number; extraBeds: number };
+
+/** Capacity is never stored: it is the sum of beds of the rooms available in the term. */
+export const bedTotals = (rooms: RoomBeds[]): BedTotals =>
+  rooms
+    .filter((room) => room.isAvailable)
+    .reduce(
+      (sum, room) => ({
+        baseBeds: sum.baseBeds + room.baseBeds,
+        extraBeds: sum.extraBeds + room.extraBeds,
+      }),
+      { baseBeds: 0, extraBeds: 0 },
+    );
+
+export const capacityFromBeds = (rooms: RoomBeds[]): number => {
+  const { baseBeds, extraBeds } = bedTotals(rooms);
+  return baseBeds + extraBeds;
+};

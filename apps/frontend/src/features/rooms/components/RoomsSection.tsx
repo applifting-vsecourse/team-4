@@ -1,21 +1,20 @@
-import { BedDouble, Pencil, Plus, Trash2 } from "lucide-react"
+import { useState } from "react"
+import { toast } from "sonner"
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { type CapacityConflict } from "@/lib/apiError"
+
+import { type Room, type RoomInput, type RoomsOverview } from "@/features/rooms/api/roomSchemas"
+import { DeleteRoomCapacityDialog } from "@/features/rooms/components/DeleteRoomCapacityDialog"
+import { RoomCapacityDialog } from "@/features/rooms/components/RoomCapacityDialog"
+import { TermCapacityOverview } from "@/features/rooms/components/TermCapacityOverview"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-
-import { type RoomsOverview } from "@/features/rooms/api/roomSchemas"
-import { DeleteRoomDialog } from "@/features/rooms/components/DeleteRoomDialog"
-import { RoomDialog } from "@/features/rooms/components/RoomDialog"
+  useDeleteRoom,
+  useRefreshRooms,
+  useSaveRoom,
+} from "@/features/rooms/hooks/useRoomMutations"
+import { describeRoomError, type RoomSaveError } from "@/features/rooms/lib/roomErrors"
+import { toTermSettings } from "@/features/rooms/lib/roomSettings"
+import { toTermCapacities } from "@/features/rooms/lib/termCapacities"
 
 type RoomsSectionProps = {
   organizationId: string
@@ -25,128 +24,110 @@ type RoomsSectionProps = {
   onChanged: () => unknown
 }
 
-// Rooms of one event and the terms they are available in (S2-05); the capacity they give each term is in OccupancySection. Rooms stay
-// editable after registration opens; the server protects the confirmed
-// participants.
-export function RoomsSection({ organizationId, eventId, overview, onChanged }: RoomsSectionProps) {
-  const { rooms, terms } = overview
-  const termLabels = new Map(terms.map((term) => [term.id, term.label]))
+type Target = { kind: "add" } | { kind: "edit"; room: Room } | { kind: "delete"; room: Room }
 
-  const addButton = (
-    <RoomDialog
-      organizationId={organizationId}
-      eventId={eventId}
-      terms={terms}
-      onChanged={onChanged}
-      trigger={
-        <Button variant={rooms.length === 0 ? "default" : "outline"}>
-          <Plus />
-          Přidat pokoj
-        </Button>
-      }
-    />
-  )
+const toConflicts = (error: RoomSaveError | null): CapacityConflict[] => error?.conflicts ?? []
+
+// Base beds, extra beds and availability of the rooms in each term (F11-1).
+// Rooms stay editable after registration opens; the server protects the
+// confirmed participants and names the terms a change would drop below them.
+// A closed dialog discards its values; after a refused save it stays open.
+export function RoomsSection({ organizationId, eventId, overview, onChanged }: RoomsSectionProps) {
+  const [target, setTarget] = useState<Target | null>(null)
+  const [pickedTermId, setPickedTermId] = useState<string>()
+  const [failure, setFailure] = useState<RoomSaveError | null>(null)
+  const saveRoom = useSaveRoom(organizationId, eventId, onChanged)
+  const deleteRoom = useDeleteRoom(organizationId, eventId, onChanged)
+  const refreshRooms = useRefreshRooms(organizationId, eventId)
+
+  const open = (next: Target | null) => {
+    setTarget(next)
+    setFailure(null)
+  }
+
+  const findRoom = (roomId: string) => overview.rooms.find((room) => room.id === roomId)
+
+  const handleSave = async (input: RoomInput) => {
+    const room = target?.kind === "edit" ? target.room : undefined
+    setFailure(null)
+    try {
+      await saveRoom.mutateAsync({ roomId: room?.id, input })
+      open(null)
+      toast.success(room ? "Pokoj byl upraven." : "Pokoj byl přidán.")
+    } catch (error) {
+      const described = describeRoomError(
+        error,
+        "Pokoj se nepodařilo uložit. Zkuste to prosím znovu.",
+      )
+      setFailure(described)
+      if (described.shouldRefresh) await refreshRooms()
+    }
+  }
+
+  const handleDelete = async () => {
+    if (target?.kind !== "delete") return
+    setFailure(null)
+    try {
+      await deleteRoom.mutateAsync(target.room.id)
+      open(null)
+      toast.success("Pokoj byl odstraněn.")
+    } catch (error) {
+      const described = describeRoomError(
+        error,
+        "Pokoj se nepodařilo odstranit. Zkuste to prosím znovu.",
+      )
+      setFailure(described)
+      if (described.shouldRefresh) await refreshRooms()
+    }
+  }
+
+  // The picked term, or the first one when none is picked or it is gone.
+  const selectedTermId =
+    overview.terms.find((term) => term.id === pickedTermId)?.id ?? overview.terms[0]?.id ?? ""
+  const form = target?.kind === "edit" || target?.kind === "add" ? target : null
+  const editedRoom = target?.kind === "edit" ? target.room : undefined
 
   return (
-    <section aria-labelledby="rooms-heading">
-      <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
-        <h2
-          id="rooms-heading"
-          className="text-h4"
-        >
-          Pokoje
-        </h2>
-        {rooms.length > 0 ? addButton : null}
-      </div>
-
-      {rooms.length === 0 ? (
-        <Empty className="border border-dashed">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <BedDouble />
-            </EmptyMedia>
-            <EmptyTitle>Zatím žádné pokoje</EmptyTitle>
-          </EmptyHeader>
-          <EmptyContent>{addButton}</EmptyContent>
-        </Empty>
-      ) : (
-        <Card className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Označení</TableHead>
-                <TableHead>Lůžka</TableHead>
-                <TableHead>Dostupné termíny</TableHead>
-                <TableHead>
-                  <span className="sr-only">Akce</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rooms.map((room) => (
-                <TableRow key={room.id}>
-                  <TableCell className="font-medium">{room.label}</TableCell>
-                  <TableCell>{room.bedCount}</TableCell>
-                  <TableCell>
-                    {room.termIds.length === 0 ? (
-                      <span className="text-muted-foreground">Není dostupný v žádném termínu</span>
-                    ) : (
-                      <div className="flex flex-wrap gap-1">
-                        {terms
-                          .filter((term) => room.termIds.includes(term.id))
-                          .map((term) => (
-                            <Badge
-                              key={term.id}
-                              variant="outline"
-                            >
-                              {termLabels.get(term.id)}
-                            </Badge>
-                          ))}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <RoomDialog
-                        organizationId={organizationId}
-                        eventId={eventId}
-                        terms={terms}
-                        onChanged={onChanged}
-                        room={room}
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            aria-label={`Upravit pokoj ${room.label}`}
-                          >
-                            <Pencil />
-                            Upravit
-                          </Button>
-                        }
-                      />
-                      <DeleteRoomDialog
-                        organizationId={organizationId}
-                        eventId={eventId}
-                        room={room}
-                        onChanged={onChanged}
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Odstranit pokoj ${room.label}`}
-                          >
-                            <Trash2 />
-                          </Button>
-                        }
-                      />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      )}
-    </section>
+    <>
+      <TermCapacityOverview
+        terms={toTermCapacities(overview)}
+        selectedTermId={selectedTermId}
+        onSelectedTermChange={setPickedTermId}
+        onAddRoom={() => open({ kind: "add" })}
+        onEditRoom={(roomId) => {
+          const room = findRoom(roomId)
+          if (room) open({ kind: "edit", room })
+        }}
+        onDeleteRoom={(roomId) => {
+          const room = findRoom(roomId)
+          if (room) open({ kind: "delete", room })
+        }}
+      />
+      <RoomCapacityDialog
+        isOpen={form !== null}
+        isEdit={editedRoom !== undefined}
+        label={editedRoom?.label ?? ""}
+        terms={toTermSettings(overview.terms, editedRoom)}
+        conflicts={toConflicts(failure)}
+        errorMessage={failure?.errorMessage ?? undefined}
+        labelError={failure?.fieldError?.message}
+        isSaving={saveRoom.isPending}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) open(null)
+        }}
+        onSubmit={handleSave}
+      />
+      <DeleteRoomCapacityDialog
+        isOpen={target?.kind === "delete"}
+        label={target?.kind === "delete" ? target.room.label : ""}
+        conflicts={toConflicts(failure)}
+        errorMessage={failure?.errorMessage ?? undefined}
+        isDeleting={deleteRoom.isPending}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) open(null)
+        }}
+        onConfirm={handleDelete}
+      />
+    </>
   )
 }
