@@ -97,6 +97,8 @@ Don't reach for the browser to check your own work. Tests and type-checks are th
 
 Before you hand work to the developer (report it done, commit, push or open a PR), run `pnpm check-all` from the repo root and fix every failure. If you changed UI, stories or their fixtures, also run `pnpm check-stories` once at that point. CI additionally validates migrations and database constraints. Running single checks or Prettier from the root is not enough, because each app has its own Prettier config.
 
+Also confirm that CI will pass before every commit, not only before handoff. Run everything CI runs: `pnpm check-all`, `pnpm check-stories` for UI work, `pnpm backend test:db` against the local Postgres, and the Playwright e2e suite (`pnpm exec playwright test` in `apps/frontend`, which reuses the running dev servers). When a change alters UI labels, flows or an API contract, update the e2e specs and database specs that still use the old behaviour.
+
 ### Delivery gates
 
 Never commit or push changes directly to `main`. All changes to `main` must go
