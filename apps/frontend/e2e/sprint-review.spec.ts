@@ -163,9 +163,11 @@ test("Sprint Review: organizátor na desktopu, účastnice na mobilu", async ({ 
       await page.getByRole("button", { name: "Přidat pokoj" }).click()
       const dialog = page.getByRole("dialog", { name: "Nový pokoj" })
       await type(dialog.getByLabel("Označení"), "Podkrovní pokoj")
-      await type(dialog.getByLabel("Počet lůžek"), "12")
-      await dialog.getByRole("checkbox", { name: /Sobota/ }).check()
-      await dialog.getByRole("checkbox", { name: /Neděle/ }).check()
+      for (const term of ["Sobota", "Neděle"]) {
+        const settings = dialog.getByRole("group", { name: new RegExp(term) })
+        await type(settings.getByLabel("Základní lůžka"), "12")
+        await type(settings.getByLabel("Přistýlky"), "0")
+      }
       await dialog.getByRole("button", { name: "Uložit", exact: true }).click()
       await expect(dialog).toBeHidden()
     })
