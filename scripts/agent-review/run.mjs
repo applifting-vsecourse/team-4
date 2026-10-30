@@ -381,7 +381,14 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
   const diff = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${pr}`, {
     accept: 'application/vnd.github.diff',
   });
-  const context = { issue, prNumber: pr, prCount, diff, rules };
+  const context = {
+    issue,
+    pullRequest: { title: meta.title, body: meta.body },
+    prNumber: pr,
+    prCount,
+    diff,
+    rules,
+  };
   let outcome;
   const attempt = prior.errorAttempts + 1;
   let plan;
