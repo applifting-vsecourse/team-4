@@ -659,9 +659,6 @@ async function processIssue(board, item) {
     (result) =>
       !isStorybookPreview(current.find(({ pr }) => pr.number === result.pr).pr),
   );
-  const previewResults = results.filter((result) =>
-    isStorybookPreview(current.find(({ pr }) => pr.number === result.pr).pr),
-  );
   const previewsApproved = previews.every(({ pr, reviews }) =>
     storybookPreviewApproval(pr, reviews),
   );
@@ -669,8 +666,7 @@ async function processIssue(board, item) {
   // review-ready implementation PR out of its normal QA handoff.
   const mixedIssueReadyForQa =
     implementationResults.length > 0 &&
-    decideIssue(implementationResults).outcome === 'pass' &&
-    decideIssue(previewResults).outcome === 'pass';
+    decideIssue(implementationResults).outcome === 'pass';
   const handoffReady = decision.outcome === 'pass' || mixedIssueReadyForQa;
   if (decision.outcome === 'pass' && previewOnly && !previewsApproved) {
     if (item.status.name === STATUS_TESTING)
