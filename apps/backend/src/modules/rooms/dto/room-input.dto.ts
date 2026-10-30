@@ -7,6 +7,7 @@ import {
   IsDefined,
   IsInt,
   IsNotEmpty,
+  IsObject,
   IsString,
   IsUUID,
   Max,
@@ -71,6 +72,7 @@ export class RoomInputDto {
   @ArrayUnique((term: RoomTermInputDto) => term.termId, {
     message: 'Termín je uvedený víckrát.',
   })
+  @IsObject({ each: true, message: 'Nastavení termínu musí být objekt.' })
   @ValidateNested({ each: true })
   @Type(() => RoomTermInputDto)
   terms!: RoomTermInputDto[];

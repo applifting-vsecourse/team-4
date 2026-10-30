@@ -426,6 +426,28 @@ describe('bed counts and terms in the input', () => {
     ]);
   });
 
+  it.each([
+    ['null', [null]],
+    ['a string', ['T1']],
+    ['an empty object', [{}]],
+    ['two empty objects', [{}, {}]],
+    ['a missing list', undefined],
+    ['a non-list', {}],
+  ])('answers malformed terms (%s) with 400, not 500', async (_name, terms) => {
+    const f = await eventWith();
+    for (const [method, path] of [
+      ['POST', f.path],
+      ['PUT', `${f.path}/${randomUUID()}`],
+    ] as const) {
+      const refused = await call(f.ownerId, method, path, {
+        label: 'Pokoj',
+        terms,
+      });
+      expect(refused.status).toBe(400);
+    }
+    expect(await prisma.room.count({ where: { eventId: f.eventId } })).toBe(0);
+  });
+
   it('refuses a term of another event, saving nothing', async () => {
     const f = await eventWith();
     const other = await eventWith();
