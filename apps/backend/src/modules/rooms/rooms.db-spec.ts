@@ -156,6 +156,20 @@ const confirm = async (
   });
 };
 
+/** The `terms` of a room input: the same beds in every given term. */
+const bedTerms = (
+  baseBeds: number,
+  termIds: string[],
+  extraBeds = 0,
+): object[] =>
+  termIds.map((termId) => ({ termId, isAvailable: true, baseBeds, extraBeds }));
+
+const beds = (
+  baseBeds: number,
+  termIds: string[],
+  extraBeds = 0,
+): { terms: object[] } => ({ terms: bedTerms(baseBeds, termIds, extraBeds) });
+
 const capacities = (body: {
   terms: { label: string; capacity: number }[];
 }): Record<string, number> =>
@@ -167,26 +181,22 @@ describe('adding rooms and the capacity of terms', () => {
 
     const first = await call(f.ownerId, 'POST', f.path, {
       label: 'Pokoj 1',
-      bedCount: 2,
-      termIds: [f.termIds[0]],
+      ...beds(2, [f.termIds[0]]),
     });
     expect(first.status).toBe(201);
     const second = await call(f.ownerId, 'POST', f.path, {
       label: 'Pokoj 2',
-      bedCount: 3,
-      termIds: f.termIds,
+      ...beds(3, f.termIds),
     });
 
     expect(second.body.rooms).toEqual([
       expect.objectContaining({
         label: 'Pokoj 1',
-        bedCount: 2,
-        termIds: [f.termIds[0]],
+        ...beds(2, [f.termIds[0]]),
       }),
       expect.objectContaining({
         label: 'Pokoj 2',
-        bedCount: 3,
-        termIds: expect.arrayContaining(f.termIds),
+        terms: expect.arrayContaining(bedTerms(3, f.termIds)),
       }),
     ]);
     expect(capacities(second.body)).toEqual({ T1: 5, T2: 3 });
@@ -201,13 +211,11 @@ describe('adding rooms and the capacity of terms', () => {
     const other = await eventWith();
     await call(other.ownerId, 'POST', other.path, {
       label: 'Cizí',
-      bedCount: 9,
-      termIds: other.termIds,
+      ...beds(9, other.termIds),
     });
     await call(f.ownerId, 'POST', f.path, {
       label: 'Bez termínu',
-      bedCount: 7,
-      termIds: [],
+      ...beds(7, []),
     });
 
     const overview = await call(f.ownerId, 'GET', f.path);
@@ -218,12 +226,11 @@ describe('adding rooms and the capacity of terms', () => {
     const f = await eventWith({ terms: [], status: 'draft' });
     const created = await call(f.ownerId, 'POST', f.path, {
       label: 'Pokoj 1',
-      bedCount: 4,
-      termIds: [],
+      ...beds(4, []),
     });
     expect(created.status).toBe(201);
     expect(created.body).toEqual({
-      rooms: [expect.objectContaining({ label: 'Pokoj 1', termIds: [] })],
+      rooms: [expect.objectContaining({ label: 'Pokoj 1', terms: [] })],
       terms: [],
     });
 
@@ -240,7 +247,7 @@ describe('adding rooms and the capacity of terms', () => {
       f.ownerId,
       'PUT',
       `${f.path}/${created.body.rooms[0].id}`,
-      { label: 'Pokoj 1', bedCount: 4, termIds: [term.id] },
+      { label: 'Pokoj 1', ...beds(4, [term.id]) },
     );
     expect(capacities(assigned.body)).toEqual({ Nový: 4 });
   });
@@ -254,12 +261,9 @@ describe('adding rooms and the capacity of terms', () => {
 });
 
 describe('room labels', () => {
-  const room = (
-    label: string,
-  ): { label: string; bedCount: number; termIds: string[] } => ({
+  const room = (label: string): { label: string; terms: object[] } => ({
     label,
-    bedCount: 2,
-    termIds: [],
+    ...beds(2, []),
   });
 
   it('are unique per event ignoring case and outer spaces', async () => {
@@ -343,29 +347,91 @@ describe('room labels', () => {
 });
 
 describe('bed counts and terms in the input', () => {
-  it.each([0, -3, 1.5, '2', null, undefined, 1001])(
-    'refuse %p beds',
-    async (bedCount) => {
+  it.each([-3, 1.5, '2', null, undefined, 1001])(
+    'refuse %p base beds and extra beds',
+    async (value) => {
       const f = await eventWith();
-      const refused = await call(f.ownerId, 'POST', f.path, {
-        label: 'Pokoj',
-        bedCount,
-        termIds: [],
-      });
-      expect(refused.status).toBe(400);
+      const term = { termId: f.termIds[0], isAvailable: true };
+      for (const terms of [
+        [{ ...term, baseBeds: value, extraBeds: 0 }],
+        [{ ...term, baseBeds: 1, extraBeds: value }],
+      ]) {
+        const refused = await call(f.ownerId, 'POST', f.path, {
+          label: 'Pokoj',
+          terms,
+        });
+        expect(refused.status).toBe(400);
+      }
       expect(await prisma.room.count({ where: { eventId: f.eventId } })).toBe(
         0,
       );
     },
   );
 
+  it('accepts zero beds and keeps beds of a term the room is unavailable in', async () => {
+    const f = await eventWith();
+    const created = await call(f.ownerId, 'POST', f.path, {
+      label: 'Pokoj',
+      terms: [
+        { termId: f.termIds[0], isAvailable: true, baseBeds: 0, extraBeds: 2 },
+        { termId: f.termIds[1], isAvailable: false, baseBeds: 4, extraBeds: 1 },
+      ],
+    });
+    expect(created.status).toBe(201);
+    expect(capacities(created.body)).toEqual({ T1: 2, T2: 0 });
+    expect(created.body.rooms[0].terms).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ termId: f.termIds[1], baseBeds: 4 }),
+      ]),
+    );
+  });
+
+  it('keeps base beds, extra beds and availability of each term and room apart', async () => {
+    const f = await eventWith();
+    const [a, b] = f.termIds;
+    await call(f.ownerId, 'POST', f.path, {
+      label: 'Jiný',
+      ...beds(9, f.termIds),
+    });
+    const created = await call(f.ownerId, 'POST', f.path, {
+      label: 'Pokoj',
+      terms: [
+        { termId: a, isAvailable: true, baseBeds: 4, extraBeds: 1 },
+        { termId: b, isAvailable: true, baseBeds: 2, extraBeds: 0 },
+      ],
+    });
+    const roomId = created.body.rooms[1].id as string;
+
+    const changed = await call(f.ownerId, 'PUT', `${f.path}/${roomId}`, {
+      label: 'Pokoj',
+      terms: [
+        { termId: a, isAvailable: true, baseBeds: 4, extraBeds: 1 },
+        { termId: b, isAvailable: false, baseBeds: 3, extraBeds: 2 },
+      ],
+    });
+
+    expect(changed.status).toBe(200);
+    expect(changed.body.rooms[0].terms).toEqual(
+      expect.arrayContaining(bedTerms(9, f.termIds)),
+    );
+    expect(changed.body.rooms[1].terms).toEqual(
+      expect.arrayContaining([
+        { termId: a, isAvailable: true, baseBeds: 4, extraBeds: 1 },
+        { termId: b, isAvailable: false, baseBeds: 3, extraBeds: 2 },
+      ]),
+    );
+    expect(changed.body.terms).toEqual([
+      expect.objectContaining({ baseBeds: 13, extraBeds: 1, capacity: 14 }),
+      expect.objectContaining({ baseBeds: 9, extraBeds: 0, capacity: 9 }),
+    ]);
+  });
+
   it('refuses a term of another event, saving nothing', async () => {
     const f = await eventWith();
     const other = await eventWith();
     const refused = await call(f.ownerId, 'POST', f.path, {
       label: 'Pokoj',
-      bedCount: 2,
-      termIds: [f.termIds[0], other.termIds[0]],
+      ...beds(2, [f.termIds[0], other.termIds[0]]),
     });
     expect(refused).toMatchObject({
       status: 400,
@@ -383,13 +449,11 @@ describe('protecting confirmed capacity', () => {
     const f = await eventWith();
     const small = await call(f.ownerId, 'POST', f.path, {
       label: 'Malý',
-      bedCount: 2,
-      termIds: [f.termIds[0]],
+      ...beds(2, [f.termIds[0]]),
     });
     const big = await call(f.ownerId, 'POST', f.path, {
       label: 'Velký',
-      bedCount: 3,
-      termIds: f.termIds,
+      ...beds(3, f.termIds),
     });
     return {
       ...f,
@@ -408,16 +472,14 @@ describe('protecting confirmed capacity', () => {
 
     const lowered = await call(f.ownerId, 'PUT', `${f.path}/${f.smallId}`, {
       label: 'Malý',
-      bedCount: 1,
-      termIds: [f.termIds[0]],
+      ...beds(1, [f.termIds[0]]),
     });
     expect(lowered.status).toBe(200);
     expect(capacities(lowered.body)).toEqual({ T1: 4, T2: 3 });
 
     const tooLow = await call(f.ownerId, 'PUT', `${f.path}/${f.bigId}`, {
       label: 'Velký',
-      bedCount: 1,
-      termIds: f.termIds,
+      ...beds(1, f.termIds),
     });
     expect(tooLow.status).toBe(409);
     expect(tooLow.body).toMatchObject({ code: 'capacity_below_confirmed' });
@@ -431,8 +493,7 @@ describe('protecting confirmed capacity', () => {
 
     const unavailable = await call(f.ownerId, 'PUT', `${f.path}/${f.bigId}`, {
       label: 'Přejmenovaný',
-      bedCount: 3,
-      termIds: [f.termIds[0]],
+      ...beds(3, [f.termIds[0]]),
     });
     expect(unavailable).toMatchObject({
       status: 409,
@@ -446,8 +507,7 @@ describe('protecting confirmed capacity', () => {
     const overview = await call(f.ownerId, 'GET', f.path);
     expect(overview.body.rooms[1]).toMatchObject({
       label: 'Velký',
-      bedCount: 3,
-      termIds: expect.arrayContaining(f.termIds),
+      terms: expect.arrayContaining(bedTerms(3, f.termIds)),
     });
     expect(capacities(overview.body)).toEqual({ T1: 5, T2: 3 });
   });
@@ -461,8 +521,7 @@ describe('protecting confirmed capacity', () => {
     // T1 would drop to 2 (fine, nobody confirmed), T2 to 0 (not fine).
     const refused = await call(f.ownerId, 'PUT', `${f.path}/${f.bigId}`, {
       label: 'Jiný',
-      bedCount: 1,
-      termIds: [f.termIds[0]],
+      ...beds(1, [f.termIds[0]]),
     });
     expect(refused.status).toBe(409);
 
@@ -471,7 +530,7 @@ describe('protecting confirmed capacity', () => {
       include: { availabilities: true },
     });
     expect(room.label).toBe('Velký');
-    expect(room.bedCount).toBe(3);
+    expect(room.availabilities.map((a) => a.baseBeds)).toEqual([3, 3]);
     expect(room.availabilities).toHaveLength(2);
   });
 
@@ -481,8 +540,7 @@ describe('protecting confirmed capacity', () => {
 
     const grown = await call(f.ownerId, 'PUT', `${f.path}/${f.smallId}`, {
       label: 'Malý',
-      bedCount: 10,
-      termIds: [f.termIds[0]],
+      ...beds(10, [f.termIds[0]]),
     });
     expect(capacities(grown.body)).toEqual({ T1: 13, T2: 3 });
 
@@ -496,8 +554,7 @@ describe('protecting confirmed capacity', () => {
     await confirm(f, [0], 'waitlisted');
     await call(f.ownerId, 'PUT', `${f.path}/${f.smallId}`, {
       label: 'Malý',
-      bedCount: 20,
-      termIds: [f.termIds[0]],
+      ...beds(20, [f.termIds[0]]),
     });
     expect(
       await prisma.registrationTerm.count({
@@ -510,8 +567,7 @@ describe('protecting confirmed capacity', () => {
     const f = await eventWith({ terms: [SUMMER[0]] });
     const created = await call(f.ownerId, 'POST', f.path, {
       label: 'Pokoj',
-      bedCount: 4,
-      termIds: f.termIds,
+      ...beds(4, f.termIds),
     });
     const roomId = created.body.rooms[0].id as string;
     const event = await prisma.event.findUniqueOrThrow({
@@ -531,7 +587,7 @@ describe('protecting confirmed capacity', () => {
           where: { id: f.termIds[0] },
           select: {
             roomAvailabilities: {
-              select: { room: { select: { bedCount: true } } },
+              select: { baseBeds: true, extraBeds: true },
             },
             _count: {
               select: { registrationTerms: { where: { status: 'confirmed' } } },
@@ -539,7 +595,7 @@ describe('protecting confirmed capacity', () => {
           },
         });
         const capacity = term.roomAvailabilities.reduce(
-          (sum, a) => sum + a.room.bedCount,
+          (sum, a) => sum + a.baseBeds + a.extraBeds,
           0,
         );
         const status =
@@ -560,17 +616,18 @@ describe('protecting confirmed capacity', () => {
       ...registrations.map((r) => confirmWhileFree(r.id)),
       call(f.ownerId, 'PUT', `${f.path}/${roomId}`, {
         label: 'Pokoj',
-        bedCount: 2,
-        termIds: f.termIds,
+        ...beds(2, f.termIds),
       }),
     ]);
 
-    const [overview, room] = await Promise.all([
+    const [overview, availability] = await Promise.all([
       call(f.ownerId, 'GET', f.path),
-      prisma.room.findUniqueOrThrow({ where: { id: roomId } }),
+      prisma.roomTermAvailability.findUniqueOrThrow({
+        where: { roomId_termId: { roomId, termId: f.termIds[0] } },
+      }),
     ]);
     const term = overview.body.terms[0];
-    expect(term.capacity).toBe(room.bedCount);
+    expect(term.capacity).toBe(availability.baseBeds);
     expect(term.confirmed).toBeLessThanOrEqual(term.capacity);
   });
 });
@@ -619,8 +676,7 @@ describe('occupancy of terms', () => {
     const f = await eventWith();
     await call(f.ownerId, 'POST', f.path, {
       label: 'Pokoj 1',
-      bedCount: 2,
-      termIds: f.termIds,
+      ...beds(2, f.termIds),
     });
     const paid = await register(f, { 0: 'confirmed', 1: 'waitlisted' });
     await register(f, { 0: 'confirmed' });
@@ -643,8 +699,7 @@ describe('occupancy of terms', () => {
     const f = await eventWith();
     await call(f.ownerId, 'POST', f.path, {
       label: 'Pokoj 1',
-      bedCount: 3,
-      termIds: [f.termIds[0]],
+      ...beds(3, [f.termIds[0]]),
     });
     await register(f, { 1: 'waitlisted' });
 
@@ -659,8 +714,7 @@ describe('occupancy of terms', () => {
     const f = await eventWith();
     const room = await call(f.ownerId, 'POST', f.path, {
       label: 'Pokoj 1',
-      bedCount: 1,
-      termIds: [f.termIds[0]],
+      ...beds(1, [f.termIds[0]]),
     });
     const submit = async (): Promise<number> => {
       const response = await fetch(
@@ -689,8 +743,7 @@ describe('occupancy of terms', () => {
     // More beds do not turn the waiting participant into a confirmed one.
     await call(f.ownerId, 'PUT', `${f.path}/${room.body.rooms[0].id}`, {
       label: 'Pokoj 1',
-      bedCount: 3,
-      termIds: [f.termIds[0]],
+      ...beds(3, [f.termIds[0]]),
     });
     const enlarged = await call(f.ownerId, 'GET', f.path);
     expect(occupancy(enlarged.body).T1).toEqual([3, 1, 2, 1]);
@@ -703,11 +756,10 @@ describe('access', () => {
     const foreign = await eventWith();
     const created = await call(foreign.ownerId, 'POST', foreign.path, {
       label: 'Cizí',
-      bedCount: 2,
-      termIds: [],
+      ...beds(2, []),
     });
     const foreignRoom = created.body.rooms[0].id as string;
-    const input = { label: 'X', bedCount: 1, termIds: [] };
+    const input = { label: 'X', ...beds(1, []) };
 
     const read = await call(mine.ownerId, 'GET', foreign.path);
     expect(read.status).toBe(404);

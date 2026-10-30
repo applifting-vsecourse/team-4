@@ -22,7 +22,8 @@ import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 const CAPACITY_RULES =
   '409 `room_label_taken` for a label already used in the event (ignoring ' +
   'case and outer spaces), 409 `capacity_below_confirmed` when a term would ' +
-  'drop below its confirmed participants (nothing is saved then), 400 ' +
+  'drop below its confirmed participants, listing every such term in ' +
+  '`conflicts` (nothing is saved then), 400 ' +
   '`term_unknown` for a term of another event. Returns the rooms overview.';
 
 @ApiTags('rooms')

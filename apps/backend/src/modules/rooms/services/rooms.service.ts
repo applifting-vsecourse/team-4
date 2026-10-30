@@ -1,6 +1,6 @@
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import {
-  findCapacityShortfall,
+  findCapacityShortfalls,
   RoomInput,
   RoomsOverviewModel,
 } from '@/modules/rooms/domain/room';
@@ -41,10 +41,14 @@ export class RoomsService {
   }
 
   async add(scope: EventScope, input: RoomInput): Promise<RoomsOverviewModel> {
-    await this.write(scope, input.termIds, async (rooms) => {
-      await rooms.insertRoom(input);
-      return true;
-    });
+    await this.write(
+      scope,
+      input.terms.map((term) => term.termId),
+      async (rooms) => {
+        await rooms.insertRoom(input);
+        return true;
+      },
+    );
     return this.get(scope);
   }
 
@@ -53,8 +57,10 @@ export class RoomsService {
     roomId: string,
     input: RoomInput,
   ): Promise<RoomsOverviewModel> {
-    await this.write(scope, input.termIds, (rooms) =>
-      rooms.updateRoom(roomId, input),
+    await this.write(
+      scope,
+      input.terms.map((term) => term.termId),
+      (rooms) => rooms.updateRoom(roomId, input),
     );
     return this.get(scope);
   }
@@ -84,24 +90,33 @@ export class RoomsService {
           throw new BadRequestException({
             statusCode: 400,
             code: 'term_unknown',
-            field: 'termIds',
+            field: 'terms',
             message: 'Dostupnost lze vybrat jen z termínů této akce.',
           });
         }
         if (!(await change(rooms))) throw notAvailable();
-        const shortfall = findCapacityShortfall(
+        const shortfalls = findCapacityShortfalls(
           before,
           await rooms.termCapacities(),
         );
-        if (shortfall) {
+        if (shortfalls.length > 0) {
           throw new ConflictException({
             statusCode: 409,
             code: 'capacity_below_confirmed',
-            termId: shortfall.id,
+            conflicts: shortfalls.map((term) => ({
+              termId: term.id,
+              termLabel: term.label,
+              proposedCapacity: term.capacity,
+              confirmedParticipants: term.confirmed,
+            })),
             message:
-              `Termín „${shortfall.label}“: kapacita by klesla na ${shortfall.capacity}, ` +
-              `ale má ${shortfall.confirmed} potvrzených účastníků. ` +
-              'Kapacita nesmí klesnout pod potvrzenou účast.',
+              'Kapacita nesmí klesnout pod počet potvrzených účastníků: ' +
+              shortfalls
+                .map(
+                  (term) =>
+                    `${term.label} (nová kapacita ${term.capacity}, potvrzeno ${term.confirmed})`,
+                )
+                .join('; '),
           });
         }
       });

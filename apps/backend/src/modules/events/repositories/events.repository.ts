@@ -232,7 +232,7 @@ export class EventsRepository {
             endDate: true,
             priceMinor: true,
             roomAvailabilities: {
-              select: { room: { select: { bedCount: true } } },
+              select: { isAvailable: true, baseBeds: true, extraBeds: true },
             },
           },
         },
@@ -254,11 +254,7 @@ export class EventsRepository {
             fromDate(term.startDate),
             fromDate(term.endDate),
             term.priceMinor,
-            capacityFromBeds(
-              term.roomAvailabilities.map(
-                (availability) => availability.room.bedCount,
-              ),
-            ),
+            capacityFromBeds(term.roomAvailabilities),
           ),
       ),
       toPaymentSettings(event),

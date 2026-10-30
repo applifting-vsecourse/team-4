@@ -1,18 +1,19 @@
-import { capacityFromBeds } from '@/modules/events/domain/event';
+import { bedTotals, RoomBeds } from '@/modules/events/domain/event';
+
+/** A room's settings in one term of its event. */
+export type RoomTermSetting = RoomBeds & { termId: string };
 
 export type RoomInput = {
   label: string;
-  bedCount: number;
-  /** Terms of the same event in which the whole room is available. */
-  termIds: string[];
+  /** Terms of the same event the room has settings for. */
+  terms: RoomTermSetting[];
 };
 
 export class RoomModel {
   constructor(
     public readonly id: string,
     public readonly label: string,
-    public readonly bedCount: number,
-    public readonly termIds: string[],
+    public readonly terms: RoomTermSetting[],
   ) {}
 }
 
@@ -22,6 +23,9 @@ export type TermCapacity = {
   label: string;
   startDate: string;
   endDate: string;
+  baseBeds: number;
+  extraBeds: number;
+  /** Base beds plus extra beds of the available rooms. */
   capacity: number;
   confirmed: number;
 };
@@ -41,16 +45,20 @@ export class RoomsOverviewModel {
   ) {}
 }
 
-/** Capacity is never stored: it is the sum of beds available in the term. */
+/** Capacity is never stored: it is the sum of beds of the rooms available in the term. */
 export const termCapacity = (
   term: { id: string; label: string; startDate: string; endDate: string },
-  bedCounts: number[],
+  rooms: RoomBeds[],
   confirmed: number,
-): TermCapacity => ({
-  ...term,
-  capacity: capacityFromBeds(bedCounts),
-  confirmed,
-});
+): TermCapacity => {
+  const totals = bedTotals(rooms);
+  return {
+    ...term,
+    ...totals,
+    capacity: totals.baseBeds + totals.extraBeds,
+    confirmed,
+  };
+};
 
 export const termOccupancy = (
   term: TermCapacity,
@@ -62,16 +70,16 @@ export const termOccupancy = (
 });
 
 /**
- * The first term (by the order given) whose capacity a change lowered below
- * the confirmed participants. A term that was already short and did not get
+ * The terms (in the order given) whose capacity a change lowered below the
+ * confirmed participants. A term that was already short and did not get
  * smaller is not blamed on this change; waitlisted registrations hold no bed.
  */
-export const findCapacityShortfall = (
+export const findCapacityShortfalls = (
   before: TermCapacity[],
   after: TermCapacity[],
-): TermCapacity | undefined => {
+): TermCapacity[] => {
   const previous = new Map(before.map((term) => [term.id, term.capacity]));
-  return after.find(
+  return after.filter(
     (term) =>
       term.capacity < term.confirmed &&
       term.capacity < (previous.get(term.id) ?? 0),

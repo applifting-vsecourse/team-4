@@ -100,7 +100,7 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
   const outsiderContext = await browser.newContext(contextOptions)
   const outsiderEvent = await setUpEvent(outsiderContext.request, {
     terms: [{ label: "Chata", startDate: "2027-06-01", endDate: "2027-06-03", priceMinor: 80000 }],
-    rooms: [{ label: "Podkroví", bedCount: 4, terms: [0] }],
+    rooms: [{ label: "Podkroví", baseBeds: 4, terms: [0] }],
   })
   // Organization names are unique per organizer only: Alena may use this one too.
   await createOrganization(outsiderContext.request, "Spolek Jasan")

@@ -11,7 +11,7 @@ const terms: TermSpec[] = [
   { label: "1. turnus", startDate: "2027-07-01", endDate: "2027-07-07", priceMinor: 100000 },
   { label: "2. turnus", startDate: "2027-07-08", endDate: "2027-07-14", priceMinor: 200000 },
 ]
-const rooms = [{ label: "Chatka", bedCount: 1, terms: [0] }]
+const rooms = [{ label: "Chatka", baseBeds: 1, terms: [0] }]
 
 test("a participant picking two terms is confirmed in one and waitlisted in the other", async ({
   page,

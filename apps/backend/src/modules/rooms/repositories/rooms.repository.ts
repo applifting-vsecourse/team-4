@@ -6,6 +6,7 @@ import {
   RoomInput,
   RoomModel,
   RoomsOverviewModel,
+  RoomTermSetting,
   TermCapacity,
   termCapacity,
   termOccupancy,
@@ -20,7 +21,9 @@ export const termsWithBeds = {
     label: true,
     startDate: true,
     endDate: true,
-    roomAvailabilities: { select: { room: { select: { bedCount: true } } } },
+    roomAvailabilities: {
+      select: { isAvailable: true, baseBeds: true, extraBeds: true },
+    },
     _count: {
       select: { registrationTerms: { where: { status: 'confirmed' } } },
     },
@@ -37,7 +40,7 @@ export const toTermCapacity = (term: TermWithBeds): TermCapacity =>
       startDate: fromDate(term.startDate),
       endDate: fromDate(term.endDate),
     },
-    term.roomAvailabilities.map((availability) => availability.room.bedCount),
+    term.roomAvailabilities,
     term._count.registrationTerms,
   );
 
@@ -67,25 +70,21 @@ export class LockedRooms {
 
   async insertRoom(input: RoomInput): Promise<void> {
     const room = await this.tx.room.create({
-      data: {
-        eventId: this.eventId,
-        label: input.label,
-        bedCount: input.bedCount,
-      },
+      data: { eventId: this.eventId, label: input.label },
       select: { id: true },
     });
-    await this.setAvailability(room.id, input.termIds);
+    await this.setAvailability(room.id, input.terms);
   }
 
   /** False when the room does not belong to this event. */
   async updateRoom(roomId: string, input: RoomInput): Promise<boolean> {
     const { count } = await this.tx.room.updateMany({
       where: { id: roomId, eventId: this.eventId },
-      data: { label: input.label, bedCount: input.bedCount },
+      data: { label: input.label },
     });
     if (count !== 1) return false;
     await this.tx.roomTermAvailability.deleteMany({ where: { roomId } });
-    await this.setAvailability(roomId, input.termIds);
+    await this.setAvailability(roomId, input.terms);
     return true;
   }
 
@@ -100,13 +99,13 @@ export class LockedRooms {
   // Not a nested write: Prisma cannot fill the composite (roomId, eventId) key.
   private async setAvailability(
     roomId: string,
-    termIds: string[],
+    terms: RoomTermSetting[],
   ): Promise<void> {
     await this.tx.roomTermAvailability.createMany({
-      data: termIds.map((termId) => ({
+      data: terms.map((term) => ({
         roomId,
-        termId,
         eventId: this.eventId,
+        ...term,
       })),
     });
   }
@@ -141,8 +140,15 @@ export class RoomsRepository {
           select: {
             id: true,
             label: true,
-            bedCount: true,
-            availabilities: { select: { termId: true } },
+            availabilities: {
+              select: {
+                termId: true,
+                isAvailable: true,
+                baseBeds: true,
+                extraBeds: true,
+              },
+              orderBy: { termId: 'asc' },
+            },
           },
         },
       },
@@ -150,13 +156,7 @@ export class RoomsRepository {
     if (!event) return null;
     return new RoomsOverviewModel(
       event.rooms.map(
-        (room) =>
-          new RoomModel(
-            room.id,
-            room.label,
-            room.bedCount,
-            room.availabilities.map((availability) => availability.termId),
-          ),
+        (room) => new RoomModel(room.id, room.label, room.availabilities),
       ),
       event.terms.map((term) =>
         termOccupancy(toTermCapacity(term), term.registrationTerms.length),

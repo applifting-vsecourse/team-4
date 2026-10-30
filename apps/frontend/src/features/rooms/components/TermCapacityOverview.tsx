@@ -3,7 +3,14 @@ import { BedDouble, Pencil, Plus, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import {
   Table,
   TableBody,
@@ -42,12 +49,49 @@ type TermCapacityOverviewProps = {
   terms: TermCapacity[]
   /** The term shown first. */
   selectedTermId: string
+  onAddRoom?: () => void
+  onEditRoom?: (roomId: string) => void
+  onDeleteRoom?: (roomId: string) => void
 }
 
 // Správa akce → Ubytování → Pokoje (F11-1): base beds, extra beds and their
-// sum per room in the selected term. Design only: every number is passed in.
-export function TermCapacityOverview({ terms, selectedTermId }: TermCapacityOverviewProps) {
+// sum per room in the selected term. Every number is passed in; the actions
+// only report what was asked for.
+export function TermCapacityOverview({
+  terms,
+  selectedTermId,
+  onAddRoom,
+  onEditRoom,
+  onDeleteRoom,
+}: TermCapacityOverviewProps) {
   const hasRooms = terms.some((term) => term.rooms.length > 0)
+
+  if (terms.length === 0) {
+    return (
+      <section aria-labelledby="room-capacity-heading">
+        <h2
+          id="room-capacity-heading"
+          className="mb-4 text-h4"
+        >
+          Pokoje
+        </h2>
+        <Card>
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <BedDouble />
+              </EmptyMedia>
+              <EmptyTitle>Akce zatím nemá žádné termíny</EmptyTitle>
+              <EmptyDescription>
+                Kapacita pokojů se nastavuje pro každý termín. Nejdřív přidejte termín v nastavení
+                akce.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        </Card>
+      </section>
+    )
+  }
 
   return (
     <section aria-labelledby="room-capacity-heading">
@@ -59,7 +103,10 @@ export function TermCapacityOverview({ terms, selectedTermId }: TermCapacityOver
           Pokoje
         </h2>
         {hasRooms ? (
-          <Button variant="outline">
+          <Button
+            variant="outline"
+            onClick={onAddRoom}
+          >
             <Plus />
             Přidat pokoj
           </Button>
@@ -120,7 +167,7 @@ export function TermCapacityOverview({ terms, selectedTermId }: TermCapacityOver
                       <EmptyTitle>Zatím žádné pokoje</EmptyTitle>
                     </EmptyHeader>
                     <EmptyContent>
-                      <Button>
+                      <Button onClick={onAddRoom}>
                         <Plus />
                         Přidat pokoj
                       </Button>
@@ -172,6 +219,7 @@ export function TermCapacityOverview({ terms, selectedTermId }: TermCapacityOver
                                 variant="ghost"
                                 size="sm"
                                 aria-label={`Upravit pokoj ${room.label}`}
+                                onClick={() => onEditRoom?.(room.id)}
                               >
                                 <Pencil />
                                 Upravit
@@ -180,6 +228,7 @@ export function TermCapacityOverview({ terms, selectedTermId }: TermCapacityOver
                                 variant="ghost"
                                 size="icon"
                                 aria-label={`Odstranit pokoj ${room.label}`}
+                                onClick={() => onDeleteRoom?.(room.id)}
                               >
                                 <Trash2 />
                               </Button>
