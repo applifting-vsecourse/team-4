@@ -224,7 +224,7 @@ export function evaluate({ pr, issues, reviews, comments }) {
     ) {
       reasons.push(
         !requirement
-          ? `Issue #${issue.number} has not passed current requirements into code review.`
+          ? `Issue #${issue.number} has not entered code review after current requirements approval.`
           : `Issue #${issue.number} has not passed requirements and agent review into Ready for Testing.`,
       );
     } else if (!storybookPreview && requirement && pm && approved(qa, sha)) {
