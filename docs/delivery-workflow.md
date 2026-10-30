@@ -20,6 +20,34 @@ re-evaluates on label changes, pushes, reviews and scheduled reconciliation.
 | Independent Copilot code review          | Skipped  | Required           | Required                           |
 | Human QA of current commit after handoff | Skipped  | Required           | Required                           |
 
+### Storybook design-preview PRs
+
+A PR may use the `design:storybook-preview` label only when it delivers an
+isolated UI proposal in Storybook: stories and presentation-only components or
+styles. It must not change live routes, application behavior, persistence, or
+API integration. The label is a deliberate PR-level classification, not an
+automatic inference from changed files. If the PR includes implementation work,
+remove the label and use the normal delivery gates.
+
+Preview PRs still require CI, issue linkage, any applicable High requirements
+approval, and a successful independent Copilot review for the current commit.
+They also require an approving review on that exact commit from David
+(`darebakdavca`) or Bogdan (`rmnskb`). That review accepts the Storybook design
+and replaces the separate human QA approval for the preview PR. The preview PR
+does not receive a QA handoff and does not need a `Ready for Testing` marker.
+
+When every linked open PR for an issue is a passing Storybook preview, automation
+returns the open issue to Sprint Backlog after PM approval; it preserves the
+issue's iteration, labels, and assignee. If an implementation PR is also linked,
+that PR and issue continue through normal QA. The preview PR itself is omitted
+from QA requests. A preview-only approval does not close the issue.
+
+The label, Copilot result, and PM review are checked against the current PR
+commit. A new commit requires fresh Copilot review and PM approval. Removing the
+label restores the normal QA gate. High-severity preview workflow changes still
+require the regular High requirements approval; this exception does not bypass
+scope review or CI.
+
 Low allows documentation/text files (`.md`, `.txt`) and isolated `.test`/`.spec`
 JavaScript/TypeScript files. Application code, configuration, dependency changes
 and migrations cannot use Low, even for copy or formatting edits. Removed and
