@@ -30,12 +30,18 @@ export function approved(review, sha) {
 }
 
 export function isStorybookPreview(pr) {
-  return pr.labels?.some((label) => label.name === 'design:storybook-preview') ?? false;
+  return (
+    pr.labels?.some((label) => label.name === 'design:storybook-preview') ??
+    false
+  );
 }
 
 export function storybookPreviewApproval(pr, reviews) {
   return REQUIREMENTS_APPROVERS.map((login) => latestReview(reviews, login))
-    .filter((review) => review?.user?.login.toLowerCase() !== pr.user.login.toLowerCase())
+    .filter(
+      (review) =>
+        review?.user?.login.toLowerCase() !== pr.user.login.toLowerCase(),
+    )
     .find((review) => approved(review, pr.head.sha));
 }
 
@@ -218,7 +224,8 @@ export function evaluate({ pr, issues, reviews, comments }) {
       );
     } else if (
       !storybookPreview &&
-      (!ready || Date.parse(ready.created_at) < Date.parse(requirement.created_at))
+      (!ready ||
+        Date.parse(ready.created_at) < Date.parse(requirement.created_at))
     ) {
       reasons.push(
         `Issue #${issue.number} has not passed requirements and agent review into Ready for Testing.`,

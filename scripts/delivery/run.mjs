@@ -185,8 +185,8 @@ for (let pr of candidates) {
         : isStorybookPreview(pr)
           ? 'Storybook design preview: CI, independent review and current PM approval passed; separate QA is skipped.'
           : copilotWaiver({ pr, comments })
-          ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
-          : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; agent review passed before QA approved this commit.`
+            ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
+            : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; agent review passed before QA approved this commit.`
       : result.reasons.join(' ');
     for (const issue of issues) {
       if (
