@@ -109,7 +109,10 @@ QA. It is limited to documentation/text and isolated test files; executable or
 configuration changes cannot use Low. Enforcement changes always require High.
 Standard requires an issue link (`Closes #N` for completed work or `Refs #N` for
 partial work), independent Copilot review and current-commit QA, without
-requirements approval. High additionally requires issue-level scope approval
+requirements approval. An isolated Storybook design-preview PR marked
+`design:storybook-preview` replaces separate QA with current-commit PM approval;
+see the [delivery workflow](docs/delivery-workflow.md) for its scope and rules.
+High additionally requires issue-level scope approval
 from David (`darebakdavca`) or Bogdan (`rmnskb`) before code review, with no
 PR-author exemption. Either may approve via a linked PR review or an explicit
 `/requirements-approve` issue or linked PR comment. PR commands approve linked
@@ -120,7 +123,8 @@ unchanged scope approval but require fresh code review and QA.
 
 `MatejKrones` approves QA after the testing handoff; on Matej's PRs, David performs
 QA. Request QA only after independent review passes and the current commit enters
-Ready for Testing. Low PRs receive no automated QA request. CODEOWNERS routes
+Ready for Testing, except for approved Storybook design-preview PRs. Low PRs
+receive no automated QA request. CODEOWNERS routes
 David enforcement-path requests; code-owner approval is disabled. GitHub's
 blanket approval count is zero after severity installation; Delivery stages
 enforces the named approvals. See [the delivery workflow](docs/delivery-workflow.md).

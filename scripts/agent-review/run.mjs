@@ -26,11 +26,13 @@ import {
 } from './lib.mjs';
 
 import {
+  isStorybookPreview,
   reviewersFor,
   requirementsApproval,
   requirementsMarker,
   requirementsTransition,
   readyMarker,
+  storybookPreviewApproval,
 } from '../delivery/lib.mjs';
 
 import { ciEvidence } from './ci-evidence.mjs';
@@ -651,10 +653,48 @@ async function processIssue(board, item) {
   }
   const decision = decideIssue(results);
   let moved = false;
-  if (decision.outcome === 'pass') {
+  const previews = current.filter(({ pr }) => isStorybookPreview(pr));
+  const previewOnly = previews.length > 0 && previews.length === current.length;
+  const implementationResults = results.filter(
+    (result) =>
+      !isStorybookPreview(current.find(({ pr }) => pr.number === result.pr).pr),
+  );
+  const previewsApproved = previews.every(({ pr, reviews }) =>
+    storybookPreviewApproval(pr, reviews),
+  );
+  // PM approval gates the preview PR itself; it must not hold an otherwise
+  // review-ready implementation PR out of its normal QA handoff.
+  const mixedIssueReadyForQa =
+    implementationResults.length > 0 &&
+    decideIssue(implementationResults).outcome === 'pass';
+  const handoffReady = decision.outcome === 'pass' || mixedIssueReadyForQa;
+  if (decision.outcome === 'pass' && previewOnly && !previewsApproved) {
+    if (item.status.name === STATUS_TESTING)
+      moved = await moveStatus(board, item, STATUS_REVIEW);
+    const state = `storybook-preview-awaiting-pm|${resultsKey(results) || 'no-pr'}`;
+    const marker = issueMarker({ issue: issue.number, state });
+    if (!hasBotComment(await listComments(issue.number), marker)) {
+      await postComment(
+        issue.number,
+        `${marker}\nStorybook preview passed independent review. Waiting for current-commit PM approval; no QA handoff will be sent until preview approval is recorded.`,
+      );
+    }
+  } else if (decision.outcome === 'pass' && previewOnly) {
+    moved = await moveStatus(board, item, 'Sprint Backlog');
+    const state = `storybook-preview-approved|${resultsKey(results) || 'no-pr'}`;
+    const marker = issueMarker({ issue: issue.number, state });
+    if (!hasBotComment(await listComments(issue.number), marker)) {
+      await postComment(
+        issue.number,
+        `${marker}\nStorybook preview passed independent review and current-commit PM approval. No separate QA handoff is required; the issue remains open in Sprint Backlog.`,
+      );
+    }
+  } else if (handoffReady) {
     moved = await moveStatus(board, item, STATUS_TESTING);
     if (moved) {
       for (const r of results) {
+        const snapshot = current.find(({ pr }) => pr.number === r.pr);
+        if (isStorybookPreview(snapshot.pr)) continue;
         const marker =
           readyMarker(r.pr, r.sha, issue.number) +
           (r.status === 'waived' ? '\n' + waiverMarker(r.waiver) : '');
@@ -672,7 +712,6 @@ async function processIssue(board, item) {
             `${marker}\nReady for QA · issue #${issue.number} · \`${r.sha}\`.\n${r.status === 'waived' ? `Copilot waived ([reason](${r.waiver.url})). ` : ''}@${rolesByPr.get(r.pr).qa}: test this commit, then approve.`,
           );
         }
-        const snapshot = current.find(({ pr }) => pr.number === r.pr);
         await ensureQaReviewRequest({
           api: (path, options) => api(cfg.githubToken, path, options),
           repo: cfg.repo,
@@ -691,7 +730,8 @@ async function processIssue(board, item) {
     await moveStatus(board, item, STATUS_REVIEW);
   }
 
-  const state = `${decision.outcome === 'pass' ? (moved ? 'moved' : 'skipped') : 'blocked'}|${resultsKey(results) || 'no-pr'}`;
+  const outcome = handoffReady ? 'pass' : decision.outcome;
+  const state = `${outcome === 'pass' ? (moved ? 'moved' : 'skipped') : 'blocked'}|${resultsKey(results) || 'no-pr'}`;
   const marker = issueMarker({ issue: issue.number, state });
   if (!hasBotComment(await listComments(issue.number), marker)) {
     await postComment(
@@ -699,7 +739,7 @@ async function processIssue(board, item) {
       formatIssueNote({
         issue: issue.number,
         state,
-        outcome: decision.outcome,
+        outcome,
         reasons: decision.reasons,
         results,
         moved,
