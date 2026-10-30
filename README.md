@@ -64,7 +64,7 @@ Stop servers with `Ctrl+C`; stop the database with `pnpm dev:down`.
 
 ## Screen previews
 
-Storybook shows every screen with fixture data, without the backend: `pnpm frontend storybook`, then open http://localhost:6006.
+Storybook shows every screen with fixture data, without the backend: `pnpm storybook`, then open http://localhost:6006.
 
 ## Verify and demonstrate
 
