@@ -18,6 +18,7 @@ Reuse the relevant existing page. Report conflicts or proposed structural change
 ## Commands
 
 - `pnpm dev` — everything: env files, Postgres (Docker), migrate, run the seed entry point, both dev servers
+- `pnpm storybook` — launch the frontend Storybook on port 6006
 - `pnpm check-all` — lint + type-check + unit tests + build (CI also validates migrations and database constraints)
 - `pnpm check-stories` — story tests in Chromium + Storybook build; once at the end of UI work, not after every change
 - `pnpm backend test` / `pnpm frontend test:ci` — unit tests
@@ -53,10 +54,10 @@ When the PM authorizes story creation or refinement, keep issues concise and use
 
 - `User story` — who needs what and why.
 - `Akceptační kritéria` — observable, verifiable completion conditions, including relevant empty and error states.
-- `Podklady` — required for UI stories; may initially be empty. After the issue enters Sprint Backlog, the UX designer adds direct links to the proposed screens and relevant states in Storybook. UI implementation starts only once the necessary design references are available on that story.
+- `Podklady` — required for UI stories; may initially be empty. After the issue enters Sprint Backlog, the UX designer adds the Storybook entry names for the proposed screens and relevant states (for example, `Designs / F11-1 Room capacity`). UI implementation starts only once the necessary design references are available on that story.
 - `Mimo rozsah` — include only when needed to clarify boundaries.
 
-Keep navigation context to a concrete destination where needed (for example, `Umístění: správa akce → Pokoje`). Shared background and source materials can remain on the parent issue; Storybook links for the specific UI belong on the implementing story. Keep the GitHub issue template short; workflow instructions belong here rather than in template comments. Resolve outstanding product decisions with the PM before dependent implementation and incorporate the agreed behavior into the acceptance criteria. Do not add an `Otevřené otázky` section. Avoid provenance prose, duplicate status information and separate `Stav refinementu` sections. Track status and sprint assignment in GitHub Projects.
+Keep navigation context to a concrete destination where needed (for example, `Umístění: správa akce → Pokoje`). Shared background and source materials can remain on the parent issue; Storybook entry names for the specific UI belong on the implementing story. Keep the GitHub issue template short; workflow instructions belong here rather than in template comments. Resolve outstanding product decisions with the PM before dependent implementation and incorporate the agreed behavior into the acceptance criteria. Do not add an `Otevřené otázky` section. Avoid provenance prose, duplicate status information and separate `Stav refinementu` sections. Track status and sprint assignment in GitHub Projects.
 
 Select existing product backlog issues for a sprint directly when their whole scope fits; do not create sprint-specific copies. When a broader requirement needs splitting, retain it as a parent issue and use GitHub's native parent/sub-issue relationship for independently acceptable product outcomes. Preserve deferred acceptance criteria in open sub-issues in Product Backlog without a sprint. Assign selected sub-issues to the sprint; keep the parent open without a sprint until its full retained scope is delivered and accepted. Do not duplicate relationship links or explanatory comments manually. A completed sprint slice does not complete its broader parent; removing a requirement requires an explicit PM decision.
 
@@ -69,16 +70,16 @@ Frontend stack (`apps/frontend`): Vite + React 19, Tailwind v4, shadcn/ui, TypeS
 - Semantic tokens only (`bg-background`, `text-muted-foreground`, `bg-destructive`, …). No raw palette colors, arbitrary values (`p-[13px]`) or inline styles.
 - Pages control layout only. Appearance comes from component variants and sizes; if none fits, ask instead of restyling with `className`.
 - Do not, without asking the developer: add theme tokens, add lint-disable comments, edit the lint config (including `SHADCN_LEGACY_FILES`), or edit `src/components/ui` just to make a violation go away.
-- Every screen has a light desktop preview in Storybook (`pnpm frontend storybook`). Its data comes from fixtures parsed with the feature's zod schemas and served through MSW; an API request without a handler fails instead of reaching the backend. `pnpm frontend test:stories` renders every story in Chromium with its `play` checks and the accessibility check; it is the evidence for UI work, and agents run it through the Storybook MCP server too. While iterating, run only the affected file (`pnpm frontend test:stories <path>`).
+- Every screen has a light desktop preview in Storybook (`pnpm storybook`). Its data comes from fixtures parsed with the feature's zod schemas and served through MSW; an API request without a handler fails instead of reaching the backend. `pnpm frontend test:stories` renders every story in Chromium with its `play` checks and the accessibility check; it is the evidence for UI work, and agents run it through the Storybook MCP server too. While iterating, run only the affected file (`pnpm frontend test:stories <path>`).
 - After any UI change, run `pnpm check` and fix every error before finishing. `pnpm check-all` still gates handoff; UI work additionally runs `pnpm check-stories` once, at the end.
 
 ### Storybook UI handoff
 
 - For UI-preparation work, create an isolated Storybook preview using existing design-system components and mocked data. Show the relevant states and interactions without wiring the preview into a product route, API or persistence.
-- Before implementing UI, read the issue and its `Podklady` links. The issue's acceptance criteria define behavior; the approved Storybook stories define the visual reference and the states to implement.
+- Before implementing UI, read the issue and its `Podklady` Storybook entry names, then launch Storybook with `pnpm storybook`. The issue's acceptance criteria define behavior; the approved Storybook stories define the visual reference and the states to implement.
 - Do not start UI implementation when required Storybook references are missing, unapproved or conflict with the issue. Report the gap or conflict to the PM instead of guessing or expanding scope.
 - Reuse or adapt suitable preview components during implementation. Keep stories aligned with the implemented components and their relevant states so the UI is not maintained twice.
-- Issue titles, bodies and approval metadata are PM-owned. Add Storybook links or change issue status only with the PM's explicit authorization; otherwise hand the link to the PM to add.
+- Issue titles, bodies and approval metadata are PM-owned. Add or change Storybook entry names or change issue status only with the PM's explicit authorization; otherwise hand the reference name to the PM to add.
 
 ### UI controls come from the kit
 

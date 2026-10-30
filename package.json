@@ -6,6 +6,7 @@
     "frontend": "pnpm --filter frontend",
     "agent-review:test": "node --test scripts/agent-review/*.test.mjs scripts/delivery/*.test.mjs scripts/release/*.test.mjs",
     "env:check": "node scripts/check-env.js",
+    "storybook": "pnpm frontend storybook",
     "dev": "run-s env:check \"backend docker:up:wait\" \"backend migrate\" \"backend seed\" dev:servers",
     "dev:servers": "run-p \"backend start:dev\" \"frontend dev\"",
     "dev:down": "pnpm backend docker:down",
