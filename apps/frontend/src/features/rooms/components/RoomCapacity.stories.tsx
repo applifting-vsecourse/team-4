@@ -155,9 +155,7 @@ const LOWERED_CONFLICT = [
   { termLabel: "Turnus 1", proposedCapacity: 22, confirmedParticipants: 23 },
 ]
 
-const DELETE_CONFLICT = [
-  { termLabel: "Turnus 1", proposedCapacity: 17, confirmedParticipants: 23 },
-]
+const DELETE_CONFLICT = [{ termLabel: "Turnus 1", proposedCapacity: 17, confirmedParticipants: 23 }]
 
 const NEW_ROOM: RoomTermSetting[] = [
   { ...JULY_SETTING, beds: "", extraBeds: "" },
