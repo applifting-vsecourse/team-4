@@ -226,7 +226,7 @@ export function TermCapacityOverview({
                               </Button>
                               <Button
                                 variant="ghost"
-                                size="icon"
+                                size="icon-sm"
                                 aria-label={`Odstranit pokoj ${room.label}`}
                                 onClick={() => onDeleteRoom?.(room.id)}
                               >

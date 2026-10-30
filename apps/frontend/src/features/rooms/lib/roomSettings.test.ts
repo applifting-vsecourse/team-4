@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { type RoomTermSetting } from "@/features/rooms/components/RoomCapacityDialog"
-import { parseBeds, readRoomForm } from "@/features/rooms/lib/roomSettings"
+import { parseBeds, readRoomForm, toTermSettings } from "@/features/rooms/lib/roomSettings"
 
 const setting = (patch: Partial<RoomTermSetting> = {}): RoomTermSetting => ({
   termId: "t1",
@@ -70,5 +70,39 @@ describe("readRoomForm", () => {
 
   it("is valid without terms", () => {
     expect(readRoomForm("Půda", [])).toEqual({ input: { label: "Půda", terms: [] } })
+  })
+})
+
+describe("toTermSettings", () => {
+  const term = (id: string) => ({
+    id,
+    label: id,
+    startDate: "2027-07-04",
+    endDate: "2027-07-17",
+    baseBeds: 0,
+    extraBeds: 0,
+    capacity: 0,
+    confirmed: 0,
+    free: 0,
+    waitlisted: 0,
+  })
+  const room = {
+    id: "r",
+    label: "Chatka",
+    terms: [
+      { termId: "t1", isAvailable: true, baseBeds: 4, extraBeds: 0 },
+      { termId: "t2", isAvailable: false, baseBeds: 0, extraBeds: 0 },
+      { termId: "t3", isAvailable: false, baseBeds: 6, extraBeds: 2 },
+    ],
+  }
+
+  it("shows saved beds, but leaves a term saved as unavailable without beds blank", () => {
+    const settings = toTermSettings([term("t1"), term("t2"), term("t3"), term("t4")], room)
+    expect(settings.map((s) => [s.beds, s.extraBeds])).toEqual([
+      ["4", "0"],
+      ["", ""],
+      ["6", "2"],
+      ["", ""],
+    ])
   })
 })

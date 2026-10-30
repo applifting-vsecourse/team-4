@@ -10,13 +10,16 @@ const MAX_LABEL = 100
 export function toTermSettings(terms: TermOccupancy[], room?: Room): RoomTermSetting[] {
   return terms.map((term) => {
     const saved = room?.terms.find((roomTerm) => roomTerm.termId === term.id)
+    // A term the room was saved as unavailable in without any beds starts blank,
+    // so switching it on does not leave zeros to delete.
+    const isUnset = saved && !saved.isAvailable && saved.baseBeds === 0 && saved.extraBeds === 0
     return {
       termId: term.id,
       termLabel: term.label,
       dates: formatCalendarRange(term.startDate, term.endDate),
       isAvailable: saved?.isAvailable ?? true,
-      beds: saved ? String(saved.baseBeds) : "",
-      extraBeds: saved ? String(saved.extraBeds) : "",
+      beds: saved && !isUnset ? String(saved.baseBeds) : "",
+      extraBeds: saved && !isUnset ? String(saved.extraBeds) : "",
     }
   })
 }

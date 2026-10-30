@@ -237,7 +237,9 @@ function TermSettingFields({
               id={`${term.termId}-beds`}
               inputMode="numeric"
               value={term.beds}
+              placeholder="0"
               disabled={!term.isAvailable}
+              onFocus={(event) => event.target.select()}
               aria-invalid={term.bedsError ? true : undefined}
               onChange={(event) => onChange({ beds: event.target.value, bedsError: undefined })}
             />
@@ -252,7 +254,9 @@ function TermSettingFields({
               id={`${term.termId}-extra-beds`}
               inputMode="numeric"
               value={term.extraBeds}
+              placeholder="0"
               disabled={!term.isAvailable}
+              onFocus={(event) => event.target.select()}
               aria-invalid={term.extraBedsError ? true : undefined}
               onChange={(event) =>
                 onChange({ extraBeds: event.target.value, extraBedsError: undefined })
