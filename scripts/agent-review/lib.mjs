@@ -92,7 +92,7 @@ export function buildPrompt({
   const scope = partial
     ? 'This is one batch of a larger diff. Judge only the supplied changes; do not report acceptance criteria as missing merely because another batch may cover them.'
     : prCount > 1
-      ? `This issue is implemented by ${prCount} pull requests. Judge only the diff of PR #${prNumber}; do not report acceptance criteria as missing merely because another PR may cover them.`
+      ? `This issue has ${prCount} linked pull requests. Judge only the diff of PR #${prNumber}; do not report acceptance criteria as missing merely because another PR may cover them.`
       : `Judge only the changes and declared scope of PR #${prNumber}; do not assume it completes the whole issue.`;
 
   return `You are an independent code reviewer. You have no tools; everything you need is below.
