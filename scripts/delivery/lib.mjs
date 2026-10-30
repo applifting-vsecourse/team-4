@@ -164,12 +164,7 @@ export function evaluate({ pr, issues, reviews, comments }) {
           )
           .at(-1)
       : null;
-    if (!requirement) {
-      reasons.push(
-        `Issue #${issue.number} has not entered code review after current requirements approval.`,
-      );
-      continue;
-    }
+    const requirementRecordRequired = severity === 'high' || !storybookPreview;
     // A fresh, bot-authored readiness record proves requirements and agent
     // review passed together before QA. A board column alone proves nothing.
     const ready = comments
@@ -198,7 +193,9 @@ export function evaluate({ pr, issues, reviews, comments }) {
     if (
       !waiver &&
       (!verdict ||
-        Date.parse(verdict.created_at) < Date.parse(requirement.created_at) ||
+        (requirement &&
+          Date.parse(verdict.created_at) <
+            Date.parse(requirement.created_at)) ||
         !(verdict.body ?? '').startsWith(
           `<!-- agent-review-scope issue=${issue.number} -->\n<!-- agent-review pr=${pr.number} sha=${sha} result=pass `,
         ))
@@ -218,19 +215,19 @@ export function evaluate({ pr, issues, reviews, comments }) {
         `QA must approve after the latest agent review or manual waiver for issue #${issue.number}.`,
       );
     }
-    if (!requirement) {
-      reasons.push(
-        `Issue #${issue.number} has not passed current requirements into code review.`,
-      );
-    } else if (
-      !storybookPreview &&
-      (!ready ||
-        Date.parse(ready.created_at) < Date.parse(requirement.created_at))
+    if (
+      requirementRecordRequired &&
+      (!requirement ||
+        (!storybookPreview &&
+          (!ready ||
+            Date.parse(ready.created_at) < Date.parse(requirement.created_at))))
     ) {
       reasons.push(
-        `Issue #${issue.number} has not passed requirements and agent review into Ready for Testing.`,
+        !requirement
+          ? `Issue #${issue.number} has not passed current requirements into code review.`
+          : `Issue #${issue.number} has not passed requirements and agent review into Ready for Testing.`,
       );
-    } else if (!storybookPreview && pm && approved(qa, sha)) {
+    } else if (!storybookPreview && requirement && pm && approved(qa, sha)) {
       if (
         Date.parse(qa.submitted_at) <= Date.parse(ready.created_at) ||
         (!pm.exempt &&
