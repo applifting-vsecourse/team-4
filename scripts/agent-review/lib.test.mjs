@@ -216,7 +216,7 @@ test('buildPrompt contains issue, rules and diff, and skips empty rules', () => 
   assert.match(prompt, /Podmínky dokončení/);
   assert.match(prompt, /### CLAUDE.md\nbe nice/);
   assert.doesNotMatch(prompt, /### DESIGN.md/);
-  assert.match(prompt, /2 linked pull requests/);
+  assert.match(prompt, /implemented by 2 pull requests/);
   assert.match(prompt, /diff --git a\/x b\/x/);
 });
 
