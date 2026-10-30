@@ -47,8 +47,10 @@ export type TermCapacity = {
 
 type TermCapacityOverviewProps = {
   terms: TermCapacity[]
-  /** The term shown first. */
+  /** The term whose rooms are shown. */
   selectedTermId: string
+  /** Without it the tabs keep the selection themselves, starting at `selectedTermId`. */
+  onSelectedTermChange?: (termId: string) => void
   onAddRoom?: () => void
   onEditRoom?: (roomId: string) => void
   onDeleteRoom?: (roomId: string) => void
@@ -60,6 +62,7 @@ type TermCapacityOverviewProps = {
 export function TermCapacityOverview({
   terms,
   selectedTermId,
+  onSelectedTermChange,
   onAddRoom,
   onEditRoom,
   onDeleteRoom,
@@ -113,7 +116,11 @@ export function TermCapacityOverview({
         ) : null}
       </div>
 
-      <Tabs defaultValue={selectedTermId}>
+      <Tabs
+        {...(onSelectedTermChange
+          ? { value: selectedTermId, onValueChange: onSelectedTermChange }
+          : { defaultValue: selectedTermId })}
+      >
         <TabsList aria-label="Termín">
           {terms.map((term) => (
             <TabsTrigger

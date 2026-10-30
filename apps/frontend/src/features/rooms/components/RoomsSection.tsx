@@ -34,6 +34,7 @@ const toConflicts = (error: RoomSaveError | null): CapacityConflict[] => error?.
 // A closed dialog discards its values; after a refused save it stays open.
 export function RoomsSection({ organizationId, eventId, overview, onChanged }: RoomsSectionProps) {
   const [target, setTarget] = useState<Target | null>(null)
+  const [pickedTermId, setPickedTermId] = useState<string>()
   const [failure, setFailure] = useState<RoomSaveError | null>(null)
   const saveRoom = useSaveRoom(organizationId, eventId, onChanged)
   const deleteRoom = useDeleteRoom(organizationId, eventId, onChanged)
@@ -80,6 +81,9 @@ export function RoomsSection({ organizationId, eventId, overview, onChanged }: R
     }
   }
 
+  // The picked term, or the first one when none is picked or it is gone.
+  const selectedTermId =
+    overview.terms.find((term) => term.id === pickedTermId)?.id ?? overview.terms[0]?.id ?? ""
   const form = target?.kind === "edit" || target?.kind === "add" ? target : null
   const editedRoom = target?.kind === "edit" ? target.room : undefined
 
@@ -87,7 +91,8 @@ export function RoomsSection({ organizationId, eventId, overview, onChanged }: R
     <>
       <TermCapacityOverview
         terms={toTermCapacities(overview)}
-        selectedTermId={overview.terms[0]?.id ?? ""}
+        selectedTermId={selectedTermId}
+        onSelectedTermChange={setPickedTermId}
         onAddRoom={() => open({ kind: "add" })}
         onEditRoom={(roomId) => {
           const room = findRoom(roomId)

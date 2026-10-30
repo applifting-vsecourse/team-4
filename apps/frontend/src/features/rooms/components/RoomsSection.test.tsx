@@ -94,6 +94,32 @@ describe("RoomsSection", () => {
     ).toEqual(expect.arrayContaining(["Dostupný", "4", "1", "5"]))
   })
 
+  it("shows the base beds, extra beds and availability of the term picked in the tabs", async () => {
+    renderSection()
+    const row = () => screen.getByRole("row", { name: /Chatka/ })
+    expect(within(row()).getByText("Dostupný")).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("tab", { name: "Turnus 2" }))
+
+    expect(screen.getByRole("tab", { name: "Turnus 2" })).toHaveAttribute("aria-selected", "true")
+    expect(within(row()).getByText("Nedostupný")).toBeInTheDocument()
+    expect(within(row()).getAllByText("–")).toHaveLength(3)
+  })
+
+  it("keeps the picked term after a room is saved", async () => {
+    requests.put.mockReturnValue({
+      json: () => Promise.resolve(roomsOverviewSchema.parse(overview)),
+    })
+    renderSection()
+    await userEvent.click(screen.getByRole("tab", { name: "Turnus 2" }))
+    await userEvent.click(screen.getByRole("button", { name: "Upravit pokoj Chatka" }))
+    await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
+
+    await waitFor(() => expect(requests.put).toHaveBeenCalled())
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+    expect(screen.getByRole("tab", { name: "Turnus 2" })).toHaveAttribute("aria-selected", "true")
+  })
+
   it("shows an empty state with the add action and zero capacity", () => {
     renderSection({ rooms: [], terms: [term(T1, "Turnus 1", 0, 0, 0)] })
     expect(screen.getByText("Zatím žádné pokoje")).toBeInTheDocument()
