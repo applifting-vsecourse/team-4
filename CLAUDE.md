@@ -91,7 +91,7 @@ Use semantic tokens from `apps/frontend/src/styles/global.css` and follow the pr
 
 Assume the dev servers are up. If something is listening on the app's ports, that is this application: use it. Don't start a second instance, don't restart it, don't run `pnpm dev`.
 
-Don't reach for the browser to check your own work. Tests and type-checks are the evidence; open the running app when asked to, not on your own initiative.
+Don't reach for the browser to check your own work. Tests and type-checks are the evidence; open the running app when asked to, not on your own initiative. The exception is taking screenshots for a PR (see [PRs handling](#prs-handling)).
 
 ### Run `pnpm check-all` before handing work back
 
@@ -144,7 +144,7 @@ Use `.github/pull_request_template.md` as the starting point for PR descriptions
 - `What`: describe the concrete problem and resulting behavior in one or two sentences; scale detail to the change.
 - `Why`: link the story or issue. Use `Closes #N` only when the PR completes that issue; use `Refs #N` for partial work or a broader parent that remains open.
 - `How to test`: include actionable reviewer steps when useful. Do not fill this section with agent verification logs, routine successful checks (`pnpm check-all`, formatting, link checks, `git diff --check`) or file inventories. CI reports routine automated results; mention failures or verification limitations only when they affect the review.
-- `Screenshots`: include relevant visuals for UI changes when available; do not fabricate evidence.
+- `Screenshots`: include relevant visuals for UI changes when available; do not fabricate evidence. For UI work, capture them from the running app (not Storybook) with a throwaway Playwright script that is not committed; show the relevant states, including errors. Commit the images to `docs/screenshots/<story-id>/` on the PR branch itself, without a separate assets branch, and embed them in the PR body with `https://github.com/<owner>/<repo>/blob/<commit-sha>/docs/screenshots/<story-id>/<file>.png?raw=true`. The commit counts as a new commit for review and QA.
 
 Code reviews must evaluate the PR's declared scope as well as its linked story. Treat the PR title and `What`/`Why` sections as the author's description of the slice being delivered, and use the issue for product context and relevant criteria. `Refs #N` explicitly means partial work: missing behavior that the PR says is deferred is not a blocker just because the broader issue requires it. `Closes #N` claims completion, so review the full issue scope. For either link type, block concrete regressions and defects in behavior the PR claims to deliver; do not infer that an inert or mocked design preview must persist data or call a backend when the PR explicitly says implementation comes later. If the PR's declared scope conflicts with the issue or is too vague to review, report the conflict as a note or ask the author to clarify instead of silently expanding the PR's scope.
 
