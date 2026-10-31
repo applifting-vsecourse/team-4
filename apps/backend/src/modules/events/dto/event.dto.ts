@@ -164,6 +164,12 @@ export class EventDetailDto {
   publicId!: string;
 
   @ApiProperty({
+    description:
+      'Listed in the public catalog. Independent of the registration status.',
+  })
+  isPublished!: boolean;
+
+  @ApiProperty({
     enum: BLOCKERS,
     isArray: true,
     description:
@@ -185,6 +191,7 @@ export class EventDetailDto {
         ? PaymentSettingsDto.from(model.paymentSettings)
         : null,
       publicId: model.publicId,
+      isPublished: model.isPublished,
       openingBlockers: model.openingBlockers,
     };
   }

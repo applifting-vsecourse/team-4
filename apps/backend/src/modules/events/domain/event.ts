@@ -92,6 +92,8 @@ export class EventDetailModel {
     public readonly paymentSettings: PaymentSettings | null,
     /** Short random id of the public link `/e/:publicId`; never changes. */
     public readonly publicId: string,
+    /** Listed in the public catalog; independent of the registration status. */
+    public readonly isPublished: boolean,
   ) {}
 
   get openingBlockers(): OpeningBlocker[] {

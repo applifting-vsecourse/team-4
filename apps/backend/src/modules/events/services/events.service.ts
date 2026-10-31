@@ -102,6 +102,22 @@ export class EventsService {
   }
 
   /**
+   * Catalog listing is independent of the registration status and stays
+   * available after the first opening. Setting the current value again changes
+   * nothing, so a retry after a lost answer is safe.
+   */
+  async setPublished(
+    scope: EventScope,
+    isPublished: boolean,
+  ): Promise<EventDetailModel> {
+    const outcome = await this.repository.withLockedEvent(scope, (event) =>
+      event.setPublished(isPublished),
+    );
+    if (!outcome.found) throw notAvailable();
+    return this.get(scope);
+  }
+
+  /**
    * Draft → open for the whole event (S2-06). The preconditions are read under
    * the event row lock, which every write to the terms, the basics and the
    * payment settings also takes, so nothing changes between check and update.
