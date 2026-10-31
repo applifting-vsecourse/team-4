@@ -1,14 +1,23 @@
 import { Info, Loader2 } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
 export type ChangeApprovalSettingsProps = {
   /** The saved setting in words, e.g. "Schvalujete změny přihlášek od 14 dní před začátkem termínu". */
   savedSetting: string
-  /** The entered number of days; empty means no approval. */
+  /** The entered number of days; the default for a new event is "0". */
   days: string
   daysError?: string
   errorMessage?: string
@@ -46,12 +55,6 @@ export function ChangeApprovalSettings({
         noValidate
         className="space-y-4"
       >
-        {errorMessage ? (
-          <Alert variant="destructive">
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        ) : null}
-
         <Field
           className="sm:max-w-sm"
           data-invalid={daysError ? true : undefined}
@@ -61,7 +64,6 @@ export function ChangeApprovalSettings({
             id="change-approval-days"
             inputMode="numeric"
             autoComplete="off"
-            placeholder="Bez schvalování"
             defaultValue={days}
             aria-invalid={daysError ? true : undefined}
           />
@@ -78,6 +80,20 @@ export function ChangeApprovalSettings({
           </Button>
         </div>
       </form>
+
+      <Dialog open={Boolean(errorMessage)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Uložení se nezdařilo</DialogTitle>
+            <DialogDescription>{errorMessage}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button">Zavřít</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }

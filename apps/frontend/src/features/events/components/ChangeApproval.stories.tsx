@@ -181,19 +181,10 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-// The kit's destructive Alert description (`text-destructive/90`) is 4.3:1
-// against the 4.5:1 AA minimum; these stories report it as a warning.
-const contrastWarning = { a11y: { test: "todo" } }
-
 /** Saved threshold: changes from 14 days before each term's start need approval. */
 export const Saved: Story = {}
 
-/** No threshold (empty or removed): all changes go through directly, no 30-day default. */
-export const NotSet: Story = {
-  args: { savedSetting: "Změny přihlášek probíhají bez schválení", days: "" },
-}
-
-/** Zero: approval starts on the day the term begins. */
+/** Default for a new event: 0 days, approval starts on the day the term begins. */
 export const Zero: Story = {
   args: { savedSetting: "Schvalujete změny přihlášek ode dne začátku termínu", days: "0" },
 }
@@ -203,9 +194,8 @@ export const InvalidValue: Story = {
   args: { days: "2,5", daysError: "Zadejte nezáporné celé číslo dní." },
 }
 
-/** Saving failed: the entered value stays for a retry, the saved setting still applies. */
+/** Saving failed: a dialog reports it; the entered value stays for a retry, the saved setting still applies. */
 export const SaveFailed: Story = {
-  parameters: contrastWarning,
   args: {
     days: "7",
     errorMessage: "Schvalování změn se nepodařilo uložit. Zkuste to prosím znovu.",
