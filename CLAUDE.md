@@ -104,8 +104,17 @@ Also confirm that CI will pass before every commit, not only before handoff. Run
 Never commit or push changes directly to `main`. All changes to `main` must go
 through a pull request from another branch, including documentation and configuration changes.
 
-PR severity is selected by `severity:low`, `severity:standard` or `severity:high`;
-unlabelled PRs default to Standard. Mixed/unknown severity labels block delivery.
+Before opening a PR, classify its risk using the severity rules in
+[`docs/delivery-workflow.md`](docs/delivery-workflow.md) and apply exactly one
+matching label: `severity:low`, `severity:standard` or `severity:high`. Do not
+leave a PR unlabelled just because the delivery gate defaults it to Standard;
+that default is a fallback, not the author's classification. PR creation does
+not infer severity from changed files, so if the PR tool cannot set labels at
+creation, add the label immediately afterward and verify it is present. For
+mixed changes, use the highest applicable severity. Migrations, permissions or
+authentication, payments, destructive operations, deployment and approval-
+workflow changes require High; routine features, UI work and bug fixes use
+Standard. Mixed/unknown severity labels block delivery.
 Low requires CI but skips linked issues, requirements approval, code review and
 QA. It is limited to documentation/text and isolated test files; executable or
 configuration changes cannot use Low. Enforcement changes always require High.
