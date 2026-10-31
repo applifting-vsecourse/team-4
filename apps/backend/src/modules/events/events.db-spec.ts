@@ -854,6 +854,78 @@ describe('opening registration', () => {
   });
 });
 
+describe('catalog publication', () => {
+  const publication = (ownerId: string, path: string, isPublished: unknown) =>
+    call(ownerId, 'PUT', `${path}/publication`, { isPublished });
+
+  it('starts unpublished and keeps the state after reloading', async () => {
+    const { ownerId, path } = await draftEvent();
+    expect((await call(ownerId, 'GET', path)).body.isPublished).toBe(false);
+
+    const published = await publication(ownerId, path, true);
+    expect(published.status).toBe(200);
+    expect(published.body.isPublished).toBe(true);
+    expect((await call(ownerId, 'GET', path)).body.isPublished).toBe(true);
+
+    const withdrawn = await publication(ownerId, path, false);
+    expect(withdrawn.body.isPublished).toBe(false);
+    expect((await call(ownerId, 'GET', path)).body.isPublished).toBe(false);
+  });
+
+  it('is independent of the registration status and the public link', async () => {
+    const { ownerId, path, eventId } = await readyEvent();
+    const publicId = (await call(ownerId, 'GET', path)).body.publicId;
+
+    await publication(ownerId, path, true);
+    expect((await call(ownerId, 'GET', path)).body.status).toBe('draft');
+    expect((await publicCall(publicId)).status).toBe(404);
+
+    await call(ownerId, 'POST', `${path}/open-registration`);
+    expect((await call(ownerId, 'GET', path)).body.isPublished).toBe(true);
+
+    await publication(ownerId, path, false);
+    const event = await prisma.event.findUniqueOrThrow({
+      where: { id: eventId },
+    });
+    expect(event.status).toBe('open');
+    expect((await publicCall(publicId)).status).toBe(200);
+  });
+
+  it('can be changed after registration was opened and is idempotent', async () => {
+    const { ownerId, path } = await readyEvent();
+    await call(ownerId, 'POST', `${path}/open-registration`);
+    expect((await publication(ownerId, path, true)).body.isPublished).toBe(
+      true,
+    );
+    expect((await publication(ownerId, path, true)).body.isPublished).toBe(
+      true,
+    );
+  });
+
+  it('rejects a value that is not a boolean', async () => {
+    const { ownerId, path } = await draftEvent();
+    for (const value of ['true', 1, null, undefined]) {
+      expect((await publication(ownerId, path, value)).status).toBe(400);
+    }
+    expect((await call(ownerId, 'GET', path)).body.isPublished).toBe(false);
+  });
+
+  it('answers 404 to another organizer and changes nothing', async () => {
+    const { path, eventId } = await draftEvent().then((draft) => ({
+      ...draft,
+      eventId: draft.path.split('/').pop() as string,
+    }));
+    const stranger = await createOrganizer(prisma);
+    const refused = await publication(stranger.id, path, true);
+    expect(refused.status).toBe(404);
+    expect(refused.body.message).toBe('Záznam není dostupný');
+    expect(
+      (await prisma.event.findUniqueOrThrow({ where: { id: eventId } }))
+        .isPublished,
+    ).toBe(false);
+  });
+});
+
 describe('public event page', () => {
   it('shows nothing of a draft, the same as an unknown link', async () => {
     const { ownerId, path } = await readyEvent();

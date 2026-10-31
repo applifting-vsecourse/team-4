@@ -159,6 +159,8 @@ model Event {
   location       String      @db.VarChar(300)
   status         EventStatus @default(draft)
   firstOpenedAt  DateTime?   @db.Timestamptz(3)
+  // Listing in the public catalog; independent of the registration status.
+  isPublished    Boolean     @default(false)
 
   bankAccountPrefix   String? @db.VarChar(6)
   bankAccountNumber   String? @db.VarChar(10)

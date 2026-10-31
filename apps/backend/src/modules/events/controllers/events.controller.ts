@@ -3,6 +3,7 @@ import {
   EventDetailDto,
   EventSummaryDto,
 } from '@/modules/events/dto/event.dto';
+import { PublicationInputDto } from '@/modules/events/dto/publication-input.dto';
 import { EventsService } from '@/modules/events/services/events.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
@@ -93,6 +94,28 @@ export class EventsController {
         ownerId: user.id,
         eventId,
       }),
+    );
+  }
+
+  @Put(':eventId/publication')
+  @ApiOperation({
+    summary: 'Publish the event to the public catalog or withdraw it',
+    description:
+      'Allowed at any time and independent of the registration status: it ' +
+      'neither opens nor closes registration, and the public registration ' +
+      'link keeps working. A new event is not published. Returns the event.',
+  })
+  async setPublication(
+    @User() user: Identity,
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @Body() dto: PublicationInputDto,
+  ): Promise<EventDetailDto> {
+    return EventDetailDto.from(
+      await this.events.setPublished(
+        { organizationId, ownerId: user.id, eventId },
+        dto.isPublished,
+      ),
     );
   }
 

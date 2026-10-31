@@ -22,6 +22,7 @@ const detail = new EventDetailModel(
   [],
   null,
   'public12chars',
+  false,
 );
 
 const term = (overrides: Partial<TermInput> = {}): TermInput => ({

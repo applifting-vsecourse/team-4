@@ -95,6 +95,13 @@ export class LockedEvent {
     });
   }
 
+  async setPublished(isPublished: boolean): Promise<void> {
+    await this.tx.event.update({
+      where: { id: this.eventId },
+      data: { isPublished },
+    });
+  }
+
   async updatePaymentSettings(settings: PaymentSettings): Promise<void> {
     await this.tx.event.update({
       where: { id: this.eventId },
@@ -219,6 +226,7 @@ export class EventsRepository {
         location: true,
         status: true,
         firstOpenedAt: true,
+        isPublished: true,
         bankAccountPrefix: true,
         bankAccountNumber: true,
         bankCode: true,
@@ -259,6 +267,7 @@ export class EventsRepository {
       ),
       toPaymentSettings(event),
       event.publicId,
+      event.isPublished,
     );
   }
 
