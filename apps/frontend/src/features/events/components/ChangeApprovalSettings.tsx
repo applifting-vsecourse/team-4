@@ -89,7 +89,12 @@ export function ChangeApprovalSettings({
           </DialogHeader>
           <DialogFooter>
             <DialogClose asChild>
-              <Button type="button">Zavřít</Button>
+              <Button
+                type="button"
+                variant="outline"
+              >
+                Zavřít
+              </Button>
             </DialogClose>
           </DialogFooter>
         </DialogContent>
