@@ -13,6 +13,7 @@ import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventLockedAlert } from "@/features/events/components/EventLockedAlert"
+import { EventPublication } from "@/features/events/components/EventPublication"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { PaymentSettingsSection } from "@/features/events/components/PaymentSettingsSection"
 import { RegistrationSection } from "@/features/events/components/RegistrationSection"
@@ -108,6 +109,10 @@ function EventPage() {
           event={event}
         />
         <RegistrationSection
+          organizationId={organizationId}
+          event={event}
+        />
+        <EventPublication
           organizationId={organizationId}
           event={event}
         />

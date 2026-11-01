@@ -37,6 +37,7 @@ describe("readApiError", () => {
       code: "room_label_taken",
       field: "label",
       message: "Pokoj s tímto označením už v akci existuje.",
+      conflicts: [],
     })
   })
 
@@ -53,6 +54,17 @@ describe("readApiError", () => {
       code: null,
       field: null,
       message: null,
+      conflicts: [],
     })
+  })
+
+  it("reads the terms of a refused capacity change", async () => {
+    const conflicts = [
+      { termId: "t1", termLabel: "Turnus 1", proposedCapacity: 2, confirmedParticipants: 3 },
+    ]
+    expect(
+      readApiError(await failWith(409, { code: "capacity_below_confirmed", conflicts })).conflicts,
+    ).toEqual(conflicts)
+    expect(readApiError(await failWith(409, { conflicts: [{ termId: 1 }] })).conflicts).toEqual([])
   })
 })

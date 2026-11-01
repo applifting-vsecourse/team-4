@@ -11,7 +11,7 @@ import { definition } from "./support/ui"
 const terms = [
   { label: "Turnus", startDate: "2027-08-01", endDate: "2027-08-07", priceMinor: 100000 },
 ]
-const rooms = [{ label: "Chatka", bedCount: 1, terms: [0] }]
+const rooms = [{ label: "Chatka", baseBeds: 1, terms: [0] }]
 const REFUSED = "Odkaz už není platný: byl použit, vypršel nebo není správný. Vyžádejte si nový."
 
 test.afterAll(closeDb)

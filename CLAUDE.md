@@ -91,19 +91,30 @@ Use semantic tokens from `apps/frontend/src/styles/global.css` and follow the pr
 
 Assume the dev servers are up. If something is listening on the app's ports, that is this application: use it. Don't start a second instance, don't restart it, don't run `pnpm dev`.
 
-Don't reach for the browser to check your own work. Tests and type-checks are the evidence; open the running app when asked to, not on your own initiative.
+Don't reach for the browser to check your own work. Tests and type-checks are the evidence; open the running app when asked to, not on your own initiative. The exception is taking screenshots for a PR (see [PRs handling](#prs-handling)).
 
 ### Run `pnpm check-all` before handing work back
 
 Before you hand work to the developer (report it done, commit, push or open a PR), run `pnpm check-all` from the repo root and fix every failure. If you changed UI, stories or their fixtures, also run `pnpm check-stories` once at that point. CI additionally validates migrations and database constraints. Running single checks or Prettier from the root is not enough, because each app has its own Prettier config.
+
+Also confirm that CI will pass before every commit, not only before handoff. Run everything CI runs: `pnpm check-all`, `pnpm check-stories` for UI work, `pnpm backend test:db` against the local Postgres, and the Playwright e2e suite (`pnpm exec playwright test` in `apps/frontend`, which reuses the running dev servers). When a change alters UI labels, flows or an API contract, update the e2e specs and database specs that still use the old behaviour.
 
 ### Delivery gates
 
 Never commit or push changes directly to `main`. All changes to `main` must go
 through a pull request from another branch, including documentation and configuration changes.
 
-PR severity is selected by `severity:low`, `severity:standard` or `severity:high`;
-unlabelled PRs default to Standard. Mixed/unknown severity labels block delivery.
+Before opening a PR, classify its risk using the severity rules in
+[`docs/delivery-workflow.md`](docs/delivery-workflow.md) and apply exactly one
+matching label: `severity:low`, `severity:standard` or `severity:high`. Do not
+leave a PR unlabelled just because the delivery gate defaults it to Standard;
+that default is a fallback, not the author's classification. PR creation does
+not infer severity from changed files, so if the PR tool cannot set labels at
+creation, add the label immediately afterward and verify it is present. For
+mixed changes, use the highest applicable severity. Migrations, permissions or
+authentication, payments, destructive operations, deployment and approval-
+workflow changes require High; routine features, UI work and bug fixes use
+Standard. Mixed/unknown severity labels block delivery.
 Low requires CI but skips linked issues, requirements approval, code review and
 QA. It is limited to documentation/text and isolated test files; executable or
 configuration changes cannot use Low. Enforcement changes always require High.
@@ -142,7 +153,7 @@ Use `.github/pull_request_template.md` as the starting point for PR descriptions
 - `What`: describe the concrete problem and resulting behavior in one or two sentences; scale detail to the change.
 - `Why`: link the story or issue. Use `Closes #N` only when the PR completes that issue; use `Refs #N` for partial work or a broader parent that remains open.
 - `How to test`: include actionable reviewer steps when useful. Do not fill this section with agent verification logs, routine successful checks (`pnpm check-all`, formatting, link checks, `git diff --check`) or file inventories. CI reports routine automated results; mention failures or verification limitations only when they affect the review.
-- `Screenshots`: include relevant visuals for UI changes when available; do not fabricate evidence.
+- `Screenshots`: include relevant visuals for UI changes when available; do not fabricate evidence. For UI work, capture them from the running app (not Storybook) with a throwaway Playwright script that is not committed; show the relevant states, including errors. Commit the images to `docs/screenshots/<story-id>/` on the PR branch itself, without a separate assets branch, and embed them in the PR body with `https://github.com/<owner>/<repo>/blob/<commit-sha>/docs/screenshots/<story-id>/<file>.png?raw=true`. The commit counts as a new commit for review and QA.
 
 Code reviews must evaluate the PR's declared scope as well as its linked story. Treat the PR title and `What`/`Why` sections as the author's description of the slice being delivered, and use the issue for product context and relevant criteria. `Refs #N` explicitly means partial work: missing behavior that the PR says is deferred is not a blocker just because the broader issue requires it. `Closes #N` claims completion, so review the full issue scope. For either link type, block concrete regressions and defects in behavior the PR claims to deliver; do not infer that an inert or mocked design preview must persist data or call a backend when the PR explicitly says implementation comes later. If the PR's declared scope conflicts with the issue or is too vague to review, report the conflict as a note or ask the author to clarify instead of silently expanding the PR's scope.
 

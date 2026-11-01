@@ -18,6 +18,8 @@ const term = (
   label,
   startDate: "2027-07-01",
   endDate: "2027-07-07",
+  baseBeds: counts.capacity,
+  extraBeds: 0,
   ...counts,
 })
 
