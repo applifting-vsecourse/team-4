@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { Info, Loader2, RefreshCw, TriangleAlert } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -27,6 +28,7 @@ export type WaitlistConsent = {
   lostTerm: string
   /** The capacity was re-checked on execution and the result changed. */
   hasResultChanged?: boolean
+  /** Initial state of the consent checkbox. */
   isGiven?: boolean
 }
 
@@ -64,6 +66,7 @@ export function RegistrationChangeDialog({
   isStale = false,
   isSubmitting = false,
 }: RegistrationChangeDialogProps) {
+  const [isWaitlistConsentGiven, setIsWaitlistConsentGiven] = useState(waitlist?.isGiven ?? false)
   const isRequest = isApprovalRequired || isApprovalNewlyRequired
   const confirmLabel = isRequest
     ? "Odeslat žádost o schválení"
@@ -124,7 +127,13 @@ export function RegistrationChangeDialog({
             </Alert>
           ) : null}
 
-          {waitlist ? <WaitlistNotice {...waitlist} /> : null}
+          {waitlist ? (
+            <WaitlistNotice
+              {...waitlist}
+              isGiven={isWaitlistConsentGiven}
+              onGivenChange={setIsWaitlistConsentGiven}
+            />
+          ) : null}
         </div>
 
         <DialogFooter>
@@ -145,7 +154,7 @@ export function RegistrationChangeDialog({
             <Button
               type="button"
               variant={isCancellation && !isRequest ? "destructive" : "default"}
-              disabled={isSubmitting || (waitlist ? !waitlist.isGiven : false)}
+              disabled={isSubmitting || (waitlist ? !isWaitlistConsentGiven : false)}
             >
               {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
               {confirmLabel}
@@ -157,7 +166,13 @@ export function RegistrationChangeDialog({
   )
 }
 
-function WaitlistNotice({ targetTerm, lostTerm, hasResultChanged, isGiven }: WaitlistConsent) {
+function WaitlistNotice({
+  targetTerm,
+  lostTerm,
+  hasResultChanged,
+  isGiven,
+  onGivenChange,
+}: WaitlistConsent & { onGivenChange: (isGiven: boolean) => void }) {
   return (
     <div className="space-y-3">
       <Alert>
@@ -171,7 +186,8 @@ function WaitlistNotice({ targetTerm, lostTerm, hasResultChanged, isGiven }: Wai
       <Field orientation="horizontal">
         <Checkbox
           id="waitlist-consent"
-          defaultChecked={isGiven}
+          checked={isGiven}
+          onCheckedChange={(checked) => onGivenChange(checked === true)}
         />
         <FieldLabel htmlFor="waitlist-consent">
           Souhlasím, že v termínu {targetTerm} budu náhradník.

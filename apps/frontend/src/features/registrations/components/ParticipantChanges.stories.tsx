@@ -1,6 +1,7 @@
 import type { ComponentProps, ReactNode } from "react"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { ChevronLeft, LogOut, MapPin } from "lucide-react"
+import { expect, screen, userEvent } from "storybook/test"
 
 import { BrandMark } from "@/components/BrandMark"
 import { ThemeSwitcher } from "@/components/Header/ThemeSwitcher"
@@ -398,6 +399,12 @@ export const MoveToWaitlist: Story = {
     hasFinancialImpact: true,
     waitlist: { targetTerm: "Turnus 4", lostTerm: "Turnus 2" },
   }),
+  play: async () => {
+    const confirm = await screen.findByRole("button", { name: "Potvrdit změnu" })
+    await expect(confirm).toBeDisabled()
+    await userEvent.click(screen.getByRole("checkbox", { name: /Souhlasím/ }))
+    await expect(confirm).toBeEnabled()
+  },
 }
 
 /** Capacity re-checked on execution: the result is now a waitlist, the place stays until consent. */
