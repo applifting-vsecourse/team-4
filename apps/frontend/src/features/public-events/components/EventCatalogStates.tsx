@@ -1,8 +1,7 @@
 import { Link } from "@tanstack/react-router"
-import { CalendarX, SearchX } from "lucide-react"
+import { CalendarX, SearchX, TriangleAlert } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
-import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 
@@ -47,16 +46,21 @@ export function EventCatalogNoResults({ onClear }: { onClear: () => void }) {
 /** The catalog could not be loaded; never shown as an empty catalog. */
 export function EventCatalogError({ onRetry }: { onRetry: () => void }) {
   return (
-    <Alert variant="destructive">
-      <AlertTitle>Katalog se nepodařilo načíst</AlertTitle>
-      <div className="col-start-2">
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <TriangleAlert />
+        </EmptyMedia>
+        <EmptyTitle>Katalog se nepodařilo načíst</EmptyTitle>
+      </EmptyHeader>
+      <EmptyContent>
         <Button
           variant="outline"
           onClick={onRetry}
         >
           Zkusit znovu
         </Button>
-      </div>
-    </Alert>
+      </EmptyContent>
+    </Empty>
   )
 }

@@ -76,10 +76,10 @@ function CatalogPage({ children, filters }: { children: ReactNode; filters: Reac
   return (
     <div className="min-h-screen bg-background">
       <Header userMenu={<Button size="sm">Přihlásit se</Button>} />
-      <main className="mx-auto w-full max-w-4xl px-4 py-8">
+      <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8">
         <h1 className="text-h2">Katalog akcí</h1>
-        <div className="mt-6">{filters}</div>
-        <div className="mt-8">{children}</div>
+        {filters}
+        {children}
       </main>
     </div>
   )
