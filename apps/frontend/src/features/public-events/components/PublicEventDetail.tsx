@@ -1,0 +1,249 @@
+import { Mail, MapPin, Phone } from "lucide-react"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+// Veřejný katalog akcí → Detail akce (F55). Design only: every value is passed in.
+
+export type PublicEventPhoto = { src: string; alt: string }
+
+export type PublicEventDetailTerm = {
+  id: string
+  label: string
+  dates: string
+  // Already formatted, e.g. "2 400 Kč".
+  price: string
+  // Shown only when the organizer allows public free spots, e.g. "Volná místa: 12".
+  freeSpots?: string
+  // Capacity is full or zero: a registration still lands among the substitutes.
+  isWaitlist?: boolean
+}
+
+export type PublicEventContact = { name: string; email: string; phone?: string }
+
+export type PublicEventRegistrationStatus = "open" | "not-open" | "closed" | "no-terms"
+
+export type PublicEventDetailProps = {
+  name: string
+  organizationName: string
+  description: string
+  location: string
+  photos: PublicEventPhoto[]
+  terms: PublicEventDetailTerm[]
+  conditions: string[]
+  // The organizer left the public contact empty.
+  contact: PublicEventContact | null
+  registrationStatus: PublicEventRegistrationStatus
+  registrationHref: string
+}
+
+const STATUS_MESSAGES: Record<
+  Exclude<PublicEventRegistrationStatus, "open">,
+  { title: string; description: string }
+> = {
+  "not-open": {
+    title: "Registrace zatím není otevřená",
+    description: "Přihlášku bude možné odeslat, až organizátor registraci otevře.",
+  },
+  closed: {
+    title: "Registrace je uzavřená",
+    description: "Na tuto akci už nelze odeslat novou přihlášku.",
+  },
+  "no-terms": {
+    title: "Zatím se nelze přihlásit",
+    description: "Organizátor ještě nevypsal žádný termín.",
+  },
+}
+
+function PhotoGallery({ photos }: { photos: PublicEventPhoto[] }) {
+  const [first, ...rest] = photos
+  if (!first) return null
+  return (
+    <ul className="grid grid-cols-3 gap-2">
+      <li className="col-span-3">
+        <img
+          src={first.src}
+          alt={first.alt}
+          className="aspect-video w-full rounded-lg object-cover"
+        />
+      </li>
+      {rest.slice(0, 3).map((photo) => (
+        <li key={photo.src}>
+          <img
+            src={photo.src}
+            alt={photo.alt}
+            className="aspect-video w-full rounded-md object-cover"
+          />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function TermList({ terms }: { terms: PublicEventDetailTerm[] }) {
+  return (
+    <ul className="divide-y divide-border">
+      {terms.map((term) => (
+        <li
+          key={term.id}
+          className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
+        >
+          <div className="min-w-0">
+            <p className="font-medium break-words">{term.label}</p>
+            <p className="text-sm text-muted-foreground">{term.dates}</p>
+            <div className="mt-1 flex flex-wrap gap-1.5 empty:hidden">
+              {term.isWaitlist ? <Badge variant="warning">Náhradník</Badge> : null}
+              {term.freeSpots ? <Badge variant="outline">{term.freeSpots}</Badge> : null}
+            </div>
+          </div>
+          <p className="shrink-0 font-medium">{term.price}</p>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function RegistrationCard({
+  terms,
+  status,
+  href,
+}: {
+  terms: PublicEventDetailTerm[]
+  status: PublicEventRegistrationStatus
+  href: string
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <h2 className="text-h4">Termíny a ceny</h2>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {terms.length > 0 ? <TermList terms={terms} /> : null}
+          {status === "open" ? (
+            <Button
+              asChild
+              className="w-full"
+            >
+              <a href={href}>Přihlásit se</a>
+            </Button>
+          ) : (
+            <Alert>
+              <AlertTitle>{STATUS_MESSAGES[status].title}</AlertTitle>
+              <AlertDescription>{STATUS_MESSAGES[status].description}</AlertDescription>
+            </Alert>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function ContactBlock({ contact }: { contact: PublicEventContact | null }) {
+  if (!contact) return <p className="text-sm">Organizátor veřejný kontakt neuvedl.</p>
+  return (
+    <div className="space-y-1 text-sm">
+      <p className="font-medium">{contact.name}</p>
+      <p className="flex items-center gap-2">
+        <Mail
+          aria-hidden
+          className="size-4 shrink-0"
+        />
+        <a
+          href={`mailto:${contact.email}`}
+          className="break-all underline"
+        >
+          {contact.email}
+        </a>
+      </p>
+      {contact.phone ? (
+        <p className="flex items-center gap-2">
+          <Phone
+            aria-hidden
+            className="size-4 shrink-0"
+          />
+          <a
+            href={`tel:${contact.phone.replaceAll(" ", "")}`}
+            className="underline"
+          >
+            {contact.phone}
+          </a>
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+export function PublicEventDetail({
+  name,
+  organizationName,
+  description,
+  location,
+  photos,
+  terms,
+  conditions,
+  contact,
+  registrationStatus,
+  registrationHref,
+}: PublicEventDetailProps) {
+  return (
+    <article className="grid gap-8 md:grid-cols-3">
+      <div className="min-w-0 space-y-8 md:col-span-2">
+        <header className="space-y-2">
+          <h1 className="text-h2 break-words">{name}</h1>
+          <p className="text-sm font-medium">{organizationName}</p>
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <MapPin
+              aria-hidden
+              className="size-4 shrink-0"
+            />
+            <span className="min-w-0 break-words">{location}</span>
+          </p>
+        </header>
+        <PhotoGallery photos={photos} />
+        <section aria-labelledby="event-description">
+          <h2
+            id="event-description"
+            className="mb-3 text-h4"
+          >
+            O akci
+          </h2>
+          <p className="max-w-prose text-sm whitespace-pre-line">{description}</p>
+        </section>
+        <section aria-labelledby="event-conditions">
+          <h2
+            id="event-conditions"
+            className="mb-3 text-h4"
+          >
+            Podmínky účasti
+          </h2>
+          <ul className="max-w-prose list-disc space-y-1 pl-5 text-sm">
+            {conditions.map((condition) => (
+              <li key={condition}>{condition}</li>
+            ))}
+          </ul>
+        </section>
+        <section aria-labelledby="event-contact">
+          <h2
+            id="event-contact"
+            className="mb-3 text-h4"
+          >
+            Kontakt na organizátora
+          </h2>
+          <ContactBlock contact={contact} />
+        </section>
+      </div>
+      <aside className="md:sticky md:top-20 md:self-start">
+        <RegistrationCard
+          terms={terms}
+          status={registrationStatus}
+          href={registrationHref}
+        />
+      </aside>
+    </article>
+  )
+}
