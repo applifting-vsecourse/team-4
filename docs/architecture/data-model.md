@@ -22,7 +22,7 @@ Context: [T1 issue #74](https://github.com/applifting-vsecourse/team-4/issues/74
 | R1  | An organizer owns several organizations. All data belongs to exactly one organization, and foreign data is unreachable for reads and writes.                                                                  | S2-02, S2-03, F41 |
 | R2  | An event has terms with calendar dates (both ends inclusive), a price in CZK (≥ 0) and **no overlap** within the event.                                                                                       | S2-04             |
 | R3  | Event name, description, location, terms and prices are locked from the first opening onward.                                                                                                                 | S2-04, S2-06      |
-| R4  | Rooms belong to one event, have a unique label, a positive bed count and availability per term. Capacity of a term = Σ beds of rooms available in it.                                                         | S2-05             |
+| R4  | Rooms belong to one event and have a unique label. Availability, base beds and extra beds are set per room and term. Capacity of a term = Σ (base beds + extra beds) of rooms available in it.                | S2-05             |
 | R5  | Room edits must not drop any term's capacity below its confirmed count.                                                                                                                                       | S2-05             |
 | R6  | A registration is always saved. Each selected term is independently _confirmed_ (consumes a bed) or _waitlisted_ (consumes nothing). There is **no aggregate status that hides a mixed result**.              | S2-08, T1         |
 | R7  | Concurrent submissions never confirm more people than the capacity.                                                                                                                                           | S2-08, F53        |
@@ -64,7 +64,7 @@ erDiagram
 | `OrganizationMember`                            | `organization_member`                            | User ↔ organization with a role. Sprint 2 has only `owner`.                                       |
 | `Event`                                         | `event`                                          | Event, lifecycle state, payment configuration for **new** registrations.                          |
 | `EventTerm`                                     | `event_term`                                     | Dated run with price. Named _EventTerm_ so it does not collide with "terms and conditions" (F07). |
-| `Room`                                          | `room`                                           | Accommodation unit with a bed count.                                                              |
+| `Room`                                          | `room`                                           | Accommodation unit; its beds and availability are per term.                                       |
 | `RoomTermAvailability`                          | `room_term_availability`                         | Which rooms count towards which term's capacity.                                                  |
 | `ParticipantAccount`                            | `participant_account`                            | Participant identity = normalized e-mail.                                                         |
 | `ParticipantMagicLink` / `ParticipantSession`   | `participant_magic_link` / `participant_session` | Passwordless participant access, separate from BetterAuth.                                        |
@@ -171,7 +171,7 @@ erDiagram
 Capacity is **derived**, never stored:
 
 ```sql
-capacity(term)  = Σ room.bedCount  for rooms in room_term_availability(term)
+capacity(term)  = Σ (baseBeds + extraBeds)  for rows in room_term_availability(term) with isAvailable
 confirmed(term) = count(registration_term WHERE termId = term AND status = 'confirmed')
 free(term)      = capacity − confirmed
 waitlisted(term)= count(registration_term WHERE termId = term AND status = 'waitlisted')
@@ -381,14 +381,14 @@ hundreds of registrations, do not justify stored totals.
 
 ### EventTerm, Room, RoomTermAvailability
 
-| Field                          | Type                              | Notes                                                                                                                     |
-| ------------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `event_term.label`             | varchar(100)                      | Free text ("1. turnus").                                                                                                  |
-| `event_term.startDate/endDate` | date                              | Inclusive, no overlap per event (DB-enforced).                                                                            |
-| `event_term.priceMinor`        | int ≥ 0                           | Haléře.                                                                                                                   |
-| `room.label`                   | varchar(100)                      | `UNIQUE (eventId, label)`. Compare trimmed. Case-insensitive uniqueness would need a `lower(label)` unique index. See Q4. |
-| `room.bedCount`                | int > 0                           | The same count in all terms. Individual beds are not modelled.                                                            |
-| `room_term_availability`       | PK `(roomId, termId)` + `eventId` | The composite FKs pin room and term to the same event.                                                                    |
+| Field                                           | Type                              | Notes                                                                                                                     |
+| ----------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `event_term.label`                              | varchar(100)                      | Free text ("1. turnus").                                                                                                  |
+| `event_term.startDate/endDate`                  | date                              | Inclusive, no overlap per event (DB-enforced).                                                                            |
+| `event_term.priceMinor`                         | int ≥ 0                           | Haléře.                                                                                                                   |
+| `room.label`                                    | varchar(100)                      | `UNIQUE (eventId, label)`. Compare trimmed. Case-insensitive uniqueness would need a `lower(label)` unique index. See Q4. |
+| `room_term_availability.baseBeds`, `.extraBeds` | int ≥ 0                           | Per room and term; kept while `isAvailable` is false, which adds no places. Individual beds are not modelled.             |
+| `room_term_availability`                        | PK `(roomId, termId)` + `eventId` | The composite FKs pin room and term to the same event.                                                                    |
 
 ### Registration and RegistrationTerm
 
@@ -580,7 +580,6 @@ model Room {
   id        String   @id @default(uuid(7)) @db.Uuid
   eventId   String   @db.Uuid
   label     String   @db.VarChar(100)
-  bedCount  Int
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
@@ -801,7 +800,8 @@ ALTER TABLE "event_term"
   );
 
 -- room
-ALTER TABLE "room" ADD CONSTRAINT room_bed_count_chk CHECK ("bedCount" > 0);
+ALTER TABLE "room_term_availability" ADD CONSTRAINT room_term_availability_base_beds_chk CHECK ("baseBeds" >= 0);
+ALTER TABLE "room_term_availability" ADD CONSTRAINT room_term_availability_extra_beds_chk CHECK ("extraBeds" >= 0);
 
 -- registration
 ALTER TABLE "registration"

@@ -6,11 +6,14 @@ check the implementation being merged.
 
 ## Severity and required gates
 
-Select one PR label: `severity:low`, `severity:standard` or `severity:high`.
-No severity label means Standard. Multiple or unknown `severity:` labels block
-merging. Classify by risk and use the highest level in mixed changes. The author
-sets the label; collaborators may escalate it. The gate reads live labels and
-re-evaluates on label changes, pushes, reviews and scheduled reconciliation.
+The PR author must classify risk and apply exactly one PR label before handing
+the PR off: `severity:low`, `severity:standard` or `severity:high`. PR creation
+does not infer severity from changed files; if the creation tool cannot set a
+label, add it immediately afterward and verify it is present. No severity label
+means Standard only as a gate fallback, not as the author's classification.
+Multiple or unknown `severity:` labels block merging. Use the highest level in
+mixed changes. Collaborators may escalate the label. The gate reads live labels
+and re-evaluates on label changes, pushes, reviews and scheduled reconciliation.
 
 | Gate                                     | Low      | Standard (default) | High                               |
 | ---------------------------------------- | -------- | ------------------ | ---------------------------------- |

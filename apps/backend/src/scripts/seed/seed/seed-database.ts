@@ -86,7 +86,7 @@ interface SeedEvent {
     endDate: string;
     priceMinor: number;
   }[];
-  rooms: { id: string; label: string; bedCount: number; termIds: string[] }[];
+  rooms: { id: string; label: string; baseBeds: number; termIds: string[] }[];
 }
 
 const ensureEvent = async (
@@ -130,7 +130,6 @@ const ensureEvent = async (
         id: room.id,
         eventId: event.id,
         label: room.label,
-        bedCount: room.bedCount,
       },
       update: {},
     });
@@ -139,6 +138,7 @@ const ensureEvent = async (
         roomId: room.id,
         termId,
         eventId: event.id,
+        baseBeds: room.baseBeds,
       })),
       skipDuplicates: true,
     });
@@ -297,15 +297,15 @@ export const seedDatabase = async (
       },
     ],
     rooms: [
-      { id: id(121), label: 'Chatka 1', bedCount: 2, termIds: [id(111)] },
-      { id: id(122), label: 'Chatka 2', bedCount: 3, termIds: [id(111)] },
+      { id: id(121), label: 'Chatka 1', baseBeds: 2, termIds: [id(111)] },
+      { id: id(122), label: 'Chatka 2', baseBeds: 3, termIds: [id(111)] },
       {
         id: id(123),
         label: 'Pokoj u kuchyně',
-        bedCount: 1,
+        baseBeds: 1,
         termIds: [id(112)],
       },
-      { id: id(124), label: 'Klubovna', bedCount: 10, termIds: [id(113)] },
+      { id: id(124), label: 'Klubovna', baseBeds: 10, termIds: [id(113)] },
     ],
   };
   const autumnWeekend: SeedEvent = {
@@ -345,7 +345,7 @@ export const seedDatabase = async (
       },
     ],
     rooms: [
-      { id: id(142), label: 'Tělocvična', bedCount: 20, termIds: [id(141)] },
+      { id: id(142), label: 'Tělocvična', baseBeds: 20, termIds: [id(141)] },
     ],
   };
   const clubDraft: SeedEvent = {
@@ -386,7 +386,7 @@ export const seedDatabase = async (
       },
     ],
     rooms: [
-      { id: id(162), label: 'Podkroví', bedCount: 4, termIds: [id(161)] },
+      { id: id(162), label: 'Podkroví', baseBeds: 4, termIds: [id(161)] },
     ],
   };
   for (const event of [

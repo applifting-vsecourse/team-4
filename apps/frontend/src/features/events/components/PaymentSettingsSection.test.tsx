@@ -27,6 +27,7 @@ const EVENT: EventDetail = {
   terms: [],
   paymentSettings: null,
   publicId: "abcdefghijkl",
+  isPublished: false,
   openingBlockers: ["terms", "paymentSettings"],
 }
 

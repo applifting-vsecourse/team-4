@@ -128,8 +128,12 @@ const ACCOUNT = {
 };
 const room = (termIds: string[]): object => ({
   label: 'Podvržený pokoj',
-  bedCount: 9,
-  termIds,
+  terms: termIds.map((termId) => ({
+    termId,
+    isAvailable: true,
+    baseBeds: 9,
+    extraBeds: 0,
+  })),
 });
 
 /** A draft event, so every write is allowed to its owner. */
@@ -156,7 +160,7 @@ const eventIn = async (
     organizationId,
     status: 'draft',
     terms: [{ startDate: '2027-07-01', endDate: '2027-07-07', label }],
-    rooms: [{ bedCount: 2, termIndexes: [0], label: `Pokoj ${label}` }],
+    rooms: [{ baseBeds: 2, termIndexes: [0], label: `Pokoj ${label}` }],
   });
   // A participant, so registrations are part of what must stay unchanged.
   await createRegistration(prisma, {
@@ -478,7 +482,7 @@ describe('identifiers swapped in the body', () => {
         body: {
           statusCode: 400,
           code: 'term_unknown',
-          field: 'termIds',
+          field: 'terms',
           message: 'Dostupnost lze vybrat jen z termínů této akce.',
         },
       });

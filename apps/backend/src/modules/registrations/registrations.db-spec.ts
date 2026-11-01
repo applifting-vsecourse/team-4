@@ -165,7 +165,7 @@ beforeEach(async () => {
 
 describe('saving a registration', () => {
   it('stores the submission with a decision per term and records one confirmation e-mail', async () => {
-    const f = await eventWith({ rooms: [{ bedCount: 1, termIndexes: [0] }] });
+    const f = await eventWith({ rooms: [{ baseBeds: 1, termIndexes: [0] }] });
     const body = form(f.termIds, { email: '  Jana.Novakova@Example.TEST ' });
 
     const response = await submit(f.publicId, body);
@@ -237,7 +237,7 @@ describe('saving a registration', () => {
   it('confirms a free term at 0 Kč and lets a waitlisted participant hold no bed', async () => {
     const f = await eventWith({
       terms: [{ ...T1, priceMinor: 0 }],
-      rooms: [{ bedCount: 1, termIndexes: [0] }],
+      rooms: [{ baseBeds: 1, termIndexes: [0] }],
     });
 
     const first = await submit(f.publicId, form(f.termIds));
@@ -253,7 +253,7 @@ describe('saving a registration', () => {
 
   it('confirms a selection of one term only in that term', async () => {
     const f = await eventWith({
-      rooms: [{ bedCount: 1, termIndexes: [0, 1] }],
+      rooms: [{ baseBeds: 1, termIndexes: [0, 1] }],
     });
 
     await submit(f.publicId, form([f.termIds[1]]));
@@ -267,7 +267,7 @@ describe('saving a registration', () => {
 });
 
 describe('payment obligation (S2-16)', () => {
-  const oneBed = [{ bedCount: 1, termIndexes: [0] }];
+  const oneBed = [{ baseBeds: 1, termIndexes: [0] }];
 
   it('owes the confirmed terms only and returns amount, account, VS and reminder date', async () => {
     const f = await eventWith({
@@ -324,7 +324,7 @@ describe('payment obligation (S2-16)', () => {
   );
 
   it('gives every registration its own VS', async () => {
-    const f = await eventWith({ rooms: [{ bedCount: 5, termIndexes: [0] }] });
+    const f = await eventWith({ rooms: [{ baseBeds: 5, termIndexes: [0] }] });
 
     const responses = await Promise.all(
       [1, 2, 3].map(() => submit(f.publicId, form(f.termIds))),
@@ -374,7 +374,7 @@ describe('the last bed under concurrency', () => {
   it('confirms exactly one of many simultaneous registrations and saves them all', async () => {
     const f = await eventWith({
       terms: [T1],
-      rooms: [{ bedCount: 1, termIndexes: [0] }],
+      rooms: [{ baseBeds: 1, termIndexes: [0] }],
     });
 
     const responses = await Promise.all(
@@ -393,15 +393,19 @@ describe('the last bed under concurrency', () => {
   it('never confirms more than the capacity left by a concurrent room change', async () => {
     const f = await eventWith({
       terms: [T1],
-      rooms: [{ bedCount: 2, termIndexes: [0] }],
+      rooms: [{ baseBeds: 2, termIndexes: [0] }],
     });
     const roomId = f.rooms[0].id;
 
     const [shrink, ...submits] = await Promise.allSettled([
       rooms.update(f.scope, roomId, {
         label: 'Room 1',
-        bedCount: 1,
-        termIds: f.termIds,
+        terms: f.termIds.map((termId) => ({
+          termId,
+          isAvailable: true,
+          baseBeds: 1,
+          extraBeds: 0,
+        })),
       }),
       ...Array.from({ length: 4 }, () => submit(f.publicId, form(f.termIds))),
     ]);
@@ -412,15 +416,17 @@ describe('the last bed under concurrency', () => {
         value: { status: 201 },
       });
     }
-    const room = await prisma.room.findUniqueOrThrow({ where: { id: roomId } });
+    const { baseBeds } = await prisma.roomTermAvailability.findUniqueOrThrow({
+      where: { roomId_termId: { roomId, termId: f.termIds[0] } },
+    });
     const confirmed = await confirmedIn(f.termIds[0]);
-    expect(confirmed).toBeLessThanOrEqual(room.bedCount);
+    expect(confirmed).toBeLessThanOrEqual(baseBeds);
     // The shrink either went first (1 confirmation) or was refused because
     // two beds were already confirmed.
     expect(
       shrink.status === 'fulfilled'
-        ? room.bedCount === 1 && confirmed === 1
-        : room.bedCount === 2 && confirmed === 2,
+        ? baseBeds === 1 && confirmed === 1
+        : baseBeds === 2 && confirmed === 2,
     ).toBe(true);
   });
 });
@@ -428,7 +434,7 @@ describe('the last bed under concurrency', () => {
 describe('one registration per e-mail and event', () => {
   it('saves only one of simultaneous submissions of the same e-mail, in any case or spacing', async () => {
     const f = await eventWith({
-      rooms: [{ bedCount: 5, termIndexes: [0, 1] }],
+      rooms: [{ baseBeds: 5, termIndexes: [0, 1] }],
     });
     const email = `dup-${randomUUID().slice(0, 8)}@example.test`;
     const variants = [email, email.toUpperCase(), ` ${email} `, email];
@@ -456,7 +462,7 @@ describe('one registration per e-mail and event', () => {
   });
 
   it('does not change the existing registration and reveals nothing of it', async () => {
-    const f = await eventWith({ rooms: [{ bedCount: 1, termIndexes: [0] }] });
+    const f = await eventWith({ rooms: [{ baseBeds: 1, termIndexes: [0] }] });
     const original = await submit(f.publicId, form([f.termIds[0]]));
 
     const again = await submit(
@@ -499,13 +505,13 @@ describe('one registration per e-mail and event', () => {
 
 describe('repeating a submission', () => {
   it('returns the stored result for the same key and content, even after capacity and state changed', async () => {
-    const f = await eventWith({ rooms: [{ bedCount: 1, termIndexes: [0] }] });
+    const f = await eventWith({ rooms: [{ baseBeds: 1, termIndexes: [0] }] });
     const body = form(f.termIds);
     const original = await submit(f.publicId, body);
 
     // Capacity grows (T2 would now confirm) and the event leaves `open`.
     await prisma.room.create({
-      data: { eventId: f.event.id, label: 'Extra', bedCount: 3 },
+      data: { eventId: f.event.id, label: 'Extra' },
     });
     await prisma.event.update({
       where: { id: f.event.id },
@@ -528,7 +534,7 @@ describe('repeating a submission', () => {
 
   it('refuses the same key with changed content and keeps what was saved', async () => {
     const f = await eventWith({
-      rooms: [{ bedCount: 2, termIndexes: [0, 1] }],
+      rooms: [{ baseBeds: 2, termIndexes: [0, 1] }],
     });
     const body = form([f.termIds[0]]);
     const original = await submit(f.publicId, body);
@@ -552,7 +558,7 @@ describe('repeating a submission', () => {
   });
 
   it('saves one registration when the same submission arrives several times at once', async () => {
-    const f = await eventWith({ rooms: [{ bedCount: 1, termIndexes: [0] }] });
+    const f = await eventWith({ rooms: [{ baseBeds: 1, termIndexes: [0] }] });
     const body = form(f.termIds);
 
     const responses = await Promise.all(
@@ -608,7 +614,7 @@ describe('refused submissions save nothing', () => {
   });
 
   it('refuses a term of another event', async () => {
-    const f = await eventWith({ rooms: [{ bedCount: 1, termIndexes: [0] }] });
+    const f = await eventWith({ rooms: [{ baseBeds: 1, termIndexes: [0] }] });
     const other = await eventWith();
     const body = form([f.termIds[0], other.termIds[0]]);
 
@@ -627,7 +633,7 @@ describe('refused submissions save nothing', () => {
 
   it('rolls everything back when saving fails part-way and lets the retry succeed', async () => {
     const f = await eventWith({
-      rooms: [{ bedCount: 1, termIndexes: [0, 1] }],
+      rooms: [{ baseBeds: 1, termIndexes: [0, 1] }],
     });
     const body = form(f.termIds, {
       email: `fail-${randomUUID().slice(0, 8)}@example.test`,
@@ -743,7 +749,7 @@ describe('confirmation e-mail (S2-15)', () => {
     new URL(url).searchParams.get('token') as string;
 
   it('sends the saved result to the contact e-mail, with a link that opens the participant list', async () => {
-    const f = await eventWith({ rooms: [{ bedCount: 1, termIndexes: [0] }] });
+    const f = await eventWith({ rooms: [{ baseBeds: 1, termIndexes: [0] }] });
     const email = `mixed-${randomUUID().slice(0, 8)}@example.test`;
 
     const response = await submit(f.publicId, form(f.termIds, { email }));
@@ -805,7 +811,7 @@ describe('confirmation e-mail (S2-15)', () => {
     await submit(waitlisted.publicId, form(waitlisted.termIds));
     const free = await eventWith({
       terms: [{ ...T1, priceMinor: 0 }],
-      rooms: [{ bedCount: 1, termIndexes: [0] }],
+      rooms: [{ baseBeds: 1, termIndexes: [0] }],
     });
     const freeResponse = await submit(free.publicId, form(free.termIds));
     await confirmation.settle();
@@ -821,7 +827,7 @@ describe('confirmation e-mail (S2-15)', () => {
   });
 
   it('keeps the registration and records a failure without the token when sending fails', async () => {
-    const f = await eventWith({ rooms: [{ bedCount: 1, termIndexes: [0] }] });
+    const f = await eventWith({ rooms: [{ baseBeds: 1, termIndexes: [0] }] });
     mailbox.failWith = 'provider rejected the message';
     mailbox.echoBodyInError = true;
 
@@ -854,7 +860,7 @@ describe('confirmation e-mail (S2-15)', () => {
 
   it('does not send for a repeat, a duplicate or a rolled-back submission', async () => {
     const f = await eventWith({
-      rooms: [{ bedCount: 2, termIndexes: [0, 1] }],
+      rooms: [{ baseBeds: 2, termIndexes: [0, 1] }],
     });
     const body = form(f.termIds);
 

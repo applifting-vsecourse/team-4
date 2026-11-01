@@ -5,6 +5,20 @@ import {
 } from '@/modules/rooms/domain/room';
 import { ApiProperty } from '@nestjs/swagger';
 
+export class RoomTermDto {
+  @ApiProperty({ format: 'uuid' })
+  termId!: string;
+
+  @ApiProperty()
+  isAvailable!: boolean;
+
+  @ApiProperty()
+  baseBeds!: number;
+
+  @ApiProperty()
+  extraBeds!: number;
+}
+
 export class RoomDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
@@ -12,22 +26,22 @@ export class RoomDto {
   @ApiProperty()
   label!: string;
 
-  @ApiProperty({ description: 'Beds of the whole room in each term it is in.' })
-  bedCount!: number;
-
   @ApiProperty({
-    type: [String],
-    format: 'uuid',
-    description: 'Terms the room is available in; empty means in none.',
+    type: () => [RoomTermDto],
+    description: 'Settings in the terms the room has any; others are not set.',
   })
-  termIds!: string[];
+  terms!: RoomTermDto[];
 
   static from(model: RoomModel): RoomDto {
     return {
       id: model.id,
       label: model.label,
-      bedCount: model.bedCount,
-      termIds: model.termIds,
+      terms: model.terms.map((term) => ({
+        termId: term.termId,
+        isAvailable: term.isAvailable,
+        baseBeds: term.baseBeds,
+        extraBeds: term.extraBeds,
+      })),
     };
   }
 }
@@ -45,9 +59,15 @@ export class TermOccupancyDto {
   @ApiProperty({ format: 'date' })
   endDate!: string;
 
+  @ApiProperty({ description: 'Base beds of the rooms available in the term.' })
+  baseBeds!: number;
+
   @ApiProperty({
-    description: 'Sum of beds of the rooms available in the term.',
+    description: 'Extra beds of the rooms available in the term.',
   })
+  extraBeds!: number;
+
+  @ApiProperty({ description: 'Base beds plus extra beds.' })
   capacity!: number;
 
   @ApiProperty({ description: 'Participants confirmed in the term.' })
@@ -69,6 +89,8 @@ export class TermOccupancyDto {
       label: model.label,
       startDate: model.startDate,
       endDate: model.endDate,
+      baseBeds: model.baseBeds,
+      extraBeds: model.extraBeds,
       capacity: model.capacity,
       confirmed: model.confirmed,
       free: model.free,

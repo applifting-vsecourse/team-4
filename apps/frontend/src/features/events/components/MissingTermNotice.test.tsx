@@ -33,6 +33,7 @@ const EVENT: EventDetail = {
   terms: [],
   paymentSettings: null,
   publicId: "abcdefghijkl",
+  isPublished: false,
   openingBlockers: [],
 }
 const TERM: EventDetail["terms"][number] = {

@@ -95,6 +95,13 @@ export class LockedEvent {
     });
   }
 
+  async setPublished(isPublished: boolean): Promise<void> {
+    await this.tx.event.update({
+      where: { id: this.eventId },
+      data: { isPublished },
+    });
+  }
+
   async updatePaymentSettings(settings: PaymentSettings): Promise<void> {
     await this.tx.event.update({
       where: { id: this.eventId },
@@ -219,6 +226,7 @@ export class EventsRepository {
         location: true,
         status: true,
         firstOpenedAt: true,
+        isPublished: true,
         bankAccountPrefix: true,
         bankAccountNumber: true,
         bankCode: true,
@@ -232,7 +240,7 @@ export class EventsRepository {
             endDate: true,
             priceMinor: true,
             roomAvailabilities: {
-              select: { room: { select: { bedCount: true } } },
+              select: { isAvailable: true, baseBeds: true, extraBeds: true },
             },
           },
         },
@@ -254,15 +262,12 @@ export class EventsRepository {
             fromDate(term.startDate),
             fromDate(term.endDate),
             term.priceMinor,
-            capacityFromBeds(
-              term.roomAvailabilities.map(
-                (availability) => availability.room.bedCount,
-              ),
-            ),
+            capacityFromBeds(term.roomAvailabilities),
           ),
       ),
       toPaymentSettings(event),
       event.publicId,
+      event.isPublished,
     );
   }
 

@@ -59,7 +59,8 @@ export interface TermInput {
 }
 
 export interface RoomInput {
-  bedCount: number;
+  baseBeds: number;
+  extraBeds?: number;
   /** Indexes into `terms` in which the room is available. */
   termIndexes: number[];
   label?: string;
@@ -121,7 +122,6 @@ export const createEvent = async (
         data: {
           eventId: event.id,
           label: room.label ?? `Room ${index + 1}`,
-          bedCount: room.bedCount,
         },
       }),
     );
@@ -132,6 +132,8 @@ export const createEvent = async (
         roomId: rooms[index].id,
         termId: terms[termIndex].id,
         eventId: event.id,
+        baseBeds: room.baseBeds,
+        extraBeds: room.extraBeds ?? 0,
       })),
     });
   }
