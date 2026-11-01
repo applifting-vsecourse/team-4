@@ -184,7 +184,12 @@ type Story = StoryObj<typeof meta>
 /** Saved threshold: changes from 14 days before each term's start need approval. */
 export const Saved: Story = {}
 
-/** Default for a new event: 0 days, approval starts on the day the term begins. */
+/** Default for a new event: nothing set, the input is empty and no change needs approval. */
+export const NotSet: Story = {
+  args: { savedSetting: "Žádné změny přihlášek nepodléhají vašemu schválení", days: "" },
+}
+
+/** Zero days: approval starts on the day the term begins. */
 export const Zero: Story = {
   args: { savedSetting: "Schvalujete změny přihlášek ode dne začátku termínu", days: "0" },
 }

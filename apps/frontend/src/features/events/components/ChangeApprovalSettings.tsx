@@ -15,10 +15,13 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
 export type ChangeApprovalSettingsProps = {
-  /** The saved setting in words, e.g. "Schvalujete změny přihlášek od 14 dní před začátkem termínu". */
+  /**
+   * The saved setting in words, e.g. "Schvalujete změny přihlášek od 14 dní před začátkem termínu",
+   * or "Žádné změny přihlášek nepodléhají vašemu schválení" when nothing is set.
+   */
   savedSetting: string
-  /** The entered number of days; the default for a new event is "0". */
-  days: string
+  /** The entered number of days; empty by default, which means no approval is required. */
+  days?: string
   daysError?: string
   errorMessage?: string
   isSaving?: boolean
@@ -29,7 +32,7 @@ export type ChangeApprovalSettingsProps = {
 // Placed in the existing Přihlašování card. Design only: every value is passed in.
 export function ChangeApprovalSettings({
   savedSetting,
-  days,
+  days = "",
   daysError,
   errorMessage,
   isSaving = false,
@@ -64,6 +67,7 @@ export function ChangeApprovalSettings({
             id="change-approval-days"
             inputMode="numeric"
             autoComplete="off"
+            placeholder="např. 14 dní"
             defaultValue={days}
             aria-invalid={daysError ? true : undefined}
           />
