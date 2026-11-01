@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { IllustratedLandingSections } from "@/poc/landing/IllustratedLandingSections"
 
 // POC redesign of the landing page. Two audiences, one page: organizers (dark panel, leads)
 // and participants (light panel, dropped lower). Colours come only from semantic tokens so the
@@ -96,7 +97,7 @@ export function LandingRedesign() {
       lang="cs"
       className="min-h-svh bg-background text-foreground"
     >
-      <header className="border-b border-border">
+      <header className="sticky top-0 z-50 border-b border-border bg-background">
         <div className={`${WRAP} flex items-center justify-between gap-3 py-4`}>
           <Link
             to={ROUTES.home}
@@ -176,7 +177,7 @@ export function LandingRedesign() {
         {/* Hero: dominant headline left, tilted event ticket right. */}
         <section
           aria-labelledby="hero"
-          className="pt-12 pb-16 md:pt-24 md:pb-28"
+          className="pt-12 pb-12 md:pt-24 md:pb-16"
         >
           <div className={`${WRAP} grid items-center gap-14 md:grid-cols-12`}>
             <div className="flex flex-col gap-8 md:col-span-7">
@@ -185,7 +186,7 @@ export function LandingRedesign() {
               </p>
               <h1
                 id="hero"
-                className="text-6xl leading-tight font-semibold tracking-tighter text-balance md:text-8xl"
+                className="text-6xl leading-tight font-semibold tracking-tighter text-balance md:text-7xl lg:text-8xl"
               >
                 Akce bez{" "}
                 <mark className="mt-3 inline-block bg-primary px-3 text-primary-foreground">
@@ -251,6 +252,8 @@ export function LandingRedesign() {
           </div>
         </section>
 
+        <IllustratedLandingSections />
+
         {/* Two audiences: staggered, deliberately unequal. */}
         <section
           aria-labelledby="dve-strany"
@@ -264,7 +267,7 @@ export function LandingRedesign() {
               Jedna akce, dvě strany. Každá dostane, co potřebuje.
             </h2>
             <div className="grid items-start gap-6 md:grid-cols-12">
-              <article className="flex flex-col gap-8 rounded-xl bg-foreground p-8 text-background md:col-span-7 md:p-10">
+              <article className="flex flex-col gap-7 rounded-xl border-2 border-background bg-foreground p-6 text-background md:col-span-7 md:p-8">
                 <p className={LABEL}>Pro pořadatele</p>
                 <h3 className="text-3xl font-semibold tracking-tight text-balance md:text-4xl">
                   Celá akce v jedné aplikaci, bez tabulek a e-mailových řetězců.
@@ -306,7 +309,7 @@ export function LandingRedesign() {
                 </div>
               </article>
 
-              <article className="flex flex-col gap-8 rounded-xl border border-border bg-card p-8 md:col-span-5 md:mt-24 md:p-10">
+              <article className="flex flex-col gap-7 rounded-xl border-2 border-foreground bg-card p-6 md:col-span-5 md:p-8">
                 <p className={`${LABEL} text-muted-foreground`}>Pro účastníky</p>
                 <h3 className="text-2xl font-semibold tracking-tight text-balance md:text-3xl">
                   Najdete akci, přihlásíte se a víte, na čem jste.
@@ -368,9 +371,19 @@ export function LandingRedesign() {
                   Kam se letos vydat?
                 </h2>
               </div>
-              <p className="max-w-sm text-foreground">
-                Akce, které pořadatelé zveřejnili. Vyberte termín a přihlaste se.
-              </p>
+              <div className="flex max-w-sm flex-col items-start gap-4">
+                <p className="text-foreground">
+                  Akce, které pořadatelé zveřejnili. Vyberte termín a přihlaste se.
+                </p>
+                <Button
+                  type="button"
+                  aria-disabled="true"
+                  size="lg"
+                >
+                  Procházet katalog
+                  <ArrowRight aria-hidden />
+                </Button>
+              </div>
             </div>
             <ul className="grid gap-6 md:grid-cols-3">
               {CATALOGUE.map((event) => (
@@ -443,30 +456,35 @@ export function LandingRedesign() {
 
         <section
           aria-labelledby="cta-nadpis"
-          className="pb-16 md:pb-28"
+          className="pb-12 md:pb-20"
         >
           <div className={WRAP}>
-            <div className="flex flex-col items-start justify-between gap-8 rounded-xl bg-primary p-8 text-primary-foreground md:flex-row md:items-center md:p-14">
+            <div className="flex flex-col items-center gap-6 rounded-xl bg-foreground px-6 py-10 text-center text-background md:px-12 md:py-14">
               <h2
                 id="cta-nadpis"
-                className="max-w-xl text-4xl font-semibold tracking-tight text-balance md:text-5xl"
+                className="max-w-2xl text-4xl font-semibold tracking-tight text-balance md:text-5xl"
               >
-                Pořádáte, nebo hledáte akci? Začněte tady.
+                Připraveni na akci bez chaosu?
               </h2>
+              <p className="max-w-2xl text-lg text-balance text-background">
+                Věnujte méně času tabulkám a více tomu, na čem opravdu záleží.
+              </p>
               <div className="flex flex-col gap-3 sm:flex-row">
+                <Button
+                  asChild
+                  size="lg"
+                >
+                  <Link to={ROUTES.login}>
+                    Chci pořádat akci
+                    <ArrowRight aria-hidden />
+                  </Link>
+                </Button>
                 <Button
                   asChild
                   size="lg"
                   variant="secondary"
                 >
-                  <Link to={ROUTES.login}>Organizátor</Link>
-                </Button>
-                <Button
-                  asChild
-                  size="lg"
-                  variant="outline"
-                >
-                  <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
+                  <a href="#katalog">Hledám akci</a>
                 </Button>
               </div>
             </div>
