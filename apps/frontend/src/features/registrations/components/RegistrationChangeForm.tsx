@@ -117,38 +117,43 @@ export function RegistrationChangeForm({ contact, terms }: RegistrationChangeFor
                     <ParticipationBadge status={term.status} />
                   </div>
                   <p className="text-sm text-muted-foreground">{term.details}</p>
-                  <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
-                    <Field>
-                      <FieldLabel htmlFor={`change-term-${term.id}`}>Termín</FieldLabel>
-                      <Select
-                        defaultValue={term.selectedTermId}
-                        disabled={term.isCancelled}
+                  <Field>
+                    <FieldLabel htmlFor={`change-term-${term.id}`}>Termín</FieldLabel>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                      <div className="min-w-0 flex-1">
+                        <Select
+                          defaultValue={term.selectedTermId}
+                          disabled={term.isCancelled}
+                        >
+                          <SelectTrigger id={`change-term-${term.id}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {term.options.map((option) => (
+                              <SelectItem
+                                key={option.id}
+                                value={option.id}
+                              >
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Field
+                        orientation="horizontal"
+                        className="sm:w-auto"
                       >
-                        <SelectTrigger id={`change-term-${term.id}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {term.options.map((option) => (
-                            <SelectItem
-                              key={option.id}
-                              value={option.id}
-                            >
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                    <Field orientation="horizontal">
-                      <Checkbox
-                        id={`cancel-term-${term.id}`}
-                        defaultChecked={term.isCancelled}
-                      />
-                      <FieldLabel htmlFor={`cancel-term-${term.id}`}>
-                        Odhlásit z termínu {term.label}
-                      </FieldLabel>
-                    </Field>
-                  </div>
+                        <Checkbox
+                          id={`cancel-term-${term.id}`}
+                          defaultChecked={term.isCancelled}
+                        />
+                        <FieldLabel htmlFor={`cancel-term-${term.id}`}>
+                          Odhlásit z termínu {term.label}
+                        </FieldLabel>
+                      </Field>
+                    </div>
+                  </Field>
                 </FieldSet>
               </li>
             ))}
