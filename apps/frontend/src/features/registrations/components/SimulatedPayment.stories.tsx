@@ -88,6 +88,7 @@ function RegistrationDetailPage({ balanceMinor, payments }: DetailProps) {
               amountDueMinor={790000}
               paidMinor={hasDebt ? paid : 790000 + Math.max(-balanceMinor, 0)}
               balanceMinor={balanceMinor}
+              isBalanceHighlighted
               instructions={
                 hasDebt
                   ? {
@@ -99,12 +100,7 @@ function RegistrationDetailPage({ balanceMinor, payments }: DetailProps) {
                   : null
               }
             />
-            {hasDebt ? (
-              <PaymentQrCard
-                debt="2 400 Kč"
-                link={LINK}
-              />
-            ) : null}
+            {hasDebt ? <PaymentQrCard link={LINK} /> : null}
           </CardContent>
         </Card>
         <Card>
@@ -136,13 +132,8 @@ type Story = StoryObj<typeof meta>
 // against the 4.5:1 AA minimum; these stories report it as a warning.
 const contrastWarning = { a11y: { test: "todo" } }
 
-/** Detail with a remaining debt: QR and link to the simulation, simulated payment marked in the history. */
+/** Detail with a remaining debt: QR and link to the payment page, QR payment marked in the history. */
 export const DetailWithQr: Story = {}
-
-/** Detail with a first payment history and no simulated payment yet. */
-export const DetailNoSimulatedPayment: Story = {
-  args: { payments: HISTORY.slice(1) },
-}
 
 /** Debt settled: no request to pay and no QR. */
 export const DetailNoDebt: Story = { args: { balanceMinor: 0 } }
@@ -178,11 +169,8 @@ function Result(props: SimulatedPaymentResultProps) {
   )
 }
 
-/** The page opened from the QR: debt and the amount prefilled with it. */
+/** The page opened from the QR: debt and the editable amount prefilled with it. */
 export const SimulationFull: Story = { render: () => <Simulation /> }
-
-/** A smaller amount typed for a partial payment. */
-export const SimulationPartial: Story = { render: () => <Simulation amount="1000" /> }
 
 /** Empty, non-numeric, zero, negative, over-precise or too high amount: error at the field, input kept. */
 export const SimulationInvalidAmount: Story = {
@@ -194,11 +182,11 @@ export const SimulationInvalidAmount: Story = {
   ),
 }
 
-/** Saving in progress: the button and the field are disabled, so a double click cannot pay twice. */
+/**
+ * Saving, or verifying a save whose response got lost: the button and the field
+ * are disabled, so neither a double click nor a retry can pay twice.
+ */
 export const SimulationSaving: Story = { render: () => <Simulation isSaving /> }
-
-/** The response got lost: the result is verified, no duplicate payment. */
-export const SimulationVerifying: Story = { render: () => <Simulation isVerifying /> }
 
 /** The debt dropped below the entered amount: nothing saved, new confirmation required. */
 export const SimulationDebtReduced: Story = {
@@ -207,7 +195,7 @@ export const SimulationDebtReduced: Story = {
       debt="900 Kč"
       amount="2400"
       isDebtReduced
-      amountError="Částka je vyšší než aktuální dluh 900 Kč."
+      amountError="Částka je vyšší než zbývá zaplatit (900 Kč)."
     />
   ),
 }
@@ -218,19 +206,19 @@ export const SimulationSaveFailed: Story = {
   render: () => (
     <Simulation
       amount="1000"
-      errorMessage="Platbu se nepodařilo uložit. Zkuste to prosím znovu."
+      errorMessage="Platbu se nepodařilo dokončit. Zkuste to prosím znovu."
     />
   ),
 }
 
-/** Loading the current debt failed: retry is offered. */
+/** Loading the current debt failed: no amount to pay, retry is offered. */
 export const SimulationLoadFailed: Story = {
   parameters: contrastWarning,
   render: () => (
     <Simulation
-      debt="—"
+      debt={undefined}
       amount=""
-      errorMessage="Aktuální dluh se nepodařilo načíst. Zkuste to prosím znovu."
+      errorMessage="Částku k úhradě se nepodařilo načíst. Zkuste to prosím znovu."
     />
   ),
 }
@@ -242,6 +230,7 @@ export const ResultPartial: Story = {
       kind="paid"
       paidAmount="1 000 Kč"
       remainingDebt="1 400 Kč"
+      isSettled={false}
     />
   ),
 }
@@ -253,6 +242,7 @@ export const ResultFull: Story = {
       kind="paid"
       paidAmount="2 400 Kč"
       remainingDebt="0 Kč"
+      isSettled
     />
   ),
 }
@@ -263,6 +253,7 @@ export const NothingToPay: Story = {
     <Result
       kind="nothing-to-pay"
       remainingDebt="0 Kč"
+      isSettled
     />
   ),
 }

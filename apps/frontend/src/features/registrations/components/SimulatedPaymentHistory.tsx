@@ -10,7 +10,8 @@ export type HistoryPayment = {
   isSimulated: boolean
 }
 
-// Přijaté platby (F21-1): a simulated payment is marked, the others are not.
+// Přijaté platby (F21-1): a simulated payment is marked as a QR payment, the
+// others are not. The word "simulace" never reaches the participant.
 export function SimulatedPaymentHistory({ payments }: { payments: HistoryPayment[] }) {
   if (payments.length === 0) {
     return <p className="text-sm text-muted-foreground">Zatím nebyla zaznamenána žádná platba.</p>
@@ -24,7 +25,7 @@ export function SimulatedPaymentHistory({ payments }: { payments: HistoryPayment
         >
           <span className="flex items-center gap-2">
             <span className="text-muted-foreground">{payment.date}</span>
-            {payment.isSimulated ? <Badge variant="secondary">Simulovaná platba</Badge> : null}
+            {payment.isSimulated ? <Badge variant="secondary">QR platba</Badge> : null}
           </span>
           <span className="font-mono">{payment.amount}</span>
         </li>

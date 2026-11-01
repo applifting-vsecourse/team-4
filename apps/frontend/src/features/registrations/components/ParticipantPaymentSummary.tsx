@@ -5,6 +5,7 @@ import { formatCzk } from "@/lib/money"
 import { cn } from "@/lib/utils"
 
 import { type PaymentInstructions } from "@/features/registrations/api/registrationSchemas"
+import { BalanceAmount } from "@/features/registrations/components/BalanceAmount"
 import { formatBankAccount } from "@/features/registrations/lib/bankAccount"
 
 type ParticipantPaymentSummaryProps = {
@@ -16,6 +17,8 @@ type ParticipantPaymentSummaryProps = {
   instructions: PaymentInstructions | null
   /** The list shows the reminder date only; the account and VS belong to the detail. */
   shouldShowAccount?: boolean
+  /** Moves "Zbývá zaplatit" last as a coloured, bold total (F21-1 design). */
+  isBalanceHighlighted?: boolean
 }
 
 // The price of the selection, what the confirmed terms owe, what was received
@@ -28,6 +31,7 @@ export function ParticipantPaymentSummary({
   balanceMinor,
   instructions,
   shouldShowAccount = true,
+  isBalanceHighlighted = false,
 }: ParticipantPaymentSummaryProps) {
   const hasObligation = amountDueMinor > 0
 
@@ -45,16 +49,29 @@ export function ParticipantPaymentSummary({
             <Row label="Zaplaceno">
               <Amount minor={paidMinor} />
             </Row>
-            <Row label="Zbývá zaplatit">
-              <Amount
-                minor={Math.max(balanceMinor, 0)}
-                className="font-medium"
-              />
-            </Row>
+            {isBalanceHighlighted ? null : (
+              <Row label="Zbývá zaplatit">
+                <Amount
+                  minor={Math.max(balanceMinor, 0)}
+                  className="font-medium"
+                />
+              </Row>
+            )}
             {balanceMinor < 0 ? (
               <Row label="Přeplatek">
                 <Amount minor={-balanceMinor} />
               </Row>
+            ) : null}
+            {isBalanceHighlighted ? (
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-border pt-2">
+                <dt className="font-medium">Zbývá zaplatit</dt>
+                <dd className="text-right">
+                  <BalanceAmount
+                    amount={formatCzk(Math.max(balanceMinor, 0))}
+                    isSettled={balanceMinor <= 0}
+                  />
+                </dd>
+              </div>
             ) : null}
           </>
         ) : null}
