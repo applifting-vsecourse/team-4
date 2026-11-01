@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -78,12 +79,19 @@ export function RegistrationChangeForm({ contact, terms }: RegistrationChangeFor
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field>
-                <FieldLabel htmlFor="change-email">E-mail</FieldLabel>
+                <FieldLabel
+                  htmlFor="change-email"
+                  className="items-center"
+                >
+                  E-mail přihlášení
+                  <Badge variant="outline">Neměnný</Badge>
+                </FieldLabel>
                 <Input
                   id="change-email"
                   type="email"
                   autoComplete="email"
                   defaultValue={contact.email}
+                  disabled
                 />
               </Field>
               <Field>

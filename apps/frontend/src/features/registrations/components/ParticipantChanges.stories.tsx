@@ -90,12 +90,9 @@ const MOVE_T2_T3: ChangeSummaryProps = {
   ],
 }
 
-/** Contact data: every active term counts, Turnus 1 is within the threshold. */
-const CONTACT_CHANGE: ChangeSummaryProps = {
-  values: [
-    { label: "E-mail", original: "jana.novakova@seznam.cz", proposed: "jana.novakova@gmail.com" },
-    { label: "Telefon", original: "+420 604 123 456", proposed: "+420 731 987 654" },
-  ],
+/** Phone change: every active term counts, Turnus 1 is within the threshold. */
+const PHONE_CHANGE: ChangeSummaryProps = {
+  values: [{ label: "Telefon", original: "+420 604 123 456", proposed: "+420 731 987 654" }],
   terms: [
     { ...T1, original: "confirmed", proposed: "confirmed" },
     { ...T2, original: "confirmed", proposed: "confirmed" },
@@ -384,9 +381,9 @@ export const ReviewDirectMove: Story = {
   render: review({ summary: MOVE_T2_T3, hasFinancialImpact: true }),
 }
 
-/** Contact data while Turnus 1 is within the threshold: sent as a request. */
-export const ReviewContactNeedsApproval: Story = {
-  render: review({ summary: CONTACT_CHANGE, isApprovalRequired: true }),
+/** A phone change while Turnus 1 is within the threshold: sent as a request. */
+export const ReviewPhoneNeedsApproval: Story = {
+  render: review({ summary: PHONE_CHANGE, isApprovalRequired: true }),
 }
 
 /** The threshold passed while the form was open: only a request can be sent. */
