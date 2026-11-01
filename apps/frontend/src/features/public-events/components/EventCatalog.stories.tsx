@@ -20,6 +20,8 @@ import {
   EventCatalogError,
   EventCatalogNoResults,
 } from "@/features/public-events/components/EventCatalogStates"
+import letniTaborImage from "@/features/public-events/fixtures/images/letni-tabor.jpg"
+import podzimniVikendImage from "@/features/public-events/fixtures/images/podzimni-vikend.jpg"
 
 // F54-2 design preview: public event catalog with filters by term, place and
 // age group. Static only: no router logic, queries or API; every value is hard-coded.
@@ -51,6 +53,7 @@ const EVENTS: CatalogEventItem[] = [
     location: "Tábořiště Modrá Hora, Hlinsko",
     terms: ["Turnus 1: 4.–17. 7. 2027", "Turnus 2: 1.–14. 8. 2027"],
     ageGroup: "11–15 let",
+    imageUrl: letniTaborImage,
   },
   {
     publicId: "mesto-hrou-2027",
@@ -59,6 +62,8 @@ const EVENTS: CatalogEventItem[] = [
     location: "DDM Praha 4, Praha",
     terms: ["19.–23. 7. 2027", "9.–13. 8. 2027"],
     ageGroup: "6–10 let",
+    // The organizer added no image: the card shows the default one.
+    imageUrl: null,
   },
   {
     publicId: "podzimni-vikend-2027",
@@ -67,6 +72,7 @@ const EVENTS: CatalogEventItem[] = [
     location: "Skautská základna Kameňák, Brno",
     terms: ["15.–17. 10. 2027"],
     ageGroup: "16+ let",
+    imageUrl: podzimniVikendImage,
   },
 ]
 
@@ -76,7 +82,7 @@ function CatalogPage({ children, filters }: { children: ReactNode; filters: Reac
   return (
     <div className="min-h-screen bg-background">
       <Header userMenu={<Button size="sm">Přihlásit se</Button>} />
-      <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8">
+      <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8">
         <h1 className="text-h2">Katalog akcí</h1>
         {filters}
         {children}
