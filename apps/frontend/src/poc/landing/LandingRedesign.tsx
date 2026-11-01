@@ -1,5 +1,13 @@
 import { Link } from "@tanstack/react-router"
-import { ArrowRight, BedDouble, CalendarCog, MailCheck, Search, WalletCards } from "lucide-react"
+import {
+  ArrowRight,
+  BedDouble,
+  CalendarCog,
+  MailCheck,
+  Menu,
+  Search,
+  WalletCards,
+} from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { BrandMark } from "@/components/BrandMark"
@@ -7,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 
 // POC redesign of the landing page. Two audiences, one page: organizers (dark panel, leads)
 // and participants (light panel, dropped lower). Colours come only from semantic tokens so the
@@ -97,13 +106,12 @@ export function LandingRedesign() {
           </Link>
           <nav
             aria-label="Vstup do aplikace"
-            className="flex items-center gap-1 md:gap-2"
+            className="hidden items-center gap-2 md:flex"
           >
             <Button
               asChild
               variant="ghost"
               size="sm"
-              className="hidden sm:inline-flex"
             >
               <a href="#katalog">Katalog akcí</a>
             </Button>
@@ -121,6 +129,46 @@ export function LandingRedesign() {
               <Link to={ROUTES.login}>Organizátor</Link>
             </Button>
           </nav>
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Otevřít menu"
+                className="md:hidden"
+              >
+                <Menu aria-hidden />
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              lang="cs"
+              aria-describedby={undefined}
+            >
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <nav
+                aria-label="Vstup do aplikace"
+                className="flex flex-col gap-2 px-4"
+              >
+                <Button asChild>
+                  <Link to={ROUTES.login}>Organizátor</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                >
+                  <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                >
+                  <a href="#katalog">Katalog akcí</a>
+                </Button>
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 
@@ -239,15 +287,19 @@ export function LandingRedesign() {
                   ))}
                 </ul>
                 <div className="flex flex-wrap gap-3">
-                  <Button asChild>
+                  <Button
+                    asChild
+                    className="w-44"
+                  >
                     <Link to={ROUTES.login}>
-                      Přihlásit se jako organizátor
+                      Přihlásit se
                       <ArrowRight aria-hidden />
                     </Link>
                   </Button>
                   <Button
                     asChild
                     variant="secondary"
+                    className="w-44"
                   >
                     <Link to={ROUTES.signup}>Založit účet</Link>
                   </Button>
@@ -277,7 +329,10 @@ export function LandingRedesign() {
                   ))}
                 </ul>
                 <div className="flex flex-wrap gap-3">
-                  <Button asChild>
+                  <Button
+                    asChild
+                    className="w-44"
+                  >
                     <a href="#katalog">
                       Procházet katalog
                       <ArrowRight aria-hidden />
@@ -286,6 +341,7 @@ export function LandingRedesign() {
                   <Button
                     asChild
                     variant="outline"
+                    className="w-44"
                   >
                     <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
                   </Button>

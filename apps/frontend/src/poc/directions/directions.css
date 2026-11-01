@@ -6,7 +6,8 @@
 /* POC: three visual directions, scoped by wrapper class. Components are the real kit;
    only tokens, radius, spacing, shadow and a few shape rules change. */
 
-[data-direction] {
+[data-direction],
+html[data-direction] body {
   font-family: var(--dir-font);
   background: var(--background);
   color: var(--foreground);
@@ -161,4 +162,12 @@
 [data-direction="soft"] :is(h1, h2, h3, [data-slot="card-title"], [data-role="display"]) {
   font-weight: 500;
   letter-spacing: -0.02em;
+}
+
+/* Mobile previews: hide the page scrollbar (scrolling still works). */
+html[data-scrollbars="hidden"] {
+  scrollbar-width: none;
+}
+html[data-scrollbars="hidden"]::-webkit-scrollbar {
+  display: none;
 }
