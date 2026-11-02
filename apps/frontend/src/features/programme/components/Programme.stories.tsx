@@ -234,12 +234,6 @@ function OrganizerPage({ days, isLoadFailed, children }: OrganizerPageProps) {
         title={`Program – ${TERM_1}`}
         badge={<Badge variant="secondary">{TERM_1_DATES}</Badge>}
         description={EVENT}
-        actions={
-          <Button variant="outline">
-            <ChevronLeft />
-            Termíny a ceny
-          </Button>
-        }
       />
       <TermProgramme
         days={days}
