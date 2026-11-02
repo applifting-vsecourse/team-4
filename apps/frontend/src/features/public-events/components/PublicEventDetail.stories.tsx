@@ -185,11 +185,12 @@ const CONTACT = {
   phone: "+420 604 123 456",
 }
 
-/** Organizer: saved photos and public contact. */
+/** Organizer: saved description, photos and public contact. */
 export const OrganizerPresentation: Story = {
   render: () => (
     <OrganizerPage>
       <EventPublicPresentation
+        description={EVENT.description}
         photos={PRESENTATION_PHOTOS}
         contact={CONTACT}
       />
@@ -197,11 +198,12 @@ export const OrganizerPresentation: Story = {
   ),
 }
 
-/** Organizer: nothing filled in yet. */
+/** Organizer: no photos or public contact yet; the description comes from the event. */
 export const OrganizerPresentationEmpty: Story = {
   render: () => (
     <OrganizerPage>
       <EventPublicPresentation
+        description={EVENT.description}
         photos={[]}
         contact={{ name: "", email: "", phone: "" }}
       />
@@ -209,11 +211,13 @@ export const OrganizerPresentationEmpty: Story = {
   ),
 }
 
-/** Organizer: invalid contact is flagged at the field. */
+/** Organizer: empty description and invalid contact are flagged at the field. */
 export const OrganizerPresentationInvalid: Story = {
   render: () => (
     <OrganizerPage>
       <EventPublicPresentation
+        description=""
+        descriptionError="Vyplňte popis."
         photos={PRESENTATION_PHOTOS}
         contact={{ name: "Jana Nováková", email: "tabor@modrahora", phone: "+420 604 123 456" }}
         contactErrors={{ email: "Zadejte platný e-mail." }}
@@ -227,6 +231,7 @@ export const OrganizerPresentationSaveFailed: Story = {
   render: () => (
     <OrganizerPage>
       <EventPublicPresentation
+        description={EVENT.description}
         photos={PRESENTATION_PHOTOS}
         contact={CONTACT}
         errorMessage="Veřejnou prezentaci se nepodařilo uložit. Zkuste to prosím znovu."

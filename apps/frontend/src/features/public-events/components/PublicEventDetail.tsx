@@ -1,6 +1,6 @@
 import { Mail, MapPin, Phone } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,22 +39,10 @@ export type PublicEventDetailProps = {
   registrationHref: string
 }
 
-const STATUS_MESSAGES: Record<
-  Exclude<PublicEventRegistrationStatus, "open">,
-  { title: string; description: string }
-> = {
-  "not-open": {
-    title: "Registrace zatím není otevřená",
-    description: "Přihlášku bude možné odeslat, až organizátor registraci otevře.",
-  },
-  closed: {
-    title: "Registrace je uzavřená",
-    description: "Na tuto akci už nelze odeslat novou přihlášku.",
-  },
-  "no-terms": {
-    title: "Zatím se nelze přihlásit",
-    description: "Organizátor ještě nevypsal žádný termín.",
-  },
+const STATUS_MESSAGES: Record<Exclude<PublicEventRegistrationStatus, "open">, string> = {
+  "not-open": "Registrace zatím není otevřená",
+  closed: "Registrace je uzavřená",
+  "no-terms": "Zatím se nelze přihlásit",
 }
 
 function PhotoGallery({ photos }: { photos: PublicEventPhoto[] }) {
@@ -133,8 +121,7 @@ function RegistrationCard({
             </Button>
           ) : (
             <Alert>
-              <AlertTitle>{STATUS_MESSAGES[status].title}</AlertTitle>
-              <AlertDescription>{STATUS_MESSAGES[status].description}</AlertDescription>
+              <AlertTitle>{STATUS_MESSAGES[status]}</AlertTitle>
             </Alert>
           )}
         </div>

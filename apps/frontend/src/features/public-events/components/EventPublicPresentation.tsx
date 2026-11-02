@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 
 // Správa akce → Nastavení → Veřejná prezentace (F55). Design only: every value is passed in.
 
@@ -13,6 +14,9 @@ export type PresentationPhoto = { id: string; src: string; alt: string }
 export type PresentationContactValues = { name: string; email: string; phone: string }
 
 export type EventPublicPresentationProps = {
+  /** Shown on the public detail under "O akci". */
+  description: string
+  descriptionError?: string
   photos: PresentationPhoto[]
   contact: PresentationContactValues
   contactErrors?: Partial<Record<keyof PresentationContactValues, string>>
@@ -21,6 +25,8 @@ export type EventPublicPresentationProps = {
 }
 
 export function EventPublicPresentation({
+  description,
+  descriptionError,
   photos,
   contact,
   contactErrors = {},
@@ -77,6 +83,21 @@ export function EventPublicPresentation({
                   Přidat fotku
                 </Button>
               </div>
+            </FieldGroup>
+
+            <FieldGroup>
+              <h3 className="text-base font-medium">O akci</h3>
+              <Field data-invalid={Boolean(descriptionError)}>
+                <FieldLabel htmlFor="event-description">Popis akce</FieldLabel>
+                <Textarea
+                  id="event-description"
+                  rows={6}
+                  maxLength={5000}
+                  defaultValue={description}
+                  aria-invalid={Boolean(descriptionError)}
+                />
+                <FieldError>{descriptionError}</FieldError>
+              </Field>
             </FieldGroup>
 
             <FieldGroup>
