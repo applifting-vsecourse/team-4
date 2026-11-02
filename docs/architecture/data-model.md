@@ -70,6 +70,7 @@ erDiagram
 | `ParticipantMagicLink` / `ParticipantSession`   | `participant_magic_link` / `participant_session` | Passwordless participant access, separate from BetterAuth.                                        |
 | `Registration`                                  | `registration`                                   | Submission: personal data snapshot, VS, payment snapshot, reminder date.                          |
 | `RegistrationTerm`                              | `registration_term`                              | Selected term + participation outcome + price snapshot.                                           |
+| `RegistrationChange`                            | `registration_change`                            | A participant's change of an own registration, executed or awaiting approval (§3.13).             |
 | `Payment`                                       | `payment`                                        | Received payment recorded by an organizer.                                                        |
 | `EmailDelivery`                                 | `email_delivery`                                 | Outbound e-mail log (status, provider id, sanitized error).                                       |
 
@@ -311,6 +312,7 @@ hundreds of registrations, do not justify stored totals.
 - Without a term filter: `EXISTS (registration_term WHERE status = :s)` matches if
   any term has that status.
 - Default sort `receivedAt ASC`, supported by index `(eventId, receivedAt)`.
+- The filter offers `confirmed` and `waitlisted` only; a `cancelled` term is history, not a participation.
 
 ### 3.11 E-mail log (R13)
 
@@ -355,6 +357,51 @@ hundreds of registrations, do not justify stored totals.
 - Text limits: names 100, event name 200, location 300, e-mail 320, phone 16 (E.164,
   normalized with `libphonenumber-js` before storing).
 
+### 3.13 Participant changes and approval (F35-2a)
+
+A participant may change an own registration: first name, last name and phone (the e-mail is
+the sign-in identity and never changes), move a term to another term of the same event, and
+cancel single terms or the whole registration.
+
+- **Cancelled terms.** `ParticipationStatus` has a third value, `cancelled`. The row is kept
+  as history and holds no bed (occupancy counts only `confirmed`), owes nothing
+  (`amountDue` sums `confirmed`) and is left out of the selected price. A registration whose
+  terms are all `cancelled` is a cancelled registration; it is derived, not stored. A term
+  released earlier may be moved back to: the row is reused at the term's current price.
+- **Move.** The source row becomes `cancelled`, the target row is created (or reused) with the
+  status decided by the target's capacity (§3.6). A move whose target has no free bed ends on
+  the waitlist and gives up a confirmed place, so it needs the participant's explicit consent
+  (`acceptWaitlist`). Without it nothing is executed and no request is filed.
+- **Approval.** `event.changeApprovalDays` (F35-1a) is the threshold in calendar days before a
+  term's start (Europe/Prague). One affected term inside it is enough. Affected terms: all
+  active terms for a data change, the old and the new term for a move, the cancelled terms for
+  a cancellation. Without the setting every change is executed directly. The threshold is
+  evaluated at submit time; the client sends what its review showed (`expectsApproval`) and a
+  different result is refused (409 `approval_changed`) for a new confirmation.
+- **`registration_change`.** One row per change: `status` is `applied` (executed at once),
+  `pending` (waits for the organizer), `approved` or `rejected`. `proposal` holds what was
+  asked for, `summary` the original and proposed values, term states, price and balance.
+  `summary` is worked out live for a pending request and frozen when it is decided. A partial
+  unique index allows one `pending` row per registration, and `decidedAt` is set exactly when
+  the status is not `pending`. Rows are never deleted.
+- **Nothing is reserved or changed while pending.** Data, participation, capacity and balance
+  stay as they were until approval; the target term is not held.
+- **Version.** `registration.version` is bumped by every executed change. A proposal carries
+  the version it was made on; an older one is refused (409 `registration_stale`) and must not
+  overwrite the newer data.
+- **Execution** (direct change and approval) runs in one transaction: lock the registration,
+  lock the affected `event_term` rows in id order (the serialization point of §3.6), re-read
+  the capacity, then write. If the result of a move differs from what was confirmed (the
+  target filled up), the original participation is kept, nothing is written and the
+  participant must confirm the waitlist (409 `waitlist_consent_required`). For a pending
+  request the participant's consent is recorded on the request; until then approving is
+  refused and the organizer sees that the participant must agree again.
+- **Idempotent decisions.** Approving an approved (or rejecting a rejected) request returns it
+  without doing anything again; the opposite decision is 409 `change_already_decided`.
+- **Money.** No cancellation fee or refund is computed. Payments stay as recorded; a lower
+  amount due shows as an overpayment (negative balance). If a change makes something owed
+  for the first time, `paymentReminderAt` is set once, as in §3.9.
+
 ## 4. Field reference
 
 ### Organization / OrganizationMember
@@ -392,19 +439,30 @@ hundreds of registrations, do not justify stored totals.
 
 ### Registration and RegistrationTerm
 
-| Field                                     | Type                        | Notes                                                                |
-| ----------------------------------------- | --------------------------- | -------------------------------------------------------------------- |
-| `organizationId`, `eventId`               | uuid                        | Composite FK to `event`.                                             |
-| `participantAccountId`                    | uuid                        | `UNIQUE (eventId, participantAccountId)`.                            |
-| `submissionKey`                           | uuid unique                 | Idempotency.                                                         |
-| `variableSymbol`                          | varchar(10) unique          | Sequence default.                                                    |
-| `firstName`, `lastName`, `email`, `phone` | text                        | Snapshot as submitted. Phone in E.164.                               |
-| `receivedAt`                              | timestamptz default `now()` | Server time. Ordering key. Also the confirmation moment in Sprint 2. |
-| `paymentReminderAt`                       | timestamptz?                | See §3.9.                                                            |
-| `bankAccount*`, `paymentReminderDays`     | snapshot                    | Copied from the event.                                               |
-| `registration_term.status`                | enum `confirmed/waitlisted` | Per term. No aggregate status on `registration`.                     |
-| `registration_term.priceMinor`            | int                         | Price snapshot.                                                      |
-| `registration_term.decidedAt`             | timestamptz                 | When the status was set.                                             |
+| Field                                     | Type                                  | Notes                                                                                              |
+| ----------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `organizationId`, `eventId`               | uuid                                  | Composite FK to `event`.                                                                           |
+| `participantAccountId`                    | uuid                                  | `UNIQUE (eventId, participantAccountId)`.                                                          |
+| `submissionKey`                           | uuid unique                           | Idempotency.                                                                                       |
+| `variableSymbol`                          | varchar(10) unique                    | Sequence default.                                                                                  |
+| `firstName`, `lastName`, `email`, `phone` | text                                  | Snapshot as submitted. Phone in E.164.                                                             |
+| `receivedAt`                              | timestamptz default `now()`           | Server time. Ordering key. Also the confirmation moment in Sprint 2.                               |
+| `paymentReminderAt`                       | timestamptz?                          | See §3.9.                                                                                          |
+| `bankAccount*`, `paymentReminderDays`     | snapshot                              | Copied from the event.                                                                             |
+| `registration_term.status`                | enum `confirmed/waitlisted/cancelled` | Per term. No aggregate status on `registration`. `cancelled`: released by the participant (§3.13). |
+| `registration_term.priceMinor`            | int                                   | Price snapshot.                                                                                    |
+| `registration_term.decidedAt`             | timestamptz                           | When the status was set.                                                                           |
+| `registration.version`                    | int default 0                         | Bumped by every executed change; guards stale proposals (§3.13).                                   |
+
+### RegistrationChange
+
+| Field                       | Type                                     | Notes                                                                       |
+| --------------------------- | ---------------------------------------- | --------------------------------------------------------------------------- |
+| `registrationId`, `eventId` | uuid                                     | Composite FK to `registration (id, eventId)`.                               |
+| `status`                    | enum `pending/applied/approved/rejected` | One `pending` per registration (partial unique index).                      |
+| `proposal`                  | jsonb                                    | Names, phone, term moves with waitlist consent, cancelled term ids.         |
+| `summary`                   | jsonb                                    | Original and proposed values, terms, price and balance; frozen on decision. |
+| `createdAt`, `decidedAt`    | timestamptz, timestamptz?                | `decidedAt` is null exactly while `pending` (CHECK).                        |
 
 ### Payment
 
@@ -464,6 +522,8 @@ filtered by `participantAccountId` from the session.
 | `registration (eventId, receivedAt)`                       | Registration list, default order.                      |
 | `registration (participantAccountId)`                      | Participant portal.                                    |
 | `registration_term (termId, status)`                       | Occupancy counts, filters, capacity checks under lock. |
+| `registration_change (registrationId, createdAt)`          | History of one registration.                           |
+| `registration_change (eventId, status, createdAt)`         | Organizer's Ke schválení queue.                        |
 | `payment (registrationId)`                                 | Balance.                                               |
 | `participant_magic_link (participantAccountId, createdAt)` | Rate limiting.                                         |
 | `email_delivery (status, createdAt)`                       | Operator view of failures.                             |
@@ -893,7 +953,7 @@ the PM still has to confirm, not a decision.
 | F07, F28, F44: versioned T&C, cancellation rules, consents | Immutable versioned documents plus `RegistrationConsent(registrationId, …, grantedAt, revokedAt)`. Prototype: three tables (participation terms, cancellation policy as structured tiers, consent definitions) instead of one generic `DocumentVersion`.                                                                                                           |
 | F08: participant types                                     | `ParticipantType(eventId, …)` + per-type price on terms. `RegistrationTerm.priceMinor` already snapshots the applied price.                                                                                                                                                                                                                                        |
 | F09-1: minors, guardians                                   | `Registration.birthDate` (nullable, Sprint 2 rows have none) + guardian columns on `Registration`. Prototype: no separate guardian table.                                                                                                                                                                                                                          |
-| F10, F29: edits, cancellation, fees                        | `ParticipationStatus += cancelled` (row kept, frees capacity under the term lock). Fees: prototype stored one `Registration.cancellationFeeMinor` (balance = fee − payments once cancelled), which covered F29. Move to a `RegistrationCharge` ledger only if several fees or adjustments per registration appear.                                                 |
+| F10, F29: edits, cancellation, fees                        | `ParticipationStatus += cancelled` (row kept, frees capacity under the term lock; done in F35-2a, §3.13). Fees: prototype stored one `Registration.cancellationFeeMinor` (balance = fee − payments once cancelled), which covered F29. Move to a `RegistrationCharge` ledger only if several fees or adjustments per registration appear.                          |
 | F11: staff reservations                                    | Prototype: `Room.staffReservedBeds` (≤ bedCount) and `Room.isAccessible`, not per term, because no story varies them by term. Capacity becomes a feasibility check (staff × accessible classes), see §3.6.                                                                                                                                                         |
 | F12, F20: rules and automation switches                    | Prototype: plain columns on `Event` instead of a separate settings table, because settings are always read with the event.                                                                                                                                                                                                                                         |
 | F13, F14-1: manual approval                                | `ParticipationStatus += pending` plus `RegistrationTerm.isManual`, so that manual decisions are never overridden by automatic promotion. Decisions use the term lock.                                                                                                                                                                                              |

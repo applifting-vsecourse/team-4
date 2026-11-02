@@ -767,7 +767,7 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
     "Po odhlášení nic soukromého; použitý odkaz už neplatí",
     ["S2-13"],
     async () => {
-      const logout = visitor.getByRole("button", { name: "Odhlásit se" })
+      const logout = visitor.getByRole("button", { name: "Odhlásit se", exact: true })
       await logout.click()
       // The logout request must finish before the next navigation could cancel it.
       await expect(logout).toBeHidden()
