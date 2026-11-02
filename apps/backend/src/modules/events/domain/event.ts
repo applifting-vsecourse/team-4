@@ -94,6 +94,8 @@ export class EventDetailModel {
     public readonly publicId: string,
     /** Listed in the public catalog; independent of the registration status. */
     public readonly isPublished: boolean,
+    /** Days before a term's start from which changes need approval; null = no approval. */
+    public readonly changeApprovalDays: number | null,
   ) {}
 
   get openingBlockers(): OpeningBlocker[] {

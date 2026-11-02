@@ -166,6 +166,8 @@ model Event {
   bankAccountNumber   String? @db.VarChar(10)
   bankCode            String? @db.Char(4)
   paymentReminderDays Int?
+  // Days before a term's start from which registration changes need approval (F35-1a); null = never.
+  changeApprovalDays Int?
 
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)

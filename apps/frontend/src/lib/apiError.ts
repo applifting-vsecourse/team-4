@@ -6,6 +6,7 @@ export type ApiErrorCode =
   | "term_dates"
   | "bank_account_invalid"
   | "payment_settings_invalid"
+  | "change_approval_invalid"
   | "opening_conditions_not_met"
   | "event_not_draft"
   | "room_label_taken"

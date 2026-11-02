@@ -45,6 +45,7 @@ export const OPEN_EVENT: EventDetail = eventDetailSchema.parse({
   },
   publicId: "letni-tabor-2027",
   isPublished: true,
+  changeApprovalDays: 14,
   openingBlockers: [],
 })
 
@@ -69,6 +70,7 @@ export const DRAFT_EVENT: EventDetail = eventDetailSchema.parse({
   paymentSettings: null,
   publicId: "podzimni-vikend-2027",
   isPublished: false,
+  changeApprovalDays: null,
   openingBlockers: ["paymentSettings"],
 })
 

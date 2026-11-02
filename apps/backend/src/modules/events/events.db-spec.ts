@@ -1,6 +1,7 @@
 import { PrismaModule } from '@/core/prisma/prisma.module';
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import { EventChangeApprovalController } from '@/modules/events/controllers/event-change-approval.controller';
 import { EventPaymentSettingsController } from '@/modules/events/controllers/event-payment-settings.controller';
 import { EventTermsController } from '@/modules/events/controllers/event-terms.controller';
 import { EventsController } from '@/modules/events/controllers/events.controller';
@@ -54,6 +55,7 @@ beforeAll(async () => {
     controllers: [
       EventsController,
       EventTermsController,
+      EventChangeApprovalController,
       EventPaymentSettingsController,
       PublicEventsController,
     ],
@@ -969,5 +971,134 @@ describe('public event page', () => {
       data: { status: 'closed' },
     });
     expect((await publicCall(publicId)).status).toBe(404);
+  });
+});
+
+describe('change approval threshold (F35-1a)', () => {
+  it('starts unset, keeps the saved value, accepts 0 and can be removed', async () => {
+    const { ownerId, path } = await draftEvent();
+    const url = `${path}/change-approval`;
+    expect(
+      (await call(ownerId, 'GET', path)).body.changeApprovalDays,
+    ).toBeNull();
+
+    expect((await call(ownerId, 'PUT', url, { days: 14 })).status).toBe(200);
+    expect((await call(ownerId, 'GET', path)).body.changeApprovalDays).toBe(14);
+
+    await call(ownerId, 'PUT', url, { days: 0 });
+    expect((await call(ownerId, 'GET', path)).body.changeApprovalDays).toBe(0);
+
+    await call(ownerId, 'PUT', url, { days: null });
+    expect(
+      (await call(ownerId, 'GET', path)).body.changeApprovalDays,
+    ).toBeNull();
+  });
+
+  it.each([-1, 2.5, 'abc'])(
+    'rejects %p and keeps the saved value',
+    async (days) => {
+      const { ownerId, path } = await draftEvent();
+      const url = `${path}/change-approval`;
+      await call(ownerId, 'PUT', url, { days: 7 });
+
+      const attempt = await call(ownerId, 'PUT', url, { days });
+      expect(attempt.status).toBe(400);
+      expect(attempt.body.field).toBe('days');
+      expect((await call(ownerId, 'GET', path)).body.changeApprovalDays).toBe(
+        7,
+      );
+    },
+  );
+
+  it('does not change the setting of another event', async () => {
+    const first = await draftEvent();
+    const second = await draftEvent();
+    await call(second.ownerId, 'PUT', `${second.path}/change-approval`, {
+      days: 30,
+    });
+
+    await call(first.ownerId, 'PUT', `${first.path}/change-approval`, {
+      days: 5,
+    });
+    await call(first.ownerId, 'PUT', `${first.path}/change-approval`, {
+      days: -1,
+    });
+
+    expect(
+      (await call(second.ownerId, 'GET', second.path)).body.changeApprovalDays,
+    ).toBe(30);
+  });
+
+  describe('access', () => {
+    const SAVED = 14;
+
+    const savedEvent = async (): Promise<{
+      ownerId: string;
+      path: string;
+      organizationId: string;
+      eventId: string;
+    }> => {
+      const event = await draftEvent();
+      await call(event.ownerId, 'PUT', `${event.path}/change-approval`, {
+        days: SAVED,
+      });
+      const eventId = event.path.split('/').pop() as string;
+      return { ...event, eventId };
+    };
+
+    const expectUntouched = async (event: {
+      ownerId: string;
+      path: string;
+    }): Promise<void> =>
+      expect(
+        (await call(event.ownerId, 'GET', event.path)).body.changeApprovalDays,
+      ).toBe(SAVED);
+
+    it('hides the setting from another organizer and refuses their change', async () => {
+      const event = await savedEvent();
+      const stranger = await createOrganizer(prisma);
+
+      expect((await call(stranger.id, 'GET', event.path)).status).toBe(404);
+      for (const days of [3, null]) {
+        const attempt = await call(
+          stranger.id,
+          'PUT',
+          `${event.path}/change-approval`,
+          { days },
+        );
+        expect(attempt.status).toBe(404);
+      }
+      await expectUntouched(event);
+    });
+
+    it("refuses a forged link that pairs the stranger's own organization with the foreign event", async () => {
+      const event = await savedEvent();
+      const stranger = await createOrganizer(prisma);
+      const strangerOrganization = await createOrganization(prisma, {
+        ownerId: stranger.id,
+      });
+      const forged = `organizations/${strangerOrganization.id}/events/${event.eventId}`;
+
+      expect((await call(stranger.id, 'GET', forged)).status).toBe(404);
+      expect(
+        (
+          await call(stranger.id, 'PUT', `${forged}/change-approval`, {
+            days: 0,
+          })
+        ).status,
+      ).toBe(404);
+      await expectUntouched(event);
+    });
+
+    it('refuses a request without a signed-in user', async () => {
+      const event = await savedEvent();
+      const response = await fetch(`${baseUrl}/${event.path}/change-approval`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ days: 0 }),
+      });
+      expect(response.status).toBe(403);
+      await expectUntouched(event);
+    });
   });
 });

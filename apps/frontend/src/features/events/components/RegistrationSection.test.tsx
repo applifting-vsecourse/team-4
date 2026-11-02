@@ -46,6 +46,7 @@ const READY: EventDetail = {
   paymentSettings: null,
   publicId: "abcdefghijkl",
   isPublished: false,
+  changeApprovalDays: null,
   openingBlockers: [],
 }
 

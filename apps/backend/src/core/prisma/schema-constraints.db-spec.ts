@@ -48,6 +48,11 @@ describe('event', () => {
       { paymentReminderDays: 0 },
       /event_reminder_days_chk/,
     ],
+    [
+      'changeApprovalDays',
+      { changeApprovalDays: -1 },
+      /event_change_approval_days_chk/,
+    ],
     ['bankCode', { bankCode: '08A0' }, /event_bank_code_chk/],
     [
       'bankAccountNumber',

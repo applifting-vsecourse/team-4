@@ -102,6 +102,21 @@ export class EventsService {
   }
 
   /**
+   * Like the payment settings this stays open after the first opening. Null
+   * removes the setting; saving the same value again changes nothing.
+   */
+  async setChangeApprovalDays(
+    scope: EventScope,
+    days: number | null,
+  ): Promise<EventDetailModel> {
+    const outcome = await this.repository.withLockedEvent(scope, (event) =>
+      event.setChangeApprovalDays(days),
+    );
+    if (!outcome.found) throw notAvailable();
+    return this.get(scope);
+  }
+
+  /**
    * Catalog listing is independent of the registration status and stays
    * available after the first opening. Setting the current value again changes
    * nothing, so a retry after a lost answer is safe.

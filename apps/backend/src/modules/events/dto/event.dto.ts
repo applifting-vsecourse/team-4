@@ -170,6 +170,15 @@ export class EventDetailDto {
   isPublished!: boolean;
 
   @ApiProperty({
+    type: Number,
+    nullable: true,
+    description:
+      "Registration changes need the organizer's approval from this many days " +
+      'before the start of an affected term (Europe/Prague); null = no approval.',
+  })
+  changeApprovalDays!: number | null;
+
+  @ApiProperty({
     enum: BLOCKERS,
     isArray: true,
     description:
@@ -192,6 +201,7 @@ export class EventDetailDto {
         : null,
       publicId: model.publicId,
       isPublished: model.isPublished,
+      changeApprovalDays: model.changeApprovalDays,
       openingBlockers: model.openingBlockers,
     };
   }
