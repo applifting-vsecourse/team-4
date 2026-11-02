@@ -1,6 +1,5 @@
-import { Mail, MapPin, Phone } from "lucide-react"
+import { Info, Mail, MapPin, Phone } from "lucide-react"
 
-import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -117,12 +116,16 @@ function RegistrationCard({
               asChild
               className="w-full"
             >
-              <a href={href}>Přihlásit se</a>
+              <a href={href}>Vyplnit přihlášku</a>
             </Button>
           ) : (
-            <Alert>
-              <AlertTitle>{STATUS_MESSAGES[status]}</AlertTitle>
-            </Alert>
+            <p className="flex items-start gap-2 text-sm">
+              <Info
+                aria-hidden
+                className="mt-0.5 size-4 shrink-0"
+              />
+              <span className="min-w-0 break-words">{STATUS_MESSAGES[status]}</span>
+            </p>
           )}
         </div>
       </CardContent>
@@ -178,59 +181,61 @@ export function PublicEventDetail({
   registrationHref,
 }: PublicEventDetailProps) {
   return (
-    <article className="grid gap-8 md:grid-cols-3">
-      <div className="min-w-0 space-y-8 md:col-span-2">
-        <header className="space-y-2">
-          <h1 className="text-h2 break-words">{name}</h1>
-          <p className="text-sm font-medium">{organizationName}</p>
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <MapPin
-              aria-hidden
-              className="size-4 shrink-0"
-            />
-            <span className="min-w-0 break-words">{location}</span>
-          </p>
-        </header>
-        <PhotoGallery photos={photos} />
-        <section aria-labelledby="event-description">
-          <h2
-            id="event-description"
-            className="mb-3 text-h4"
-          >
-            O akci
-          </h2>
-          <p className="max-w-prose text-sm whitespace-pre-line">{description}</p>
-        </section>
-        <section aria-labelledby="event-conditions">
-          <h2
-            id="event-conditions"
-            className="mb-3 text-h4"
-          >
-            Podmínky účasti
-          </h2>
-          <ul className="max-w-prose list-disc space-y-1 pl-5 text-sm">
-            {conditions.map((condition) => (
-              <li key={condition}>{condition}</li>
-            ))}
-          </ul>
-        </section>
-        <section aria-labelledby="event-contact">
-          <h2
-            id="event-contact"
-            className="mb-3 text-h4"
-          >
-            Kontakt na organizátora
-          </h2>
-          <ContactBlock contact={contact} />
-        </section>
+    <article className="space-y-8">
+      <header className="space-y-2">
+        <h1 className="text-h2 break-words">{name}</h1>
+        <p className="text-sm font-medium">{organizationName}</p>
+        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <MapPin
+            aria-hidden
+            className="size-4 shrink-0"
+          />
+          <span className="min-w-0 break-words">{location}</span>
+        </p>
+      </header>
+      <div className="grid gap-8 md:grid-cols-3">
+        <div className="min-w-0 space-y-8 md:col-span-2">
+          <PhotoGallery photos={photos} />
+          <section aria-labelledby="event-description">
+            <h2
+              id="event-description"
+              className="mb-3 text-h4"
+            >
+              O akci
+            </h2>
+            <p className="max-w-prose text-sm whitespace-pre-line">{description}</p>
+          </section>
+          <section aria-labelledby="event-conditions">
+            <h2
+              id="event-conditions"
+              className="mb-3 text-h4"
+            >
+              Podmínky účasti
+            </h2>
+            <ul className="max-w-prose list-disc space-y-1 pl-5 text-sm">
+              {conditions.map((condition) => (
+                <li key={condition}>{condition}</li>
+              ))}
+            </ul>
+          </section>
+          <section aria-labelledby="event-contact">
+            <h2
+              id="event-contact"
+              className="mb-3 text-h4"
+            >
+              Kontakt na organizátora
+            </h2>
+            <ContactBlock contact={contact} />
+          </section>
+        </div>
+        <aside className="md:sticky md:top-20 md:self-start">
+          <RegistrationCard
+            terms={terms}
+            status={registrationStatus}
+            href={registrationHref}
+          />
+        </aside>
       </div>
-      <aside className="md:sticky md:top-20 md:self-start">
-        <RegistrationCard
-          terms={terms}
-          status={registrationStatus}
-          href={registrationHref}
-        />
-      </aside>
     </article>
   )
 }
