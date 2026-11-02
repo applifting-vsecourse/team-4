@@ -1,0 +1,113 @@
+import { Loader2, RefreshCw } from "lucide-react"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+
+import { BalanceAmount } from "@/features/registrations/components/BalanceAmount"
+
+export type SimulatedPaymentFormProps = {
+  eventName: string
+  /** Already formatted current debt, e.g. "2 400 Kč"; absent when it failed to load. */
+  debt?: string
+  /** The amount as typed, e.g. "2400". */
+  amount: string
+  amountError?: string
+  /** The debt dropped below the entered amount; a new confirmation is needed. */
+  isDebtReduced?: boolean
+  /** Saving or loading failed; the input stays for a retry. */
+  errorMessage?: string
+  /**
+   * Saving, or verifying a save whose response got lost; both look the same to
+   * the participant and neither allows a second payment.
+   */
+  isSaving?: boolean
+}
+
+// Public payment page opened from the QR (F21-1). Design only: every value is
+// passed in. Opening it creates nothing; only "Zaplatit" records a simulated
+// payment. The page never tells the participant it is a simulation.
+export function SimulatedPaymentForm({
+  eventName,
+  debt,
+  amount,
+  amountError,
+  isDebtReduced = false,
+  errorMessage,
+  isSaving = false,
+}: SimulatedPaymentFormProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Platba přihlášky</CardTitle>
+        <CardDescription>{eventName}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {debt ? (
+            <dl className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm">
+              <dt className="font-medium">Zbývá zaplatit</dt>
+              <dd>
+                <BalanceAmount
+                  amount={debt}
+                  isSettled={false}
+                />
+              </dd>
+            </dl>
+          ) : null}
+
+          {isDebtReduced ? (
+            <Alert>
+              <RefreshCw aria-hidden />
+              <AlertTitle>Částka k úhradě se mezitím snížila</AlertTitle>
+              <AlertDescription>Zkontrolujte částku a potvrďte platbu znovu.</AlertDescription>
+            </Alert>
+          ) : null}
+
+          {errorMessage ? (
+            <Alert variant="destructive">
+              <AlertTitle>Akce se nepodařila</AlertTitle>
+              <AlertDescription>
+                <p>{errorMessage}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                >
+                  Zkusit znovu
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          {debt ? (
+            <>
+              <Field data-invalid={amountError ? true : undefined}>
+                <FieldLabel htmlFor="payment-amount">Částka (Kč)</FieldLabel>
+                <Input
+                  id="payment-amount"
+                  inputMode="decimal"
+                  defaultValue={amount}
+                  aria-invalid={amountError ? true : undefined}
+                  aria-describedby={amountError ? "payment-amount-error" : undefined}
+                  disabled={isSaving}
+                />
+                <FieldError id="payment-amount-error">{amountError}</FieldError>
+              </Field>
+
+              <Button
+                className="w-full sm:w-auto"
+                disabled={isSaving}
+              >
+                {isSaving ? <Loader2 className="animate-spin" /> : null}
+                Zaplatit
+              </Button>
+            </>
+          ) : null}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
