@@ -43,6 +43,7 @@ export const eventDetailSchema = z.object({
   isLocked: z.boolean(),
   terms: z.array(eventTermSchema),
   paymentSettings: paymentSettingsSchema.nullable(),
+  changeApprovalDays: z.number().int().nullable(),
   publicId: z.string(),
   isPublished: z.boolean(),
   openingBlockers: z.array(openingBlockerSchema),

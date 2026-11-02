@@ -49,7 +49,7 @@ import {
 // which registration changes need the organizer's approval.
 // Static only: no router, queries or API; every value below is hard-coded.
 
-const SAVED_14 = "Schvalujete změny přihlášek od 14 dní před začátkem termínu"
+const SAVED_14 = "Schvalujete změny přihlášek od 14 dnů před začátkem termínu"
 
 const SIDEBAR_STYLE = { "--sidebar-width": "14rem" } as CSSProperties
 
