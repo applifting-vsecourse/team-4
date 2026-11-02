@@ -8,15 +8,20 @@ import {
   CreditCard,
   LayoutDashboard,
   ListChecks,
+  Lock,
   LogOut,
   Mail,
   MapPin,
+  Pencil,
+  Plus,
   Settings,
+  Trash2,
 } from "lucide-react"
 
 import { BrandMark } from "@/components/BrandMark"
 import { ThemeSwitcher } from "@/components/Header/ThemeSwitcher"
 import { PageHeader } from "@/components/PageHeader"
+import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import {
   Breadcrumb,
@@ -245,16 +250,33 @@ function OrganizerPage({ days, isLoadFailed, children }: OrganizerPageProps) {
   )
 }
 
-// Nastavení → Termíny a ceny, static: each term gets a "Program" action.
-function TermsPage() {
+// The Nastavení page as it is in the app (Základní údaje, Termíny a ceny), static.
+// Each term gets a "Program" action next to the existing edit and delete
+// actions. A locked event hides those, but its programme stays editable.
+function TermsPage({ isLocked = false }: { isLocked?: boolean }) {
   const terms = [
-    { id: "t1", label: TERM_1, dates: TERM_1_DATES, price: "2 400 Kč", items: "8 položek" },
-    { id: "t2", label: TERM_2, dates: TERM_2_DATES, price: "2 400 Kč", items: "4 položky" },
+    {
+      id: "t1",
+      label: TERM_1,
+      dates: TERM_1_DATES,
+      price: "2 400 Kč",
+      capacity: "24 lůžek",
+      items: "8 položek",
+    },
+    {
+      id: "t2",
+      label: TERM_2,
+      dates: TERM_2_DATES,
+      price: "2 400 Kč",
+      capacity: "24 lůžek",
+      items: "4 položky",
+    },
     {
       id: "t3",
       label: "Turnus 3",
       dates: "4. 12. – 6. 12. 2026",
       price: "2 900 Kč",
+      capacity: "18 lůžek",
       items: "Bez položek",
     },
   ]
@@ -262,54 +284,131 @@ function TermsPage() {
     <OrganizationShell>
       <PageHeader
         breadcrumb={<Crumbs trail={["Nastavení"]} />}
-        title={EVENT}
-        description={LOCATION}
+        title="Nastavení"
+        badge={<Badge variant="secondary">{isLocked ? "Přihlašování otevřeno" : "Koncept"}</Badge>}
       />
-      <section aria-labelledby="terms-heading">
-        <h2
-          id="terms-heading"
-          className="mb-4 text-h4"
-        >
-          Termíny a ceny
-        </h2>
-        <Card>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Označení</TableHead>
-                  <TableHead>Termín</TableHead>
-                  <TableHead>Cena</TableHead>
-                  <TableHead>Program</TableHead>
-                  <TableHead>
-                    <span className="sr-only">Akce</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {terms.map((term) => (
-                  <TableRow key={term.id}>
-                    <TableCell>{term.label}</TableCell>
-                    <TableCell>{term.dates}</TableCell>
-                    <TableCell>{term.price}</TableCell>
-                    <TableCell>{term.items}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        aria-label={`Program termínu ${term.label}`}
-                      >
-                        <ListChecks />
-                        Program
-                      </Button>
-                    </TableCell>
+      <div className="space-y-10">
+        {isLocked ? (
+          <Alert>
+            <Lock />
+            <AlertTitle>
+              Od otevření přihlašování jsou název, popis, místo, termíny a ceny zamčené
+            </AlertTitle>
+          </Alert>
+        ) : null}
+        <section aria-labelledby="event-details-heading">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+            <h2
+              id="event-details-heading"
+              className="text-h4"
+            >
+              Základní údaje
+            </h2>
+            {isLocked ? null : (
+              <Button variant="outline">
+                <Pencil />
+                Upravit akci
+              </Button>
+            )}
+          </div>
+          <Card>
+            <CardContent>
+              <dl className="space-y-4 text-sm">
+                <div>
+                  <dt className="text-muted-foreground">Název</dt>
+                  <dd className="mt-1">{EVENT}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Místo</dt>
+                  <dd className="mt-1">{LOCATION}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Popis</dt>
+                  <dd className="mt-1">
+                    Prodloužené víkendy v přírodě pro rodiny s dětmi: výlety, táborák a dílny.
+                  </dd>
+                </div>
+              </dl>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section aria-labelledby="terms-heading">
+          <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
+            <h2
+              id="terms-heading"
+              className="text-h4"
+            >
+              Termíny a ceny
+            </h2>
+            {isLocked ? null : (
+              <Button variant="outline">
+                <Plus />
+                Přidat termín
+              </Button>
+            )}
+          </div>
+          <Card>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Označení</TableHead>
+                    <TableHead>Termín</TableHead>
+                    <TableHead>Cena</TableHead>
+                    <TableHead>Kapacita</TableHead>
+                    <TableHead>Program</TableHead>
+                    <TableHead>
+                      <span className="sr-only">Akce</span>
+                    </TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </section>
+                </TableHeader>
+                <TableBody>
+                  {terms.map((term) => (
+                    <TableRow key={term.id}>
+                      <TableCell>{term.label}</TableCell>
+                      <TableCell>{term.dates}</TableCell>
+                      <TableCell>{term.price}</TableCell>
+                      <TableCell>{term.capacity}</TableCell>
+                      <TableCell>{term.items}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            aria-label={`Program termínu ${term.label}`}
+                          >
+                            <ListChecks />
+                            Program
+                          </Button>
+                          {isLocked ? null : (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Upravit termín ${term.label}`}
+                              >
+                                <Pencil />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Odstranit termín ${term.label}`}
+                              >
+                                <Trash2 />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </section>
+      </div>
     </OrganizationShell>
   )
 }
@@ -439,6 +538,9 @@ const contrastWarning = { a11y: { test: "todo" } }
 
 /** Organizer: the Termíny a ceny table with the entry to each term's programme. */
 export const OrganizerTermsEntry: Story = { render: () => <TermsPage /> }
+
+// Entry from a locked event: term actions are hidden, "Program" stays available.
+export const OrganizerTermsEntryLocked: Story = { render: () => <TermsPage isLocked /> }
 
 /** Organizer: programme of a term by days, with edit and delete per item. */
 export const OrganizerProgramme: Story = {}
