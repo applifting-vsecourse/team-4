@@ -77,6 +77,7 @@ const MIXED: ParticipantRegistration = {
     account: { prefix: null, number: "2501234567", bankCode: "2010" },
     reminderAt: "2027-06-28T08:00:00.000Z",
   },
+  paymentLinkToken: null,
   payments: [],
 }
 

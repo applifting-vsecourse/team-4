@@ -19,6 +19,18 @@ export const paymentInstructionsSchema = z.object({
   reminderAt: z.string(),
 })
 
+/** Entered by the organizer, or paid through the QR link (F21-1). */
+export const paymentSourceSchema = z.enum(["organizer", "qr_link"])
+
+export const receivedPaymentSchema = z.object({
+  id: z.string().uuid(),
+  receivedOn: z.string(),
+  amountMinor: z.number().int(),
+  source: paymentSourceSchema,
+})
+
+export type ReceivedPayment = z.infer<typeof receivedPaymentSchema>
+
 export type PaymentInstructions = z.infer<typeof paymentInstructionsSchema>
 
 // The stored outcome of the registration just submitted (S2-08). Nothing of

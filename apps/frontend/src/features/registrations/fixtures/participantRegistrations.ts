@@ -46,7 +46,10 @@ export const OWN_REGISTRATION: ParticipantRegistration = participantRegistration
     account: { prefix: null, number: "2501234567", bankCode: "2010" },
     reminderAt: "2027-03-16T09:15:00.000Z",
   },
-  payments: [{ id: uuid(501), receivedOn: "2027-03-05", amountMinor: 200_000 }],
+  paymentLinkToken: "a".repeat(64),
+  payments: [
+    { id: uuid(501), receivedOn: "2027-03-05", amountMinor: 200_000, source: "organizer" },
+  ],
 })
 
 /** A settled registration of another event. */
@@ -69,7 +72,8 @@ export const SETTLED_REGISTRATION: ParticipantRegistration = participantRegistra
   paidMinor: 35_000,
   balanceMinor: 0,
   paymentInstructions: null,
-  payments: [{ id: uuid(502), receivedOn: "2027-02-14", amountMinor: 35_000 }],
+  paymentLinkToken: null,
+  payments: [{ id: uuid(502), receivedOn: "2027-02-14", amountMinor: 35_000, source: "organizer" }],
 })
 
 export const OWN_REGISTRATIONS: ParticipantRegistration[] = [OWN_REGISTRATION, SETTLED_REGISTRATION]

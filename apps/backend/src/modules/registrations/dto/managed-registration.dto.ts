@@ -1,6 +1,8 @@
 import {
   ManagedRegistrationModel,
+  PAYMENT_SOURCES,
   PAYMENT_STATES,
+  PaymentSource,
   PaymentState,
   ReceivedPayment,
   RegistrationList,
@@ -97,6 +99,12 @@ export class ReceivedPaymentDto {
 
   @ApiProperty({ description: 'In haléře.' })
   amountMinor!: number;
+
+  @ApiProperty({
+    enum: PAYMENT_SOURCES,
+    description: '`qr_link` for a payment made through the QR link.',
+  })
+  source!: PaymentSource;
 
   static from(model: ReceivedPayment): ReceivedPaymentDto {
     return { ...model };

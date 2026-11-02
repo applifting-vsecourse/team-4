@@ -29,11 +29,20 @@ export const paymentState = (
   return paidMinor < dueMinor ? 'partial' : 'paid';
 };
 
+/** Entered by the organizer, or paid through the QR link (F21-1). */
+export type PaymentSource = 'organizer' | 'qr_link';
+
+export const PAYMENT_SOURCES: readonly PaymentSource[] = [
+  'organizer',
+  'qr_link',
+];
+
 export type ReceivedPayment = {
   id: string;
   /** Calendar date the money arrived, yyyy-MM-dd. */
   receivedOn: string;
   amountMinor: number;
+  source: PaymentSource;
 };
 
 /** What the list filters on; term and status match on the same term (§3.10). */

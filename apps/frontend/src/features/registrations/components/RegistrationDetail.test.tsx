@@ -42,8 +42,18 @@ const MIXED: Detail = {
   reminderAt: "2027-06-28T08:00:00.000Z",
   variableSymbol: "2027094",
   payments: [
-    { id: "0190c0de-0000-7000-8000-0000000000b1", receivedOn: "2026-10-12", amountMinor: 90_000 },
-    { id: "0190c0de-0000-7000-8000-0000000000b2", receivedOn: "2026-10-14", amountMinor: 100_000 },
+    {
+      id: "0190c0de-0000-7000-8000-0000000000b1",
+      receivedOn: "2026-10-12",
+      amountMinor: 90_000,
+      source: "organizer",
+    },
+    {
+      id: "0190c0de-0000-7000-8000-0000000000b2",
+      receivedOn: "2026-10-14",
+      amountMinor: 100_000,
+      source: "organizer",
+    },
   ],
 }
 

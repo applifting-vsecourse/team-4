@@ -12,6 +12,7 @@ const registrationSelect = {
   bankAccountNumber: true,
   bankCode: true,
   paymentReminderAt: true,
+  paymentToken: true,
   event: { select: { name: true, location: true } },
   terms: {
     orderBy: [{ term: { startDate: 'asc' } }, { termId: 'asc' }],
@@ -24,7 +25,7 @@ const registrationSelect = {
   },
   payments: {
     orderBy: [{ receivedOn: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
-    select: { id: true, receivedOn: true, amountMinor: true },
+    select: { id: true, receivedOn: true, amountMinor: true, source: true },
   },
 } satisfies Prisma.RegistrationSelect;
 
@@ -54,7 +55,9 @@ const toModel = (
       id: payment.id,
       receivedOn: fromDate(payment.receivedOn),
       amountMinor: payment.amountMinor,
+      source: payment.source,
     })),
+    row.paymentToken,
   );
 
 /** Every read is bound to the verified account; there is no other filter. */

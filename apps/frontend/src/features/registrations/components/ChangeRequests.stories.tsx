@@ -122,7 +122,12 @@ const BASE: Omit<Detail, "terms"> = {
   reminderAt: null,
   variableSymbol: "2026110412",
   payments: [
-    { id: "4b9c2d1e-7a6f-4e3d-8c2b-1a0f9e8d7c6b", receivedOn: "2026-10-12", amountMinor: 480000 },
+    {
+      id: "4b9c2d1e-7a6f-4e3d-8c2b-1a0f9e8d7c6b",
+      receivedOn: "2026-10-12",
+      amountMinor: 480000,
+      source: "organizer",
+    },
   ],
 }
 

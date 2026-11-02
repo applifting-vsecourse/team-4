@@ -296,6 +296,8 @@ model Registration {
   submissionKey        String @unique @db.Uuid
   payloadHash          String @db.Char(64) // SHA-256 hex of the normalized submission (§3.7)
   variableSymbol       String @unique @default(dbgenerated("(nextval('registration_variable_symbol_seq'::regclass))::text")) @db.VarChar(10)
+  // Unguessable capability of the QR payment link (F21-1): it allows paying this registration and nothing else.
+  paymentToken         String @unique @default(dbgenerated("replace((gen_random_uuid())::text || (gen_random_uuid())::text, '-', '')")) @db.VarChar(64)
 
   firstName String @db.VarChar(100)
   lastName  String @db.VarChar(100)
@@ -345,6 +347,13 @@ model RegistrationTerm {
 
 // ─── Payments ───────────────────────────────────────────────────────────────
 
+enum PaymentSource {
+  organizer
+  qr_link
+
+  @@map("payment_source")
+}
+
 model Payment {
   id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @db.Uuid
@@ -352,12 +361,13 @@ model Payment {
   submissionKey  String   @unique @db.Uuid
   amountMinor    Int
   receivedOn     DateTime @db.Date
-  recordedById   String
+  source         PaymentSource @default(organizer)
+  recordedById   String? // set for organizer entries only, null for a QR link payment
   createdAt      DateTime @default(now()) @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   registration Registration @relation(fields: [registrationId, organizationId], references: [id, organizationId], onDelete: Restrict)
-  recordedBy   User         @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+  recordedBy   User?        @relation(fields: [recordedById], references: [id], onDelete: Restrict)
 
   @@index([registrationId])
   @@map("payment")

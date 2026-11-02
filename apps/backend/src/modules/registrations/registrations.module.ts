@@ -6,13 +6,16 @@ import { EventRegistrationsController } from './controllers/event-registrations.
 import { ParticipantRegistrationsController } from './controllers/participant-registrations.controller';
 import { PaymentsController } from './controllers/payments.controller';
 import { PublicRegistrationsController } from './controllers/public-registrations.controller';
+import { QrPaymentsController } from './controllers/qr-payments.controller';
 import { EventRegistrationsRepository } from './repositories/event-registrations.repository';
 import { ParticipantRegistrationsRepository } from './repositories/participant-registrations.repository';
 import { PaymentsRepository } from './repositories/payments.repository';
+import { QrPaymentsRepository } from './repositories/qr-payments.repository';
 import { RegistrationsRepository } from './repositories/registrations.repository';
 import { EventRegistrationsService } from './services/event-registrations.service';
 import { ParticipantRegistrationsService } from './services/participant-registrations.service';
 import { PaymentsService } from './services/payments.service';
+import { QrPaymentsService } from './services/qr-payments.service';
 import { RegistrationConfirmationService } from './services/registration-confirmation.service';
 import { RegistrationsService } from './services/registrations.service';
 
@@ -23,6 +26,7 @@ import { RegistrationsService } from './services/registrations.service';
     EventRegistrationsController,
     PaymentsController,
     ParticipantRegistrationsController,
+    QrPaymentsController,
   ],
   providers: [
     RegistrationsService,
@@ -34,6 +38,8 @@ import { RegistrationsService } from './services/registrations.service';
     PaymentsRepository,
     ParticipantRegistrationsService,
     ParticipantRegistrationsRepository,
+    QrPaymentsService,
+    QrPaymentsRepository,
   ],
 })
 export class RegistrationsModule {}

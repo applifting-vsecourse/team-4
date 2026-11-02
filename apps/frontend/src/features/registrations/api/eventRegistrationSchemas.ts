@@ -1,6 +1,9 @@
 import { z } from "zod"
 
-import { participationStatusSchema } from "@/features/registrations/api/registrationSchemas"
+import {
+  participationStatusSchema,
+  receivedPaymentSchema,
+} from "@/features/registrations/api/registrationSchemas"
 
 // The organizer's view of an event's registrations (S2-11). Amounts are
 // derived by the server (data-model.md §3.9); the client only shows them.
@@ -44,13 +47,7 @@ export const registrationDetailSchema = registrationSummarySchema.extend({
   /** Payment reminder, not a deadline; null while nothing is due. */
   reminderAt: z.string().nullable(),
   variableSymbol: z.string().nullable(),
-  payments: z.array(
-    z.object({
-      id: z.string().uuid(),
-      receivedOn: z.string(),
-      amountMinor: z.number().int(),
-    }),
-  ),
+  payments: z.array(receivedPaymentSchema),
 })
 
 export type RegistrationSummary = z.infer<typeof registrationSummarySchema>

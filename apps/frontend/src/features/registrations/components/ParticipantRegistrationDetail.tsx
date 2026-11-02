@@ -15,7 +15,9 @@ import { participantRegistrationQueryOptions } from "@/features/registrations/ap
 import { LoadFailedAlert } from "@/features/registrations/components/LoadFailedAlert"
 import { ParticipantPaymentSummary } from "@/features/registrations/components/ParticipantPaymentSummary"
 import { ParticipantTermList } from "@/features/registrations/components/ParticipantTermList"
+import { PaymentQrCard } from "@/features/registrations/components/PaymentQrCard"
 import { RefreshButton } from "@/features/registrations/components/RefreshButton"
+import { SimulatedPaymentHistory } from "@/features/registrations/components/SimulatedPaymentHistory"
 import {
   isRegistrationUnavailable,
   isSessionRefused,
@@ -120,6 +122,11 @@ export function ParticipantRegistrationDetail({
                 balanceMinor={data.balanceMinor}
                 instructions={data.paymentInstructions}
               />
+              {data.paymentLinkToken ? (
+                <PaymentQrCard
+                  link={`${window.location.origin}${ROUTES.qrPayment.replace("$token", data.paymentLinkToken)}`}
+                />
+              ) : null}
             </CardContent>
           </Card>
 
@@ -128,25 +135,14 @@ export function ParticipantRegistrationDetail({
               <CardTitle>Přijaté platby</CardTitle>
             </CardHeader>
             <CardContent>
-              {data.payments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Zatím nebyla zaznamenána žádná platba.
-                </p>
-              ) : (
-                <ul className="divide-y divide-border text-sm">
-                  {data.payments.map((payment) => (
-                    <li
-                      key={payment.id}
-                      className="flex justify-between gap-4 py-2 first:pt-0 last:pb-0"
-                    >
-                      <span className="text-muted-foreground">
-                        {formatCalendarDate(payment.receivedOn)}
-                      </span>
-                      <span className="font-mono">{formatCzk(payment.amountMinor)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <SimulatedPaymentHistory
+                payments={data.payments.map((payment) => ({
+                  id: payment.id,
+                  date: formatCalendarDate(payment.receivedOn),
+                  amount: formatCzk(payment.amountMinor),
+                  isSimulated: payment.source === "qr_link",
+                }))}
+              />
             </CardContent>
           </Card>
 

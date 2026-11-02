@@ -355,6 +355,37 @@ describe('payment', () => {
     }
   });
 
+  it('requires a recording user exactly for organizer payments', async () => {
+    const { organizerId, registration } = await setup();
+    const base = {
+      organizationId: registration.organizationId,
+      registrationId: registration.id,
+      amountMinor: 100,
+      receivedOn: new Date('2026-10-01T00:00:00Z'),
+    };
+
+    await expect(
+      prisma.payment.create({
+        data: { ...base, submissionKey: randomUUID(), source: 'qr_link' },
+      }),
+    ).resolves.toBeDefined();
+    await expect(
+      prisma.payment.create({
+        data: {
+          ...base,
+          submissionKey: randomUUID(),
+          source: 'qr_link',
+          recordedById: organizerId,
+        },
+      }),
+    ).rejects.toThrow(/payment_recorded_by_chk/);
+    await expect(
+      prisma.payment.create({
+        data: { ...base, submissionKey: randomUUID(), source: 'organizer' },
+      }),
+    ).rejects.toThrow(/payment_recorded_by_chk/);
+  });
+
   it('records a double submit at most once', async () => {
     const { organizerId, registration } = await setup();
     const payment = await createPayment(prisma, {
