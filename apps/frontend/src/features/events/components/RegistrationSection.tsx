@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
 import { readApiError } from "@/lib/apiError"
 
 import { type EventDetail, type OpeningBlocker } from "@/features/events/api/eventSchemas"
+import { ChangeApprovalSection } from "@/features/events/components/ChangeApprovalSection"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { useRefreshEvent } from "@/features/events/hooks/useEventMutations"
 import { useOpenRegistration } from "@/features/events/hooks/useOpenRegistration"
@@ -178,6 +180,12 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
               </AlertDescription>
             </Alert>
           )}
+
+          <Separator />
+          <ChangeApprovalSection
+            organizationId={organizationId}
+            event={event}
+          />
         </CardContent>
       </Card>
     </section>

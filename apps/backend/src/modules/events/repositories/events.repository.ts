@@ -102,6 +102,13 @@ export class LockedEvent {
     });
   }
 
+  async setChangeApprovalDays(days: number | null): Promise<void> {
+    await this.tx.event.update({
+      where: { id: this.eventId },
+      data: { changeApprovalDays: days },
+    });
+  }
+
   async updatePaymentSettings(settings: PaymentSettings): Promise<void> {
     await this.tx.event.update({
       where: { id: this.eventId },
@@ -227,6 +234,7 @@ export class EventsRepository {
         status: true,
         firstOpenedAt: true,
         isPublished: true,
+        changeApprovalDays: true,
         bankAccountPrefix: true,
         bankAccountNumber: true,
         bankCode: true,
@@ -268,6 +276,7 @@ export class EventsRepository {
       toPaymentSettings(event),
       event.publicId,
       event.isPublished,
+      event.changeApprovalDays,
     );
   }
 

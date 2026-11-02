@@ -1,3 +1,4 @@
+import { useState, type FormEvent } from "react"
 import { Info, Loader2 } from "lucide-react"
 
 import { Alert, AlertTitle } from "@/components/ui/alert"
@@ -16,7 +17,7 @@ import { Input } from "@/components/ui/input"
 
 export type ChangeApprovalSettingsProps = {
   /**
-   * The saved setting in words, e.g. "Schvalujete změny přihlášek od 14 dní před začátkem termínu",
+   * The saved setting in words, e.g. "Schvalujete změny přihlášek od 14 dnů před začátkem termínu",
    * or "Žádné změny přihlášek nepodléhají vašemu schválení" when nothing is set.
    */
   savedSetting: string
@@ -25,18 +26,31 @@ export type ChangeApprovalSettingsProps = {
   daysError?: string
   errorMessage?: string
   isSaving?: boolean
+  /** Called with the entered text; the owner validates it. Absent in the design preview. */
+  onSubmit?: (days: string) => void
+  onDismissError?: () => void
 }
 
 // Správa akce → Nastavení → Přihlašování (F35-1a): the number of days before
 // each term's start from which the organizer approves registration changes.
-// Placed in the existing Přihlašování card. Design only: every value is passed in.
+// Placed in the existing Přihlašování card. The entered text stays in the field
+// after a failed save; validation and saving belong to the owner.
 export function ChangeApprovalSettings({
   savedSetting,
   days = "",
   daysError,
   errorMessage,
   isSaving = false,
+  onSubmit,
+  onDismissError,
 }: ChangeApprovalSettingsProps) {
+  const [value, setValue] = useState(days)
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    onSubmit?.(value)
+  }
+
   return (
     <section
       aria-labelledby="change-approval-heading"
@@ -57,6 +71,7 @@ export function ChangeApprovalSettings({
       <form
         noValidate
         className="space-y-4"
+        onSubmit={handleSubmit}
       >
         <Field
           className="sm:max-w-sm"
@@ -68,7 +83,8 @@ export function ChangeApprovalSettings({
             inputMode="numeric"
             autoComplete="off"
             placeholder="např. 14 dní"
-            defaultValue={days}
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
             aria-invalid={daysError ? true : undefined}
           />
           {daysError ? <FieldError>{daysError}</FieldError> : null}
@@ -76,7 +92,7 @@ export function ChangeApprovalSettings({
 
         <div className="flex justify-end">
           <Button
-            type="button"
+            type="submit"
             disabled={isSaving}
           >
             {isSaving ? <Loader2 className="size-4 animate-spin" /> : null}
@@ -85,7 +101,12 @@ export function ChangeApprovalSettings({
         </div>
       </form>
 
-      <Dialog open={Boolean(errorMessage)}>
+      <Dialog
+        open={Boolean(errorMessage)}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) onDismissError?.()
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Uložení se nezdařilo</DialogTitle>
