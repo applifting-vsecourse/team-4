@@ -8,6 +8,7 @@ import { MagicLinkRequest } from "@/features/participant-access/components/Magic
 import { ParticipantLayout } from "@/features/participant-access/components/ParticipantLayout"
 import { ParticipantLogoutButton } from "@/features/participant-access/components/ParticipantLogoutButton"
 import { ParticipantSessionEnded } from "@/features/participant-access/components/ParticipantSessionEnded"
+import { ParticipantTermProgrammes } from "@/features/programme/components/ParticipantTermProgrammes"
 import { ParticipantRegistrationDetail } from "@/features/registrations/components/ParticipantRegistrationDetail"
 
 // Detail of one own registration (S2-14). Reading is bound to the verified
@@ -41,6 +42,12 @@ function MyRegistrationPage() {
         <ParticipantRegistrationDetail
           registrationId={registrationId}
           sessionEnded={<ParticipantSessionEnded />}
+          renderProgramme={(registration) => (
+            <ParticipantTermProgrammes
+              registrationId={registration.id}
+              terms={registration.terms}
+            />
+          )}
         />
       </ParticipantLayout>
     </>

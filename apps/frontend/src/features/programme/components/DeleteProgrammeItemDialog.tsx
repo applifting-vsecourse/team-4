@@ -18,17 +18,24 @@ export type DeleteProgrammeItemDialogProps = {
   /** The deletion failed; the item stays in the programme. */
   errorMessage?: string
   isSubmitting?: boolean
+  onOpenChange?: (isOpen: boolean) => void
+  onConfirm?: () => void
 }
 
-// Confirmation of deleting a programme item (F65), organizer. Design only.
+// Confirmation of deleting a programme item (F65), organizer.
 export function DeleteProgrammeItemDialog({
   isOpen,
   itemTitle,
   errorMessage,
   isSubmitting = false,
+  onOpenChange,
+  onConfirm,
 }: DeleteProgrammeItemDialogProps) {
   return (
-    <Dialog open={isOpen}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={onOpenChange}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Smazat položku „{itemTitle}“?</DialogTitle>
@@ -48,6 +55,7 @@ export function DeleteProgrammeItemDialog({
           <Button
             variant="destructive"
             disabled={isSubmitting}
+            onClick={onConfirm}
           >
             {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
             Smazat

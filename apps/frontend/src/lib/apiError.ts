@@ -17,6 +17,9 @@ export type ApiErrorCode =
   | "received_on_future"
   | "magic_link_invalid"
   | "participant_session_required"
+  | "programme_unavailable"
+  | "programme_date_out_of_term"
+  | "programme_date_invalid"
 
 export type ApiError = {
   status: number | null

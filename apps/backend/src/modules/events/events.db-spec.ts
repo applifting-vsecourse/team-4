@@ -298,6 +298,7 @@ describe('terms', () => {
       ...second,
       id: undefined,
       capacity: undefined,
+      programmeItemCount: undefined,
       startDate: '2027-07-05',
     });
     expect(moved.status).toBe(409);

@@ -22,12 +22,14 @@ type ProgrammeListProps = {
   days: ProgrammeDay[]
   /** Organizer view: every item can be edited and deleted. */
   isEditable?: boolean
+  onEdit?: (itemId: string) => void
+  onDelete?: (itemId: string) => void
 }
 
 // Programme of one term, split by days and sorted chronologically (F65).
-// Design only: every value is passed in. Missing place and description are
+// Every value is passed in. Missing place and description are
 // left out, not replaced by placeholders.
-export function ProgrammeList({ days, isEditable = false }: ProgrammeListProps) {
+export function ProgrammeList({ days, isEditable = false, onEdit, onDelete }: ProgrammeListProps) {
   return (
     <div className="space-y-6">
       {days.map((day) => (
@@ -75,6 +77,7 @@ export function ProgrammeList({ days, isEditable = false }: ProgrammeListProps) 
                       variant="ghost"
                       size="icon"
                       aria-label={`Upravit položku ${item.title}`}
+                      onClick={() => onEdit?.(item.id)}
                     >
                       <Pencil />
                     </Button>
@@ -82,6 +85,7 @@ export function ProgrammeList({ days, isEditable = false }: ProgrammeListProps) 
                       variant="ghost"
                       size="icon"
                       aria-label={`Smazat položku ${item.title}`}
+                      onClick={() => onDelete?.(item.id)}
                     >
                       <Trash2 />
                     </Button>

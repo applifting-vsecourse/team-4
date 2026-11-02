@@ -62,6 +62,8 @@ export class EventTermModel {
     public readonly priceMinor: number,
     /** Derived from the beds of rooms available in the term (S2-05). */
     public readonly capacity: number,
+    /** Items of the term's programme (F65). */
+    public readonly programmeItemCount: number,
   ) {}
 }
 
@@ -113,7 +115,10 @@ export class PublicEventModel {
     public readonly name: string,
     public readonly description: string,
     public readonly location: string,
-    public readonly terms: Omit<EventTermModel, 'capacity'>[],
+    public readonly terms: Omit<
+      EventTermModel,
+      'capacity' | 'programmeItemCount'
+    >[],
   ) {}
 }
 
