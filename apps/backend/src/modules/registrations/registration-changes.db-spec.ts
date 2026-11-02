@@ -676,6 +676,143 @@ describe('capacity', () => {
   });
 });
 
+describe('capacity: failures and concurrent approvals', () => {
+  it('keeps the original place when the move fails halfway', async () => {
+    const fixture = await setup(null);
+    const registration = await register(fixture, [1]);
+    const targetId = fixture.terms[2].id;
+    // The release of Turnus 2 is written first; taking Turnus 3 then fails.
+    await prisma.$executeRawUnsafe(`
+      CREATE OR REPLACE FUNCTION e2e_fail_move() RETURNS trigger AS $$
+      BEGIN
+        IF NEW."termId" = '${targetId}' THEN RAISE EXCEPTION 'move failed'; END IF;
+        RETURN NEW;
+      END $$ LANGUAGE plpgsql`);
+    await prisma.$executeRawUnsafe(
+      `CREATE TRIGGER e2e_fail_move BEFORE INSERT ON "registration_term"
+       FOR EACH ROW EXECUTE FUNCTION e2e_fail_move()`,
+    );
+    try {
+      const result = await submit(registration, {
+        moves: [
+          {
+            fromTermId: fixture.terms[1].id,
+            toTermId: targetId,
+            acceptWaitlist: false,
+          },
+        ],
+      });
+
+      expect(result.status).toBe(500);
+    } finally {
+      await prisma.$executeRawUnsafe(
+        `DROP TRIGGER e2e_fail_move ON "registration_term"`,
+      );
+      await prisma.$executeRawUnsafe(`DROP FUNCTION e2e_fail_move()`);
+    }
+
+    expect(await statuses(registration)).toEqual({ 'Turnus 2': 'confirmed' });
+    expect(await version(registration)).toBe(0);
+    expect(
+      await prisma.registrationChange.count({
+        where: { registrationId: registration.id },
+      }),
+    ).toBe(0);
+  });
+
+  it('keeps the original place and the request when approving would end on the waitlist', async () => {
+    const fixture = await setup(14, 1);
+    const registration = await register(fixture, [0]);
+    const requested = await submit(registration, {
+      moves: [
+        {
+          fromTermId: fixture.terms[0].id,
+          toTermId: fixture.terms[1].id,
+          acceptWaitlist: false,
+        },
+      ],
+    });
+    expect(requested.body.outcome).toBe('requested');
+    await register(fixture, [1]);
+
+    const path = `${managed(fixture, registration)}/changes/${requested.body.change.id}`;
+    const refused = await call('POST', `${path}/approve`, owner(fixture));
+
+    expect(refused.status).toBe(409);
+    expect(refused.body.code).toBe('waitlist_consent_required');
+    expect(refused.body.preview.moves[0].resultStatus).toBe('waitlisted');
+    expect(await statuses(registration)).toEqual({ 'Turnus 1': 'confirmed' });
+    const stored = await prisma.registrationChange.findUniqueOrThrow({
+      where: { id: requested.body.change.id },
+    });
+    expect(stored.status).toBe('pending');
+    expect(await version(registration)).toBe(0);
+
+    // Only the participant's new, explicit consent lets it through.
+    await call(
+      'POST',
+      `${base(registration)}/changes/${requested.body.change.id}/accept-waitlist`,
+      own(registration),
+    );
+    const approved = await call('POST', `${path}/approve`, owner(fixture));
+    expect(approved.status).toBe(200);
+    expect(await statuses(registration)).toEqual({
+      'Turnus 1': 'cancelled',
+      'Turnus 2': 'waitlisted',
+    });
+  });
+
+  it('never exceeds the capacity when two requests for the last bed are approved at once', async () => {
+    // Two beds per term: Turnus 2 has one free after a rival took the other.
+    const fixture = await setup(14, 2);
+    const a = await register(fixture, [0]);
+    const b = await register(fixture, [0]);
+    await register(fixture, [1]);
+    const move = {
+      moves: [
+        {
+          fromTermId: fixture.terms[0].id,
+          toTermId: fixture.terms[1].id,
+          acceptWaitlist: false,
+        },
+      ],
+    };
+    const [askedA, askedB] = [await submit(a, move), await submit(b, move)];
+    expect([askedA.body.outcome, askedB.body.outcome]).toEqual([
+      'requested',
+      'requested',
+    ]);
+
+    const results = await Promise.all(
+      [
+        [a, askedA],
+        [b, askedB],
+      ].map(([registration, asked]) =>
+        call(
+          'POST',
+          `${managed(fixture, registration as Registration)}/changes/${(asked as Call).body.change.id}/approve`,
+          owner(fixture),
+        ),
+      ),
+    );
+
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+    expect(
+      await prisma.registrationTerm.count({
+        where: { termId: fixture.terms[1].id, status: 'confirmed' },
+      }),
+    ).toBe(2);
+    // The refused one keeps its original place and its request.
+    const [loser] = results[0].status === 409 ? [a] : [b];
+    expect(await statuses(loser)).toEqual({ 'Turnus 1': 'confirmed' });
+    expect(
+      await prisma.registrationChange.count({
+        where: { registrationId: loser.id, status: 'pending' },
+      }),
+    ).toBe(1);
+  });
+});
+
 describe('access', () => {
   it('hides another participant’s registration and changes', async () => {
     const fixture = await setup(null);
