@@ -28,6 +28,14 @@ const registration = (
       receivedOn: '2026-10-12',
       amountMinor,
     })),
+    {
+      firstName: 'Jana',
+      lastName: 'Nováková',
+      email: 'jana@example.com',
+      phone: '+420777123456',
+    },
+    0,
+    false,
   );
 
 describe('ParticipantRegistrationModel', () => {
@@ -66,5 +74,21 @@ describe('ParticipantRegistrationModel', () => {
     expect(
       registration([['confirmed', 1000]], [1500]).paymentInstructions,
     ).toBeNull();
+  });
+
+  it('leaves a released term out of the selected price and the amount due', () => {
+    const released = registration([
+      ['confirmed', 790_000],
+      ['cancelled', 390_000],
+    ]);
+    expect(released.selectedPriceMinor).toBe(790_000);
+    expect(released.amountDueMinor).toBe(790_000);
+    expect(released.canChange).toBe(true);
+  });
+
+  it('reads as cancelled, and offers no change, once every term is released', () => {
+    const cancelled = registration([['cancelled', 790_000]]);
+    expect(cancelled.isCancelled).toBe(true);
+    expect(cancelled.canChange).toBe(false);
   });
 });

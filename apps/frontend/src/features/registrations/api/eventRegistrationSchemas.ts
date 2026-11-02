@@ -1,6 +1,9 @@
 import { z } from "zod"
 
-import { participationStatusSchema } from "@/features/registrations/api/registrationSchemas"
+import {
+  activeParticipationStatusSchema,
+  participationStatusSchema,
+} from "@/features/registrations/api/registrationSchemas"
 
 // The organizer's view of an event's registrations (S2-11). Amounts are
 // derived by the server (data-model.md §3.9); the client only shows them.
@@ -60,7 +63,7 @@ export type RegistrationDetail = z.infer<typeof registrationDetailSchema>
 /** The list filters; they live in the URL, so a refresh keeps them. */
 export const registrationFilterSchema = z.object({
   termId: z.string().uuid().optional().catch(undefined),
-  status: participationStatusSchema.optional().catch(undefined),
+  status: activeParticipationStatusSchema.optional().catch(undefined),
   payment: paymentStateSchema.optional().catch(undefined),
 })
 

@@ -14,7 +14,7 @@ import {
 } from 'class-validator';
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
-const trim = ({ value }: { value: unknown }): unknown =>
+export const trim = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim() : value;
 
 /**
@@ -22,7 +22,7 @@ const trim = ({ value }: { value: unknown }): unknown =>
  * "+420777123456"); anything else stays as typed and fails the E.164 check.
  * Without a leading "+" there is no country to read it in, so it is invalid.
  */
-const toE164 = ({ value }: { value: unknown }): unknown => {
+export const toE164 = ({ value }: { value: unknown }): unknown => {
   if (typeof value !== 'string') return value;
   const trimmed = value.trim();
   if (!trimmed.startsWith('+')) return trimmed;
@@ -30,7 +30,7 @@ const toE164 = ({ value }: { value: unknown }): unknown => {
   return phone?.isValid() ? phone.number : trimmed;
 };
 
-const PHONE_MESSAGE =
+export const PHONE_MESSAGE =
   'Zadejte telefon s mezinárodní předvolbou, např. +420 777 123 456.';
 
 /** The fixed form of an adult participant (S2-07). */

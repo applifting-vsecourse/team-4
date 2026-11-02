@@ -1,6 +1,10 @@
 import { z } from "zod"
 
-export const participationStatusSchema = z.enum(["confirmed", "waitlisted"])
+/** What the organizer filters by; a released term is no participation. */
+export const activeParticipationStatusSchema = z.enum(["confirmed", "waitlisted"])
+
+/** A term of a registration; "cancelled" is a term the participant released (F35-2a). */
+export const participationStatusSchema = z.enum(["confirmed", "waitlisted", "cancelled"])
 
 export type ParticipationStatus = z.infer<typeof participationStatusSchema>
 

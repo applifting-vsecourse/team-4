@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { type ParticipantRegistration } from "@/features/registrations/api/participantRegistrationSchemas"
+import { type ParticipantRegistrationDetail as DetailData } from "@/features/registrations/api/participantRegistrationSchemas"
 import { ParticipantRegistrationDetail } from "@/features/registrations/components/ParticipantRegistrationDetail"
 
 const { get, FakeHTTPError } = vi.hoisted(() => {
@@ -28,7 +28,7 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }))
 
-const REGISTRATION: ParticipantRegistration = {
+const REGISTRATION: DetailData = {
   id: "0190c0de-0000-7000-8000-0000000000a1",
   receivedAt: "2026-10-10T07:31:05.000Z",
   event: { name: "Letní tábor Jizerka 2026", location: "Tábořiště Jizerka, Kořenov" },
@@ -63,12 +63,27 @@ const REGISTRATION: ParticipantRegistration = {
   payments: [
     { id: "0190c0de-0000-7000-8000-0000000000b1", receivedOn: "2026-10-15", amountMinor: 200_000 },
   ],
+  contact: {
+    firstName: "Jana",
+    lastName: "Nováková",
+    email: "jana@example.com",
+    phone: "+420604123456",
+  },
+  version: 0,
+  isCancelled: false,
+  canChange: true,
+  availableTerms: [],
 }
 
 const respondWith = (body: unknown) => ({ json: () => Promise.resolve(body) })
 const failWith = (status: number) => ({
   json: () => Promise.reject(new FakeHTTPError({ status }, { statusCode: status })),
 })
+// The changes of the registration are read next to it.
+const serve = (detail: unknown) =>
+  get.mockImplementation((url: string) =>
+    url.endsWith("/changes") ? respondWith({ changes: [] }) : detail,
+  )
 const plain = (text: string | null | undefined) => text?.replace(/\u00a0/g, " ")
 
 function renderDetail() {
@@ -88,7 +103,7 @@ beforeEach(() => {
 
 describe("ParticipantRegistrationDetail", () => {
   it("shows the event, terms, payment summary with instructions and the payment history", async () => {
-    get.mockReturnValue(respondWith(REGISTRATION))
+    serve(respondWith(REGISTRATION))
     renderDetail()
 
     expect(
@@ -113,13 +128,13 @@ describe("ParticipantRegistrationDetail", () => {
   })
 
   it("says no payment has been recorded yet", async () => {
-    get.mockReturnValue(respondWith({ ...REGISTRATION, payments: [], paidMinor: 0 }))
+    serve(respondWith({ ...REGISTRATION, payments: [], paidMinor: 0 }))
     renderDetail()
     expect(await screen.findByText("Zatím nebyla zaznamenána žádná platba.")).toBeInTheDocument()
   })
 
   it("stops asking for payment once settled", async () => {
-    get.mockReturnValue(
+    serve(
       respondWith({
         ...REGISTRATION,
         paidMinor: 450_000,
@@ -134,7 +149,7 @@ describe("ParticipantRegistrationDetail", () => {
   })
 
   it("offers the way back without revealing anything for an unavailable registration", async () => {
-    get.mockReturnValue(failWith(404))
+    serve(failWith(404))
     renderDetail()
     expect(await screen.findByText("Záznam není dostupný")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Zpět na moje přihlášky" })).toHaveAttribute(
@@ -144,13 +159,13 @@ describe("ParticipantRegistrationDetail", () => {
   })
 
   it("asks for a new link when the session has ended", async () => {
-    get.mockReturnValue(failWith(401))
+    serve(failWith(401))
     renderDetail()
     expect(await screen.findByText("Přihlášení vypršelo.")).toBeInTheDocument()
   })
 
   it("never shows a failed first load as an empty detail", async () => {
-    get.mockReturnValue(failWith(500))
+    serve(failWith(500))
     renderDetail()
     expect(
       await screen.findByText("Data se nepodařilo načíst. Zkuste to znovu."),

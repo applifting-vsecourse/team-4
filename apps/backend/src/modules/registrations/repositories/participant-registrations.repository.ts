@@ -7,6 +7,12 @@ import { Injectable } from '@nestjs/common';
 const registrationSelect = {
   id: true,
   receivedAt: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  version: true,
+  changes: { where: { status: 'pending' }, select: { id: true } },
   variableSymbol: true,
   bankAccountPrefix: true,
   bankAccountNumber: true,
@@ -55,6 +61,14 @@ const toModel = (
       receivedOn: fromDate(payment.receivedOn),
       amountMinor: payment.amountMinor,
     })),
+    {
+      firstName: row.firstName,
+      lastName: row.lastName,
+      email: row.email,
+      phone: row.phone,
+    },
+    row.version,
+    row.changes.length > 0,
   );
 
 /** Every read is bound to the verified account; there is no other filter. */

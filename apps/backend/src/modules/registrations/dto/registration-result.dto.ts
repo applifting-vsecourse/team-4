@@ -5,7 +5,11 @@ import {
 } from '@/modules/registrations/domain/registration';
 import { ApiProperty } from '@nestjs/swagger';
 
-const STATUSES: ParticipationStatus[] = ['confirmed', 'waitlisted'];
+const STATUSES: ParticipationStatus[] = [
+  'confirmed',
+  'waitlisted',
+  'cancelled',
+];
 
 export class RegistrationTermResultDto {
   @ApiProperty({ format: 'uuid' })

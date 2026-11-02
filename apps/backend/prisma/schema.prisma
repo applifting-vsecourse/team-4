@@ -286,6 +286,8 @@ model ParticipantSession {
 enum ParticipationStatus {
   confirmed
   waitlisted
+  // Released by the participant (F35-2a); the row stays as history and holds no bed.
+  cancelled
 
   @@map("participation_status")
 }
@@ -306,6 +308,8 @@ model Registration {
 
   receivedAt        DateTime  @default(now()) @db.Timestamptz(3)
   paymentReminderAt DateTime? @db.Timestamptz(3)
+  // Bumped by every executed change (F35-2a); a proposal made on an older one is stale.
+  version           Int       @default(0)
 
   // snapshot of event payment settings at receipt
   bankAccountPrefix   String? @db.VarChar(6)
@@ -319,6 +323,7 @@ model Registration {
   terms              RegistrationTerm[]
   payments           Payment[]
   emails             EmailDelivery[]
+  changes            RegistrationChange[]
 
   @@unique([eventId, participantAccountId])
   @@unique([id, eventId])
@@ -343,6 +348,37 @@ model RegistrationTerm {
   @@id([registrationId, termId])
   @@index([termId, status])
   @@map("registration_term")
+}
+
+// A participant's change of an own registration (F35-2a): executed at once
+// (`applied`) or waiting for the organizer. At most one is pending per
+// registration (partial unique index in the migration).
+enum RegistrationChangeStatus {
+  pending
+  applied
+  approved
+  rejected
+
+  @@map("registration_change_status")
+}
+
+model RegistrationChange {
+  id             String                   @id @default(uuid(7)) @db.Uuid
+  registrationId String                   @db.Uuid
+  eventId        String                   @db.Uuid
+  status         RegistrationChangeStatus
+  // What the participant proposed: names, phone, term moves and cancellations.
+  proposal       Json
+  // Original and proposed values as shown to both sides; frozen once decided.
+  summary        Json
+  createdAt      DateTime                 @default(now()) @db.Timestamptz(3)
+  decidedAt      DateTime?                @db.Timestamptz(3)
+
+  registration Registration @relation(fields: [registrationId, eventId], references: [id, eventId], onDelete: Restrict)
+
+  @@index([registrationId, createdAt])
+  @@index([eventId, status, createdAt])
+  @@map("registration_change")
 }
 
 // ─── Payments ───────────────────────────────────────────────────────────────

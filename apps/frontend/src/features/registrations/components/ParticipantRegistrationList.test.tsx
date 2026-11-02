@@ -78,6 +78,15 @@ const MIXED: ParticipantRegistration = {
     reminderAt: "2027-06-28T08:00:00.000Z",
   },
   payments: [],
+  contact: {
+    firstName: "Jana",
+    lastName: "Nováková",
+    email: "jana@example.com",
+    phone: "+420604123456",
+  },
+  version: 0,
+  isCancelled: false,
+  canChange: true,
 }
 
 const WAITING: ParticipantRegistration = {

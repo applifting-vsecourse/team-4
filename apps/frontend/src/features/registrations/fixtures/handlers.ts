@@ -2,7 +2,10 @@ import { http, HttpResponse } from "msw"
 
 import { env } from "@/config/env"
 
-import { OWN_REGISTRATIONS } from "@/features/registrations/fixtures/participantRegistrations"
+import {
+  AVAILABLE_TERMS,
+  OWN_REGISTRATIONS,
+} from "@/features/registrations/fixtures/participantRegistrations"
 import {
   makeRegistrationDetail,
   makeRegistrationList,
@@ -12,6 +15,7 @@ import {
 // participant's own. Install with `msw.use(...)` in a story's `beforeEach`.
 
 const EVENT_LIST = `${env.VITE_API_URL}/organizations/:organizationId/events/:eventId/registrations`
+const EVENT_CHANGES = `${env.VITE_API_URL}/organizations/:organizationId/events/:eventId`
 const OWN_LIST = `${env.VITE_API_URL}/participant/registrations`
 
 const notFound = () => HttpResponse.json({ message: "Not Found" }, { status: 404 })
@@ -19,6 +23,8 @@ const notFound = () => HttpResponse.json({ message: "Not Found" }, { status: 404
 export const registrationHandlers = {
   event: () => [
     http.get(EVENT_LIST, () => HttpResponse.json(makeRegistrationList())),
+    http.get(`${EVENT_CHANGES}/change-requests`, () => HttpResponse.json({ changes: [] })),
+    http.get(`${EVENT_LIST}/:registrationId/changes`, () => HttpResponse.json({ changes: [] })),
     http.get(`${EVENT_LIST}/:registrationId`, () =>
       HttpResponse.json(
         makeRegistrationDetail({
@@ -38,9 +44,12 @@ export const registrationHandlers = {
   ],
   own: () => [
     http.get(OWN_LIST, () => HttpResponse.json({ registrations: OWN_REGISTRATIONS })),
+    http.get(`${OWN_LIST}/:registrationId/changes`, () => HttpResponse.json({ changes: [] })),
     http.get(`${OWN_LIST}/:registrationId`, ({ params }) => {
       const registration = OWN_REGISTRATIONS.find(({ id }) => id === params.registrationId)
-      return registration ? HttpResponse.json(registration) : notFound()
+      return registration
+        ? HttpResponse.json({ ...registration, availableTerms: AVAILABLE_TERMS })
+        : notFound()
     }),
   ],
 }
