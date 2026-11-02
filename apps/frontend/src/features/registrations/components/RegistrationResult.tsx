@@ -8,6 +8,8 @@ import { formatPragueDateTime } from "@/lib/date"
 import { type RegistrationResult as Result } from "@/features/registrations/api/registrationSchemas"
 import { ParticipantPaymentSummary } from "@/features/registrations/components/ParticipantPaymentSummary"
 import { ParticipantTermList } from "@/features/registrations/components/ParticipantTermList"
+import { PaymentQrCard } from "@/features/registrations/components/PaymentQrCard"
+import { paymentLinkUrl } from "@/features/registrations/lib/paymentLink"
 
 // What the server saved for the registration just submitted, term by term
 // (S2-08, S2-14): the event, every term with its own status and the payment
@@ -58,6 +60,9 @@ export function RegistrationResult({ result }: { result: Result }) {
                 balanceMinor={result.amountDueMinor}
                 instructions={result.paymentInstructions}
               />
+              {result.paymentLinkToken ? (
+                <PaymentQrCard link={paymentLinkUrl(result.paymentLinkToken)} />
+              ) : null}
             </div>
           </div>
         </CardContent>

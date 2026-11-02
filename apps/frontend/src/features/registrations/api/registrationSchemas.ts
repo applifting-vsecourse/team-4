@@ -59,6 +59,8 @@ export const registrationResultSchema = z.object({
   amountDueMinor: z.number().int(),
   /** Null at zero obligation: no reminder date and no request to pay. */
   paymentInstructions: paymentInstructionsSchema.nullable(),
+  /** Token of the QR payment link; null while nothing is owed. */
+  paymentLinkToken: z.string().nullable(),
 })
 
 export type RegistrationResult = z.infer<typeof registrationResultSchema>

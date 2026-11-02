@@ -43,7 +43,7 @@ export function PaymentQrCard({ link }: PaymentQrCardProps) {
             className="size-full"
           />
         </div>
-        <div className="min-w-0 flex-1 space-y-3 text-sm">
+        <div className="min-w-48 flex-1 space-y-3 text-sm">
           <p>Naskenujte kód telefonem a na otevřené stránce zvolte, kolik chcete zaplatit.</p>
           <p className="font-mono text-xs break-all text-muted-foreground">{link}</p>
           <div className="flex flex-wrap gap-2">

@@ -35,6 +35,12 @@ test("a participant pays through the QR link in two parts", async ({ browser, pa
   await expect(visitor.getByLabel("Částka (Kč)")).toHaveValue("1000")
   await expect(definition(visitor, "Zbývá zaplatit")).toHaveText("1 000 Kč")
 
+  // The way back leads to the registration detail the participant came from.
+  await expect(visitor.getByRole("link", { name: "Zpět na přihlášku" })).toHaveAttribute(
+    "href",
+    `/my-registrations/${registration.id}`,
+  )
+
   // An invalid amount is explained and keeps the input.
   await visitor.getByLabel("Částka (Kč)").fill("1500")
   await visitor.getByRole("button", { name: "Zaplatit" }).click()
@@ -77,6 +83,39 @@ test("a participant pays through the QR link in two parts", async ({ browser, pa
     [60000, "qr_link"],
   ])
   await organizerContext.close()
+})
+
+test("the result of a new registration offers the QR link right away", async ({
+  browser,
+  page,
+}) => {
+  const organizerContext = await browser.newContext()
+  const event = await setUpEvent(organizerContext.request, { terms, rooms })
+  await organizerContext.close()
+
+  await page.goto(`/e/${event.publicId}`)
+  await page.getByRole("checkbox", { name: /Turnus/ }).check()
+  await page.getByLabel("Jméno").fill("Marie")
+  await page.getByLabel("Příjmení").fill("Nováková")
+  await page.getByLabel("E-mail").fill(`marie-${Date.now()}@example.test`)
+  await page.getByLabel("Telefon").fill("+420 777 123 456")
+  await page.getByRole("button", { name: "Odeslat přihlášku" }).click()
+
+  await expect(page.getByRole("heading", { name: "Přihláška je uložená" })).toBeVisible()
+  await expect(page.getByRole("img", { name: "QR kód s odkazem na platbu" })).toBeVisible()
+  const link = (await page.getByText(/\/platba\/[0-9a-f]{64}$/).textContent())!.trim()
+
+  // The link opens without any session and pays only this registration.
+  const visitorContext = await browser.newContext()
+  const visitor = await visitorContext.newPage()
+  await visitor.goto(new URL(link).pathname)
+  await expect(visitor.getByLabel("Částka (Kč)")).toHaveValue("1000")
+
+  // The page leads back to the registration; without a session that asks for a magic link.
+  await visitor.getByRole("link", { name: "Zpět na přihlášku" }).click()
+  await expect(visitor).toHaveURL(/\/my-registrations\/[0-9a-f-]{36}$/)
+  await expect(visitor.getByRole("button", { name: "Poslat přihlašovací odkaz" })).toBeVisible()
+  await visitorContext.close()
 })
 
 test("an invalid payment link shows nothing private", async ({ page }) => {

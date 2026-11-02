@@ -75,6 +75,7 @@ const RESULT: RegistrationResult = {
     // 28 June 2027, 10:00 in Prague.
     reminderAt: "2027-06-28T08:00:00.000Z",
   },
+  paymentLinkToken: "d".repeat(64),
 }
 
 /** The value next to a label in the payment summary, Intl's no-break spaces as plain ones. */
@@ -246,6 +247,11 @@ describe("submitting", () => {
     expect(valueOf("Číslo účtu")).toBe("2501234567/2010")
     expect(valueOf("Variabilní symbol")).toBe("2027094")
     expect(screen.queryByText(/splatnost/i)).not.toBeInTheDocument()
+    // The QR and link to pay this registration are offered right away (F21-1).
+    expect(screen.getByRole("img", { name: "QR kód s odkazem na platbu" })).toBeInTheDocument()
+    expect(
+      screen.getByText(`${window.location.origin}/platba/${"d".repeat(64)}`),
+    ).toBeInTheDocument()
     // No session is opened: other registrations stay behind the magic link.
     expect(screen.getByRole("link", { name: "Moje přihlášky" })).toHaveAttribute(
       "href",
@@ -260,6 +266,7 @@ describe("submitting", () => {
         terms: RESULT.terms.map((term) => ({ ...term, status: "waitlisted" })),
         amountDueMinor: 0,
         paymentInstructions: null,
+        paymentLinkToken: null,
       }),
     )
     renderForm()
@@ -271,6 +278,9 @@ describe("submitting", () => {
     expect(screen.queryByText("Zbývá zaplatit")).not.toBeInTheDocument()
     expect(screen.queryByText("Datum připomenutí platby")).not.toBeInTheDocument()
     expect(screen.queryByText("Variabilní symbol")).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("img", { name: "QR kód s odkazem na platbu" }),
+    ).not.toBeInTheDocument()
   })
 
   it("keeps the form after a failure and retries with the same submission key", async () => {

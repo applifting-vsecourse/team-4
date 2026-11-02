@@ -4,6 +4,8 @@ import { z } from "zod"
 // path is the only credential; nothing personal comes back.
 
 export const qrPaymentPageSchema = z.object({
+  /** The registration being paid, for the way back to its detail. */
+  registrationId: z.string().uuid(),
   eventName: z.string(),
   /** Remaining debt in haléře; zero or less means there is nothing to pay. */
   balanceMinor: z.number().int(),

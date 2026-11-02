@@ -18,6 +18,7 @@ import { ParticipantTermList } from "@/features/registrations/components/Partici
 import { PaymentQrCard } from "@/features/registrations/components/PaymentQrCard"
 import { RefreshButton } from "@/features/registrations/components/RefreshButton"
 import { SimulatedPaymentHistory } from "@/features/registrations/components/SimulatedPaymentHistory"
+import { paymentLinkUrl } from "@/features/registrations/lib/paymentLink"
 import {
   isRegistrationUnavailable,
   isSessionRefused,
@@ -123,9 +124,7 @@ export function ParticipantRegistrationDetail({
                 instructions={data.paymentInstructions}
               />
               {data.paymentLinkToken ? (
-                <PaymentQrCard
-                  link={`${window.location.origin}${ROUTES.qrPayment.replace("$token", data.paymentLinkToken)}`}
-                />
+                <PaymentQrCard link={paymentLinkUrl(data.paymentLinkToken)} />
               ) : null}
             </CardContent>
           </Card>

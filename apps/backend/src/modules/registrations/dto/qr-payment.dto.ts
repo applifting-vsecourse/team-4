@@ -4,6 +4,13 @@ import { IsDefined, IsInt, IsUUID, Max, Min } from 'class-validator';
 
 /** What the public payment page shows; no personal data. */
 export class QrPaymentPageDto {
+  @ApiProperty({
+    format: 'uuid',
+    description:
+      'The registration this link pays, for the way back to its detail. The id alone grants nothing.',
+  })
+  registrationId!: string;
+
   @ApiProperty()
   eventName!: string;
 

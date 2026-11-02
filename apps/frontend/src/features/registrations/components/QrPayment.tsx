@@ -1,7 +1,11 @@
 import { useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { Link } from "@tanstack/react-router"
+import { ChevronLeft } from "lucide-react"
 
+import { ROUTES } from "@/app/routes"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { readApiError } from "@/lib/apiError"
 import { formatCzk, minorToInput } from "@/lib/money"
@@ -20,7 +24,7 @@ type QrPaymentProps = { token: string }
 
 // The page opened from the QR (F21-1). Opening it records nothing; "Zaplatit"
 // records one payment. The amount and the debt are checked again by the server.
-export function QrPayment({ token }: QrPaymentProps) {
+function QrPaymentFlow({ token }: QrPaymentProps) {
   const query = useQuery(qrPaymentPageQueryOptions(token))
   const payment = useQrPayment(token)
 
@@ -149,5 +153,34 @@ export function QrPayment({ token }: QrPaymentProps) {
       onSubmit={submit}
       onRetry={submit}
     />
+  )
+}
+
+// The page opened from the QR (F21-1) with the way back to the registration.
+// The detail asks for a magic link when the visitor has no session, so the
+// payment link itself still opens nothing private.
+export function QrPayment({ token }: QrPaymentProps) {
+  // The same query as the flow below: one request, shared through the cache.
+  const { data: page } = useQuery(qrPaymentPageQueryOptions(token))
+
+  return (
+    <div className="space-y-6">
+      {page ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+        >
+          <Link
+            to={ROUTES.myRegistration}
+            params={{ registrationId: page.registrationId }}
+          >
+            <ChevronLeft />
+            Zpět na přihlášku
+          </Link>
+        </Button>
+      ) : null}
+      <QrPaymentFlow token={token} />
+    </div>
   )
 }

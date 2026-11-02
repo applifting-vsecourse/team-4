@@ -7,7 +7,11 @@ import {
 } from '@/modules/registrations/domain/qr-payment';
 import { Injectable } from '@nestjs/common';
 
-export type QrPaymentPage = { eventName: string; balanceMinor: number };
+export type QrPaymentPage = {
+  registrationId: string;
+  eventName: string;
+  balanceMinor: number;
+};
 
 export type QrPaymentOutcome =
   | { kind: 'unavailable' }
@@ -30,13 +34,18 @@ export class QrPaymentsRepository {
     const row = await this.prisma.registration.findUnique({
       where: { paymentToken: token },
       select: {
+        id: true,
         event: { select: { name: true } },
         terms: { select: { status: true, priceMinor: true } },
         payments: { select: { amountMinor: true } },
       },
     });
     if (!row) return null;
-    return { eventName: row.event.name, balanceMinor: balanceOf(row) };
+    return {
+      registrationId: row.id,
+      eventName: row.event.name,
+      balanceMinor: balanceOf(row),
+    };
   }
 
   /**

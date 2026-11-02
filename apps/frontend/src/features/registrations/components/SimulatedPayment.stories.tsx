@@ -145,7 +145,16 @@ export const DetailOverpaid: Story = { args: { balanceMinor: -50000 } }
 function SimulationPage({ children }: { children: ReactNode }) {
   return (
     <Page>
-      <div className="mx-auto w-full max-w-xl">{children}</div>
+      <div className="mx-auto w-full max-w-xl space-y-6">
+        <Button
+          variant="ghost"
+          size="sm"
+        >
+          <ChevronLeft />
+          Zpět na přihlášku
+        </Button>
+        {children}
+      </div>
     </Page>
   )
 }

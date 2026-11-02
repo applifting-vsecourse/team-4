@@ -88,6 +88,7 @@ describe('the QR payment page', () => {
     const page = await call('GET', registration.paymentToken);
     expect(page.status).toBe(200);
     expect(page.body).toEqual({
+      registrationId: registration.id,
       eventName: expect.stringContaining('Event'),
       balanceMinor: 100_000,
     });

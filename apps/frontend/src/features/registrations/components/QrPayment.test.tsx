@@ -24,6 +24,14 @@ const { get, post, FakeHttpError } = vi.hoisted(() => {
   }
 })
 
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children, to, params }: { children: React.ReactNode; to: string; params: object }) => (
+    <a href={to.replace("$registrationId", (params as { registrationId: string }).registrationId)}>
+      {children}
+    </a>
+  ),
+}))
+
 vi.mock("@/lib/api-client", () => ({ api: { get, post }, HTTPError: FakeHttpError }))
 
 const TOKEN = "c".repeat(64)
@@ -33,7 +41,8 @@ const fail = (status: number, data: unknown = {}) => ({
 })
 const plain = (text: string | null | undefined) => text?.replace(/\u00a0/g, " ")
 
-const DEBT = { eventName: "Letní tábor", balanceMinor: 240_000 }
+const REGISTRATION_ID = "0190c0de-0000-7000-8000-0000000000a1"
+const DEBT = { registrationId: REGISTRATION_ID, eventName: "Letní tábor", balanceMinor: 240_000 }
 
 function renderPage() {
   render(
@@ -58,7 +67,18 @@ describe("QrPayment", () => {
       "2 400 Kč",
     )
     expect(get).toHaveBeenCalledWith(`public/payments/${TOKEN}`)
+    expect(get).toHaveBeenCalledTimes(1)
     expect(post).not.toHaveBeenCalled()
+  })
+
+  it("leads back to the registration detail", async () => {
+    get.mockReturnValue(answer(DEBT))
+    renderPage()
+
+    expect(await screen.findByRole("link", { name: "Zpět na přihlášku" })).toHaveAttribute(
+      "href",
+      `/my-registrations/${REGISTRATION_ID}`,
+    )
   })
 
   it("pays a part and shows the new debt", async () => {
@@ -152,6 +172,7 @@ describe("QrPayment", () => {
     renderPage()
 
     expect(await screen.findByText("Záznam není dostupný")).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "Zpět na přihlášku" })).not.toBeInTheDocument()
     expect(screen.queryByLabelText("Částka (Kč)")).not.toBeInTheDocument()
   })
 
