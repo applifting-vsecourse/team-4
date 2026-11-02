@@ -1,11 +1,14 @@
+import { QrCode } from "lucide-react"
+
 import { Separator } from "@/components/ui/separator"
 
 // Participant e-mails (F45-1). Design only: amounts arrive formatted in CZK.
-// Bank details appear only while a debt remains.
+// The block depends on the balance alone: a debt shows the bank details and the
+// payment QR, zero debt says it is paid, an overpayment asks for no payment.
 
 export type EmailPaymentSummaryProps = {
   /** The payment this e-mail is about; omitted for changes that record none. */
-  recorded?: { amount: string; date: string; source: "manual" | "simulated" }
+  recorded?: { amount: string; date: string }
   /** All payments received so far. */
   received: string
   balance: { kind: "debt" | "settled" | "overpaid"; amount: string }
@@ -49,7 +52,7 @@ export function EmailPaymentSummary({
         {recorded ? (
           <>
             <Row
-              label={recorded.source === "simulated" ? "Simulovaná platba" : "Zaznamenaná platba"}
+              label="Přijatá platba"
               value={recorded.amount}
               isStrong
             />
@@ -90,7 +93,17 @@ export function EmailPaymentSummary({
               />
             ) : null}
           </dl>
+          <div className="flex size-40 items-center justify-center rounded-lg border border-border bg-card">
+            <QrCode
+              role="img"
+              aria-label="QR kód pro platbu"
+              className="size-28"
+            />
+          </div>
         </>
+      ) : null}
+      {balance.kind === "overpaid" ? (
+        <p className="text-sm">O naložení s přeplatkem se domluvte s organizátorem.</p>
       ) : null}
     </section>
   )

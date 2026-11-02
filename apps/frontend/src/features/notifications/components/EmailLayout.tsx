@@ -57,7 +57,15 @@ export function EmailLayout({
                 size="lg"
                 className="w-full"
               >
-                <a href="https://akc.io/my-registrations/verify?token=ukazka">Moje přihlášky</a>
+                <a
+                  href={
+                    hasMagicLink
+                      ? "https://akc.io/my-registrations/verify?token=ukazka"
+                      : "https://akc.io/my-registrations"
+                  }
+                >
+                  Moje přihlášky
+                </a>
               </Button>
               <p className="text-sm text-muted-foreground">
                 {hasMagicLink
