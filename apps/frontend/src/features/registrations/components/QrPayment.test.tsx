@@ -137,6 +137,25 @@ describe("QrPayment", () => {
     expect(await screen.findByText("Částka k úhradě se mezitím snížila")).toBeInTheDocument()
     expect(screen.getByLabelText("Částka (Kč)")).toHaveValue("2400")
     expect(await screen.findByText(/vyšší než zbývá zaplatit \(900 Kč\)/)).toBeInTheDocument()
+    // The page reloaded the debt: the shown amount is the current one, not the old 2 400 Kč.
+    expect(
+      plain(screen.getByText("Zbývá zaplatit", { selector: "dt" }).nextElementSibling?.textContent),
+    ).toBe("900 Kč")
+    expect(get).toHaveBeenCalledTimes(2)
+  })
+
+  it("shows the current debt after a refused amount even when reloading it fails", async () => {
+    get.mockReturnValueOnce(answer(DEBT)).mockReturnValue(fail(500))
+    post.mockReturnValue(fail(409, { code: "debt_reduced", balanceMinor: 90_000 }))
+    renderPage()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Zaplatit" }))
+
+    expect(await screen.findByText(/vyšší než zbývá zaplatit \(900 Kč\)/)).toBeInTheDocument()
+    expect(
+      plain(screen.getByText("Zbývá zaplatit", { selector: "dt" }).nextElementSibling?.textContent),
+    ).toBe("900 Kč")
+    expect(post).toHaveBeenCalledTimes(1)
   })
 
   it("repeats the same key when a failed save is retried, so it cannot pay twice", async () => {
