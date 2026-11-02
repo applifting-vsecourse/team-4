@@ -1,4 +1,4 @@
-import { EmailLayout } from "@/features/notifications/components/EmailLayout"
+import { EmailLayout, type EmailLayoutProps } from "@/features/notifications/components/EmailLayout"
 import {
   EmailPaymentSummary,
   type EmailPaymentSummaryProps,
@@ -74,6 +74,7 @@ export type ParticipantEmailProps = {
   reason: ParticipantEmailReason
   eventName: string
   recipient: string
+  organizer: EmailLayoutProps["organizer"]
   /** The valid terms after the event, each with its own status. */
   terms: EmailTerm[]
   /** Only for "requestReceived": the terms as proposed, kept apart from the valid ones. */
@@ -88,6 +89,7 @@ export function ParticipantEmail({
   reason,
   eventName,
   recipient,
+  organizer,
   terms,
   proposedTerms,
   payment,
@@ -101,6 +103,7 @@ export function ParticipantEmail({
       recipient={recipient}
       heading={copy.heading}
       eventName={eventName}
+      organizer={organizer}
       hasMagicLink={hasMagicLink}
     >
       <p className="text-base">{copy.sentence}</p>

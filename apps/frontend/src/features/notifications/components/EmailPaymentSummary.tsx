@@ -1,6 +1,7 @@
 import { QrCode } from "lucide-react"
 
 import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
 
 // Participant e-mails (F45-1). Design only: amounts arrive formatted in CZK.
 // The block depends on the balance alone: a debt shows the bank details and the
@@ -26,15 +27,21 @@ function Row({
   label,
   value,
   isStrong = false,
+  isDestructive = false,
 }: {
   label: string
   value: string
   isStrong?: boolean
+  isDestructive?: boolean
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-1">
       <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className={isStrong ? "text-sm font-semibold" : "text-sm"}>{value}</dd>
+      <dd
+        className={cn("text-sm", isStrong && "font-semibold", isDestructive && "text-destructive")}
+      >
+        {value}
+      </dd>
     </div>
   )
 }
@@ -70,6 +77,7 @@ export function EmailPaymentSummary({
           label={BALANCE_LABELS[balance.kind]}
           value={balance.amount}
           isStrong
+          isDestructive={balance.kind === "overpaid"}
         />
       </dl>
       {balance.kind === "settled" ? <p className="text-sm">Vše je uhrazeno.</p> : null}
@@ -103,7 +111,9 @@ export function EmailPaymentSummary({
         </>
       ) : null}
       {balance.kind === "overpaid" ? (
-        <p className="text-sm">O naložení s přeplatkem se domluvte s organizátorem.</p>
+        <p className="text-sm text-destructive">
+          O naložení s přeplatkem se domluvte s organizátorem.
+        </p>
       ) : null}
     </section>
   )

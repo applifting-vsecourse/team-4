@@ -14,6 +14,8 @@ export type EmailLayoutProps = {
   recipient: string
   heading: string
   eventName: string
+  /** The event's organizer, so the participant can reply about the registration. */
+  organizer: { name: string; email: string; phone?: string }
   /** False when the contact e-mail differs from the account's sign-in e-mail: the button then leads to the standard sign-in, not to a magic link. */
   hasMagicLink?: boolean
   children: ReactNode
@@ -24,6 +26,7 @@ export function EmailLayout({
   recipient,
   heading,
   eventName,
+  organizer,
   hasMagicLink = true,
   children,
 }: EmailLayoutProps) {
@@ -52,6 +55,30 @@ export function EmailLayout({
                 <p className="text-base">{eventName}</p>
               </div>
               {children}
+              <section className="space-y-2">
+                <h2 className="text-h4">Kontakt na organizátora</h2>
+                <ul className="space-y-1 text-sm">
+                  <li>{organizer.name}</li>
+                  <li>
+                    <a
+                      href={`mailto:${organizer.email}`}
+                      className="underline"
+                    >
+                      {organizer.email}
+                    </a>
+                  </li>
+                  {organizer.phone ? (
+                    <li>
+                      <a
+                        href={`tel:${organizer.phone.replaceAll(" ", "")}`}
+                        className="underline"
+                      >
+                        {organizer.phone}
+                      </a>
+                    </li>
+                  ) : null}
+                </ul>
+              </section>
               <Button
                 asChild
                 size="lg"

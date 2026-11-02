@@ -5,11 +5,16 @@ import { ParticipantEmail } from "@/features/notifications/components/Participan
 
 // F45-1 design preview: the single participant e-mail template. Static only: every
 // value below is hard-coded. The stories show the template's blocks (terms, proposed
-// change, payment by balance, magic link); the other reasons only swap the fixed copy
-// in PARTICIPANT_EMAIL_REASONS and need no story of their own.
+// change, payment by balance, organizer contact, magic link) for the key events; the
+// remaining reasons only swap the fixed copy in PARTICIPANT_EMAIL_REASONS.
 
 const EVENT = "Letní tábor Lipnice 2027"
 const RECIPIENT = "jana.novakova@example.cz"
+const ORGANIZER = {
+  name: "Spolek Lipnice, z. s.",
+  email: "tabor@spolek-lipnice.cz",
+  phone: "+420 603 214 587",
+}
 const BANK = { account: "2301234567/2010", variableSymbol: "2027014" }
 
 const term = (id: string, name: string, dates: string, status: EmailTerm["status"]): EmailTerm => ({
@@ -29,7 +34,7 @@ const meta = {
   title: "Designs/F45-1 Participant e-mails",
   component: ParticipantEmail,
   parameters: { layout: "fullscreen" },
-  args: { eventName: EVENT, recipient: RECIPIENT },
+  args: { eventName: EVENT, recipient: RECIPIENT, organizer: ORGANIZER },
 } satisfies Meta<typeof ParticipantEmail>
 
 export default meta
@@ -57,12 +62,50 @@ export const EvaluationAllWaitlisted: Story = {
   },
 }
 
+// A spot freed up: the waitlisted term is now confirmed, with the new debt and QR.
+export const WaitlistConfirmed: Story = {
+  args: {
+    reason: "waitlistConfirmed",
+    terms: [T1_CONFIRMED, T2_CONFIRMED],
+    payment: {
+      received: "3 000 Kč",
+      balance: { kind: "debt", amount: "4 500 Kč" },
+      bank: { ...BANK, reminderDate: "15. 6. 2027 (Europe/Prague)" },
+    },
+  },
+}
+
 // Change request awaiting approval: the valid terms kept apart from the proposal, no payment.
 export const ChangeRequestPending: Story = {
   args: {
     reason: "requestReceived",
     terms: [T1_CONFIRMED],
     proposedTerms: [T1_CONFIRMED, T2_PENDING],
+  },
+}
+
+// Request approved by the organizer: the only message for the executed change, with the new debt and QR.
+export const ChangeRequestApproved: Story = {
+  args: {
+    reason: "requestApproved",
+    terms: [T1_CONFIRMED, T2_CONFIRMED],
+    payment: {
+      received: "3 000 Kč",
+      balance: { kind: "debt", amount: "4 500 Kč" },
+      bank: BANK,
+    },
+  },
+}
+
+// Request rejected by the organizer: the registration stays as it was, already paid in full.
+export const ChangeRequestRejected: Story = {
+  args: {
+    reason: "requestRejected",
+    terms: [T1_CONFIRMED],
+    payment: {
+      received: "3 000 Kč",
+      balance: { kind: "settled", amount: "0 Kč" },
+    },
   },
 }
 
