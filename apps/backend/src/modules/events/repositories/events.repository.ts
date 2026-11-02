@@ -10,10 +10,16 @@ import {
   EventSummaryModel,
   EventTermModel,
   OpeningInput,
+  PublicCatalogEventModel,
   PublicEventModel,
+  publicRegistrationStatus,
   TermInput,
 } from '@/modules/events/domain/event';
 import { PaymentSettings } from '@/modules/events/domain/payment-settings';
+import {
+  PresentationInput,
+  PublicContact,
+} from '@/modules/events/domain/presentation';
 import { Injectable } from '@nestjs/common';
 
 /** Every lookup carries the organization and its owner (data-model.md §3.2). */
@@ -21,6 +27,12 @@ export type EventScope = {
   organizationId: string;
   ownerId: string;
   eventId: string;
+};
+
+export type NewPhoto = {
+  objectKey: string;
+  contentType: string;
+  byteSize: number;
 };
 
 export type StoredTerm = {
@@ -109,6 +121,48 @@ export class LockedEvent {
     });
   }
 
+  async description(): Promise<string> {
+    const event = await this.tx.event.findUniqueOrThrow({
+      where: { id: this.eventId },
+      select: { description: true },
+    });
+    return event.description;
+  }
+
+  async updatePresentation(input: PresentationInput): Promise<void> {
+    await this.tx.event.update({
+      where: { id: this.eventId },
+      data: {
+        description: input.description,
+        conditions: input.conditions,
+        contactName: input.contact?.name ?? null,
+        contactEmail: input.contact?.email ?? null,
+        contactPhone: input.contact?.phone ?? null,
+      },
+    });
+  }
+
+  async photoCount(): Promise<number> {
+    return this.tx.eventPhoto.count({ where: { eventId: this.eventId } });
+  }
+
+  async insertPhoto(photo: NewPhoto): Promise<void> {
+    await this.tx.eventPhoto.create({
+      data: { eventId: this.eventId, ...photo },
+    });
+  }
+
+  /** The removed photo's object key; null when it does not belong to this event. */
+  async deletePhoto(photoId: string): Promise<string | null> {
+    const photo = await this.tx.eventPhoto.findFirst({
+      where: { id: photoId, eventId: this.eventId },
+      select: { objectKey: true },
+    });
+    if (!photo) return null;
+    await this.tx.eventPhoto.delete({ where: { id: photoId } });
+    return photo.objectKey;
+  }
+
   async updatePaymentSettings(settings: PaymentSettings): Promise<void> {
     await this.tx.event.update({
       where: { id: this.eventId },
@@ -168,6 +222,55 @@ const toPaymentSettings = (event: {
         paymentReminderDays: event.paymentReminderDays,
       }
     : null;
+
+const toContact = (event: {
+  contactName: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+}): PublicContact | null =>
+  event.contactName !== null && event.contactEmail !== null
+    ? {
+        name: event.contactName,
+        email: event.contactEmail,
+        phone: event.contactPhone,
+      }
+    : null;
+
+const PRESENTATION_SELECT = {
+  conditions: true,
+  contactName: true,
+  contactEmail: true,
+  contactPhone: true,
+  photos: {
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    select: { id: true },
+  },
+} satisfies Prisma.EventSelect;
+
+const PUBLIC_TERM_SELECT = {
+  orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
+  select: {
+    id: true,
+    label: true,
+    startDate: true,
+    endDate: true,
+    priceMinor: true,
+  },
+} satisfies Prisma.Event$termsArgs;
+
+const toPublicTerm = (term: {
+  id: string;
+  label: string;
+  startDate: Date;
+  endDate: Date;
+  priceMinor: number;
+}): Omit<EventTermModel, 'capacity'> => ({
+  id: term.id,
+  label: term.label,
+  startDate: fromDate(term.startDate),
+  endDate: fromDate(term.endDate),
+  priceMinor: term.priceMinor,
+});
 
 // 9 random bytes are 12 URL-safe characters for the public link /e/:publicId.
 const newPublicId = (): string => randomBytes(9).toString('base64url');
@@ -239,6 +342,7 @@ export class EventsRepository {
         bankAccountNumber: true,
         bankCode: true,
         paymentReminderDays: true,
+        ...PRESENTATION_SELECT,
         terms: {
           orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
           select: {
@@ -277,7 +381,29 @@ export class EventsRepository {
       event.publicId,
       event.isPublished,
       event.changeApprovalDays,
+      event.conditions,
+      toContact(event),
+      event.photos.map((photo) => photo.id),
     );
+  }
+
+  /** The object key of a photo of the caller's event; null otherwise. */
+  async findPhotoKey(
+    scope: EventScope,
+    photoId: string,
+  ): Promise<string | null> {
+    const photo = await this.prisma.eventPhoto.findFirst({
+      where: {
+        id: photoId,
+        event: {
+          id: scope.eventId,
+          organizationId: scope.organizationId,
+          organization: { ownerId: scope.ownerId },
+        },
+      },
+      select: { objectKey: true },
+    });
+    return photo?.objectKey ?? null;
   }
 
   /** A new event is a draft. Null when the organization is not the caller's. */
@@ -339,16 +465,8 @@ export class EventsRepository {
         name: true,
         description: true,
         location: true,
-        terms: {
-          orderBy: [{ startDate: 'asc' }, { id: 'asc' }],
-          select: {
-            id: true,
-            label: true,
-            startDate: true,
-            endDate: true,
-            priceMinor: true,
-          },
-        },
+        isPublished: true,
+        terms: PUBLIC_TERM_SELECT,
       },
     });
     if (!event) return null;
@@ -356,13 +474,53 @@ export class EventsRepository {
       event.name,
       event.description,
       event.location,
-      event.terms.map((term) => ({
-        id: term.id,
-        label: term.label,
-        startDate: fromDate(term.startDate),
-        endDate: fromDate(term.endDate),
-        priceMinor: term.priceMinor,
-      })),
+      event.terms.map(toPublicTerm),
+      event.isPublished,
     );
+  }
+
+  /**
+   * Only a published event has a catalog detail, whatever its registration
+   * status. An unpublished and a missing event both give null (F55).
+   */
+  async findPublishedByPublicId(
+    publicId: string,
+  ): Promise<PublicCatalogEventModel | null> {
+    const event = await this.prisma.event.findFirst({
+      where: { publicId, isPublished: true },
+      select: {
+        name: true,
+        description: true,
+        location: true,
+        status: true,
+        organization: { select: { name: true } },
+        ...PRESENTATION_SELECT,
+        terms: PUBLIC_TERM_SELECT,
+      },
+    });
+    if (!event) return null;
+    return new PublicCatalogEventModel(
+      event.name,
+      event.organization.name,
+      event.description,
+      event.location,
+      event.conditions,
+      toContact(event),
+      event.photos.map((photo) => photo.id),
+      publicRegistrationStatus(event.status),
+      event.terms.map(toPublicTerm),
+    );
+  }
+
+  /** The object key of a photo of a published event; null otherwise. */
+  async findPublishedPhotoKey(
+    publicId: string,
+    photoId: string,
+  ): Promise<string | null> {
+    const photo = await this.prisma.eventPhoto.findFirst({
+      where: { id: photoId, event: { publicId, isPublished: true } },
+      select: { objectKey: true },
+    });
+    return photo?.objectKey ?? null;
   }
 }

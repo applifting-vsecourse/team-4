@@ -46,6 +46,10 @@ export const OPEN_EVENT: EventDetail = eventDetailSchema.parse({
   publicId: "letni-tabor-2027",
   isPublished: true,
   changeApprovalDays: 14,
+  conditions:
+    "Věk účastníka 11 až 15 let.\nZdravotní způsobilost potvrzená rodičem při přihlášce.\nZáloha 2 000 Kč je splatná do 7 dnů od přihlášení.",
+  contact: { name: "Jana Nováková", email: "tabor@modrahora.example", phone: "+420604123456" },
+  photos: [{ id: uuid(401) }, { id: uuid(402) }],
   openingBlockers: [],
 })
 
@@ -71,6 +75,9 @@ export const DRAFT_EVENT: EventDetail = eventDetailSchema.parse({
   publicId: "podzimni-vikend-2027",
   isPublished: false,
   changeApprovalDays: null,
+  conditions: "",
+  contact: null,
+  photos: [],
   openingBlockers: ["paymentSettings"],
 })
 

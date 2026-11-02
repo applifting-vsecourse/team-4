@@ -1,12 +1,17 @@
 import { PrismaModule } from '@/core/prisma/prisma.module';
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { ObjectStorage } from '@/core/storage/object-storage.service';
 import { Prisma } from '@/generated/prisma/client';
 import { EventChangeApprovalController } from '@/modules/events/controllers/event-change-approval.controller';
 import { EventPaymentSettingsController } from '@/modules/events/controllers/event-payment-settings.controller';
+import { EventPhotosController } from '@/modules/events/controllers/event-photos.controller';
+import { EventPresentationController } from '@/modules/events/controllers/event-presentation.controller';
 import { EventTermsController } from '@/modules/events/controllers/event-terms.controller';
 import { EventsController } from '@/modules/events/controllers/events.controller';
+import { PublicCatalogController } from '@/modules/events/controllers/public-catalog.controller';
 import { PublicEventsController } from '@/modules/events/controllers/public-events.controller';
 import { EventsRepository } from '@/modules/events/repositories/events.repository';
+import { EventPhotosService } from '@/modules/events/services/event-photos.service';
 import { EventsService } from '@/modules/events/services/events.service';
 import {
   createEvent,
@@ -45,6 +50,21 @@ jest.mock('@/shared/auth/guards/authenticated-user.guard', () => ({
   },
 }));
 
+const stored = new Map<string, { body: Uint8Array; contentType: string }>();
+const memoryStorage = {
+  put: async (key: string, body: Uint8Array, contentType: string) => {
+    stored.set(key, { body, contentType });
+  },
+  get: async (key: string) => {
+    const object = stored.get(key);
+    if (!object) throw new Error(`No object ${key}`);
+    return object;
+  },
+  delete: async (key: string) => {
+    stored.delete(key);
+  },
+};
+
 let app: INestApplication;
 let baseUrl: string;
 let prisma: PrismaService;
@@ -58,8 +78,17 @@ beforeAll(async () => {
       EventChangeApprovalController,
       EventPaymentSettingsController,
       PublicEventsController,
+      EventPresentationController,
+      EventPhotosController,
+      PublicCatalogController,
     ],
-    providers: [EventsService, EventsRepository],
+    providers: [
+      EventsService,
+      EventPhotosService,
+      EventsRepository,
+      // Object storage is MinIO outside tests; the database is what is under test here.
+      { provide: ObjectStorage, useValue: memoryStorage },
+    ],
   }).compile();
   app = moduleRef.createNestApplication();
   await app.listen(0);
@@ -959,6 +988,7 @@ describe('public event page', () => {
           priceMinor: 0,
         },
       ],
+      isPublished: false,
     });
   });
 
@@ -1100,5 +1130,226 @@ describe('change approval threshold (F35-1a)', () => {
       expect(response.status).toBe(403);
       await expectUntouched(event);
     });
+  });
+});
+
+describe('public presentation and catalog detail (F55)', () => {
+  const PRESENTATION = {
+    description: BASICS.description,
+    conditions: 'Věk 11 až 15 let.\nZdravotní způsobilost.',
+    contactName: 'Jana Nováková',
+    contactEmail: 'tabor@example.test',
+    contactPhone: '+420 604 123 456',
+  };
+  const PNG = Uint8Array.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 7,
+  ]);
+
+  const catalogCall = async (publicId: string): Promise<Call> => {
+    const response = await fetch(
+      `${baseUrl}/public/catalog/events/${publicId}`,
+    );
+    return { status: response.status, body: await response.json() };
+  };
+
+  const upload = async (
+    userId: string,
+    path: string,
+    bytes: Uint8Array,
+  ): Promise<Call> => {
+    const form = new FormData();
+    form.append('file', new Blob([Buffer.from(bytes)]), 'photo.png');
+    const response = await fetch(`${baseUrl}/${path}/photos`, {
+      method: 'POST',
+      headers: { 'x-test-user': userId },
+      body: form,
+    });
+    return { status: response.status, body: await response.json() };
+  };
+
+  it('saves the conditions and public contact, also after opening', async () => {
+    const { ownerId, path } = await readyEvent();
+    await call(ownerId, 'POST', `${path}/open-registration`);
+
+    const saved = await call(
+      ownerId,
+      'PUT',
+      `${path}/presentation`,
+      PRESENTATION,
+    );
+    expect(saved.status).toBe(200);
+    expect(saved.body).toMatchObject({
+      conditions: PRESENTATION.conditions,
+      contact: {
+        name: 'Jana Nováková',
+        email: 'tabor@example.test',
+        phone: '+420604123456',
+      },
+    });
+    expect((await call(ownerId, 'GET', path)).body.contact.phone).toBe(
+      '+420604123456',
+    );
+
+    const locked = await call(ownerId, 'PUT', `${path}/presentation`, {
+      ...PRESENTATION,
+      description: 'Jiný popis',
+    });
+    expect(locked.status).toBe(409);
+    expect(locked.body).toMatchObject({
+      code: 'event_locked',
+      field: 'description',
+    });
+  });
+
+  it('removes the public contact when it is left empty, and never invents one', async () => {
+    const { ownerId, path } = await draftEvent();
+    await call(ownerId, 'PUT', `${path}/presentation`, PRESENTATION);
+    const cleared = await call(ownerId, 'PUT', `${path}/presentation`, {
+      ...PRESENTATION,
+      contactName: '',
+      contactEmail: '',
+      contactPhone: '',
+    });
+    expect(cleared.body.contact).toBeNull();
+  });
+
+  it('rejects an incomplete contact at its field', async () => {
+    const { ownerId, path } = await draftEvent();
+    const missingEmail = await call(ownerId, 'PUT', `${path}/presentation`, {
+      ...PRESENTATION,
+      contactEmail: '',
+    });
+    expect(missingEmail.status).toBe(400);
+    expect(missingEmail.body.field).toBe('contactEmail');
+
+    const badPhone = await call(ownerId, 'PUT', `${path}/presentation`, {
+      ...PRESENTATION,
+      contactPhone: '604123456',
+    });
+    expect(badPhone.body.field).toBe('contactPhone');
+  });
+
+  it('keeps a contact without a name and an e-mail out of the database', async () => {
+    const { path } = await draftEvent();
+    const eventId = path.split('/').pop() as string;
+    await expect(
+      prisma.event.update({
+        where: { id: eventId },
+        data: { contactPhone: '+420604123456' },
+      }),
+    ).rejects.toThrow(/event_contact_chk/);
+  });
+
+  it('shows a published event of any registration status with its presentation', async () => {
+    const { ownerId, path, eventId } = await readyEvent();
+    const publicId = (await call(ownerId, 'GET', path)).body.publicId;
+    await call(ownerId, 'PUT', `${path}/presentation`, PRESENTATION);
+    const withPhoto = await upload(ownerId, path, PNG);
+    expect(withPhoto.status).toBe(201);
+    const photoId = withPhoto.body.photos[0].id as string;
+
+    expect((await catalogCall(publicId)).status).toBe(404);
+    await call(ownerId, 'PUT', `${path}/publication`, { isPublished: true });
+
+    const draft = await catalogCall(publicId);
+    expect(draft.status).toBe(200);
+    expect(draft.body).toEqual({
+      name: BASICS.name,
+      organizationName: expect.any(String),
+      description: BASICS.description,
+      location: BASICS.location,
+      conditions: PRESENTATION.conditions,
+      contact: {
+        name: 'Jana Nováková',
+        email: 'tabor@example.test',
+        phone: '+420604123456',
+      },
+      photos: [{ id: photoId }],
+      registrationStatus: 'not-open',
+      terms: [
+        {
+          id: expect.any(String),
+          label: FIRST.label,
+          startDate: FIRST.startDate,
+          endDate: FIRST.endDate,
+          priceMinor: 0,
+        },
+      ],
+    });
+
+    const photo = await fetch(
+      `${baseUrl}/public/catalog/events/${publicId}/photos/${photoId}`,
+    );
+    expect(photo.status).toBe(200);
+    expect(photo.headers.get('content-type')).toBe('image/png');
+    expect(new Uint8Array(await photo.arrayBuffer())).toEqual(PNG);
+
+    await call(ownerId, 'POST', `${path}/open-registration`);
+    expect((await catalogCall(publicId)).body.registrationStatus).toBe('open');
+    await prisma.event.update({
+      where: { id: eventId },
+      data: { status: 'closed' },
+    });
+    expect((await catalogCall(publicId)).body.registrationStatus).toBe(
+      'closed',
+    );
+
+    await call(ownerId, 'PUT', `${path}/publication`, { isPublished: false });
+    const withdrawn = await catalogCall(publicId);
+    const unknown = await catalogCall('nonexistent12');
+    expect(withdrawn.status).toBe(404);
+    expect(withdrawn.body).toEqual(unknown.body);
+    expect(
+      (
+        await fetch(
+          `${baseUrl}/public/catalog/events/${publicId}/photos/${photoId}`,
+        )
+      ).status,
+    ).toBe(404);
+  });
+
+  it('limits the photos, rejects other files and removes a photo', async () => {
+    const { ownerId, path } = await draftEvent();
+    expect(
+      (await upload(ownerId, path, new TextEncoder().encode('<svg/>'))).body
+        .code,
+    ).toBe('photo_type');
+
+    let photos: { id: string }[] = [];
+    for (let index = 0; index < 4; index += 1) {
+      photos = (await upload(ownerId, path, PNG)).body.photos;
+    }
+    expect(photos).toHaveLength(4);
+    const fifth = await upload(ownerId, path, PNG);
+    expect(fifth.status).toBe(409);
+    expect(fifth.body.code).toBe('photo_limit');
+
+    const removed = await call(
+      ownerId,
+      'DELETE',
+      `${path}/photos/${photos[0]!.id}`,
+    );
+    expect(removed.body.photos).toEqual(photos.slice(1));
+  });
+
+  it('answers 404 to another organizer for the presentation and photos', async () => {
+    const { ownerId, path } = await draftEvent();
+    const photoId = (await upload(ownerId, path, PNG)).body.photos[0]
+      .id as string;
+    const stranger = await createOrganizer(prisma);
+
+    expect(
+      (await call(stranger.id, 'PUT', `${path}/presentation`, PRESENTATION))
+        .status,
+    ).toBe(404);
+    expect((await upload(stranger.id, path, PNG)).status).toBe(404);
+    expect(
+      (await call(stranger.id, 'DELETE', `${path}/photos/${photoId}`)).status,
+    ).toBe(404);
+    const read = await fetch(`${baseUrl}/${path}/photos/${photoId}`, {
+      headers: { 'x-test-user': stranger.id },
+    });
+    expect(read.status).toBe(404);
+    expect((await call(ownerId, 'GET', path)).body.photos).toHaveLength(1);
   });
 });

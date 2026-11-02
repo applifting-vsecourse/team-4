@@ -169,6 +169,12 @@ model Event {
   // Days before a term's start from which registration changes need approval (F35-1a); null = never.
   changeApprovalDays Int?
 
+  // Public presentation on the catalog detail (F55). Never the account's own contact.
+  conditions   String  @default("") @db.Text
+  contactName  String? @db.VarChar(200)
+  contactEmail String? @db.VarChar(320)
+  contactPhone String? @db.VarChar(20)
+
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
@@ -178,10 +184,27 @@ model Event {
   roomAvailabilities RoomTermAvailability[]
   registrations      Registration[]
   registrationTerms  RegistrationTerm[]
+  photos             EventPhoto[]
 
   @@unique([id, organizationId])
   @@index([organizationId, createdAt])
   @@map("event")
+}
+
+// A photo of the public presentation (F55); the bytes live in object storage
+// under `objectKey`.
+model EventPhoto {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  eventId     String   @db.Uuid
+  objectKey   String   @unique @db.VarChar(200)
+  contentType String   @db.VarChar(50)
+  byteSize    Int
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  @@index([eventId, createdAt])
+  @@map("event_photo")
 }
 
 model EventTerm {

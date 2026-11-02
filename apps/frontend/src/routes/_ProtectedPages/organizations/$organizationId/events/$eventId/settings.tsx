@@ -16,6 +16,7 @@ import { EventLockedAlert } from "@/features/events/components/EventLockedAlert"
 import { EventPublication } from "@/features/events/components/EventPublication"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { PaymentSettingsSection } from "@/features/events/components/PaymentSettingsSection"
+import { PresentationSection } from "@/features/events/components/PresentationSection"
 import { RegistrationSection } from "@/features/events/components/RegistrationSection"
 import { TermsSection } from "@/features/events/components/TermsSection"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
@@ -113,6 +114,10 @@ function EventPage() {
           event={event}
         />
         <EventPublication
+          organizationId={organizationId}
+          event={event}
+        />
+        <PresentationSection
           organizationId={organizationId}
           event={event}
         />

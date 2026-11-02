@@ -22,7 +22,7 @@ test("a participant picking two terms is confirmed in one and waitlisted in the 
 
   const visitorContext = await browser.newContext()
   const visitor = await visitorContext.newPage()
-  await visitor.goto(`/e/${event.publicId}`)
+  await visitor.goto(`/e/${event.publicId}/registration`)
   await visitor.getByRole("checkbox", { name: /1\. turnus/ }).check()
   await visitor.getByRole("checkbox", { name: /2\. turnus/ }).check()
   await expect(visitor.getByRole("region", { name: "Cena vybraných termínů" })).toContainText(

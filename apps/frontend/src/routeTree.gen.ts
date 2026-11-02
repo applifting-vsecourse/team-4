@@ -14,13 +14,15 @@ import { Route as ProtectedPagesRouteImport } from './routes/_ProtectedPages'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
-import { Route as EPublicIdRouteImport } from './routes/e/$publicId'
+import { Route as EventsIndexRouteImport } from './routes/events/index'
 import { Route as MyRegistrationsIndexRouteImport } from './routes/my-registrations/index'
 import { Route as MyRegistrationsRegistrationIdRouteImport } from './routes/my-registrations/$registrationId'
 import { Route as MyRegistrationsVerifyRouteImport } from './routes/my-registrations/verify'
 import { Route as ProtectedPagesOrganizationsIndexRouteImport } from './routes/_ProtectedPages/organizations/index'
 import { Route as ProtectedPagesOrganizationsOrganizationIdRouteImport } from './routes/_ProtectedPages/organizations/$organizationId'
 import { Route as ProtectedPagesOrganizationsNewRouteImport } from './routes/_ProtectedPages/organizations/new'
+import { Route as EPublicIdIndexRouteImport } from './routes/e/$publicId/index'
+import { Route as EPublicIdRegistrationRouteImport } from './routes/e/$publicId/registration'
 import { Route as ProtectedPagesOrganizationsOrganizationIdIndexRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/index'
 import { Route as ProtectedPagesOrganizationsOrganizationIdEventsNewRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/events/new'
 import { Route as ProtectedPagesOrganizationsOrganizationIdEventsEventIdIndexRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/events/$eventId/index'
@@ -54,9 +56,9 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EPublicIdRoute = EPublicIdRouteImport.update({
-  id: '/e/$publicId',
-  path: '/e/$publicId',
+const EventsIndexRoute = EventsIndexRouteImport.update({
+  id: '/events/',
+  path: '/events/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyRegistrationsIndexRoute = MyRegistrationsIndexRouteImport.update({
@@ -93,6 +95,16 @@ const ProtectedPagesOrganizationsNewRoute =
     path: '/organizations/new',
     getParentRoute: () => ProtectedPagesRoute,
   } as any)
+const EPublicIdIndexRoute = EPublicIdIndexRouteImport.update({
+  id: '/e/$publicId/',
+  path: '/e/$publicId/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EPublicIdRegistrationRoute = EPublicIdRegistrationRouteImport.update({
+  id: '/e/$publicId/registration',
+  path: '/e/$publicId/registration',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProtectedPagesOrganizationsOrganizationIdIndexRoute =
   ProtectedPagesOrganizationsOrganizationIdIndexRouteImport.update({
     id: '/',
@@ -157,13 +169,15 @@ export interface FileRoutesByFullPath {
   '/design-system': typeof DesignSystemRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/e/$publicId': typeof EPublicIdRoute
   '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
   '/my-registrations/verify': typeof MyRegistrationsVerifyRoute
+  '/events/': typeof EventsIndexRoute
   '/my-registrations/': typeof MyRegistrationsIndexRoute
   '/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdRouteWithChildren
   '/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
+  '/e/$publicId/registration': typeof EPublicIdRegistrationRoute
   '/organizations/': typeof ProtectedPagesOrganizationsIndexRoute
+  '/e/$publicId/': typeof EPublicIdIndexRoute
   '/organizations/$organizationId/': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/events/new': typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRoute
   '/organizations/$organizationId/events/$eventId/edit': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute
@@ -178,12 +192,14 @@ export interface FileRoutesByTo {
   '/design-system': typeof DesignSystemRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/e/$publicId': typeof EPublicIdRoute
   '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
   '/my-registrations/verify': typeof MyRegistrationsVerifyRoute
+  '/events': typeof EventsIndexRoute
   '/my-registrations': typeof MyRegistrationsIndexRoute
   '/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
+  '/e/$publicId/registration': typeof EPublicIdRegistrationRoute
   '/organizations': typeof ProtectedPagesOrganizationsIndexRoute
+  '/e/$publicId': typeof EPublicIdIndexRoute
   '/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/events/new': typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRoute
   '/organizations/$organizationId/events/$eventId/edit': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute
@@ -200,13 +216,15 @@ export interface FileRoutesById {
   '/design-system': typeof DesignSystemRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/e/$publicId': typeof EPublicIdRoute
   '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
   '/my-registrations/verify': typeof MyRegistrationsVerifyRoute
+  '/events/': typeof EventsIndexRoute
   '/my-registrations/': typeof MyRegistrationsIndexRoute
   '/_ProtectedPages/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdRouteWithChildren
   '/_ProtectedPages/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
+  '/e/$publicId/registration': typeof EPublicIdRegistrationRoute
   '/_ProtectedPages/organizations/': typeof ProtectedPagesOrganizationsIndexRoute
+  '/e/$publicId/': typeof EPublicIdIndexRoute
   '/_ProtectedPages/organizations/$organizationId/': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
   '/_ProtectedPages/organizations/$organizationId/events/new': typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRoute
   '/_ProtectedPages/organizations/$organizationId/events/$eventId/edit': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute
@@ -223,13 +241,15 @@ export interface FileRouteTypes {
     | '/design-system'
     | '/login'
     | '/signup'
-    | '/e/$publicId'
     | '/my-registrations/$registrationId'
     | '/my-registrations/verify'
+    | '/events/'
     | '/my-registrations/'
     | '/organizations/$organizationId'
     | '/organizations/new'
+    | '/e/$publicId/registration'
     | '/organizations/'
+    | '/e/$publicId/'
     | '/organizations/$organizationId/'
     | '/organizations/$organizationId/events/new'
     | '/organizations/$organizationId/events/$eventId/edit'
@@ -244,12 +264,14 @@ export interface FileRouteTypes {
     | '/design-system'
     | '/login'
     | '/signup'
-    | '/e/$publicId'
     | '/my-registrations/$registrationId'
     | '/my-registrations/verify'
+    | '/events'
     | '/my-registrations'
     | '/organizations/new'
+    | '/e/$publicId/registration'
     | '/organizations'
+    | '/e/$publicId'
     | '/organizations/$organizationId'
     | '/organizations/$organizationId/events/new'
     | '/organizations/$organizationId/events/$eventId/edit'
@@ -265,13 +287,15 @@ export interface FileRouteTypes {
     | '/design-system'
     | '/login'
     | '/signup'
-    | '/e/$publicId'
     | '/my-registrations/$registrationId'
     | '/my-registrations/verify'
+    | '/events/'
     | '/my-registrations/'
     | '/_ProtectedPages/organizations/$organizationId'
     | '/_ProtectedPages/organizations/new'
+    | '/e/$publicId/registration'
     | '/_ProtectedPages/organizations/'
+    | '/e/$publicId/'
     | '/_ProtectedPages/organizations/$organizationId/'
     | '/_ProtectedPages/organizations/$organizationId/events/new'
     | '/_ProtectedPages/organizations/$organizationId/events/$eventId/edit'
@@ -288,10 +312,12 @@ export interface RootRouteChildren {
   DesignSystemRoute: typeof DesignSystemRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
-  EPublicIdRoute: typeof EPublicIdRoute
   MyRegistrationsRegistrationIdRoute: typeof MyRegistrationsRegistrationIdRoute
   MyRegistrationsVerifyRoute: typeof MyRegistrationsVerifyRoute
+  EventsIndexRoute: typeof EventsIndexRoute
   MyRegistrationsIndexRoute: typeof MyRegistrationsIndexRoute
+  EPublicIdRegistrationRoute: typeof EPublicIdRegistrationRoute
+  EPublicIdIndexRoute: typeof EPublicIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -331,11 +357,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/e/$publicId': {
-      id: '/e/$publicId'
-      path: '/e/$publicId'
-      fullPath: '/e/$publicId'
-      preLoaderRoute: typeof EPublicIdRouteImport
+    '/events/': {
+      id: '/events/'
+      path: '/events'
+      fullPath: '/events/'
+      preLoaderRoute: typeof EventsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-registrations/': {
@@ -379,6 +405,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/organizations/new'
       preLoaderRoute: typeof ProtectedPagesOrganizationsNewRouteImport
       parentRoute: typeof ProtectedPagesRoute
+    }
+    '/e/$publicId/': {
+      id: '/e/$publicId/'
+      path: '/e/$publicId'
+      fullPath: '/e/$publicId/'
+      preLoaderRoute: typeof EPublicIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/e/$publicId/registration': {
+      id: '/e/$publicId/registration'
+      path: '/e/$publicId/registration'
+      fullPath: '/e/$publicId/registration'
+      preLoaderRoute: typeof EPublicIdRegistrationRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_ProtectedPages/organizations/$organizationId/': {
       id: '/_ProtectedPages/organizations/$organizationId/'
@@ -498,10 +538,12 @@ const rootRouteChildren: RootRouteChildren = {
   DesignSystemRoute: DesignSystemRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
-  EPublicIdRoute: EPublicIdRoute,
   MyRegistrationsRegistrationIdRoute: MyRegistrationsRegistrationIdRoute,
   MyRegistrationsVerifyRoute: MyRegistrationsVerifyRoute,
+  EventsIndexRoute: EventsIndexRoute,
   MyRegistrationsIndexRoute: MyRegistrationsIndexRoute,
+  EPublicIdRegistrationRoute: EPublicIdRegistrationRoute,
+  EPublicIdIndexRoute: EPublicIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -345,3 +345,34 @@ describe("submitting", () => {
     expect(await screen.findByText("Vyberte termíny této akce.")).toBeInTheDocument()
   })
 })
+
+describe("draft for the browser tab (F55)", () => {
+  it("brings back the typed values after leaving the form, and forgets them once saved", async () => {
+    const first = renderAndLeave()
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await fillContact()
+    first.unmount()
+
+    renderForm()
+    expect(screen.getByLabelText("Jméno")).toHaveValue("Jana")
+    expect(screen.getByLabelText("E-mail")).toHaveValue("jana@example.com")
+    expect(screen.getByLabelText(/1\. turnus/)).toBeChecked()
+
+    post.mockReturnValue(respondWith(RESULT))
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+    expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+    expect(window.sessionStorage.getItem("akcio:registration-draft:abcdefghijkl")).toBeNull()
+  })
+})
+
+function renderAndLeave() {
+  const queryClient = new QueryClient()
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <PublicRegistration
+        publicId="abcdefghijkl"
+        terms={TERMS}
+      />
+    </QueryClientProvider>,
+  )
+}
