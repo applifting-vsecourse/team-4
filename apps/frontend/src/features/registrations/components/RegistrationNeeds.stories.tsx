@@ -1,33 +1,16 @@
-import { Fragment, type CSSProperties, type ReactNode } from "react"
+import type { ReactNode } from "react"
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { ChevronLeft, ClipboardList, LayoutDashboard, LogOut, Settings } from "lucide-react"
+import { LogOut, MapPin } from "lucide-react"
 
 import { BrandMark } from "@/components/BrandMark"
 import { ThemeSwitcher } from "@/components/Header/ThemeSwitcher"
-import { PageHeader } from "@/components/PageHeader"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
+import { Label } from "@/components/ui/label"
 
 import {
   RegistrationNeedsFields,
@@ -40,7 +23,6 @@ import { RegistrationNeedsSummary } from "@/features/registrations/components/Re
 // Static only: no router links, queries or API; every value below is hard-coded.
 
 const EVENT = "Víkendovky Modrá Hora – podzim 2026"
-const ORGANIZATION = "Tábor Modrá Hora z. s."
 
 const EMPTY: RegistrationNeedsValues = {
   transport: null,
@@ -60,8 +42,6 @@ const FILLED: RegistrationNeedsValues = {
   health: "Astma, nosí s sebou inhalátor.\nPři zátěži potřebuje delší přestávky.",
 }
 
-const NO_RESTRICTION: RegistrationNeedsValues = { ...EMPTY, hasNoDietRestriction: true }
-
 const TOO_LONG: RegistrationNeedsValues = {
   ...FILLED,
   transportNote: "Nastupovali bychom v Pardubicích u hlavního nádraží a rádi bychom jeli spolu.",
@@ -73,8 +53,6 @@ const TOO_LONG_ERRORS: RegistrationNeedsErrors = {
   dietNote: "Vlastní text ke stravě může mít nejvýše 500 znaků.",
   health: "Zdravotní omezení mohou mít nejvýše 2000 znaků.",
 }
-
-// --- Page shells -----------------------------------------------------------
 
 // The participant frame, static: logo, theme, "Odhlásit se".
 function ParticipantFrame({ children }: { children: ReactNode }) {
@@ -102,70 +80,190 @@ function ParticipantFrame({ children }: { children: ReactNode }) {
   )
 }
 
-const BackButton = ({ label }: { label: string }) => (
-  <Button
-    variant="ghost"
-    size="sm"
-  >
-    <ChevronLeft />
-    {label}
-  </Button>
-)
-
-const SIDEBAR_STYLE = { "--sidebar-width": "14rem" } as CSSProperties
-
-const eventSections = [
-  { label: "Přehled", icon: LayoutDashboard },
-  { label: "Přihlášky", icon: ClipboardList, isActive: true },
-  { label: "Nastavení", icon: Settings },
-]
-
-function OrganizationShell({ children }: { children: ReactNode }) {
+// The public event page (/e/$publicId), static: logo and theme, no sign-in.
+function PublicFrame({ children }: { children: ReactNode }) {
   return (
-    <SidebarProvider style={SIDEBAR_STYLE}>
-      <Sidebar>
-        <SidebarHeader>
+    <>
+      <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur">
+        <div className="mx-auto flex h-14 w-full max-w-4xl items-center gap-4 px-4">
           <BrandMark isLarge />
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarGroup>
-            <SidebarMenu>
-              {eventSections.map((section) => (
-                <SidebarMenuItem key={section.label}>
-                  <SidebarMenuButton isActive={section.isActive}>
-                    <section.icon aria-hidden />
-                    <span>{section.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-        </SidebarContent>
-      </Sidebar>
-      <SidebarInset>
-        <section className="mx-auto w-full max-w-5xl px-4 py-8 md:py-12">{children}</section>
-      </SidebarInset>
-    </SidebarProvider>
+          <div className="ml-auto">
+            <ThemeSwitcher />
+          </div>
+        </div>
+      </header>
+      <main className="min-h-svh">
+        <div className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">{children}</div>
+      </main>
+    </>
   )
 }
 
-const Crumbs = ({ trail }: { trail: string[] }) => (
-  <Breadcrumb className="mb-4">
-    <BreadcrumbList>
-      {[ORGANIZATION, EVENT, ...trail.slice(0, -1)].map((item) => (
-        <Fragment key={item}>
-          <BreadcrumbItem>{item}</BreadcrumbItem>
-          <BreadcrumbSeparator />
-        </Fragment>
-      ))}
-      <BreadcrumbItem>
-        <BreadcrumbPage>{trail.at(-1)}</BreadcrumbPage>
-      </BreadcrumbItem>
-    </BreadcrumbList>
-  </Breadcrumb>
-)
+const PUBLIC_EVENT = {
+  name: "Letní tábor Modrá Hora 2027",
+  location: "Tábořiště Modrá Hora, Horní Lhota 12, 539 01 Hlinsko",
+  description:
+    "Dva týdny v lesním táboře pod Modrou Horou: celotáborová hra, výlety po okolí a večery u ohně. Ubytování ve chatkách, strava pětkrát denně.",
+}
 
-// Přihláška na akci, static: contact data, the F63 section and the submit.
+const TERMS = [
+  {
+    id: "turnus-1",
+    label: "Turnus 1",
+    dates: "4. 7. – 17. 7. 2027",
+    price: "4 500 Kč",
+    isSelected: true,
+  },
+  {
+    id: "turnus-2",
+    label: "Turnus 2",
+    dates: "1. 8. – 14. 8. 2027",
+    price: "4 500 Kč",
+    isSelected: false,
+  },
+]
+
+// Přihláška na akci (S2-07) as it is today on the public event page: event,
+// terms, price, contact data and submit, with the F63 section added before
+// the submit. Static copy of PublicEventView and RegistrationForm, which stay
+// untouched until implementation.
+function FirstRegistrationPage({ values }: { values: RegistrationNeedsValues }) {
+  return (
+    <PublicFrame>
+      <article>
+        <h1 className="text-h2 break-words">{PUBLIC_EVENT.name}</h1>
+        <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+          <MapPin
+            aria-hidden
+            className="size-4 shrink-0"
+          />
+          <span className="min-w-0 break-words">{PUBLIC_EVENT.location}</span>
+        </p>
+        <p className="mt-6 max-w-prose text-sm whitespace-pre-line">{PUBLIC_EVENT.description}</p>
+
+        <section
+          aria-label="Přihláška"
+          className="mt-7"
+        >
+          <form
+            noValidate
+            aria-label="Přihláška na akci"
+            className="space-y-7"
+          >
+            <fieldset className="space-y-2">
+              <legend className="mb-2 text-h4">Termíny</legend>
+              {TERMS.map((term) => {
+                const id = `registration-term-${term.id}`
+                return (
+                  <div
+                    key={term.id}
+                    className="relative flex items-center gap-3 rounded-lg border border-border bg-card p-3 has-data-[state=checked]:border-foreground"
+                  >
+                    <Checkbox
+                      id={id}
+                      defaultChecked={term.isSelected}
+                    />
+                    <Label
+                      htmlFor={id}
+                      className="relative min-w-0 flex-1 after:absolute after:inset-0"
+                    >
+                      <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                        <span className="min-w-0 break-words">
+                          {term.label}
+                          <span className="mt-0.5 block font-normal text-muted-foreground">
+                            {term.dates}
+                          </span>
+                        </span>
+                        <span className="tabular-nums">{term.price}</span>
+                      </span>
+                    </Label>
+                  </div>
+                )
+              })}
+            </fieldset>
+
+            <div className="space-y-2">
+              <section
+                aria-labelledby="registration-total-heading"
+                className="flex items-center gap-3 rounded-lg bg-muted p-3"
+              >
+                <p
+                  id="registration-total-heading"
+                  className="min-w-0 flex-1 text-sm font-medium"
+                >
+                  Cena vybraných termínů
+                </p>
+                <span className="text-base font-semibold tabular-nums">4 500 Kč</span>
+              </section>
+              <p className="text-sm text-muted-foreground">
+                Nejde o částku k úhradě. Potvrzení účasti v jednotlivých termínech a částku k úhradě
+                uvidíte po odeslání.
+              </p>
+            </div>
+
+            <fieldset className="space-y-4">
+              <legend className="mb-4 text-h4">Kontaktní údaje</legend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="registration-first-name">Jméno</FieldLabel>
+                  <Input
+                    id="registration-first-name"
+                    autoComplete="given-name"
+                    defaultValue="Jana"
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="registration-last-name">Příjmení</FieldLabel>
+                  <Input
+                    id="registration-last-name"
+                    autoComplete="family-name"
+                    defaultValue="Nováková"
+                  />
+                </Field>
+              </div>
+              <Field>
+                <FieldLabel htmlFor="registration-email">E-mail</FieldLabel>
+                <Input
+                  id="registration-email"
+                  type="email"
+                  autoComplete="email"
+                  defaultValue="jana.novakova@example.cz"
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="registration-phone">Telefon</FieldLabel>
+                <Input
+                  id="registration-phone"
+                  type="tel"
+                  autoComplete="tel"
+                  inputMode="tel"
+                  placeholder="+420 777 123 456"
+                  defaultValue="+420 777 123 456"
+                />
+              </Field>
+            </fieldset>
+
+            <fieldset className="space-y-4">
+              <legend className="mb-4 text-h4">Doprava, strava a zdraví</legend>
+              <RegistrationNeedsFields values={values} />
+            </fieldset>
+
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full sm:w-auto"
+            >
+              Odeslat přihlášku
+            </Button>
+          </form>
+        </section>
+      </article>
+    </PublicFrame>
+  )
+}
+
+// Přihláška na akci, static: only the optional F63 section, save and cancel.
+// Contact data are not edited here.
 type RegistrationPageProps = {
   values: RegistrationNeedsValues
   errors?: RegistrationNeedsErrors
@@ -185,31 +283,6 @@ function RegistrationPage({ values, errors, errorMessage }: RegistrationPageProp
         >
           <Card>
             <CardHeader>
-              <CardTitle>Kontaktní údaje</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field>
-                    <FieldLabel htmlFor="reg-first-name">Jméno</FieldLabel>
-                    <Input
-                      id="reg-first-name"
-                      defaultValue="Jana"
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="reg-last-name">Příjmení</FieldLabel>
-                    <Input
-                      id="reg-last-name"
-                      defaultValue="Nováková"
-                    />
-                  </Field>
-                </div>
-              </FieldGroup>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
               <CardTitle>Doprava, strava a zdraví</CardTitle>
             </CardHeader>
             <CardContent>
@@ -224,108 +297,24 @@ function RegistrationPage({ values, errors, errorMessage }: RegistrationPageProp
               <AlertDescription>{errorMessage}</AlertDescription>
             </Alert>
           ) : null}
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full sm:w-auto"
-          >
-            Odeslat přihlášku
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="submit"
+              size="lg"
+            >
+              Uložit údaje
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+            >
+              Zrušit
+            </Button>
+          </div>
         </form>
       </section>
     </ParticipantFrame>
-  )
-}
-
-// Moje přihlášky → Detail přihlášky → Úprava přihlášky, static.
-function ParticipantEditPage({ values }: { values: RegistrationNeedsValues }) {
-  return (
-    <ParticipantFrame>
-      <section className="space-y-6">
-        <BackButton label="Detail přihlášky" />
-        <h1 className="text-h2">Úprava přihlášky</h1>
-        <form
-          noValidate
-          aria-label="Úprava přihlášky"
-          className="space-y-6"
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle>Doprava, strava a zdraví</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RegistrationNeedsFields values={values} />
-            </CardContent>
-          </Card>
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full sm:w-auto"
-          >
-            Zkontrolovat změny
-          </Button>
-        </form>
-      </section>
-    </ParticipantFrame>
-  )
-}
-
-// Moje přihlášky → Detail přihlášky, static.
-function ParticipantDetailPage({ values }: { values: RegistrationNeedsValues }) {
-  return (
-    <ParticipantFrame>
-      <section className="space-y-6">
-        <BackButton label="Moje přihlášky" />
-        <h1 className="text-h2">{EVENT}</h1>
-        <RegistrationNeedsSummary values={values} />
-      </section>
-    </ParticipantFrame>
-  )
-}
-
-// Správa akce → Přihlášky → Detail přihlášky, static.
-function OrganizerDetailPage({ values }: { values: RegistrationNeedsValues }) {
-  return (
-    <OrganizationShell>
-      <PageHeader
-        breadcrumb={<Crumbs trail={["Přihlášky", "Detail přihlášky"]} />}
-        title="Jana Nováková"
-        description={EVENT}
-        actions={<Button variant="outline">Upravit přihlášku</Button>}
-      />
-      <RegistrationNeedsSummary values={values} />
-    </OrganizationShell>
-  )
-}
-
-// Správa akce → Přihlášky → Detail přihlášky → Úprava (organizer), static.
-function OrganizerEditPage({ values }: { values: RegistrationNeedsValues }) {
-  return (
-    <OrganizationShell>
-      <PageHeader
-        breadcrumb={<Crumbs trail={["Přihlášky", "Detail přihlášky", "Úprava přihlášky"]} />}
-        title="Jana Nováková"
-        description={EVENT}
-      />
-      <form
-        noValidate
-        aria-label="Úprava přihlášky"
-        className="space-y-6"
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle>Doprava, strava a zdraví</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RegistrationNeedsFields values={values} />
-          </CardContent>
-        </Card>
-        <div className="flex gap-2">
-          <Button type="submit">Uložit</Button>
-          <Button variant="outline">Zrušit</Button>
-        </div>
-      </form>
-    </OrganizationShell>
   )
 }
 
@@ -334,7 +323,7 @@ const meta = {
   component: RegistrationPage,
   parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "desktop", isRotated: false } },
-  args: { values: EMPTY },
+  args: { values: FILLED },
 } satisfies Meta<typeof RegistrationPage>
 
 export default meta
@@ -345,14 +334,13 @@ type Story = StoryObj<typeof meta>
 // against the 4.5:1 AA minimum; this story reports it as a warning.
 const contrastWarning = { a11y: { test: "todo" } }
 
-/** Registration form: nothing filled in, the section is optional. */
-export const RegistrationEmpty: Story = {}
-
-/** Registration form: "Bez omezení" chosen, the other diet choices are unavailable. */
-export const NoDietRestriction: Story = { args: { values: NO_RESTRICTION } }
+/** First registration on the public event page: the existing form plus transport, diet and health. */
+export const FirstRegistration: Story = {
+  render: () => <FirstRegistrationPage values={FILLED} />,
+}
 
 /** Registration form: all three parts filled in, shared transport. */
-export const RegistrationFilled: Story = { args: { values: FILLED } }
+export const RegistrationFilled: Story = {}
 
 /** Invalid input: an error per field, everything entered is kept. */
 export const ValidationErrors: Story = { args: { values: TOO_LONG, errors: TOO_LONG_ERRORS } }
@@ -362,37 +350,18 @@ export const SaveFailed: Story = {
   parameters: contrastWarning,
   args: {
     values: FILLED,
-    errorMessage:
-      "Přihlášku se nepodařilo uložit. Údaje zůstaly zachované, zkuste to prosím znovu.",
+    errorMessage: "Údaje se nepodařilo uložit. Zůstaly zachované, zkuste to prosím znovu.",
   },
 }
 
-/** Participant editing the stored values (later changes go through F35-2a). */
-export const ParticipantEdit: Story = {
-  render: () => <ParticipantEditPage values={FILLED} />,
+/** Detail card (participant and organizer) with the stored values. */
+export const SummaryFilled: Story = {
+  parameters: { layout: "padded" },
+  render: () => <RegistrationNeedsSummary values={FILLED} />,
 }
 
-/** Participant detail with the stored values. */
-export const ParticipantDetail: Story = {
-  render: () => <ParticipantDetailPage values={FILLED} />,
-}
-
-/** Participant detail of an older registration: every part reads "Neuvedeno". */
-export const ParticipantDetailNotProvided: Story = {
-  render: () => <ParticipantDetailPage values={EMPTY} />,
-}
-
-/** Organizer detail of the same registration with the stored values. */
-export const OrganizerDetail: Story = {
-  render: () => <OrganizerDetailPage values={FILLED} />,
-}
-
-/** Organizer detail without the values: "Neuvedeno", not a confirmed absence. */
-export const OrganizerDetailNotProvided: Story = {
-  render: () => <OrganizerDetailPage values={EMPTY} />,
-}
-
-/** Organizer correcting the values of a registration. */
-export const OrganizerEdit: Story = {
-  render: () => <OrganizerEditPage values={FILLED} />,
+/** Detail card without the values, e.g. an older registration: every part reads "Neuvedeno". */
+export const SummaryNotProvided: Story = {
+  parameters: { layout: "padded" },
+  render: () => <RegistrationNeedsSummary values={EMPTY} />,
 }

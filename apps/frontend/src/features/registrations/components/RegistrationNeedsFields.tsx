@@ -1,3 +1,5 @@
+import { useState } from "react"
+
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -53,8 +55,24 @@ const DIET_CHOICES = Object.keys(DIET_LABELS) as DietChoice[]
 
 // Přihláška na akci / Úprava přihlášky (F63): optional transport, diet and
 // health data, entered once for the whole registration. Design only: every
-// value is passed in; "Bez omezení" disables the other diet choices.
+// value is passed in. The only local state keeps "Bez omezení" and the
+// predefined diet choices mutually exclusive: picking one clears the other.
 export function RegistrationNeedsFields({ values, errors = {} }: RegistrationNeedsFieldsProps) {
+  const [hasNoDietRestriction, setHasNoDietRestriction] = useState(values.hasNoDietRestriction)
+  const [diet, setDiet] = useState<DietChoice[]>(values.diet)
+
+  const toggleNoDietRestriction = (isChecked: boolean) => {
+    setHasNoDietRestriction(isChecked)
+    if (isChecked) setDiet([])
+  }
+
+  const toggleDiet = (choice: DietChoice, isChecked: boolean) => {
+    setDiet((current) =>
+      isChecked ? [...current, choice] : current.filter((item) => item !== choice),
+    )
+    if (isChecked) setHasNoDietRestriction(false)
+  }
+
   return (
     <FieldGroup>
       <FieldSet>
@@ -104,7 +122,8 @@ export function RegistrationNeedsFields({ values, errors = {} }: RegistrationNee
           <div className="flex items-center gap-2 sm:col-span-2">
             <Checkbox
               id="needs-diet-none"
-              defaultChecked={values.hasNoDietRestriction}
+              checked={hasNoDietRestriction}
+              onCheckedChange={(state) => toggleNoDietRestriction(state === true)}
             />
             <Label htmlFor="needs-diet-none">Bez omezení</Label>
           </div>
@@ -115,8 +134,8 @@ export function RegistrationNeedsFields({ values, errors = {} }: RegistrationNee
             >
               <Checkbox
                 id={`needs-diet-${choice}`}
-                defaultChecked={values.diet.includes(choice)}
-                disabled={values.hasNoDietRestriction}
+                checked={diet.includes(choice)}
+                onCheckedChange={(state) => toggleDiet(choice, state === true)}
               />
               <Label htmlFor={`needs-diet-${choice}`}>{DIET_LABELS[choice]}</Label>
             </div>
