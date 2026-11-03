@@ -10,7 +10,5 @@ const meta = {
 
 export default meta
 
-/** Landing page with the way in for organizers and participants (S2-01). */
-export const Landing: StoryObj<typeof meta> = {
-  play: showsHeading("Přihlášky, ubytování a platby pro vaše akce na jednom místě"),
-}
+/** Landing page in the S3-T2 "Ticket stub" style, with both audiences and their ways in (F58). */
+export const Landing: StoryObj<typeof meta> = { play: showsHeading("Akce bez chaosu") }

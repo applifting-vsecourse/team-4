@@ -8,7 +8,7 @@ import { createOrganization, signUpOrganizer } from "./support/api"
 test("the landing page leads organizers and participants to different sign-ins", async ({
   page,
 }) => {
-  const entries = page.getByRole("region", { name: "Kudy dál" })
+  const entries = page.getByRole("navigation", { name: "Vstup do aplikace" })
 
   await page.goto("/")
   await entries.getByRole("link", { name: "Organizátor", exact: true }).click()

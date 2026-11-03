@@ -2,11 +2,12 @@ import { Link } from "@tanstack/react-router"
 import {
   ArrowRight,
   BedDouble,
-  Building2,
   CalendarCog,
+  MailCheck,
   Menu,
-  Users,
+  Search,
   WalletCards,
+  type LucideIcon,
 } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
@@ -14,39 +15,96 @@ import { BrandMark } from "@/components/BrandMark"
 import { ThemeSwitcher } from "@/components/Header/ThemeSwitcher"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 
-import { AppPreview } from "./AppPreview"
-import { EntryCard } from "./EntryCard"
-import { LandingSection } from "./LandingSection"
+import { IllustratedSections } from "./IllustratedSections"
 
-// Hero copy is the text approved in S2-01. Only what Sprint 2 delivers: no public catalog, adult
-// participants only, rooms and beds without assigning people to rooms.
+// Landing page in the S3-T2 "Ticket stub" direction (A). Two audiences, one page: organizers
+// (dark panel, leads) and participants (light panel). Colours come only from semantic tokens.
 
-const FEATURES = [
+const WRAP = "mx-auto w-full max-w-280 px-4 md:px-8"
+const LABEL = "font-mono text-xs tracking-widest uppercase"
+const CATALOG_ANCHOR = "#katalog"
+
+const ORGANIZER_POINTS = [
   {
     icon: CalendarCog,
-    title: "Přihlášky po termínech",
-    text: "Výběr více termínů, každý se potvrzuje zvlášť.",
-  },
-  {
-    icon: BedDouble,
-    title: "Ubytování a kapacita",
-    text: "Kapacita vychází z pokojů a lůžek.",
+    title: "Termíny a kapacita",
+    text: "Založíte akci s více termíny. Kapacitu spočítáme z pokojů a lůžek.",
   },
   {
     icon: WalletCards,
-    title: "Platby",
-    text: "Platební údaje u každé přihlášky, ruční zápis plateb.",
+    title: "Přihlášky a platby",
+    text: "Vidíte, kdo je potvrzený, kdo čeká a kdo už zaplatil.",
   },
+  {
+    icon: BedDouble,
+    title: "Do katalogu jedním klikem",
+    text: "Hotovou akci zveřejníte tam, kde ji lidé hledají.",
+  },
+]
+
+const PARTICIPANT_POINTS = [
+  {
+    icon: Search,
+    title: "Katalog akcí",
+    text: "Projděte nabídku táborů a soustředění a vyberte termín.",
+  },
+  {
+    icon: MailCheck,
+    title: "Přihláška bez hesla",
+    text: "Stačí e-mail. Odkaz pro vstup vám pošleme.",
+  },
+  {
+    icon: WalletCards,
+    title: "Stav přihlášky a platby",
+    text: "Potvrzení i platební údaje máte na jednom místě.",
+  },
+]
+
+// Illustrative events until the public catalog route exists (F54-2a).
+const CATALOG = [
+  {
+    title: "Letní tábor Modrá Hora",
+    place: "Modrá Hora · 12.–19. 7. 2027",
+    badge: "Volná místa",
+    variant: "success",
+    isShifted: false,
+  },
+  {
+    title: "Víkend deskových her",
+    place: "Sázava · 3.–5. 9. 2027",
+    badge: "Poslední místa",
+    variant: "warning",
+    isShifted: true,
+  },
+  {
+    title: "Jazykové soustředění",
+    place: "Jeseníky · 21.–28. 8. 2027",
+    badge: "Jen náhradníci",
+    variant: "secondary",
+    isShifted: false,
+  },
+] as const
+
+const PAIRS = [
+  ["Vytvoříte akci a termíny", "Najdou ji v katalogu"],
+  ["Nastavíte pokoje a cenu", "Přihlásí se e-mailem"],
+  ["Sledujete obsazenost a platby", "Vidí stav své přihlášky"],
 ]
 
 // Placeholders until PO delivers contact details and legal texts.
 const FOOTER_PLACEHOLDERS = ["Kontakt", "Ochrana osobních údajů", "Podmínky použití"]
-
-// Header and footer run wider (1 280 px) than the sections (1 120 px).
-const FRAME_CLASS = "mx-auto flex w-full max-w-320 px-4 md:px-8"
 
 export function LandingPage() {
   return (
@@ -62,11 +120,11 @@ export function LandingPage() {
         <a href="#obsah">Přeskočit na obsah</a>
       </Button>
 
-      <header className="border-b border-border">
-        <div className={cn(FRAME_CLASS, "items-center justify-between gap-3 py-3 md:py-5")}>
+      <header className="sticky top-0 z-40 border-b border-border bg-background">
+        <div className={cn(WRAP, "flex items-center justify-between gap-3 py-4")}>
           <Link
             to={ROUTES.home}
-            className="rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            className="rounded-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <BrandMark isLarge />
           </Link>
@@ -74,11 +132,27 @@ export function LandingPage() {
             aria-label="Vstup do aplikace"
             className="hidden items-center gap-2 md:flex"
           >
-            <MyRegistrationsButton
+            <Button
+              asChild
               variant="ghost"
               size="sm"
-            />
-            <OrganizerButton size="sm" />
+            >
+              <a href={CATALOG_ANCHOR}>Katalog akcí</a>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+            >
+              <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
+            </Button>
+            <Button
+              asChild
+              size="sm"
+            >
+              {/* Login offers organizer signup too. */}
+              <Link to={ROUTES.login}>Organizátor</Link>
+            </Button>
             <ThemeSwitcher />
           </nav>
           <MobileMenu />
@@ -90,131 +164,318 @@ export function LandingPage() {
         tabIndex={-1}
         className="outline-none"
       >
+        {/* Hero: dominant headline left, tilted event ticket right. */}
         <section
           aria-labelledby="uvod-nadpis"
-          className="pt-12 pb-12 md:pt-28 md:pb-24"
+          // The tilted ticket's backdrop reaches past a 360 px viewport; clip it, not the page.
+          className="overflow-x-clip pt-12 pb-12 md:pt-24 md:pb-16"
         >
-          <div className="mx-auto flex w-full max-w-280 flex-col gap-5 px-4 md:items-center md:gap-6 md:px-8 md:text-center">
-            <Badge variant="outline">Pro tábory, soustředění a další pobytové akce</Badge>
-            <div className="flex flex-col gap-4 md:max-w-220 md:items-center">
+          <div className={cn(WRAP, "grid items-center gap-14 md:grid-cols-12")}>
+            <div className="flex flex-col gap-8 md:col-span-7">
+              <p className={cn(LABEL, "text-muted-foreground")}>
+                Přihlášky · ubytování · platby · katalog
+              </p>
               <h1
                 id="uvod-nadpis"
-                className="text-h1 lg:text-6xl"
+                className="text-6xl leading-tight font-semibold tracking-tighter text-balance md:text-7xl lg:text-8xl"
               >
-                Přihlášky, ubytování a platby pro vaše akce na jednom místě
+                Akce bez{" "}
+                <mark className="mt-3 inline-block bg-primary px-3 text-primary-foreground">
+                  chaosu
+                </mark>
               </h1>
-              <p className="text-sm text-muted-foreground md:max-w-170">
-                Pořadatelé spravují termíny, kapacitu a přijaté platby. Účastníci se přihlásí online
-                a mají přehled o své účasti a úhradě.
+              <p className="max-w-xl text-lg text-balance">
+                Pořadatelé mají celou akci pod kontrolou. Účastníci najdou akci, přihlásí se a vědí,
+                na čem jsou.
               </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button
+                  asChild
+                  size="lg"
+                >
+                  <Link to={ROUTES.login}>
+                    Chci pořádat akci
+                    <ArrowRight aria-hidden />
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                >
+                  <a href={CATALOG_ANCHOR}>Hledám akci</a>
+                </Button>
+              </div>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-              <OrganizerButton
-                hasArrow
-                className="w-full sm:w-auto"
-              />
-              <MyRegistrationsButton
-                variant="outline"
-                className="w-full sm:w-auto"
-              />
+
+            <div className="relative isolate md:col-span-5">
+              <div className="absolute inset-0 -z-10 translate-x-4 translate-y-4 rotate-3 rounded-xl bg-primary" />
+              <div className="-rotate-2">
+                <Card>
+                  <CardHeader>
+                    <CardDescription>12.–19. 7. 2027 · Modrá Hora</CardDescription>
+                    <CardTitle>Letní tábor Modrá Hora</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-baseline justify-between">
+                          <span className="font-mono text-3xl font-semibold tabular-nums">
+                            148 / 180
+                          </span>
+                          <span className="text-sm text-muted-foreground">obsazeno</span>
+                        </div>
+                        <Progress
+                          value={82}
+                          aria-label="Obsazenost 148 z 180 míst"
+                        />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="success">Potvrzeno 139</Badge>
+                        <Badge variant="warning">Náhradníci 9</Badge>
+                        <Badge variant="secondary">Zaplaceno 87 %</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-            <AppPreview />
           </div>
         </section>
 
-        <LandingSection
-          labelledBy="kudy-dal-nadpis"
-          isMuted
-        >
-          <h2
-            id="kudy-dal-nadpis"
-            className="text-h2"
-          >
-            Kudy dál
-          </h2>
-          <ul className="grid gap-4 md:grid-cols-2 md:gap-6">
-            <li>
-              <EntryCard
-                icon={Users}
-                audience="Pro účastníky"
-                title="Moje přihlášky"
-                actions={
-                  <MyRegistrationsButton
-                    variant="outline"
-                    size="sm"
-                    hasArrow
-                  />
-                }
-              >
-                Zadejte e-mail, se kterým jste se přihlásili na akci. Pošleme vám odkaz pro vstup
-                bez hesla a uvidíte stav své účasti i platby.
-              </EntryCard>
-            </li>
-            <li>
-              <EntryCard
-                icon={Building2}
-                audience="Pro pořadatele"
-                title="Organizátor"
-                actions={
-                  <>
-                    <OrganizerButton
-                      size="sm"
-                      hasArrow
-                    />
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="sm"
-                    >
-                      <Link to={ROUTES.signup}>Registrovat organizátora</Link>
-                    </Button>
-                  </>
-                }
-              >
-                Přihlaste se e-mailem a heslem, nebo si založte účet a první organizaci. Akce,
-                termíny, ubytování a platby spravujete na jednom místě.
-              </EntryCard>
-            </li>
-          </ul>
-        </LandingSection>
+        <IllustratedSections />
 
-        <LandingSection labelledBy="funkce-nadpis">
-          <h2
-            id="funkce-nadpis"
-            className="text-h2"
-          >
-            Co akc.io umí
-          </h2>
-          <ul className="grid gap-7 md:grid-cols-3 md:gap-10">
-            {FEATURES.map(({ icon: Icon, title, text }) => (
-              <li
-                key={title}
-                className="flex flex-col gap-2.5"
+        {/* Two audiences: staggered, deliberately unequal. */}
+        <section
+          aria-labelledby="dve-strany"
+          className="pt-16 pb-16 md:pt-28 md:pb-28"
+        >
+          <div className={WRAP}>
+            <h2
+              id="dve-strany"
+              className="mb-10 max-w-2xl text-4xl font-semibold tracking-tight text-balance md:text-5xl"
+            >
+              Jedna akce, dvě strany. Každá dostane, co potřebuje.
+            </h2>
+            <div className="grid items-start gap-6 md:grid-cols-12">
+              <article
+                aria-labelledby="pro-poradatele"
+                className="flex flex-col gap-7 rounded-xl border-2 border-background bg-foreground p-6 text-background md:col-span-7 md:p-8"
               >
-                <Icon
-                  aria-hidden
-                  className="size-6"
+                <p className={LABEL}>Pro pořadatele</p>
+                <h3
+                  id="pro-poradatele"
+                  className="text-3xl font-semibold tracking-tight text-balance md:text-4xl"
+                >
+                  Celá akce v jedné aplikaci, bez tabulek a e-mailových řetězců.
+                </h3>
+                <AudiencePoints points={ORGANIZER_POINTS} />
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    asChild
+                    className="w-44"
+                  >
+                    <Link to={ROUTES.login}>
+                      Přihlásit se
+                      <ArrowRight aria-hidden />
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    variant="secondary"
+                    className="w-44"
+                  >
+                    <Link to={ROUTES.signup}>Založit účet</Link>
+                  </Button>
+                </div>
+              </article>
+
+              <article
+                aria-labelledby="pro-ucastniky"
+                className="flex flex-col gap-7 rounded-xl border-2 border-foreground bg-card p-6 md:col-span-5 md:p-8"
+              >
+                <p className={cn(LABEL, "text-muted-foreground")}>Pro účastníky</p>
+                <h3
+                  id="pro-ucastniky"
+                  className="text-2xl font-semibold tracking-tight text-balance md:text-3xl"
+                >
+                  Najdete akci, přihlásíte se a víte, na čem jste.
+                </h3>
+                <AudiencePoints
+                  points={PARTICIPANT_POINTS}
+                  isMuted
                 />
-                <h3 className="text-sm font-medium">{title}</h3>
-                <p className="text-sm text-muted-foreground">{text}</p>
-              </li>
-            ))}
-          </ul>
-        </LandingSection>
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    asChild
+                    className="w-44"
+                  >
+                    <a href={CATALOG_ANCHOR}>
+                      Procházet katalog
+                      <ArrowRight aria-hidden />
+                    </a>
+                  </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-44"
+                  >
+                    <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
+                  </Button>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        {/* Catalog teaser: three cards, middle one shifted. */}
+        <section
+          id="katalog"
+          aria-labelledby="katalog-nadpis"
+          className="scroll-mt-20 bg-muted py-16 md:py-28"
+        >
+          <div className={WRAP}>
+            <div className="mb-12 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+              <div className="flex flex-col gap-3">
+                <p className={LABEL}>Katalog akcí</p>
+                <h2
+                  id="katalog-nadpis"
+                  className="max-w-xl text-4xl font-semibold tracking-tight text-balance md:text-5xl"
+                >
+                  Kam se letos vydat?
+                </h2>
+              </div>
+              <div className="flex max-w-sm flex-col items-start gap-4">
+                <p>Akce, které pořadatelé zveřejnili. Vyberte termín a přihlaste se.</p>
+                <Button
+                  type="button"
+                  aria-disabled="true"
+                  size="lg"
+                >
+                  Procházet katalog
+                  <ArrowRight aria-hidden />
+                </Button>
+              </div>
+            </div>
+            <ul className="grid gap-6 md:grid-cols-3">
+              {CATALOG.map((event) => (
+                <li
+                  key={event.title}
+                  className={cn(event.isShifted && "md:translate-y-10")}
+                >
+                  <Card>
+                    <CardHeader>
+                      <Badge variant={event.variant}>{event.badge}</Badge>
+                      <CardTitle>{event.title}</CardTitle>
+                      <CardDescription>{event.place}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                      >
+                        <a href={CATALOG_ANCHOR}>
+                          Detail akce
+                          <ArrowRight aria-hidden />
+                        </a>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* Mirrored flow: what the organizer does on the left, what the participant sees on the right. */}
+        <section
+          aria-labelledby="jak-nadpis"
+          className="py-16 md:py-28"
+        >
+          <div className={WRAP}>
+            <h2
+              id="jak-nadpis"
+              className="mb-12 max-w-2xl text-4xl font-semibold tracking-tight text-balance md:text-5xl"
+            >
+              Co uděláte vy, to vidí oni.
+            </h2>
+            <div className="mb-4 hidden grid-cols-12 gap-8 md:grid">
+              <p className={cn(LABEL, "col-span-5 text-right")}>Pořadatel</p>
+              <p className={cn(LABEL, "col-span-5 col-start-8")}>Účastník</p>
+            </div>
+            <ol className="flex flex-col">
+              {PAIRS.map(([organizer, participant]) => (
+                <li
+                  key={organizer}
+                  className="grid gap-2 border-t border-border py-6 md:grid-cols-12 md:items-center md:gap-8"
+                >
+                  <p className="text-xl font-semibold md:col-span-5 md:text-right md:text-2xl">
+                    {organizer}
+                  </p>
+                  <ArrowRight
+                    aria-hidden
+                    className="size-8 md:col-span-2 md:justify-self-center"
+                  />
+                  <p className="text-xl text-muted-foreground md:col-span-5 md:text-2xl">
+                    {participant}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        <section
+          aria-labelledby="cta-nadpis"
+          className="pb-12 md:pb-20"
+        >
+          <div className={WRAP}>
+            <div className="flex flex-col items-center gap-6 rounded-xl bg-foreground px-6 py-10 text-center text-background md:px-12 md:py-14">
+              <h2
+                id="cta-nadpis"
+                className="max-w-2xl text-4xl font-semibold tracking-tight text-balance md:text-5xl"
+              >
+                Připraveni na akci bez chaosu?
+              </h2>
+              <p className="max-w-2xl text-lg text-balance">
+                Věnujte méně času tabulkám a více tomu, na čem opravdu záleží.
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button
+                  asChild
+                  size="lg"
+                >
+                  <Link to={ROUTES.login}>
+                    Chci pořádat akci
+                    <ArrowRight aria-hidden />
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="secondary"
+                >
+                  <a href={CATALOG_ANCHOR}>Hledám akci</a>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       <footer className="border-t border-border">
         <div
           className={cn(
-            FRAME_CLASS,
-            "flex-col gap-5 py-8 md:flex-row md:items-center md:justify-between md:py-10",
+            WRAP,
+            "flex flex-col gap-4 py-8 md:flex-row md:items-center md:justify-between",
           )}
         >
           <div className="flex flex-col gap-1.5">
             <BrandMark />
             <p className="text-xs text-muted-foreground">© 2026 akc.io</p>
           </div>
-          <ul className="flex flex-col gap-2 text-sm font-medium md:flex-row md:gap-6">
+          <ul className="flex flex-col gap-2 text-sm md:flex-row md:gap-6">
             {FOOTER_PLACEHOLDERS.map((label) => (
               <li key={label}>{label}</li>
             ))}
@@ -222,6 +483,36 @@ export function LandingPage() {
         </div>
       </footer>
     </div>
+  )
+}
+
+type AudiencePoint = { icon: LucideIcon; title: string; text: string }
+
+function AudiencePoints({
+  points,
+  isMuted = false,
+}: {
+  points: AudiencePoint[]
+  isMuted?: boolean
+}) {
+  return (
+    <ul className="flex flex-col gap-6">
+      {points.map(({ icon: Icon, title, text }) => (
+        <li
+          key={title}
+          className="flex gap-4"
+        >
+          <Icon
+            aria-hidden
+            className="mt-1 size-6 shrink-0"
+          />
+          <div>
+            <h4 className="font-semibold">{title}</h4>
+            <p className={cn(isMuted && "text-muted-foreground")}>{text}</p>
+          </div>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -250,8 +541,24 @@ function MobileMenu() {
           aria-label="Vstup do aplikace"
           className="flex flex-col gap-2 px-4"
         >
-          <OrganizerButton />
-          <MyRegistrationsButton />
+          <Button asChild>
+            <Link to={ROUTES.login}>Organizátor</Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+          >
+            <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
+          </Button>
+          {/* The catalog is on this page: close the menu so the section scrolls into view. */}
+          <SheetClose asChild>
+            <Button
+              asChild
+              variant="outline"
+            >
+              <a href={CATALOG_ANCHOR}>Katalog akcí</a>
+            </Button>
+          </SheetClose>
         </nav>
         <div className="flex items-center justify-between px-4">
           <span className="text-sm text-muted-foreground">Motiv</span>
@@ -259,55 +566,5 @@ function MobileMenu() {
         </div>
       </SheetContent>
     </Sheet>
-  )
-}
-
-type EntryButtonProps = {
-  variant?: "default" | "outline" | "ghost"
-  size?: "default" | "sm"
-  hasArrow?: boolean
-  className?: string
-}
-
-function OrganizerButton({
-  variant = "default",
-  size = "default",
-  hasArrow = false,
-  className,
-}: EntryButtonProps) {
-  return (
-    <Button
-      asChild
-      variant={variant}
-      size={size}
-      className={className}
-    >
-      {/* Login offers organizer signup too. */}
-      <Link to={ROUTES.login}>
-        Organizátor
-        {hasArrow ? <ArrowRight aria-hidden /> : null}
-      </Link>
-    </Button>
-  )
-}
-
-function MyRegistrationsButton({
-  variant = "outline",
-  size = "default",
-  hasArrow = false,
-  className,
-}: EntryButtonProps) {
-  return (
-    <Button
-      asChild
-      variant={variant}
-      size={size}
-      className={className}
-    >
-      <Link to={ROUTES.myRegistrations}>
-        Moje přihlášky
-        {hasArrow ? <ArrowRight aria-hidden /> : null}
-      </Link>
-    </Button>
   )
 }

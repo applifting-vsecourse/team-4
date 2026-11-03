@@ -123,17 +123,12 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
 
   // ── Act 1: a visitor becomes an organizer ─────────────────────────────────
 
-  const entries = page.getByRole("region", { name: "Kudy dál" })
+  const entries = page.getByRole("navigation", { name: "Vstup do aplikace" })
 
   await page.goto("/")
   await scene(page, "Landing page představí akc.io", ["S2-01"], async () => {
-    await expect(
-      page.getByRole("heading", {
-        name: "Přihlášky, ubytování a platby pro vaše akce na jednom místě",
-        level: 1,
-      }),
-    ).toBeVisible()
-    for (const feature of ["Přihlášky po termínech", "Ubytování a kapacita", "Platby"]) {
+    await expect(page.getByRole("heading", { name: "Akce bez chaosu", level: 1 })).toBeVisible()
+    for (const feature of ["Termíny a kapacita", "Přihlášky a platby", "Ubytování a kapacity"]) {
       await expect(page.getByRole("heading", { name: feature, exact: true })).toBeVisible()
     }
     await expect(page.getByText(/kemp\.io/i)).toHaveCount(0)
