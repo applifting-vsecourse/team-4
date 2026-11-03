@@ -9,6 +9,7 @@ import {
   EventSummary,
   PaymentInstructions,
   RegistrationTermResult,
+  selectedPriceMinor,
 } from '@/modules/registrations/domain/registration';
 
 /**
@@ -30,11 +31,32 @@ export class ParticipantRegistrationModel {
     /** By the day received, then as recorded. */
     public readonly payments: ReceivedPayment[],
     private readonly paymentToken: string,
+    /** The participant's data; the e-mail is the identity and never changes. */
+    public readonly contact: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+    },
+    /** Bumped by every executed change (F35-2a). */
+    public readonly version: number,
+    /** A change waits for the organizer's decision. */
+    public readonly hasPendingChange: boolean,
   ) {}
+
+  /** Every term released. */
+  get isCancelled(): boolean {
+    return this.terms.every((term) => term.status === 'cancelled');
+  }
+
+  /** Changes are offered for an active registration without a waiting request. */
+  get canChange(): boolean {
+    return !this.isCancelled && !this.hasPendingChange;
+  }
 
   /** Price of the selected terms; waitlisted ones included. */
   get selectedPriceMinor(): number {
-    return this.terms.reduce((sum, term) => sum + term.priceMinor, 0);
+    return selectedPriceMinor(this.terms);
   }
 
   /** Σ confirmed terms (S2-16). */

@@ -2,6 +2,7 @@ import {
   amountDueMinor,
   ParticipationStatus,
   RegistrationTermResult,
+  selectedPriceMinor,
 } from '@/modules/registrations/domain/registration';
 
 /** How a whole registration stands with its payments (data-model.md §3.9). */
@@ -71,7 +72,7 @@ export class ManagedRegistrationModel {
   ) {}
 
   get selectedPriceMinor(): number {
-    return this.terms.reduce((sum, term) => sum + term.priceMinor, 0);
+    return selectedPriceMinor(this.terms);
   }
 
   /** Σ confirmed terms (S2-16). */
