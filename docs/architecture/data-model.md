@@ -388,7 +388,9 @@ cancel single terms or the whole registration.
   stay as they were until approval; the target term is not held.
 - **Version.** `registration.version` is bumped by every executed change. A proposal carries
   the version it was made on; an older one is refused (409 `registration_stale`) and must not
-  overwrite the newer data.
+  overwrite the newer data. A request stores the version it was made on
+  (`proposal.baseVersion`); approving it after the registration changed is refused the same
+  way (409 `registration_stale`, `isStale` on the request) and it can only be rejected.
 - **Execution** (direct change and approval) runs in one transaction: lock the registration,
   lock the affected `event_term` rows in id order (the serialization point of §3.6), re-read
   the capacity, then write. If the result of a move differs from what was confirmed (the

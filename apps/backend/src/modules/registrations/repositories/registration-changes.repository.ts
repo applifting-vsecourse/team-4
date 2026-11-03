@@ -35,6 +35,8 @@ export type RegistrationChangeModel = {
   summary: ChangeSummary;
   /** Pending, and a move now ends on the waitlist without the participant's consent. */
   needsParticipantConsent: boolean;
+  /** Pending, and the registration changed after the proposal was made. */
+  isStale: boolean;
   registration: { firstName: string; lastName: string; email: string };
 };
 
@@ -62,6 +64,8 @@ export type DecisionOutcome =
   /** Decided before, the same way: nothing is done twice. */
   | { kind: 'already_decided'; change: RegistrationChangeModel }
   | { kind: 'conflict'; change: RegistrationChangeModel }
+  /** The registration changed after the proposal was made. */
+  | { kind: 'stale' }
   | { kind: 'not_found' }
   | { kind: 'invalid'; error: InvalidChangeError }
   | { kind: 'waitlist_consent_required'; plan: ChangePlan };
@@ -102,13 +106,16 @@ const changeSelect = {
   createdAt: true,
   decidedAt: true,
   registration: {
-    select: { firstName: true, lastName: true, email: true },
+    select: { firstName: true, lastName: true, email: true, version: true },
   },
 } satisfies Prisma.RegistrationChangeSelect;
 
 type ChangeRow = Prisma.RegistrationChangeGetPayload<{
   select: typeof changeSelect;
 }>;
+
+/** The proposal as stored: with the registration version it was made on. */
+type StoredProposal = ChangeProposal & { baseVersion: number };
 
 type StoredSummary = ChangeSummary & { kinds: ChangeKind[] };
 
@@ -132,7 +139,7 @@ const toModel = (
   live: ChangePlan | null = null,
 ): RegistrationChangeModel => {
   const stored = row.summary as unknown as StoredSummary;
-  const proposal = row.proposal as unknown as ChangeProposal;
+  const proposal = row.proposal as unknown as StoredProposal;
   const summary = live?.summary ?? stored;
   return {
     id: row.id,
@@ -155,7 +162,14 @@ const toModel = (
           !proposal.moves.find((m) => m.toTermId === move.toTermId)
             ?.acceptWaitlist,
       ),
-    registration: row.registration,
+    isStale:
+      row.status === 'pending' &&
+      proposal.baseVersion !== row.registration.version,
+    registration: {
+      firstName: row.registration.firstName,
+      lastName: row.registration.lastName,
+      email: row.registration.email,
+    },
   };
 };
 
@@ -348,7 +362,10 @@ export class RegistrationChangesRepository {
             registrationId,
             eventId: snapshot.eventId,
             status: 'pending',
-            proposal: input.proposal as unknown as Prisma.InputJsonValue,
+            proposal: {
+              ...input.proposal,
+              baseVersion: snapshot.version,
+            } as unknown as Prisma.InputJsonValue,
             summary: storedSummary(plan),
           },
           select: changeSelect,
@@ -362,7 +379,10 @@ export class RegistrationChangesRepository {
           eventId: snapshot.eventId,
           status: 'applied',
           decidedAt: now,
-          proposal: input.proposal as unknown as Prisma.InputJsonValue,
+          proposal: {
+            ...input.proposal,
+            baseVersion: snapshot.version,
+          } as unknown as Prisma.InputJsonValue,
           summary: storedSummary(plan),
         },
         select: changeSelect,
@@ -422,7 +442,9 @@ export class RegistrationChangesRepository {
           where: { id: registrationId },
           select: snapshotSelect,
         });
-        const proposal = row.proposal as unknown as ChangeProposal;
+        const proposal = row.proposal as unknown as StoredProposal;
+        // Never overwrite data that changed after the participant confirmed.
+        if (proposal.baseVersion !== snapshot.version) return { kind: 'stale' };
         let plan: ChangePlan;
         try {
           await this.lockTerms(tx, snapshot, proposal);

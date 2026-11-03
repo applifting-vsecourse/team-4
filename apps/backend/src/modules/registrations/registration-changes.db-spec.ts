@@ -813,6 +813,73 @@ describe('capacity: failures and concurrent approvals', () => {
   });
 });
 
+describe('stale requests and null fields', () => {
+  it('refuses to approve a request made on an older version of the registration', async () => {
+    const fixture = await setup(14);
+    const registration = await register(fixture, [0]);
+    const requested = await submit(registration, { firstName: 'Nová' });
+    expect(requested.body.outcome).toBe('requested');
+    // The registration changes through another path while the request waits.
+    await prisma.registration.update({
+      where: { id: registration.id },
+      data: { lastName: 'Jiná', version: { increment: 1 } },
+    });
+
+    const path = `${managed(fixture, registration)}/changes/${requested.body.change.id}`;
+    const listed = await call(
+      'GET',
+      `${managed(fixture, registration)}/changes`,
+      owner(fixture),
+    );
+    expect(listed.body.changes[0].isStale).toBe(true);
+    const approve = await call('POST', `${path}/approve`, owner(fixture));
+
+    expect(approve.status).toBe(409);
+    expect(approve.body.code).toBe('registration_stale');
+    const stored = await prisma.registration.findUniqueOrThrow({
+      where: { id: registration.id },
+    });
+    expect(stored.firstName).toBe('Test');
+    expect(stored.lastName).toBe('Jiná');
+    expect(
+      (
+        await prisma.registrationChange.findUniqueOrThrow({
+          where: { id: requested.body.change.id },
+        })
+      ).status,
+    ).toBe('pending');
+    // It can still be rejected.
+    const rejected = await call('POST', `${path}/reject`, owner(fixture));
+    expect(rejected.body.status).toBe('rejected');
+  });
+
+  it.each(['firstName', 'lastName', 'phone'])(
+    'answers 400, not a server error, for %s set to null',
+    async (field) => {
+      const fixture = await setup(null);
+      const registration = await register(fixture, [1]);
+      const body = { moves: [], cancelledTermIds: [], [field]: null };
+
+      const preview = await call(
+        'POST',
+        `${base(registration)}/changes/preview`,
+        own(registration),
+        body,
+      );
+      const submitted = await call(
+        'POST',
+        `${base(registration)}/changes`,
+        own(registration),
+        { ...body, expectedVersion: 0, expectsApproval: false },
+      );
+
+      expect(preview.status).toBe(400);
+      expect(submitted.status).toBe(400);
+      expect(await version(registration)).toBe(0);
+    },
+  );
+});
+
 describe('access', () => {
   it('hides another participant’s registration and changes', async () => {
     const fixture = await setup(null);

@@ -25,12 +25,12 @@ import {
   IsBoolean,
   IsInt,
   IsNotEmpty,
-  IsOptional,
   IsString,
   IsUUID,
   Matches,
   MaxLength,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -69,7 +69,7 @@ export class TermMoveDto {
 /** What a participant changes; a field left out stays as it is. */
 export class ChangeProposalDto {
   @ApiPropertyOptional({ maxLength: 100 })
-  @IsOptional()
+  @ValidateIf((_: object, value: unknown) => value !== undefined)
   @Transform(trim)
   @IsString({ message: 'Vyplňte jméno.' })
   @IsNotEmpty({ message: 'Vyplňte jméno.' })
@@ -77,7 +77,7 @@ export class ChangeProposalDto {
   firstName?: string;
 
   @ApiPropertyOptional({ maxLength: 100 })
-  @IsOptional()
+  @ValidateIf((_: object, value: unknown) => value !== undefined)
   @Transform(trim)
   @IsString({ message: 'Vyplňte příjmení.' })
   @IsNotEmpty({ message: 'Vyplňte příjmení.' })
@@ -85,7 +85,7 @@ export class ChangeProposalDto {
   lastName?: string;
 
   @ApiPropertyOptional({ example: '+420 777 123 456' })
-  @IsOptional()
+  @ValidateIf((_: object, value: unknown) => value !== undefined)
   @Transform(toE164)
   @IsString({ message: PHONE_MESSAGE })
   @Matches(/^\+[1-9]\d{6,14}$/, { message: PHONE_MESSAGE })
@@ -302,6 +302,13 @@ export class RegistrationChangeDto {
   })
   needsParticipantConsent!: boolean;
 
+  @ApiProperty({
+    description:
+      'Pending, and the registration changed after the proposal was made: ' +
+      'approving is refused (409 `registration_stale`); it can only be rejected.',
+  })
+  isStale!: boolean;
+
   @ApiProperty({ type: ChangeParticipantDto })
   participant!: ChangeParticipantDto;
 
@@ -315,6 +322,7 @@ export class RegistrationChangeDto {
       decidedAt: model.decidedAt?.toISOString() ?? null,
       summary: ChangeSummaryDto.from(model.summary),
       needsParticipantConsent: model.needsParticipantConsent,
+      isStale: model.isStale,
       participant: { ...model.registration },
     };
   }
