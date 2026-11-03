@@ -125,6 +125,12 @@ and requires
 his approval on the current commit before QA handoff and
 merge until that review is recorded. Once applied, removing the label does not
 remove the approval requirement; Bogdan's current-commit approval satisfies it.
+Before opening a non-draft PR, launch a fresh independent agent with no access to
+the implementation conversation or plan to review the final diff. Give it the
+issue description and acceptance criteria, the diff, and only the repository
+instructions needed to assess them. Resolve its actionable findings or record
+why each finding is not applicable before opening the PR. If you cannot launch
+an independent agent, do not open the non-draft PR; report the blocker.
 Low requires CI but skips linked issues, requirements approval, code review and
 QA. It is limited to documentation/text and isolated test files; executable or
 configuration changes cannot use Low. Enforcement changes always require High.

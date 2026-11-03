@@ -93,6 +93,13 @@ approval covers its linked High implementation PRs. High has no author exemption
 self-authored PR reviews cannot seed a grant, while explicit issue and PR commands are
 available to both product owners, including on their own PRs. Standard enters code review without this grant.
 
+Before opening a non-draft PR, launch a fresh independent agent to review the
+final diff. It must not receive the implementation conversation or plan. Give it
+the linked issue's description and acceptance criteria, the diff, and only the
+repository instructions needed for review. Resolve actionable findings or record
+why each is not applicable before opening the PR. If an independent agent cannot
+be launched, keep the PR as a draft and report the blocker.
+
 Once scope approval is recorded, implementation commits, technical review
 findings and GitHub's automatic stale-review dismissal do not invalidate it.
 A developer fixing a color token needs fresh code review, not another PM review.
