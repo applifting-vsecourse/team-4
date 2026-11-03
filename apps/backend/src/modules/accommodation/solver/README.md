@@ -1,10 +1,20 @@
-# Accommodation solver (S3-T3 draft)
+# Accommodation solver (S3-T3, S3-T4)
 
-Evaluates one term of an event as specified in [#181](https://github.com/applifting-vsecourse/team-4/issues/181) (spec v4, §7): who of the pending and waitlisted participants can be confirmed, why the others cannot, and, in phase 2, which room everyone sleeps in. It is not wired to the API or the database yet; the stories that do that (#183, #19, #185, #22, #187) still need PM updates and approved designs.
+Evaluates one term of an event as specified in [#181](https://github.com/applifting-vsecourse/team-4/issues/181) (spec v4, §7): who of the pending and waitlisted participants can be confirmed, why the others cannot, and, in phase 2, which room everyone sleeps in.
+
+F13-1 calls it through `AccommodationEvaluationService.evaluateTerm` ([#223](https://github.com/applifting-vsecourse/team-4/issues/223)):
 
 ```ts
-const result = await solveAssignmentInWorker(input, { phase: 1 });
+const run = await evaluation.evaluateTerm(eventId, termId, { triggeredById });
 ```
+
+The service reads the term as it is now and stores an immutable `accommodation_run` with a snapshot of everything it decided from: the rooms with that term's beds, the rules, every participant's answer, determination and effective value, and the term order with positions. It never confirms, waitlists, creates a debt or assigns a room.
+
+- **Term order** (`domain/term-order.ts`, §1, §6): by `receivedAt`, then by registration id; a stored manual order (`accommodation_term_order`, F39-1) wins, and anyone it does not list goes right after everyone received before them.
+- **Effective value** (`domain/effective-value.ts`, §4): a determining answer, or the organizer's determination (`accommodation_manual_value`) while the answer it was made on is unchanged. Nothing is guessed: without one the participant gets reason R.
+- **Rules** (`accommodation_rules`, §2): no row means no hard attribute; only capacity and order decide.
+- **Answers** to the hard attribute come from `HardAttributeAnswers`. The form has no categorical questions yet, so the default provider returns none; the story that stores them (F64 or the categorical-questions story) replaces it.
+- Rules, determinations, orders and interventions (`accommodation_intervention`) have no writer yet; F14-1, F39-1 and the rules settings add them. Runs and interventions are immutable (database trigger).
 
 `solveAssignmentInWorker` runs `solveAssignment` in a worker thread, because HiGHS blocks the thread it runs on.
 
