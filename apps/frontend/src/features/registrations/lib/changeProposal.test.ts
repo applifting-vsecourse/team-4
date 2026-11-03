@@ -25,6 +25,15 @@ describe("buildProposal", () => {
     expect(buildProposal(CONTACT, state())).toBeNull()
   })
 
+  it("proposes nothing for a stored phone that is formatted with spaces", () => {
+    expect(
+      buildProposal(
+        { ...CONTACT, phone: "+420 604 123 456" },
+        state({ phone: "+420 604 123 456" }),
+      ),
+    ).toBeNull()
+  })
+
   it("sends only the changed fields, trimmed, and treats spaces in the phone as the same number", () => {
     expect(buildProposal(CONTACT, state({ phone: "+420 604 123 456" }))).toBeNull()
     expect(

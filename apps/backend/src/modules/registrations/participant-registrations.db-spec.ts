@@ -184,6 +184,13 @@ describe('access', () => {
     const list = await call('GET', '/participant/registrations', { cookie });
 
     expect(list.status).toBe(200);
+    // The list carries what the participant's own detail needs to offer changes.
+    for (const item of list.body.registrations) {
+      expect(item.contact.email).toBe(mine);
+      expect(item.version).toBe(0);
+      expect(item.isCancelled).toBe(false);
+      expect(item.canChange).toBe(true);
+    }
     expect(
       list.body.registrations.map((r: { id: string }) => r.id).sort(),
     ).toEqual([a.registration.id, b.registration.id].sort());

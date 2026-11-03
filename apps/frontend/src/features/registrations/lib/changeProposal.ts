@@ -33,7 +33,7 @@ export function buildProposal(contact: Contact, state: EditState): ChangeProposa
   const proposal: ChangeProposal = { moves: [], cancelledTermIds: [] }
   if (state.firstName.trim() !== contact.firstName) proposal.firstName = state.firstName.trim()
   if (state.lastName.trim() !== contact.lastName) proposal.lastName = state.lastName.trim()
-  if (squash(state.phone) !== contact.phone) proposal.phone = state.phone.trim()
+  if (squash(state.phone) !== squash(contact.phone)) proposal.phone = state.phone.trim()
 
   for (const [termId, choice] of Object.entries(state.terms)) {
     if (choice.isCancelled) proposal.cancelledTermIds.push(termId)
