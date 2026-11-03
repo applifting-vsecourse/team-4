@@ -1,8 +1,18 @@
+import { useState } from "react"
+
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Field, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -37,21 +47,60 @@ export type ChangeableTerm = {
   isCancelled?: boolean
 }
 
+type TermChoice = { selectedTermId: string; isCancelled: boolean }
+
+export type ContactErrors = Partial<Record<"firstName" | "lastName" | "phone", string>>
+
 export type RegistrationChangeFormProps = {
   contact: ContactValues
   terms: ChangeableTerm[]
+  /** Fields are uncontrolled; these report every edit to the page that owns the state. */
+  onContactChange?: (field: "firstName" | "lastName" | "phone", value: string) => void
+  onTermChange?: (termId: string, change: { selectedTermId: string; isCancelled: boolean }) => void
+  onReview?: () => void
+  onCancel?: () => void
+  errors?: ContactErrors
+  /** Shown above the buttons, e.g. "Nic jste nezměnili". */
+  errorMessage?: string
 }
 
 // Moje přihlášky → Detail přihlášky → Úprava přihlášky (F35-2a): personal and
 // contact data in the scope of the registration form, a move to another term
 // of the same event, and cancelling single terms. "Zkontrolovat změny" opens
 // the review. Design only: every value is passed in.
-export function RegistrationChangeForm({ contact, terms }: RegistrationChangeFormProps) {
+export function RegistrationChangeForm({
+  contact,
+  terms,
+  onContactChange,
+  onTermChange,
+  onReview,
+  onCancel,
+  errors = {},
+  errorMessage,
+}: RegistrationChangeFormProps) {
+  const [chosen, setChosen] = useState<Record<string, TermChoice>>(() =>
+    Object.fromEntries(
+      terms.map((term) => [
+        term.id,
+        { selectedTermId: term.selectedTermId, isCancelled: term.isCancelled ?? false },
+      ]),
+    ),
+  )
+  const choose = (termId: string, change: Partial<TermChoice>) => {
+    const next = { selectedTermId: termId, isCancelled: false, ...chosen[termId], ...change }
+    setChosen({ ...chosen, [termId]: next })
+    onTermChange?.(termId, next)
+  }
+
   return (
     <form
       noValidate
       aria-label="Úprava přihlášky"
       className="space-y-6"
+      onSubmit={(event) => {
+        event.preventDefault()
+        onReview?.()
+      }}
     >
       <Card>
         <CardHeader>
@@ -66,7 +115,10 @@ export function RegistrationChangeForm({ contact, terms }: RegistrationChangeFor
                   id="change-first-name"
                   autoComplete="given-name"
                   defaultValue={contact.firstName}
+                  aria-invalid={errors.firstName ? true : undefined}
+                  onChange={(event) => onContactChange?.("firstName", event.target.value)}
                 />
+                <FieldError>{errors.firstName}</FieldError>
               </Field>
               <Field>
                 <FieldLabel htmlFor="change-last-name">Příjmení</FieldLabel>
@@ -74,7 +126,10 @@ export function RegistrationChangeForm({ contact, terms }: RegistrationChangeFor
                   id="change-last-name"
                   autoComplete="family-name"
                   defaultValue={contact.lastName}
+                  aria-invalid={errors.lastName ? true : undefined}
+                  onChange={(event) => onContactChange?.("lastName", event.target.value)}
                 />
+                <FieldError>{errors.lastName}</FieldError>
               </Field>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -101,7 +156,10 @@ export function RegistrationChangeForm({ contact, terms }: RegistrationChangeFor
                   type="tel"
                   autoComplete="tel"
                   defaultValue={contact.phone}
+                  aria-invalid={errors.phone ? true : undefined}
+                  onChange={(event) => onContactChange?.("phone", event.target.value)}
                 />
+                <FieldError>{errors.phone}</FieldError>
               </Field>
             </div>
           </FieldGroup>
@@ -131,7 +189,8 @@ export function RegistrationChangeForm({ contact, terms }: RegistrationChangeFor
                       <div className="min-w-0 flex-1">
                         <Select
                           defaultValue={term.selectedTermId}
-                          disabled={term.isCancelled}
+                          disabled={chosen[term.id]?.isCancelled}
+                          onValueChange={(selectedTermId) => choose(term.id, { selectedTermId })}
                         >
                           <SelectTrigger id={`change-term-${term.id}`}>
                             <SelectValue />
@@ -155,6 +214,9 @@ export function RegistrationChangeForm({ contact, terms }: RegistrationChangeFor
                         <Checkbox
                           id={`cancel-term-${term.id}`}
                           defaultChecked={term.isCancelled}
+                          onCheckedChange={(checked) =>
+                            choose(term.id, { isCancelled: checked === true })
+                          }
                         />
                         <FieldLabel htmlFor={`cancel-term-${term.id}`}>
                           Odhlásit z termínu {term.label}
@@ -169,14 +231,21 @@ export function RegistrationChangeForm({ contact, terms }: RegistrationChangeFor
         </CardContent>
       </Card>
 
+      {errorMessage ? (
+        <Alert variant="destructive">
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      ) : null}
+
       <div className="flex flex-wrap justify-end gap-2">
         <Button
           type="button"
           variant="outline"
+          onClick={onCancel}
         >
           Zrušit
         </Button>
-        <Button type="button">Zkontrolovat změny</Button>
+        <Button type="submit">Zkontrolovat změny</Button>
       </div>
     </form>
   )

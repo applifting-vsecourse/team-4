@@ -3,9 +3,10 @@ import { queryOptions } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 
 import {
+  participantRegistrationDetailSchema,
   participantRegistrationListSchema,
-  participantRegistrationSchema,
 } from "@/features/registrations/api/participantRegistrationSchemas"
+import { registrationChangeListSchema } from "@/features/registrations/api/registrationChangeSchemas"
 
 export const participantRegistrationKeys = {
   all: () => ["participant-registrations"] as const,
@@ -25,11 +26,21 @@ export const participantRegistrationsQueryOptions = () =>
     retry: false,
   })
 
+export const participantChangesQueryOptions = (registrationId: string) =>
+  queryOptions({
+    queryKey: [...participantRegistrationKeys.all(), "changes", registrationId] as const,
+    queryFn: async () =>
+      registrationChangeListSchema.parse(
+        await api.get(`participant/registrations/${registrationId}/changes`).json(),
+      ).changes,
+    retry: false,
+  })
+
 export const participantRegistrationQueryOptions = (registrationId: string) =>
   queryOptions({
     queryKey: participantRegistrationKeys.detail(registrationId),
     queryFn: async () =>
-      participantRegistrationSchema.parse(
+      participantRegistrationDetailSchema.parse(
         await api.get(`participant/registrations/${registrationId}`).json(),
       ),
     retry: false,

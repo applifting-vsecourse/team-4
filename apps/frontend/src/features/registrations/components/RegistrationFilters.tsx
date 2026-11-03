@@ -14,7 +14,7 @@ import {
   paymentStateSchema,
   type RegistrationFilter,
 } from "@/features/registrations/api/eventRegistrationSchemas"
-import { participationStatusSchema } from "@/features/registrations/api/registrationSchemas"
+import { activeParticipationStatusSchema } from "@/features/registrations/api/registrationSchemas"
 import { PARTICIPATION_LABELS } from "@/features/registrations/components/ParticipationBadge"
 import { PAYMENT_STATE_LABELS } from "@/features/registrations/components/PaymentStateBadge"
 
@@ -48,7 +48,7 @@ export function RegistrationFilters({ terms, filter, onChange }: RegistrationFil
         label="Stav účasti"
         value={filter.status}
         onValueChange={(value) => set("status", value)}
-        options={participationStatusSchema.options.map((status) => ({
+        options={activeParticipationStatusSchema.options.map((status) => ({
           value: status,
           label: PARTICIPATION_LABELS[status],
         }))}

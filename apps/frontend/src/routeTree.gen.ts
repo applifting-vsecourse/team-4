@@ -22,6 +22,7 @@ import { Route as PlatbaTokenRouteImport } from './routes/platba/$token'
 import { Route as ProtectedPagesOrganizationsIndexRouteImport } from './routes/_ProtectedPages/organizations/index'
 import { Route as ProtectedPagesOrganizationsOrganizationIdRouteImport } from './routes/_ProtectedPages/organizations/$organizationId'
 import { Route as ProtectedPagesOrganizationsNewRouteImport } from './routes/_ProtectedPages/organizations/new'
+import { Route as MyRegistrationsRegistrationIdEditRouteImport } from './routes/my-registrations/$registrationId_.edit'
 import { Route as ProtectedPagesOrganizationsOrganizationIdIndexRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/index'
 import { Route as ProtectedPagesOrganizationsOrganizationIdEventsNewRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/events/new'
 import { Route as ProtectedPagesOrganizationsOrganizationIdEventsEventIdIndexRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/events/$eventId/index'
@@ -99,6 +100,12 @@ const ProtectedPagesOrganizationsNewRoute =
     id: '/organizations/new',
     path: '/organizations/new',
     getParentRoute: () => ProtectedPagesRoute,
+  } as any)
+const MyRegistrationsRegistrationIdEditRoute =
+  MyRegistrationsRegistrationIdEditRouteImport.update({
+    id: '/my-registrations/$registrationId_/edit',
+    path: '/my-registrations/$registrationId/edit',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ProtectedPagesOrganizationsOrganizationIdIndexRoute =
   ProtectedPagesOrganizationsOrganizationIdIndexRouteImport.update({
@@ -179,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/my-registrations/': typeof MyRegistrationsIndexRoute
   '/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdRouteWithChildren
   '/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
+  '/my-registrations/$registrationId/edit': typeof MyRegistrationsRegistrationIdEditRoute
   '/organizations/': typeof ProtectedPagesOrganizationsIndexRoute
   '/organizations/$organizationId/': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/events/new': typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRoute
@@ -201,6 +209,7 @@ export interface FileRoutesByTo {
   '/platba/$token': typeof PlatbaTokenRoute
   '/my-registrations': typeof MyRegistrationsIndexRoute
   '/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
+  '/my-registrations/$registrationId/edit': typeof MyRegistrationsRegistrationIdEditRoute
   '/organizations': typeof ProtectedPagesOrganizationsIndexRoute
   '/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/events/new': typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRoute
@@ -226,6 +235,7 @@ export interface FileRoutesById {
   '/my-registrations/': typeof MyRegistrationsIndexRoute
   '/_ProtectedPages/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdRouteWithChildren
   '/_ProtectedPages/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
+  '/my-registrations/$registrationId_/edit': typeof MyRegistrationsRegistrationIdEditRoute
   '/_ProtectedPages/organizations/': typeof ProtectedPagesOrganizationsIndexRoute
   '/_ProtectedPages/organizations/$organizationId/': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
   '/_ProtectedPages/organizations/$organizationId/events/new': typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRoute
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/my-registrations/'
     | '/organizations/$organizationId'
     | '/organizations/new'
+    | '/my-registrations/$registrationId/edit'
     | '/organizations/'
     | '/organizations/$organizationId/'
     | '/organizations/$organizationId/events/new'
@@ -273,6 +284,7 @@ export interface FileRouteTypes {
     | '/platba/$token'
     | '/my-registrations'
     | '/organizations/new'
+    | '/my-registrations/$registrationId/edit'
     | '/organizations'
     | '/organizations/$organizationId'
     | '/organizations/$organizationId/events/new'
@@ -297,6 +309,7 @@ export interface FileRouteTypes {
     | '/my-registrations/'
     | '/_ProtectedPages/organizations/$organizationId'
     | '/_ProtectedPages/organizations/new'
+    | '/my-registrations/$registrationId_/edit'
     | '/_ProtectedPages/organizations/'
     | '/_ProtectedPages/organizations/$organizationId/'
     | '/_ProtectedPages/organizations/$organizationId/events/new'
@@ -320,6 +333,7 @@ export interface RootRouteChildren {
   MyRegistrationsVerifyRoute: typeof MyRegistrationsVerifyRoute
   PlatbaTokenRoute: typeof PlatbaTokenRoute
   MyRegistrationsIndexRoute: typeof MyRegistrationsIndexRoute
+  MyRegistrationsRegistrationIdEditRoute: typeof MyRegistrationsRegistrationIdEditRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -414,6 +428,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/organizations/new'
       preLoaderRoute: typeof ProtectedPagesOrganizationsNewRouteImport
       parentRoute: typeof ProtectedPagesRoute
+    }
+    '/my-registrations/$registrationId_/edit': {
+      id: '/my-registrations/$registrationId_/edit'
+      path: '/my-registrations/$registrationId/edit'
+      fullPath: '/my-registrations/$registrationId/edit'
+      preLoaderRoute: typeof MyRegistrationsRegistrationIdEditRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_ProtectedPages/organizations/$organizationId/': {
       id: '/_ProtectedPages/organizations/$organizationId/'
@@ -548,6 +569,8 @@ const rootRouteChildren: RootRouteChildren = {
   MyRegistrationsVerifyRoute: MyRegistrationsVerifyRoute,
   PlatbaTokenRoute: PlatbaTokenRoute,
   MyRegistrationsIndexRoute: MyRegistrationsIndexRoute,
+  MyRegistrationsRegistrationIdEditRoute:
+    MyRegistrationsRegistrationIdEditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
