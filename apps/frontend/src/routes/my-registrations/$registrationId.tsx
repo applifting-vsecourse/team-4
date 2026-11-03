@@ -45,7 +45,10 @@ function MyRegistrationPage() {
           renderProgramme={(registration) => (
             <ParticipantTermProgrammes
               registrationId={registration.id}
-              terms={registration.terms}
+              // A released term has no programme for the participant (F35-2a).
+              terms={registration.terms.flatMap((term) =>
+                term.status === "cancelled" ? [] : [{ ...term, status: term.status }],
+              )}
             />
           )}
         />

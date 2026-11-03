@@ -79,6 +79,15 @@ const MIXED: ParticipantRegistration = {
   },
   paymentLinkToken: null,
   payments: [],
+  contact: {
+    firstName: "Jana",
+    lastName: "Nováková",
+    email: "jana@example.com",
+    phone: "+420604123456",
+  },
+  version: 0,
+  isCancelled: false,
+  canChange: true,
 }
 
 const WAITING: ParticipantRegistration = {

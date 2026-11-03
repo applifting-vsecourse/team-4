@@ -7,6 +7,7 @@ import {
   registrationListSchema,
   type RegistrationFilter,
 } from "@/features/registrations/api/eventRegistrationSchemas"
+import { registrationChangeListSchema } from "@/features/registrations/api/registrationChangeSchemas"
 
 // Everything under `event(...)` belongs to one event. A payment recorded in
 // the detail (S2-12) invalidates that key, which reloads the list and detail.
@@ -50,4 +51,37 @@ export const eventRegistrationQueryOptions = (
       registrationDetailSchema.parse(
         await api.get(`${registrationsPath(organizationId, eventId)}/${registrationId}`).json(),
       ),
+  })
+
+const eventPath = (organizationId: string, eventId: string) =>
+  `organizations/${organizationId}/events/${eventId}`
+
+/** Requests waiting for approval, oldest first (F35-2a). */
+export const pendingChangesQueryOptions = (organizationId: string, eventId: string) =>
+  queryOptions({
+    queryKey: [...eventRegistrationKeys.event(organizationId, eventId), "pending-changes"] as const,
+    queryFn: async () =>
+      registrationChangeListSchema.parse(
+        await api.get(`${eventPath(organizationId, eventId)}/change-requests`).json(),
+      ).changes,
+  })
+
+/** Every change of one registration, newest first. */
+export const registrationChangesQueryOptions = (
+  organizationId: string,
+  eventId: string,
+  registrationId: string,
+) =>
+  queryOptions({
+    queryKey: [
+      ...eventRegistrationKeys.event(organizationId, eventId),
+      "changes",
+      registrationId,
+    ] as const,
+    queryFn: async () =>
+      registrationChangeListSchema.parse(
+        await api
+          .get(`${registrationsPath(organizationId, eventId)}/${registrationId}/changes`)
+          .json(),
+      ).changes,
   })
