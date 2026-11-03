@@ -1,5 +1,7 @@
-import { CalendarCog, Pencil, Plus, Trash2 } from "lucide-react"
+import { Link } from "@tanstack/react-router"
+import { CalendarCog, ListChecks, Pencil, Plus, Trash2 } from "lucide-react"
 
+import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
@@ -18,6 +20,13 @@ import { formatCzk } from "@/lib/money"
 import { type EventDetail } from "@/features/events/api/eventSchemas"
 import { DeleteTermDialog } from "@/features/events/components/DeleteTermDialog"
 import { TermDialog } from "@/features/events/components/TermDialog"
+
+// "Bez položek", "1 položka", "4 položky", "8 položek".
+function formatProgrammeItems(count: number) {
+  if (count === 0) return "Bez položek"
+  if (count === 1) return "1 položka"
+  return count < 5 ? `${count} položky` : `${count} položek`
+}
 
 type TermsSectionProps = {
   organizationId: string
@@ -72,11 +81,10 @@ export function TermsSection({ organizationId, event }: TermsSectionProps) {
                 <TableHead>Termín</TableHead>
                 <TableHead>Cena</TableHead>
                 <TableHead>Kapacita</TableHead>
-                {canEdit ? (
-                  <TableHead>
-                    <span className="sr-only">Akce</span>
-                  </TableHead>
-                ) : null}
+                <TableHead>Program</TableHead>
+                <TableHead>
+                  <span className="sr-only">Akce</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -86,40 +94,57 @@ export function TermsSection({ organizationId, event }: TermsSectionProps) {
                   <TableCell>{formatCalendarRange(term.startDate, term.endDate)}</TableCell>
                   <TableCell>{formatCzk(term.priceMinor)}</TableCell>
                   <TableCell>{formatBeds(term.capacity)}</TableCell>
-                  {canEdit ? (
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <TermDialog
-                          organizationId={organizationId}
-                          eventId={event.id}
-                          term={term}
-                          trigger={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label={`Upravit termín ${term.label}`}
-                            >
-                              <Pencil />
-                            </Button>
-                          }
-                        />
-                        <DeleteTermDialog
-                          organizationId={organizationId}
-                          eventId={event.id}
-                          term={term}
-                          trigger={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              aria-label={`Odstranit termín ${term.label}`}
-                            >
-                              <Trash2 />
-                            </Button>
-                          }
-                        />
-                      </div>
-                    </TableCell>
-                  ) : null}
+                  <TableCell>{formatProgrammeItems(term.programmeItemCount)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        aria-label={`Program termínu ${term.label}`}
+                        asChild
+                      >
+                        <Link
+                          to={ROUTES.termProgramme}
+                          params={{ organizationId, eventId: event.id, termId: term.id }}
+                        >
+                          <ListChecks />
+                          Program
+                        </Link>
+                      </Button>
+                      {canEdit ? (
+                        <>
+                          <TermDialog
+                            organizationId={organizationId}
+                            eventId={event.id}
+                            term={term}
+                            trigger={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Upravit termín ${term.label}`}
+                              >
+                                <Pencil />
+                              </Button>
+                            }
+                          />
+                          <DeleteTermDialog
+                            organizationId={organizationId}
+                            eventId={event.id}
+                            term={term}
+                            trigger={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label={`Odstranit termín ${term.label}`}
+                              >
+                                <Trash2 />
+                              </Button>
+                            }
+                          />
+                        </>
+                      ) : null}
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

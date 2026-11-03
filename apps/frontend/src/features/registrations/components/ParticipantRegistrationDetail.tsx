@@ -12,6 +12,7 @@ import { formatCalendarDate, formatPragueDateTime } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 
 import { participantRegistrationQueryOptions } from "@/features/registrations/api/participantRegistrationQueryOptions"
+import { type ParticipantRegistration } from "@/features/registrations/api/participantRegistrationSchemas"
 import { LoadFailedAlert } from "@/features/registrations/components/LoadFailedAlert"
 import { ParticipantPaymentSummary } from "@/features/registrations/components/ParticipantPaymentSummary"
 import { ParticipantTermList } from "@/features/registrations/components/ParticipantTermList"
@@ -43,11 +44,14 @@ type ParticipantRegistrationDetailProps = {
   registrationId: string
   /** What replaces the detail when the session has ended (S2-13). */
   sessionEnded: ReactNode
+  /** The programme of the confirmed terms (F65), owned by another feature. */
+  renderProgramme?: (registration: ParticipantRegistration) => ReactNode
 }
 
 export function ParticipantRegistrationDetail({
   registrationId,
   sessionEnded,
+  renderProgramme,
 }: ParticipantRegistrationDetailProps) {
   const query = useQuery(participantRegistrationQueryOptions(registrationId))
   const { data } = query
@@ -110,6 +114,8 @@ export function ParticipantRegistrationDetail({
               <ParticipantTermList terms={data.terms} />
             </CardContent>
           </Card>
+
+          {renderProgramme?.(data)}
 
           <Card>
             <CardHeader>

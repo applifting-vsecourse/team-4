@@ -20,6 +20,9 @@ export type ApiErrorCode =
   | "nothing_to_pay"
   | "magic_link_invalid"
   | "participant_session_required"
+  | "programme_unavailable"
+  | "programme_date_out_of_term"
+  | "programme_date_invalid"
 
 export type ApiError = {
   status: number | null

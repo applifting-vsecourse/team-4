@@ -1,3 +1,4 @@
+import { useState, type FormEvent } from "react"
 import { Loader2 } from "lucide-react"
 
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -16,21 +17,12 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 
-export type ProgrammeItemValues = {
-  title: string
-  /** `yyyy-MM-dd`, or "" when nothing is chosen. */
-  date: string
-  /** `HH:mm`, or "". */
-  time: string
-  place: string
-  description: string
-}
-
-export type ProgrammeItemErrors = {
-  title?: string
-  date?: string
-  time?: string
-}
+import { type ProgrammeItemInput } from "@/features/programme/api/programmeSchemas"
+import {
+  readProgrammeForm,
+  type ProgrammeItemErrors,
+  type ProgrammeItemValues,
+} from "@/features/programme/lib/programmeInput"
 
 export type ProgrammeItemDialogProps = {
   isOpen: boolean
@@ -38,106 +30,190 @@ export type ProgrammeItemDialogProps = {
   isEdit?: boolean
   /** Term the item belongs to, e.g. "Turnus 2 (20. 11. – 22. 11. 2026)". */
   termLabel: string
+  /** Dates of the term; the item's day must lie within them. */
+  termRange?: { startDate: string; endDate: string }
   values: ProgrammeItemValues
+  /** Refused by the server, shown at the field next to the entered values. */
   errors?: ProgrammeItemErrors
   /** The save failed; the entered values stay in the form. */
   errorMessage?: string
   isSubmitting?: boolean
+  onOpenChange?: (isOpen: boolean) => void
+  /** Called with valid values only. */
+  onSubmit?: (input: ProgrammeItemInput) => void
 }
 
-// Add or edit one programme item of a term (F65), organizer. Design only:
-// every value is passed in, nothing is saved.
+// Add or edit one programme item of a term (F65), organizer. The form is
+// mounted only while the dialog is open, so closing discards the changes;
+// after a refused save the entered values stay for a correction or retry.
 export function ProgrammeItemDialog({
   isOpen,
   isEdit = false,
   termLabel,
+  termRange,
   values,
-  errors = {},
+  errors,
   errorMessage,
   isSubmitting = false,
+  onOpenChange,
+  onSubmit,
 }: ProgrammeItemDialogProps) {
   return (
-    <Dialog open={isOpen}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={onOpenChange}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{isEdit ? "Upravit položku programu" : "Nová položka programu"}</DialogTitle>
           <DialogDescription>{termLabel}</DialogDescription>
         </DialogHeader>
-        <form
-          noValidate
-          className="space-y-4"
-        >
-          {errorMessage ? (
-            <Alert variant="destructive">
-              <AlertDescription>{errorMessage}</AlertDescription>
-            </Alert>
-          ) : null}
-          <FieldGroup>
-            <Field data-invalid={errors.title ? true : undefined}>
-              <FieldLabel htmlFor="programme-title">Název</FieldLabel>
-              <Input
-                id="programme-title"
-                defaultValue={values.title}
-                aria-invalid={errors.title ? true : undefined}
-              />
-              <FieldError>{errors.title}</FieldError>
-            </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field data-invalid={errors.date ? true : undefined}>
-                <FieldLabel htmlFor="programme-date">Datum</FieldLabel>
-                <DatePicker
-                  id="programme-date"
-                  value={values.date}
-                  onChange={() => undefined}
-                  aria-invalid={errors.date ? true : undefined}
-                />
-                <FieldError>{errors.date}</FieldError>
-              </Field>
-              <Field data-invalid={errors.time ? true : undefined}>
-                <FieldLabel htmlFor="programme-time">Začátek (čas Europe/Prague)</FieldLabel>
-                <Input
-                  id="programme-time"
-                  type="time"
-                  defaultValue={values.time}
-                  aria-invalid={errors.time ? true : undefined}
-                />
-                <FieldError>{errors.time}</FieldError>
-              </Field>
-            </div>
-            <Field>
-              <FieldLabel htmlFor="programme-place">Místo (nepovinné)</FieldLabel>
-              <Input
-                id="programme-place"
-                defaultValue={values.place}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="programme-description">Krátký popis (nepovinné)</FieldLabel>
-              <Textarea
-                id="programme-description"
-                defaultValue={values.description}
-              />
-            </Field>
-          </FieldGroup>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button
-                type="button"
-                variant="outline"
-              >
-                Zrušit
-              </Button>
-            </DialogClose>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
-              Uložit položku
-            </Button>
-          </DialogFooter>
-        </form>
+        <ProgrammeItemForm
+          initialValues={values}
+          termRange={termRange}
+          serverErrors={errors}
+          errorMessage={errorMessage}
+          isSubmitting={isSubmitting}
+          onSubmit={onSubmit}
+        />
       </DialogContent>
     </Dialog>
   )
 }
+
+type ProgrammeItemFormProps = {
+  initialValues: ProgrammeItemValues
+  termRange?: { startDate: string; endDate: string }
+  serverErrors?: ProgrammeItemErrors
+  errorMessage?: string
+  isSubmitting: boolean
+  onSubmit?: (input: ProgrammeItemInput) => void
+}
+
+function ProgrammeItemForm({
+  initialValues,
+  termRange,
+  serverErrors,
+  errorMessage,
+  isSubmitting,
+  onSubmit,
+}: ProgrammeItemFormProps) {
+  const [values, setValues] = useState(initialValues)
+  const [validationErrors, setValidationErrors] = useState<ProgrammeItemErrors>({})
+  // A server refusal belongs to the date it was given for.
+  const [refusedDate, setRefusedDate] = useState(initialValues.date)
+  const errors: ProgrammeItemErrors = {
+    ...(values.date === refusedDate ? serverErrors : undefined),
+    ...validationErrors,
+  }
+
+  const change = (patch: Partial<ProgrammeItemValues>) => {
+    setValues((current) => ({ ...current, ...patch }))
+    setValidationErrors((current) => {
+      const next = { ...current }
+      for (const key of Object.keys(patch)) delete next[key as keyof ProgrammeItemValues]
+      return next
+    })
+  }
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    const result = readProgrammeForm(values, termRange ?? WHOLE_CALENDAR)
+    if ("errors" in result) {
+      setValidationErrors(result.errors)
+      return
+    }
+    setValidationErrors({})
+    setRefusedDate(values.date)
+    onSubmit?.(result.input)
+  }
+
+  return (
+    <form
+      noValidate
+      className="space-y-4"
+      onSubmit={submit}
+    >
+      {errorMessage ? (
+        <Alert variant="destructive">
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      ) : null}
+      <FieldGroup>
+        <Field data-invalid={errors.title ? true : undefined}>
+          <FieldLabel htmlFor="programme-title">Název</FieldLabel>
+          <Input
+            id="programme-title"
+            value={values.title}
+            aria-invalid={errors.title ? true : undefined}
+            onChange={(event) => change({ title: event.target.value })}
+          />
+          <FieldError>{errors.title}</FieldError>
+        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field data-invalid={errors.date ? true : undefined}>
+            <FieldLabel htmlFor="programme-date">Datum</FieldLabel>
+            <DatePicker
+              id="programme-date"
+              value={values.date}
+              onChange={(date) => change({ date })}
+              aria-invalid={errors.date ? true : undefined}
+            />
+            <FieldError>{errors.date}</FieldError>
+          </Field>
+          <Field data-invalid={errors.time ? true : undefined}>
+            <FieldLabel htmlFor="programme-time">Začátek (čas Europe/Prague)</FieldLabel>
+            <Input
+              id="programme-time"
+              type="time"
+              value={values.time}
+              aria-invalid={errors.time ? true : undefined}
+              onChange={(event) => change({ time: event.target.value })}
+            />
+            <FieldError>{errors.time}</FieldError>
+          </Field>
+        </div>
+        <Field data-invalid={errors.place ? true : undefined}>
+          <FieldLabel htmlFor="programme-place">Místo (nepovinné)</FieldLabel>
+          <Input
+            id="programme-place"
+            value={values.place}
+            aria-invalid={errors.place ? true : undefined}
+            onChange={(event) => change({ place: event.target.value })}
+          />
+          <FieldError>{errors.place}</FieldError>
+        </Field>
+        <Field data-invalid={errors.description ? true : undefined}>
+          <FieldLabel htmlFor="programme-description">Krátký popis (nepovinné)</FieldLabel>
+          <Textarea
+            id="programme-description"
+            value={values.description}
+            aria-invalid={errors.description ? true : undefined}
+            onChange={(event) => change({ description: event.target.value })}
+          />
+          <FieldError>{errors.description}</FieldError>
+        </Field>
+      </FieldGroup>
+      <DialogFooter>
+        <DialogClose asChild>
+          <Button
+            type="button"
+            variant="outline"
+          >
+            Zrušit
+          </Button>
+        </DialogClose>
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
+          Uložit položku
+        </Button>
+      </DialogFooter>
+    </form>
+  )
+}
+
+// Without a term range (a preview) any real date passes the client check.
+const WHOLE_CALENDAR = { startDate: "0000-01-01", endDate: "9999-12-31" }
