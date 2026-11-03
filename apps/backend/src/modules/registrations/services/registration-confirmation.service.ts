@@ -52,7 +52,10 @@ export class RegistrationConfirmationService {
       url = await this.access.issueConfirmationLink(pending.accountId);
       const html = await renderEmail(RegistrationConfirmation, {
         eventName: result.event.name,
-        terms: result.terms,
+        // A change before the mail went out may have released a term.
+        terms: result.terms.flatMap((term) =>
+          term.status === 'cancelled' ? [] : [{ ...term, status: term.status }],
+        ),
         selectedPriceMinor: result.selectedPriceMinor,
         payment: result.paymentInstructions,
         url,

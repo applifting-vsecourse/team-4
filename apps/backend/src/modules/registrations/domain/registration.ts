@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { TermCapacity } from '@/modules/rooms/domain/room';
 
-export type ParticipationStatus = 'confirmed' | 'waitlisted';
+export type ParticipationStatus = 'confirmed' | 'waitlisted' | 'cancelled';
 
 /** A submission as the API received it, already trimmed and in E.164. */
 export type RegistrationInput = {
@@ -103,6 +103,14 @@ export const amountDueMinor = (
     .filter((term) => term.status === 'confirmed')
     .reduce((sum, term) => sum + term.priceMinor, 0);
 
+/** Price of the selected terms, waitlisted ones included; released terms are not selected. */
+export const selectedPriceMinor = (
+  terms: { status: ParticipationStatus; priceMinor: number }[],
+): number =>
+  terms
+    .filter((term) => term.status !== 'cancelled')
+    .reduce((sum, term) => sum + term.priceMinor, 0);
+
 export type BankAccount = {
   prefix: string | null;
   number: string;
@@ -174,6 +182,6 @@ export class RegistrationResultModel {
 
   /** Price of the selected terms; not the amount due. */
   get selectedPriceMinor(): number {
-    return this.terms.reduce((sum, term) => sum + term.priceMinor, 0);
+    return selectedPriceMinor(this.terms);
   }
 }
