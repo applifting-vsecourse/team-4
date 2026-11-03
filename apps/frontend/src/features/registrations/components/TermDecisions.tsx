@@ -36,34 +36,36 @@ export function TermDecisions({ terms }: { terms: DecisionTerm[] }) {
           {terms.map((term) => (
             <li
               key={term.id}
-              className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3 first:pt-0 last:pb-0"
+              className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0"
             >
-              <div className="min-w-0">
-                <p className="font-medium wrap-break-word">{term.label}</p>
+              <div>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 font-medium wrap-break-word">{term.label}</p>
+                  <Badge variant={STATE_BADGE[term.state].variant}>
+                    {STATE_BADGE[term.state].label}
+                  </Badge>
+                </div>
                 <p className="text-muted-foreground">{term.details}</p>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={STATE_BADGE[term.state].variant}>
-                  {STATE_BADGE[term.state].label}
-                </Badge>
-                {term.state === "confirmed" ? null : (
+              {term.state === "confirmed" ? null : (
+                <div className="flex flex-wrap justify-end gap-2">
+                  {term.state === "pending" ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      aria-label={`Zařadit mezi náhradníky: ${term.label}`}
+                    >
+                      Náhradník
+                    </Button>
+                  ) : null}
                   <Button
                     size="sm"
                     aria-label={`Potvrdit účast: ${term.label}`}
                   >
                     Potvrdit
                   </Button>
-                )}
-                {term.state === "pending" ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    aria-label={`Zařadit mezi náhradníky: ${term.label}`}
-                  >
-                    Náhradník
-                  </Button>
-                ) : null}
-              </div>
+                </div>
+              )}
             </li>
           ))}
         </ul>
