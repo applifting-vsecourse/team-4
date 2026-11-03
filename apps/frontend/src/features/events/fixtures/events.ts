@@ -27,6 +27,7 @@ export const OPEN_EVENT: EventDetail = eventDetailSchema.parse({
       endDate: "2027-07-17",
       priceMinor: 450_000,
       capacity: 24,
+      programmeItemCount: 0,
     },
     {
       id: uuid(102),
@@ -35,6 +36,7 @@ export const OPEN_EVENT: EventDetail = eventDetailSchema.parse({
       endDate: "2027-08-14",
       priceMinor: 450_000,
       capacity: 18,
+      programmeItemCount: 0,
     },
   ],
   paymentSettings: {
@@ -69,6 +71,7 @@ export const DRAFT_EVENT: EventDetail = eventDetailSchema.parse({
       endDate: "2027-10-17",
       priceMinor: 120_000,
       capacity: 0,
+      programmeItemCount: 0,
     },
   ],
   paymentSettings: null,

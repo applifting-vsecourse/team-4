@@ -1,6 +1,10 @@
 import { z } from "zod"
 
-import { participationStatusSchema } from "@/features/registrations/api/registrationSchemas"
+import {
+  activeParticipationStatusSchema,
+  participationStatusSchema,
+  receivedPaymentSchema,
+} from "@/features/registrations/api/registrationSchemas"
 
 // The organizer's view of an event's registrations (S2-11). Amounts are
 // derived by the server (data-model.md §3.9); the client only shows them.
@@ -44,13 +48,7 @@ export const registrationDetailSchema = registrationSummarySchema.extend({
   /** Payment reminder, not a deadline; null while nothing is due. */
   reminderAt: z.string().nullable(),
   variableSymbol: z.string().nullable(),
-  payments: z.array(
-    z.object({
-      id: z.string().uuid(),
-      receivedOn: z.string(),
-      amountMinor: z.number().int(),
-    }),
-  ),
+  payments: z.array(receivedPaymentSchema),
 })
 
 export type RegistrationSummary = z.infer<typeof registrationSummarySchema>
@@ -60,7 +58,7 @@ export type RegistrationDetail = z.infer<typeof registrationDetailSchema>
 /** The list filters; they live in the URL, so a refresh keeps them. */
 export const registrationFilterSchema = z.object({
   termId: z.string().uuid().optional().catch(undefined),
-  status: participationStatusSchema.optional().catch(undefined),
+  status: activeParticipationStatusSchema.optional().catch(undefined),
   payment: paymentStateSchema.optional().catch(undefined),
 })
 

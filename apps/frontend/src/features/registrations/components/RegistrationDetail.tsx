@@ -15,6 +15,7 @@ import { formatCzk } from "@/lib/money"
 import { type RegistrationDetail as Detail } from "@/features/registrations/api/eventRegistrationSchemas"
 import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
 import { PaymentStateBadge } from "@/features/registrations/components/PaymentStateBadge"
+import { SimulatedPaymentHistory } from "@/features/registrations/components/SimulatedPaymentHistory"
 import { describeBalance } from "@/features/registrations/lib/balance"
 
 type RegistrationDetailProps = {
@@ -128,23 +129,14 @@ export function RegistrationDetail({
               <CardTitle>Přijaté platby</CardTitle>
             </CardHeader>
             <CardContent>
-              {registration.payments.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Zatím nebyla zaznamenána žádná platba.
-                </p>
-              ) : (
-                <ul className="divide-y divide-border text-sm">
-                  {registration.payments.map((payment) => (
-                    <li
-                      key={payment.id}
-                      className="flex justify-between gap-4 py-2"
-                    >
-                      <span>{formatCalendarDate(payment.receivedOn)}</span>
-                      <span className="font-mono">{formatCzk(payment.amountMinor)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <SimulatedPaymentHistory
+                payments={registration.payments.map((payment) => ({
+                  id: payment.id,
+                  date: formatCalendarDate(payment.receivedOn),
+                  amount: formatCzk(payment.amountMinor),
+                  isSimulated: payment.source === "qr_link",
+                }))}
+              />
             </CardContent>
           </Card>
         </div>

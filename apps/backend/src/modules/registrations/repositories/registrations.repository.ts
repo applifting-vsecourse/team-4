@@ -27,6 +27,7 @@ const resultSelect = {
   bankAccountNumber: true,
   bankCode: true,
   paymentReminderAt: true,
+  paymentToken: true,
   event: { select: { name: true, location: true } },
   terms: {
     orderBy: [{ term: { startDate: 'asc' } }, { termId: 'asc' }],
@@ -65,6 +66,7 @@ const toResult = (
     },
     row.paymentReminderAt,
     { name: row.event.name, location: row.event.location },
+    row.paymentToken,
   );
 
 export type StoredSubmission = {

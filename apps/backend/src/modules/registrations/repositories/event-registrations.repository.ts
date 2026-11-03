@@ -28,7 +28,7 @@ const registrationSelect = {
   },
   payments: {
     orderBy: [{ receivedOn: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
-    select: { id: true, receivedOn: true, amountMinor: true },
+    select: { id: true, receivedOn: true, amountMinor: true, source: true },
   },
 } satisfies Prisma.RegistrationSelect;
 
@@ -56,6 +56,7 @@ const toModel = (
       id: payment.id,
       receivedOn: fromDate(payment.receivedOn),
       amountMinor: payment.amountMinor,
+      source: payment.source,
     })),
   );
 

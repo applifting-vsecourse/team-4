@@ -264,7 +264,7 @@ const toPublicTerm = (term: {
   startDate: Date;
   endDate: Date;
   priceMinor: number;
-}): Omit<EventTermModel, 'capacity'> => ({
+}): Omit<EventTermModel, 'capacity' | 'programmeItemCount'> => ({
   id: term.id,
   label: term.label,
   startDate: fromDate(term.startDate),
@@ -354,6 +354,7 @@ export class EventsRepository {
             roomAvailabilities: {
               select: { isAvailable: true, baseBeds: true, extraBeds: true },
             },
+            _count: { select: { programmeItems: true } },
           },
         },
       },
@@ -375,6 +376,7 @@ export class EventsRepository {
             fromDate(term.endDate),
             term.priceMinor,
             capacityFromBeds(term.roomAvailabilities),
+            term._count.programmeItems,
           ),
       ),
       toPaymentSettings(event),

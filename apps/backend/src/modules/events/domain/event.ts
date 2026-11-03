@@ -63,6 +63,8 @@ export class EventTermModel {
     public readonly priceMinor: number,
     /** Derived from the beds of rooms available in the term (S2-05). */
     public readonly capacity: number,
+    /** Items of the term's programme (F65). */
+    public readonly programmeItemCount: number,
   ) {}
 }
 
@@ -121,7 +123,10 @@ export class PublicEventModel {
     public readonly name: string,
     public readonly description: string,
     public readonly location: string,
-    public readonly terms: Omit<EventTermModel, 'capacity'>[],
+    public readonly terms: Omit<
+      EventTermModel,
+      'capacity' | 'programmeItemCount'
+    >[],
     /** Listed in the catalog, so the form can link to the public detail. */
     public readonly isPublished: boolean,
   ) {}
@@ -146,7 +151,10 @@ export class PublicCatalogEventModel {
     public readonly contact: PublicContact | null,
     public readonly photoIds: string[],
     public readonly registrationStatus: PublicRegistrationStatus,
-    public readonly terms: Omit<EventTermModel, 'capacity'>[],
+    public readonly terms: Omit<
+      EventTermModel,
+      'capacity' | 'programmeItemCount'
+    >[],
   ) {}
 }
 

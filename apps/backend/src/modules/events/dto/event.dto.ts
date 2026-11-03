@@ -42,6 +42,9 @@ export class EventTermDto {
   })
   capacity!: number;
 
+  @ApiProperty({ description: 'Items in the programme of the term (F65).' })
+  programmeItemCount!: number;
+
   static from(model: EventTermModel): EventTermDto {
     return {
       id: model.id,
@@ -50,6 +53,7 @@ export class EventTermDto {
       endDate: model.endDate,
       priceMinor: model.priceMinor,
       capacity: model.capacity,
+      programmeItemCount: model.programmeItemCount,
     };
   }
 }

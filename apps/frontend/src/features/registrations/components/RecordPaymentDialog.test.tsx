@@ -45,7 +45,12 @@ const DETAIL = {
   reminderAt: null,
   variableSymbol: null,
   payments: [
-    { id: "0190c0de-0000-7000-8000-0000000000b1", receivedOn: "2026-10-12", amountMinor: 60_000 },
+    {
+      id: "0190c0de-0000-7000-8000-0000000000b1",
+      receivedOn: "2026-10-12",
+      amountMinor: 60_000,
+      source: "organizer",
+    },
   ],
 }
 

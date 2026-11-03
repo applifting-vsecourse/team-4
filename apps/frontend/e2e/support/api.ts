@@ -184,3 +184,17 @@ export async function recordPayment(
     { submissionKey: randomUUID(), amountMinor, receivedOn: todayInPrague() },
   )
 }
+
+/** Sets the days before a term from which registration changes need approval. */
+export async function setChangeApprovalDays(
+  request: APIRequestContext,
+  event: OpenEvent,
+  days: number | null,
+): Promise<void> {
+  await json(
+    await request.put(
+      `${API_URL}/organizations/${event.organizationId}/events/${event.eventId}/change-approval`,
+      { data: { days }, headers },
+    ),
+  )
+}

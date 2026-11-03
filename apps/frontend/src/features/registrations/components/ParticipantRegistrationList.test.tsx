@@ -77,7 +77,17 @@ const MIXED: ParticipantRegistration = {
     account: { prefix: null, number: "2501234567", bankCode: "2010" },
     reminderAt: "2027-06-28T08:00:00.000Z",
   },
+  paymentLinkToken: null,
   payments: [],
+  contact: {
+    firstName: "Jana",
+    lastName: "Nováková",
+    email: "jana@example.com",
+    phone: "+420604123456",
+  },
+  version: 0,
+  isCancelled: false,
+  canChange: true,
 }
 
 const WAITING: ParticipantRegistration = {

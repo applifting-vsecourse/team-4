@@ -27,7 +27,17 @@ const registration = (
       id: `p${index}`,
       receivedOn: '2026-10-12',
       amountMinor,
+      source: 'organizer' as const,
     })),
+    'a'.repeat(64),
+    {
+      firstName: 'Jana',
+      lastName: 'Nováková',
+      email: 'jana@example.com',
+      phone: '+420777123456',
+    },
+    0,
+    false,
   );
 
 describe('ParticipantRegistrationModel', () => {
@@ -49,6 +59,18 @@ describe('ParticipantRegistrationModel', () => {
     });
   });
 
+  it('offers the QR payment link only while a debt remains', () => {
+    expect(registration([['confirmed', 790_000]]).paymentLinkToken).toBe(
+      'a'.repeat(64),
+    );
+    expect(
+      registration([['confirmed', 790_000]], [790_000]).paymentLinkToken,
+    ).toBeNull();
+    expect(
+      registration([['confirmed', 790_000]], [800_000]).paymentLinkToken,
+    ).toBeNull();
+  });
+
   it('has no instructions with only waitlisted terms', () => {
     const waiting = registration([['waitlisted', 790_000]], [], null);
     expect(waiting.amountDueMinor).toBe(0);
@@ -66,5 +88,21 @@ describe('ParticipantRegistrationModel', () => {
     expect(
       registration([['confirmed', 1000]], [1500]).paymentInstructions,
     ).toBeNull();
+  });
+
+  it('leaves a released term out of the selected price and the amount due', () => {
+    const released = registration([
+      ['confirmed', 790_000],
+      ['cancelled', 390_000],
+    ]);
+    expect(released.selectedPriceMinor).toBe(790_000);
+    expect(released.amountDueMinor).toBe(790_000);
+    expect(released.canChange).toBe(true);
+  });
+
+  it('reads as cancelled, and offers no change, once every term is released', () => {
+    const cancelled = registration([['cancelled', 790_000]]);
+    expect(cancelled.isCancelled).toBe(true);
+    expect(cancelled.canChange).toBe(false);
   });
 });

@@ -48,6 +48,11 @@ export type RegistrationChangeDialogProps = {
   /** The registration changed meanwhile; the proposal must not overwrite it. */
   isStale?: boolean
   isSubmitting?: boolean
+  onOpenChange?: (isOpen: boolean) => void
+  /** Confirms the change; `isWaitlistAccepted` is the state of the consent checkbox. */
+  onConfirm?: (isWaitlistAccepted: boolean) => void
+  /** Loads the registration again after a stale proposal. */
+  onReload?: () => void
 }
 
 // Moje přihlášky → Detail přihlášky → Úprava / odhlášení (F35-2a): the
@@ -65,6 +70,9 @@ export function RegistrationChangeDialog({
   errorMessage,
   isStale = false,
   isSubmitting = false,
+  onOpenChange,
+  onConfirm,
+  onReload,
 }: RegistrationChangeDialogProps) {
   const [isWaitlistConsentGiven, setIsWaitlistConsentGiven] = useState(waitlist?.isGiven ?? false)
   const isRequest = isApprovalRequired || isApprovalNewlyRequired
@@ -75,7 +83,10 @@ export function RegistrationChangeDialog({
       : "Potvrdit změnu"
 
   return (
-    <Dialog open={isOpen}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={onOpenChange}
+    >
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{isCancellation ? "Odhlášení" : "Kontrola změn přihlášky"}</DialogTitle>
@@ -146,7 +157,10 @@ export function RegistrationChangeDialog({
             </Button>
           </DialogClose>
           {isStale ? (
-            <Button type="button">
+            <Button
+              type="button"
+              onClick={onReload}
+            >
               <RefreshCw />
               Načíst přihlášku znovu
             </Button>
@@ -155,6 +169,7 @@ export function RegistrationChangeDialog({
               type="button"
               variant={isCancellation && !isRequest ? "destructive" : "default"}
               disabled={isSubmitting || (waitlist ? !isWaitlistConsentGiven : false)}
+              onClick={() => onConfirm?.(isWaitlistConsentGiven)}
             >
               {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
               {confirmLabel}

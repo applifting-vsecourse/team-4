@@ -14,14 +14,17 @@ export type SimulatedPaymentResultProps = {
   remainingDebt: string
   /** Nothing is left to pay. */
   isSettled: boolean
+  /** "Zaplatit další část": back to the payment form. */
+  onPayMore?: () => void
 }
 
-// Outcome of the public payment page (F21-1). Design only.
+// Outcome of the public payment page (F21-1).
 export function SimulatedPaymentResult({
   kind,
   paidAmount,
   remainingDebt,
   isSettled,
+  onPayMore,
 }: SimulatedPaymentResultProps) {
   const isPaid = kind === "paid"
   return (
@@ -63,7 +66,14 @@ export function SimulatedPaymentResult({
               </dd>
             </div>
           </dl>
-          {isSettled ? null : <Button variant="outline">Zaplatit další část</Button>}
+          {isSettled ? null : (
+            <Button
+              variant="outline"
+              onClick={onPayMore}
+            >
+              Zaplatit další část
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

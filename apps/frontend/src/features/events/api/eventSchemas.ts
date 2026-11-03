@@ -20,6 +20,8 @@ export const eventTermSchema = z.object({
   endDate: z.string(),
   priceMinor: z.number().int(),
   capacity: z.number().int(),
+  /** Items in the term's programme (F65). */
+  programmeItemCount: z.number().int(),
 })
 
 export const eventSummarySchema = z.object({

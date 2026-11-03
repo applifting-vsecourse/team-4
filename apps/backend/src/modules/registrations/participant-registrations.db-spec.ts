@@ -8,7 +8,9 @@ import { ParticipantAccessRepository } from '@/modules/participant-access/reposi
 import { ParticipantAccessService } from '@/modules/participant-access/services/participant-access.service';
 import { ParticipantRegistrationsController } from '@/modules/registrations/controllers/participant-registrations.controller';
 import { ParticipantRegistrationsRepository } from '@/modules/registrations/repositories/participant-registrations.repository';
+import { RegistrationChangesRepository } from '@/modules/registrations/repositories/registration-changes.repository';
 import { ParticipantRegistrationsService } from '@/modules/registrations/services/participant-registrations.service';
+import { RegistrationChangesService } from '@/modules/registrations/services/registration-changes.service';
 import { Config } from '@/shared/config/config.service';
 import {
   createEvent,
@@ -50,6 +52,8 @@ beforeAll(async () => {
       ParticipantSessionGuard,
       ParticipantRegistrationsService,
       ParticipantRegistrationsRepository,
+      RegistrationChangesService,
+      RegistrationChangesRepository,
       {
         provide: Config,
         useValue: { frontendUrl: 'http://app.test', nodeEnv: 'test' },
@@ -180,6 +184,13 @@ describe('access', () => {
     const list = await call('GET', '/participant/registrations', { cookie });
 
     expect(list.status).toBe(200);
+    // The list carries what the participant's own detail needs to offer changes.
+    for (const item of list.body.registrations) {
+      expect(item.contact.email).toBe(mine);
+      expect(item.version).toBe(0);
+      expect(item.isCancelled).toBe(false);
+      expect(item.canChange).toBe(true);
+    }
     expect(
       list.body.registrations.map((r: { id: string }) => r.id).sort(),
     ).toEqual([a.registration.id, b.registration.id].sort());

@@ -47,6 +47,7 @@ const TERM: EventDetail["terms"][number] = {
   endDate: "2026-07-07",
   priceMinor: 100000,
   capacity: 10,
+  programmeItemCount: 0,
 }
 
 const NOTICE = "Tato akce zatím nemá žádný termín."

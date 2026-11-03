@@ -5,7 +5,11 @@ import {
 } from '@/modules/registrations/domain/registration';
 import { ApiProperty } from '@nestjs/swagger';
 
-const STATUSES: ParticipationStatus[] = ['confirmed', 'waitlisted'];
+const STATUSES: ParticipationStatus[] = [
+  'confirmed',
+  'waitlisted',
+  'cancelled',
+];
 
 export class RegistrationTermResultDto {
   @ApiProperty({ format: 'uuid' })
@@ -132,6 +136,14 @@ export class RegistrationResultDto {
   })
   paymentInstructions!: PaymentInstructionsDto | null;
 
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description:
+      'Token of the QR payment link (`/platba/{token}`); null while nothing is owed.',
+  })
+  paymentLinkToken!: string | null;
+
   static from(model: RegistrationResultModel): RegistrationResultDto {
     const instructions = model.paymentInstructions;
     return {
@@ -145,6 +157,7 @@ export class RegistrationResultDto {
       terms: model.terms.map(RegistrationTermResultDto.from),
       selectedPriceMinor: model.selectedPriceMinor,
       amountDueMinor: model.amountDueMinor,
+      paymentLinkToken: model.paymentLinkToken,
       paymentInstructions: instructions && {
         amountMinor: instructions.amountMinor,
         variableSymbol: instructions.variableSymbol,

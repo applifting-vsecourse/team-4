@@ -46,7 +46,19 @@ export const OWN_REGISTRATION: ParticipantRegistration = participantRegistration
     account: { prefix: null, number: "2501234567", bankCode: "2010" },
     reminderAt: "2027-03-16T09:15:00.000Z",
   },
-  payments: [{ id: uuid(501), receivedOn: "2027-03-05", amountMinor: 200_000 }],
+  paymentLinkToken: "a".repeat(64),
+  payments: [
+    { id: uuid(501), receivedOn: "2027-03-05", amountMinor: 200_000, source: "organizer" },
+  ],
+  contact: {
+    firstName: "Jana",
+    lastName: "Nováková",
+    email: "jana.novakova@seznam.cz",
+    phone: "+420604123456",
+  },
+  version: 0,
+  isCancelled: false,
+  canChange: true,
 })
 
 /** A settled registration of another event. */
@@ -69,7 +81,37 @@ export const SETTLED_REGISTRATION: ParticipantRegistration = participantRegistra
   paidMinor: 35_000,
   balanceMinor: 0,
   paymentInstructions: null,
-  payments: [{ id: uuid(502), receivedOn: "2027-02-14", amountMinor: 35_000 }],
+  paymentLinkToken: null,
+  payments: [{ id: uuid(502), receivedOn: "2027-02-14", amountMinor: 35_000, source: "organizer" }],
+  contact: {
+    firstName: "Jana",
+    lastName: "Nováková",
+    email: "jana.novakova@seznam.cz",
+    phone: "+420604123456",
+  },
+  version: 0,
+  isCancelled: false,
+  canChange: true,
 })
 
 export const OWN_REGISTRATIONS: ParticipantRegistration[] = [OWN_REGISTRATION, SETTLED_REGISTRATION]
+
+/** Terms of the event the registration could move to; the second one is full. */
+export const AVAILABLE_TERMS = [
+  ...OWN_REGISTRATION.terms.map(({ termId, label, startDate, endDate, priceMinor }) => ({
+    termId,
+    label,
+    startDate,
+    endDate,
+    priceMinor,
+    isFull: false,
+  })),
+  {
+    termId: uuid(103),
+    label: "Turnus 3",
+    startDate: "2027-08-15",
+    endDate: "2027-08-28",
+    priceMinor: 450_000,
+    isFull: true,
+  },
+]
