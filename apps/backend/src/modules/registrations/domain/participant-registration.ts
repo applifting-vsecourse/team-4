@@ -11,6 +11,7 @@ import {
   RegistrationTermResult,
   selectedPriceMinor,
 } from '@/modules/registrations/domain/registration';
+import { RegistrationNeeds } from '@/modules/registrations/domain/registration-needs';
 
 /**
  * A registration as its own participant reads it (S2-14): the event, every
@@ -42,6 +43,8 @@ export class ParticipantRegistrationModel {
     public readonly version: number,
     /** A change waits for the organizer's decision. */
     public readonly hasPendingChange: boolean,
+    /** Transport, diet and health (F63). */
+    public readonly needs: RegistrationNeeds,
   ) {}
 
   /** Every term released. */

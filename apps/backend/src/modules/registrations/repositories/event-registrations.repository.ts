@@ -6,6 +6,13 @@ import {
   ManagedRegistrationModel,
   RegistrationFilter,
 } from '@/modules/registrations/domain/managed-registration';
+import {
+  needsOf,
+  needsSelect,
+  normalizeNeeds,
+  RegistrationNeeds,
+  sameNeeds,
+} from '@/modules/registrations/domain/registration-needs';
 import { Injectable } from '@nestjs/common';
 
 const registrationSelect = {
@@ -17,6 +24,8 @@ const registrationSelect = {
   phone: true,
   variableSymbol: true,
   paymentReminderAt: true,
+  version: true,
+  ...needsSelect,
   terms: {
     orderBy: [{ term: { startDate: 'asc' } }, { termId: 'asc' }],
     select: {
@@ -58,6 +67,8 @@ const toModel = (
       amountMinor: payment.amountMinor,
       source: payment.source,
     })),
+    needsOf(row),
+    row.version,
   );
 
 /** Registrations of the scope's event only, of an organization of the caller (§3.2). */
@@ -66,6 +77,12 @@ const inScope = (scope: EventScope): Prisma.RegistrationWhereInput => ({
   organizationId: scope.organizationId,
   event: { organization: { ownerId: scope.ownerId } },
 });
+
+export type NeedsCorrection =
+  | { kind: 'corrected'; registration: ManagedRegistrationModel }
+  | { kind: 'not_found' }
+  /** The registration changed after the organizer loaded it. */
+  | { kind: 'stale' };
 
 @Injectable()
 export class EventRegistrationsRepository {
@@ -117,5 +134,42 @@ export class EventRegistrationsRepository {
       select: registrationSelect,
     });
     return row ? toModel(row) : null;
+  }
+
+  /**
+   * The organizer's correction of the needs (F63): only these fields, at once,
+   * on the version the organizer saw. The registration row is locked, so a
+   * participant change cannot slip in between the check and the update.
+   */
+  async correctNeeds(
+    scope: EventScope,
+    registrationId: string,
+    needs: RegistrationNeeds,
+    expectedVersion: number,
+  ): Promise<NeedsCorrection> {
+    return this.prisma.$transaction(async (tx) => {
+      const owned = await tx.registration.findFirst({
+        where: { id: registrationId, ...inScope(scope) },
+        select: { id: true },
+      });
+      if (!owned) return { kind: 'not_found' };
+      await tx.$queryRaw`
+        SELECT "id" FROM "registration"
+        WHERE "id" = ${registrationId}::uuid FOR UPDATE`;
+      const current = await tx.registration.findUniqueOrThrow({
+        where: { id: registrationId },
+        select: registrationSelect,
+      });
+      if (current.version !== expectedVersion) return { kind: 'stale' };
+      if (sameNeeds(needsOf(current), needs)) {
+        return { kind: 'corrected', registration: toModel(current) };
+      }
+      const updated = await tx.registration.update({
+        where: { id: registrationId },
+        data: { ...normalizeNeeds(needs), version: { increment: 1 } },
+        select: registrationSelect,
+      });
+      return { kind: 'corrected', registration: toModel(updated) };
+    });
   }
 }

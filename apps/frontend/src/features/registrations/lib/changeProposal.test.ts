@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest"
 
+import { NO_NEEDS } from "@/features/registrations/api/registrationSchemas"
 import {
   buildProposal,
   validateContact,
   type EditState,
 } from "@/features/registrations/lib/changeProposal"
 
-const CONTACT = { firstName: "Jana", lastName: "Nováková", phone: "+420604123456" }
+const CONTACT = {
+  firstName: "Jana",
+  lastName: "Nováková",
+  phone: "+420604123456",
+  needs: NO_NEEDS,
+}
 const T1 = "0190c0de-0000-7000-8000-000000000001"
 const T2 = "0190c0de-0000-7000-8000-000000000002"
 const T3 = "0190c0de-0000-7000-8000-000000000003"
@@ -41,6 +47,33 @@ describe("buildProposal", () => {
     ).toEqual({
       firstName: "Anna",
       phone: "+420 731 987 654",
+      moves: [],
+      cancelledTermIds: [],
+    })
+  })
+
+  it("sends the needs as a whole, normalized, only when they differ", () => {
+    expect(
+      buildProposal(CONTACT, state({ needs: { ...NO_NEEDS, dietNote: "  ", health: "" } })),
+    ).toBeNull()
+    expect(
+      buildProposal(
+        CONTACT,
+        state({
+          needs: { ...NO_NEEDS, diet: ["vegan", "vegetarian"], health: " Astma " },
+        }),
+      ),
+    ).toEqual({
+      needs: { ...NO_NEEDS, diet: ["vegetarian", "vegan"], health: "Astma" },
+      moves: [],
+      cancelledTermIds: [],
+    })
+  })
+
+  it("sends cleared needs to remove what was stored", () => {
+    const stored = { ...CONTACT, needs: { ...NO_NEEDS, transport: "own" as const } }
+    expect(buildProposal(stored, state())).toEqual({
+      needs: NO_NEEDS,
       moves: [],
       cancelledTermIds: [],
     })

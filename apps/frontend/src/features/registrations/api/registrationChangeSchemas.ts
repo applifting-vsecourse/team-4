@@ -1,6 +1,10 @@
 import { z } from "zod"
 
-import { participationStatusSchema } from "@/features/registrations/api/registrationSchemas"
+import {
+  participationStatusSchema,
+  registrationNeedsSchema,
+  type RegistrationNeeds,
+} from "@/features/registrations/api/registrationSchemas"
 
 // Participant changes of an own registration and the organizer's approval
 // (F35-2a). Amounts and outcomes are worked out by the server; the client only
@@ -41,6 +45,10 @@ export const changeSummarySchema = z.object({
       proposed: z.string(),
     }),
   ),
+  /** Transport, diet and health (F63); null when they stay. */
+  needs: z
+    .object({ original: registrationNeedsSchema, proposed: registrationNeedsSchema })
+    .nullable(),
   terms: z.array(plannedTermSchema),
   original: moneySchema,
   proposed: moneySchema,
@@ -98,6 +106,8 @@ export type ChangeProposal = {
   firstName?: string
   lastName?: string
   phone?: string
+  /** Transport, diet and health as a whole (F63). */
+  needs?: RegistrationNeeds
   moves: { fromTermId: string; toTermId: string; acceptWaitlist: boolean }[]
   cancelledTermIds: string[]
 }

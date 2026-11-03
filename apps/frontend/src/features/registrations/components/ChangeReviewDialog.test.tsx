@@ -38,6 +38,7 @@ const preview = (overrides: Partial<ChangePreview> = {}): ChangePreview => ({
   ],
   summary: {
     values: [],
+    needs: null,
     terms: [
       {
         termId: T2,

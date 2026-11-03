@@ -5,6 +5,7 @@ import {
   ChangePlan,
   ChangeSummary,
   Money,
+  NeedsChange,
   PlannedMove,
   PlannedTerm,
 } from '@/modules/registrations/domain/registration-change';
@@ -13,6 +14,7 @@ import {
   toE164,
   trim,
 } from '@/modules/registrations/dto/registration-input.dto';
+import { RegistrationNeedsDto } from '@/modules/registrations/dto/registration-needs.dto';
 import {
   ChangePreview,
   RegistrationChangeModel,
@@ -25,6 +27,7 @@ import {
   IsBoolean,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUUID,
   Matches,
@@ -90,6 +93,17 @@ export class ChangeProposalDto {
   @IsString({ message: PHONE_MESSAGE })
   @Matches(/^\+[1-9]\d{6,14}$/, { message: PHONE_MESSAGE })
   phone?: string;
+
+  @ApiPropertyOptional({
+    type: RegistrationNeedsDto,
+    description:
+      'Transport, diet and health as a whole (F63); left out, they stay. ' +
+      'A change of the whole registration, like the names.',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RegistrationNeedsDto)
+  needs?: RegistrationNeedsDto;
 
   @ApiProperty({ type: [TermMoveDto] })
   @IsArray()
@@ -171,9 +185,31 @@ export class MoneyDto {
   balanceMinor!: number;
 }
 
+export class NeedsChangeDto {
+  @ApiProperty({ type: RegistrationNeedsDto })
+  original!: RegistrationNeedsDto;
+
+  @ApiProperty({ type: RegistrationNeedsDto })
+  proposed!: RegistrationNeedsDto;
+
+  static from(change: NeedsChange): NeedsChangeDto {
+    return {
+      original: RegistrationNeedsDto.from(change.original),
+      proposed: RegistrationNeedsDto.from(change.proposed),
+    };
+  }
+}
+
 export class ChangeSummaryDto {
   @ApiProperty({ type: [ChangedValueDto] })
   values!: ChangedValueDto[];
+
+  @ApiProperty({
+    type: NeedsChangeDto,
+    nullable: true,
+    description: 'Transport, diet and health (F63); null when they stay.',
+  })
+  needs!: NeedsChangeDto | null;
 
   @ApiProperty({ type: [PlannedTermDto], description: 'By term start.' })
   terms!: PlannedTermDto[];
@@ -187,6 +223,7 @@ export class ChangeSummaryDto {
   static from(summary: ChangeSummary): ChangeSummaryDto {
     return {
       values: summary.values.map((value) => ({ ...value })),
+      needs: summary.needs && NeedsChangeDto.from(summary.needs),
       terms: summary.terms.map((term: PlannedTerm) => ({ ...term })),
       original: { ...summary.original },
       proposed: { ...summary.proposed },

@@ -22,8 +22,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-import { type ParticipationStatus } from "@/features/registrations/api/registrationSchemas"
+import {
+  type ParticipationStatus,
+  type RegistrationNeeds,
+} from "@/features/registrations/api/registrationSchemas"
 import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
+import { RegistrationNeedsFields } from "@/features/registrations/components/RegistrationNeedsFields"
+import { type RegistrationNeedsErrors } from "@/features/registrations/lib/registrationNeeds"
 
 export type ContactValues = { firstName: string; lastName: string; email: string; phone: string }
 
@@ -54,28 +59,35 @@ export type ContactErrors = Partial<Record<"firstName" | "lastName" | "phone", s
 export type RegistrationChangeFormProps = {
   contact: ContactValues
   terms: ChangeableTerm[]
+  /** Transport, diet and health (F63), for the whole registration. */
+  needs: RegistrationNeeds
   /** Fields are uncontrolled; these report every edit to the page that owns the state. */
   onContactChange?: (field: "firstName" | "lastName" | "phone", value: string) => void
   onTermChange?: (termId: string, change: { selectedTermId: string; isCancelled: boolean }) => void
+  onNeedsChange?: (needs: RegistrationNeeds) => void
   onReview?: () => void
   onCancel?: () => void
   errors?: ContactErrors
+  needsErrors?: RegistrationNeedsErrors
   /** Shown above the buttons, e.g. "Nic jste nezměnili". */
   errorMessage?: string
 }
 
 // Moje přihlášky → Detail přihlášky → Úprava přihlášky (F35-2a): personal and
 // contact data in the scope of the registration form, a move to another term
-// of the same event, and cancelling single terms. "Zkontrolovat změny" opens
-// the review. Design only: every value is passed in.
+// of the same event, cancelling single terms, and transport, diet and health
+// (F63). "Zkontrolovat změny" opens the review. Every value is passed in.
 export function RegistrationChangeForm({
   contact,
   terms,
+  needs,
   onContactChange,
   onTermChange,
+  onNeedsChange,
   onReview,
   onCancel,
   errors = {},
+  needsErrors,
   errorMessage,
 }: RegistrationChangeFormProps) {
   const [chosen, setChosen] = useState<Record<string, TermChoice>>(() =>
@@ -228,6 +240,19 @@ export function RegistrationChangeForm({
               </li>
             ))}
           </ul>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Doprava, strava a zdraví</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RegistrationNeedsFields
+            defaultValue={needs}
+            onChange={onNeedsChange}
+            errors={needsErrors}
+          />
         </CardContent>
       </Card>
 

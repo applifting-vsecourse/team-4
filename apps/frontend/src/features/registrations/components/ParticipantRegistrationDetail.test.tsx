@@ -3,6 +3,7 @@ import { render, screen, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { type ParticipantRegistrationDetail as DetailData } from "@/features/registrations/api/participantRegistrationSchemas"
+import { NO_NEEDS } from "@/features/registrations/api/registrationSchemas"
 import { ParticipantRegistrationDetail } from "@/features/registrations/components/ParticipantRegistrationDetail"
 
 const { get, FakeHTTPError } = vi.hoisted(() => {
@@ -76,6 +77,7 @@ const REGISTRATION: DetailData = {
     phone: "+420604123456",
   },
   version: 0,
+  needs: NO_NEEDS,
   isCancelled: false,
   canChange: true,
   availableTerms: [],

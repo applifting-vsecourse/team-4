@@ -3,15 +3,18 @@ import {
   RegistrationListDto,
 } from '@/modules/registrations/dto/managed-registration.dto';
 import { RegistrationFilterDto } from '@/modules/registrations/dto/registration-filter.dto';
+import { CorrectNeedsDto } from '@/modules/registrations/dto/registration-needs.dto';
 import { EventRegistrationsService } from '@/modules/registrations/services/event-registrations.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
 import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.guard';
 import {
+  Body,
   Controller,
   Get,
   Param,
   ParseUUIDPipe,
+  Put,
   Query,
   UseGuards,
   UsePipes,
@@ -73,6 +76,32 @@ export class EventRegistrationsController {
       await this.registrations.get(
         { organizationId, ownerId: user.id, eventId },
         registrationId,
+      ),
+    );
+  }
+
+  @Put(':registrationId/needs')
+  @ApiOperation({
+    summary: 'Corrects transport, diet and health (F63)',
+    description:
+      'Replaces only these fields, at once and without approval; the ' +
+      'participant sees the same values. 409 `registration_stale` when the ' +
+      'registration changed after `expectedVersion`; 404 for a foreign or ' +
+      'missing registration.',
+  })
+  async correctNeeds(
+    @User() user: Identity,
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @Param('registrationId', ParseUUIDPipe) registrationId: string,
+    @Body() body: CorrectNeedsDto,
+  ): Promise<RegistrationDetailDto> {
+    return RegistrationDetailDto.from(
+      await this.registrations.correctNeeds(
+        { organizationId, ownerId: user.id, eventId },
+        registrationId,
+        body.needs,
+        body.expectedVersion,
       ),
     );
   }

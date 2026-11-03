@@ -27,6 +27,10 @@ import {
   type EditState,
 } from "@/features/registrations/lib/changeProposal"
 import {
+  validateNeeds,
+  type RegistrationNeedsErrors,
+} from "@/features/registrations/lib/registrationNeeds"
+import {
   isRegistrationUnavailable,
   isSessionRefused,
 } from "@/features/registrations/lib/sessionExpired"
@@ -42,7 +46,8 @@ const NOTHING_CHANGED = "Nic jste nezměnili. Upravte údaje, přesuňte termín
 
 // Moje přihlášky → Detail přihlášky → Úprava přihlášky (F35-2a): personal and
 // contact data in the scope of the registration form (not the e-mail), a move
-// to another term of the same event, and cancelling single terms.
+// to another term of the same event, cancelling single terms, and transport,
+// diet and health (F63).
 export function ParticipantRegistrationEdit({
   registrationId,
   sessionEnded,
@@ -136,7 +141,7 @@ type EditFormProps = {
 }
 
 function EditForm({ registration, onReload, onLeave }: EditFormProps) {
-  const { contact, terms, availableTerms } = registration
+  const { contact, needs, terms, availableTerms } = registration
   const active = useMemo(() => terms.filter((term) => term.status !== "cancelled"), [terms])
 
   const initial = useMemo<EditState>(
@@ -144,14 +149,16 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
       firstName: contact.firstName,
       lastName: contact.lastName,
       phone: contact.phone,
+      needs,
       terms: Object.fromEntries(
         active.map((term) => [term.termId, { selectedTermId: term.termId, isCancelled: false }]),
       ),
     }),
-    [contact, active],
+    [contact, needs, active],
   )
   const [state, setState] = useState(initial)
   const [errors, setErrors] = useState<ContactErrors>({})
+  const [needsErrors, setNeedsErrors] = useState<RegistrationNeedsErrors>({})
   const [message, setMessage] = useState<string>()
   const [proposal, setProposal] = useState<ChangeProposal | null>(null)
 
@@ -181,12 +188,14 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
 
   const review = () => {
     const contactErrors = validateContact(state)
+    const invalidNeeds = validateNeeds(state.needs)
     setErrors(contactErrors)
-    if (Object.keys(contactErrors).length > 0) {
+    setNeedsErrors(invalidNeeds)
+    if (Object.keys(contactErrors).length + Object.keys(invalidNeeds).length > 0) {
       setMessage(undefined)
       return
     }
-    const next = buildProposal(contact, state)
+    const next = buildProposal({ ...contact, needs }, state)
     if (!next) {
       setMessage(NOTHING_CHANGED)
       return
@@ -200,9 +209,12 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
       <RegistrationChangeForm
         contact={{ ...contact, phone: contact.phone }}
         terms={formTerms}
+        needs={needs}
         errors={errors}
+        needsErrors={needsErrors}
         errorMessage={message}
         onContactChange={(field, value) => setState((current) => ({ ...current, [field]: value }))}
+        onNeedsChange={(next) => setState((current) => ({ ...current, needs: next }))}
         onTermChange={(termId, change) =>
           setState((current) => ({ ...current, terms: { ...current.terms, [termId]: change } }))
         }

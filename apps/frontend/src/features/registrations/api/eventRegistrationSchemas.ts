@@ -4,6 +4,7 @@ import {
   activeParticipationStatusSchema,
   participationStatusSchema,
   receivedPaymentSchema,
+  registrationNeedsSchema,
 } from "@/features/registrations/api/registrationSchemas"
 
 // The organizer's view of an event's registrations (S2-11). Amounts are
@@ -49,6 +50,10 @@ export const registrationDetailSchema = registrationSummarySchema.extend({
   reminderAt: z.string().nullable(),
   variableSymbol: z.string().nullable(),
   payments: z.array(receivedPaymentSchema),
+  /** Transport, diet and health (F63). */
+  needs: registrationNeedsSchema,
+  /** Sent back as `expectedVersion` when correcting the needs. */
+  version: z.number().int(),
 })
 
 export type RegistrationSummary = z.infer<typeof registrationSummarySchema>

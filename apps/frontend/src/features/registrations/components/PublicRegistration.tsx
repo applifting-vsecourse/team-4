@@ -9,6 +9,7 @@ import { RegistrationResult } from "@/features/registrations/components/Registra
 import { useSubmitRegistration } from "@/features/registrations/hooks/useSubmitRegistration"
 import { toE164 } from "@/features/registrations/lib/phone"
 import { describeRegistrationError } from "@/features/registrations/lib/registrationErrors"
+import { normalizeNeeds } from "@/features/registrations/lib/registrationNeeds"
 
 type PublicRegistrationProps = {
   publicId: string
@@ -52,6 +53,7 @@ export function PublicRegistration({ publicId, terms }: PublicRegistrationProps)
       // Validated by the form schema; the server normalizes the same way.
       phone: toE164(values.phone) ?? values.phone,
       termIds: values.termIds,
+      needs: normalizeNeeds(values.needs),
     })
   }
 

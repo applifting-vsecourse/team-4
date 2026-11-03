@@ -167,7 +167,7 @@ model Event {
   bankCode            String? @db.Char(4)
   paymentReminderDays Int?
   // Days before a term's start from which registration changes need approval (F35-1a); null = never.
-  changeApprovalDays Int?
+  changeApprovalDays  Int?
 
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
@@ -307,6 +307,22 @@ model ParticipantSession {
 
 // ─── Registrations ──────────────────────────────────────────────────────────
 
+enum TransportChoice {
+  own
+  shared
+
+  @@map("transport_choice")
+}
+
+enum DietChoice {
+  vegetarian
+  vegan
+  gluten_free
+  lactose_free
+
+  @@map("diet_choice")
+}
+
 enum ParticipationStatus {
   confirmed
   waitlisted
@@ -337,15 +353,24 @@ model Registration {
   // Bumped by every executed change (F35-2a); a proposal made on an older one is stale.
   version           Int       @default(0)
 
+  // Optional needs for the whole registration (F63); empty text is "not provided".
+  transport            TransportChoice?
+  transportNote        String           @default("") @db.VarChar(500)
+  // Explicit "Bez omezení"; never stored together with a diet choice.
+  hasNoDietRestriction Boolean          @default(false)
+  diet                 DietChoice[]     @default([])
+  dietNote             String           @default("") @db.VarChar(500)
+  health               String           @default("") @db.VarChar(2000)
+
   // snapshot of event payment settings at receipt
   bankAccountPrefix   String? @db.VarChar(6)
   bankAccountNumber   String  @db.VarChar(10)
   bankCode            String  @db.Char(4)
   paymentReminderDays Int
 
-  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  event              Event              @relation(fields: [eventId, organizationId], references: [id, organizationId], onDelete: Restrict)
-  participantAccount ParticipantAccount @relation(fields: [participantAccountId], references: [id], onDelete: Restrict)
+  organization       Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  event              Event                @relation(fields: [eventId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  participantAccount ParticipantAccount   @relation(fields: [participantAccountId], references: [id], onDelete: Restrict)
   terms              RegistrationTerm[]
   payments           Payment[]
   emails             EmailDelivery[]
@@ -417,15 +442,15 @@ enum PaymentSource {
 }
 
 model Payment {
-  id             String   @id @default(uuid(7)) @db.Uuid
-  organizationId String   @db.Uuid
-  registrationId String   @db.Uuid
-  submissionKey  String   @unique @db.Uuid
+  id             String        @id @default(uuid(7)) @db.Uuid
+  organizationId String        @db.Uuid
+  registrationId String        @db.Uuid
+  submissionKey  String        @unique @db.Uuid
   amountMinor    Int
-  receivedOn     DateTime @db.Date
+  receivedOn     DateTime      @db.Date
   source         PaymentSource @default(organizer)
   recordedById   String? // set for organizer entries only, null for a QR link payment
-  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   registration Registration @relation(fields: [registrationId, organizationId], references: [id, organizationId], onDelete: Restrict)

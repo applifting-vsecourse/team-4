@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { formatCzk } from "@/lib/money"
 
+import { NO_NEEDS } from "@/features/registrations/api/registrationSchemas"
 import { RecordPaymentDialog } from "@/features/registrations/components/RecordPaymentDialog"
 
 type Body = { submissionKey: string; amountMinor: number; receivedOn: string }
@@ -44,6 +45,8 @@ const DETAIL = {
   paymentState: "partial",
   reminderAt: null,
   variableSymbol: null,
+  needs: NO_NEEDS,
+  version: 0,
   payments: [
     {
       id: "0190c0de-0000-7000-8000-0000000000b1",

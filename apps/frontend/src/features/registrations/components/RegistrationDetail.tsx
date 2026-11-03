@@ -26,6 +26,8 @@ type RegistrationDetailProps = {
   /** The last refresh failed; `registration` is still from the one before. */
   hasRefreshFailed: boolean
   onRefresh: () => unknown
+  /** Transport, diet and health with the organizer's correction (F63). */
+  needs?: ReactNode
 }
 
 // The organizer's view of one registration (S2-11): contacts,
@@ -37,6 +39,7 @@ export function RegistrationDetail({
   isRefreshing,
   hasRefreshFailed,
   onRefresh,
+  needs,
 }: RegistrationDetailProps) {
   const updated = formatPragueDateTime(new Date(updatedAt).toISOString())
 
@@ -119,6 +122,8 @@ export function RegistrationDetail({
               </ul>
             </CardContent>
           </Card>
+
+          {needs}
         </div>
 
         <div className="space-y-6">

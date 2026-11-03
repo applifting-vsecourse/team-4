@@ -15,6 +15,10 @@ import {
   planChange,
 } from '@/modules/registrations/domain/registration-change';
 import {
+  needsOf,
+  needsSelect,
+} from '@/modules/registrations/domain/registration-needs';
+import {
   termsWithBeds,
   toTermCapacity,
 } from '@/modules/rooms/repositories/rooms.repository';
@@ -78,6 +82,7 @@ const snapshotSelect = {
   lastName: true,
   email: true,
   phone: true,
+  ...needsSelect,
   paymentReminderAt: true,
   paymentReminderDays: true,
   event: { select: { changeApprovalDays: true } },
@@ -123,6 +128,7 @@ const subjectOf = (row: Snapshot): ChangeSubject => ({
   firstName: row.firstName,
   lastName: row.lastName,
   phone: row.phone,
+  needs: needsOf(row),
   paidMinor: row.payments.reduce((sum, p) => sum + p.amountMinor, 0),
   terms: row.terms.map((term) => ({
     termId: term.termId,
@@ -150,6 +156,8 @@ const toModel = (
     decidedAt: row.decidedAt,
     summary: {
       values: summary.values,
+      // Summaries stored before F63 have no needs.
+      needs: summary.needs ?? null,
       terms: summary.terms,
       original: summary.original,
       proposed: summary.proposed,

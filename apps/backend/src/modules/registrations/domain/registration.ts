@@ -1,4 +1,9 @@
 import { createHash } from 'node:crypto';
+import {
+  NO_NEEDS,
+  normalizeNeeds,
+  RegistrationNeeds,
+} from '@/modules/registrations/domain/registration-needs';
 import { TermCapacity } from '@/modules/rooms/domain/room';
 
 export type ParticipationStatus = 'confirmed' | 'waitlisted' | 'cancelled';
@@ -13,6 +18,8 @@ export type RegistrationInput = {
   email: string;
   phone: string;
   termIds: string[];
+  /** Optional (F63); left out, nothing is provided. */
+  needs?: RegistrationNeeds;
 };
 
 /** One registration per e-mail and event: trimmed and lower-cased (T1). */
@@ -32,6 +39,7 @@ export const submissionHash = (input: RegistrationInput): string =>
         normalizeEmail(input.email),
         input.phone,
         [...input.termIds].sort(),
+        normalizeNeeds(input.needs ?? NO_NEEDS),
       ]),
     )
     .digest('hex');

@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { type ParticipantRegistration } from "@/features/registrations/api/participantRegistrationSchemas"
+import { NO_NEEDS } from "@/features/registrations/api/registrationSchemas"
 import { ParticipantRegistrationList } from "@/features/registrations/components/ParticipantRegistrationList"
 
 const { get, FakeHTTPError } = vi.hoisted(() => {
@@ -86,6 +87,7 @@ const MIXED: ParticipantRegistration = {
     phone: "+420604123456",
   },
   version: 0,
+  needs: NO_NEEDS,
   isCancelled: false,
   canChange: true,
 }

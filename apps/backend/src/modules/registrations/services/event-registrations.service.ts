@@ -4,8 +4,13 @@ import {
   RegistrationFilter,
   RegistrationList,
 } from '@/modules/registrations/domain/managed-registration';
+import { RegistrationNeeds } from '@/modules/registrations/domain/registration-needs';
 import { EventRegistrationsRepository } from '@/modules/registrations/repositories/event-registrations.repository';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 const notAvailable = (): NotFoundException =>
   new NotFoundException('Záznam není dostupný');
@@ -42,5 +47,29 @@ export class EventRegistrationsService {
     const registration = await this.repository.findOne(scope, registrationId);
     if (!registration) throw notAvailable();
     return registration;
+  }
+
+  async correctNeeds(
+    scope: EventScope,
+    registrationId: string,
+    needs: RegistrationNeeds,
+    expectedVersion: number,
+  ): Promise<ManagedRegistrationModel> {
+    const outcome = await this.repository.correctNeeds(
+      scope,
+      registrationId,
+      needs,
+      expectedVersion,
+    );
+    if (outcome.kind === 'not_found') throw notAvailable();
+    if (outcome.kind === 'stale') {
+      throw new ConflictException({
+        statusCode: 409,
+        code: 'registration_stale',
+        message:
+          'Přihláška se mezitím změnila. Načtěte ji znovu a údaje uložte znovu.',
+      });
+    }
+    return outcome.registration;
   }
 }

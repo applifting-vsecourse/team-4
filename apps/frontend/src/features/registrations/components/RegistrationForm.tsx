@@ -22,9 +22,11 @@ import { Label } from "@/components/ui/label"
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 
-import { type SelectableTerm } from "@/features/registrations/api/registrationSchemas"
+import { NO_NEEDS, type SelectableTerm } from "@/features/registrations/api/registrationSchemas"
+import { RegistrationNeedsFields } from "@/features/registrations/components/RegistrationNeedsFields"
 import { toE164 } from "@/features/registrations/lib/phone"
 import { type RegistrationSubmitError } from "@/features/registrations/lib/registrationErrors"
+import { registrationNeedsFormSchema } from "@/features/registrations/lib/registrationNeeds"
 
 const PHONE_MESSAGE = "Zadejte telefon s mezinárodní předvolbou, např. +420 777 123 456."
 
@@ -51,6 +53,7 @@ const schema = z.object({
     .min(1, "Vyplňte telefon.")
     .refine((value) => toE164(value) !== null, PHONE_MESSAGE),
   termIds: z.array(z.string()).min(1, "Vyberte alespoň jeden termín."),
+  needs: registrationNeedsFormSchema,
 })
 
 export type RegistrationFormValues = z.infer<typeof schema>
@@ -61,6 +64,7 @@ const EMPTY: RegistrationFormValues = {
   email: "",
   phone: "",
   termIds: [],
+  needs: NO_NEEDS,
 }
 
 type RegistrationFormProps = {
@@ -70,7 +74,8 @@ type RegistrationFormProps = {
   onSubmit: (values: RegistrationFormValues) => void
 }
 
-// The fixed form of an adult participant (S2-07). Free beds,
+// The fixed form of an adult participant (S2-07), with the optional
+// transport, diet and health data for the whole registration (F63). Free beds,
 // occupancy and waitlisting are deliberately absent: the server decides each
 // term when saving (S2-08), and a full term can be selected like any other.
 export function RegistrationForm({
@@ -87,6 +92,7 @@ export function RegistrationForm({
   const selectedIds = useWatch({ control: form.control, name: "termIds" })
   const selected = terms.filter((term) => selectedIds.includes(term.id))
   const totalMinor = selected.reduce((sum, term) => sum + term.priceMinor, 0)
+  const needsErrors = form.formState.errors.needs
 
   useEffect(() => {
     if (submitError?.kind === "terms") {
@@ -256,6 +262,26 @@ export function RegistrationForm({
                 </FormControl>
                 <FormMessage />
               </FormItem>
+            )}
+          />
+        </fieldset>
+
+        <fieldset className="space-y-4">
+          <legend className="mb-4 text-h4">Doprava, strava a zdraví</legend>
+          <FormField
+            control={form.control}
+            name="needs"
+            render={({ field }) => (
+              <RegistrationNeedsFields
+                defaultValue={field.value}
+                onChange={field.onChange}
+                errors={{
+                  transportNote: needsErrors?.transportNote?.message,
+                  diet: needsErrors?.diet?.message,
+                  dietNote: needsErrors?.dietNote?.message,
+                  health: needsErrors?.health?.message,
+                }}
+              />
             )}
           />
         </fieldset>
