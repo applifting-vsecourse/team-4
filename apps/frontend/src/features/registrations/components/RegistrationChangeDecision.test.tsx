@@ -29,6 +29,7 @@ const change = (overrides: Record<string, unknown> = {}) => ({
   createdAt: "2026-10-30T13:05:00.000Z",
   decidedAt: null,
   needsParticipantConsent: false,
+  isStale: false,
   participant: { firstName: "Jana", lastName: "Nováková", email: "jana@example.com" },
   summary: {
     values: [],
@@ -112,6 +113,15 @@ describe("RegistrationChangeDecision", () => {
     renderDecision()
 
     expect(await screen.findByText(/až po novém souhlasu účastníka/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Schválit" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Zamítnout" })).toBeEnabled()
+  })
+
+  it("cannot approve a request made on an older version of the registration, only reject it", async () => {
+    get.mockReturnValue(answer({ changes: [change({ isStale: true })] }))
+    renderDecision()
+
+    expect(await screen.findByText(/žádost proto nelze schválit/)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Schválit" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "Zamítnout" })).toBeEnabled()
   })

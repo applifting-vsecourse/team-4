@@ -77,6 +77,8 @@ export const registrationChangeSchema = z.object({
   summary: changeSummarySchema,
   /** Waiting, and a move now ends on the waitlist without the participant's consent. */
   needsParticipantConsent: z.boolean(),
+  /** Waiting, and the registration changed after the proposal was made. */
+  isStale: z.boolean(),
   participant: z.object({ firstName: z.string(), lastName: z.string(), email: z.string() }),
 })
 

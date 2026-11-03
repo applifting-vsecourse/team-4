@@ -83,6 +83,7 @@ const CHANGE_RESULT = {
   decidedAt: "2026-11-02T10:00:00.000Z",
   summary: preview().summary,
   needsParticipantConsent: false,
+  isStale: false,
   participant: { firstName: "Jana", lastName: "Nováková", email: "jana@example.com" },
 }
 

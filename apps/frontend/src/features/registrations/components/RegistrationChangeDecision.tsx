@@ -73,7 +73,14 @@ export function RegistrationChangeDecision({
           decidedAt={shown.decidedAt ? formatChangeTime(shown.decidedAt) : undefined}
           summary={toSummaryProps(shown.summary)}
           notice={
-            shown.status === "pending" && shown.needsParticipantConsent ? (
+            shown.status === "pending" && shown.isStale ? (
+              <Alert>
+                <AlertTitle>
+                  Přihláška se po odeslání žádosti změnila, žádost proto nelze schválit. Můžete ji
+                  zamítnout a účastník ji podá znovu.
+                </AlertTitle>
+              </Alert>
+            ) : shown.status === "pending" && shown.needsParticipantConsent ? (
               <Alert>
                 <AlertTitle>
                   Cílový termín se mezitím zaplnil. Přesun lze schválit až po novém souhlasu
@@ -104,7 +111,7 @@ export function RegistrationChangeDecision({
                   Zamítnout
                 </Button>
                 <Button
-                  disabled={decide.isPending || shown.needsParticipantConsent}
+                  disabled={decide.isPending || shown.needsParticipantConsent || shown.isStale}
                   onClick={() => decide.mutate({ changeId: shown.id, decision: "approve" })}
                 >
                   <Check />
