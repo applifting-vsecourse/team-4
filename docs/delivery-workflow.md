@@ -15,13 +15,27 @@ Multiple or unknown `severity:` labels block merging. Use the highest level in
 mixed changes. Collaborators may escalate the label. The gate reads live labels
 and re-evaluates on label changes, pushes, reviews and scheduled reconciliation.
 
-| Gate                                     | Low      | Standard (default) | High                               |
-| ---------------------------------------- | -------- | ------------------ | ---------------------------------- |
-| CI (`verify`)                            | Required | Required           | Required                           |
-| Issue link (`Closes #N` or `Refs #N`)    | Optional | Required           | Required                           |
-| Requirements approval                    | Skipped  | Skipped            | David or Bogdan before code review |
-| Independent Copilot code review          | Skipped  | Required           | Required                           |
-| Human QA of current commit after handoff | Skipped  | Required           | Required                           |
+| Gate                                     | Low         | Standard (default) | High                               |
+| ---------------------------------------- | ----------- | ------------------ | ---------------------------------- |
+| CI (`verify`)                            | Required    | Required           | Required                           |
+| Issue link (`Closes #N` or `Refs #N`)    | Optional    | Required           | Required                           |
+| Requirements approval                    | Skipped     | Skipped            | David or Bogdan before code review |
+| Independent Copilot code review          | Skipped     | Required           | Required                           |
+| Human QA of current commit after handoff | Skipped     | Required           | Required                           |
+| Technical approval                       | Not allowed | If labeled         | If labeled                         |
+
+The `technical-review` PR label is an additional gate for Standard and High PRs. Use it
+for a new or replaced Docker Compose service, a newly added package/dependency,
+or comparable shared infrastructure/tooling changes that need technical
+oversight. Routine feature work such as adding a page does not need it. When
+present, the workflow requests an approving review from Bogdan (`rmnskb`) and
+requires that approval on the current commit before moving the issue to Ready for
+Testing or allowing merge. The approval is separate from High requirements
+approval and from QA; an `rmnskb` review may satisfy both applicable review gates.
+
+The technical-review requirement is recorded by the PR's label history. Removing
+the label after it was applied does not clear the requirement; a current-commit
+approval from `rmnskb` does. Low severity cannot be combined with this label.
 
 ### Storybook design-preview PRs
 
@@ -169,7 +183,10 @@ trigger reconciliation; scheduled polling remains the fallback.
 
 ## Reviewer requests and merge rules
 
-Matej is not automatically requested at PR creation. CODEOWNERS lists David
+Matej is not automatically requested at PR creation. For a non-draft PR,
+technical review is requested from `rmnskb` as soon as the PR is opened with the
+label or the label is added, so it can happen alongside CI and agent review.
+Approval is still required on the current commit before QA handoff. CODEOWNERS lists David
 for workflow/enforcement paths; GitHub does not request an author to review their own PR. The bot's
 Ready for Testing comment identifies the QA owner, then the bot sends that person
 a GitHub review request: MatejKrones, or darebakdavca on Matej-authored PRs.
@@ -246,7 +263,7 @@ node scripts/delivery/install-severity.mjs --apply
 ```
 
 The first command is read-only. Both verify that the trusted scripts and workflows
-match `main`. Apply creates the three severity labels and updates `Protect main`,
+match `main`. Apply creates the severity labels and `technical-review`, and updates `Protect main`,
 preserving required CI/delivery checks, stale-review dismissal, conversation
 resolution, PR-only merges and other rules. It removes only the blanket approval
 count, last-push approval and extra approval for unattributed changes. There is no

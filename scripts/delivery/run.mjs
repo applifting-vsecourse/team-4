@@ -1,6 +1,10 @@
 import { severityFor, sameSeverity, validateSeverity } from './severity.mjs';
 import { eventScope } from '../automation/events.mjs';
-import { evaluate, isStorybookPreview } from './lib.mjs';
+import {
+  evaluate,
+  isStorybookPreview,
+  technicalReviewRequired,
+} from './lib.mjs';
 import { issueRequirements, scopeHash } from './requirements.mjs';
 import { copilotWaiver } from './copilot-waiver.mjs';
 import { referencedIssueNumbers } from '../automation/issue-links.mjs';
@@ -155,6 +159,12 @@ for (let pr of candidates) {
       severityFor(pr) === 'low'
         ? []
         : await list(`/repos/${repo}/issues/${pr.number}/comments`);
+    pr.technicalReviewRequired = technicalReviewRequired(
+      pr,
+      technicalReviewRequired(pr)
+        ? []
+        : await list(`/repos/${repo}/issues/${pr.number}/timeline`),
+    );
     const scopes = new Map();
     for (const issue of issues) {
       const content = await api(`/repos/${repo}/issues/${issue.number}`);
@@ -170,13 +180,20 @@ for (let pr of candidates) {
     const result = evaluate({ pr, issues, reviews, comments });
     // Never report a pass on a head which moved while reading evidence.
     const current = await api(`/repos/${repo}/pulls/${pr.number}`);
+    current.technicalReviewRequired = technicalReviewRequired(
+      current,
+      technicalReviewRequired(current)
+        ? []
+        : await list(`/repos/${repo}/issues/${pr.number}/timeline`),
+    );
     if (
       current.head.sha !== pr.head.sha ||
       current.state !== 'open' ||
       current.base.ref !== pr.base.ref ||
       current.draft !== pr.draft ||
       current.body !== pr.body ||
-      !sameSeverity(current, pr)
+      !sameSeverity(current, pr) ||
+      current.technicalReviewRequired !== pr.technicalReviewRequired
     )
       throw new Error('PR changed during evaluation');
     const summary = result.pass

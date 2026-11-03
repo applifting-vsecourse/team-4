@@ -8,6 +8,8 @@ export const isRequirementsApprover = (login) =>
     (name) => name.toLowerCase() === login?.toLowerCase(),
   );
 export const QA = 'MatejKrones';
+export const TECHNICAL_REVIEWER = 'rmnskb';
+export const TECHNICAL_REVIEW_LABEL = 'technical-review';
 
 export function reviewersFor(author) {
   const login = author.toLowerCase();
@@ -27,6 +29,25 @@ export function latestReview(reviews, login) {
 
 export function approved(review, sha) {
   return review?.state === 'APPROVED' && review.commit_id === sha;
+}
+
+export function technicalReviewRequired(pr, timeline = []) {
+  if (
+    pr.labels?.some((label) => label.name === TECHNICAL_REVIEW_LABEL) ??
+    false
+  )
+    return true;
+  return timeline.some(
+    (event) =>
+      event.event === 'labeled' && event.label?.name === TECHNICAL_REVIEW_LABEL,
+  );
+}
+
+export function technicalReviewApproval(pr, reviews) {
+  if (pr.user.login.toLowerCase() === TECHNICAL_REVIEWER.toLowerCase())
+    return null;
+  const review = latestReview(reviews, TECHNICAL_REVIEWER);
+  return approved(review, pr.head.sha) ? review : null;
 }
 
 export function isStorybookPreview(pr) {
@@ -118,6 +139,12 @@ export function evaluate({ pr, issues, reviews, comments }) {
     };
   const sha = pr.head.sha;
   const roles = reviewersFor(pr.user.login);
+  const needsTechnicalReview = Object.hasOwn(pr, 'technicalReviewRequired')
+    ? pr.technicalReviewRequired
+    : technicalReviewRequired(pr);
+  const technicalApproval = needsTechnicalReview
+    ? technicalReviewApproval(pr, reviews)
+    : null;
   const qa = latestReview(reviews, roles.qa);
   const storybookPreview = isStorybookPreview(pr);
   const previewApproval = storybookPreview
@@ -127,6 +154,10 @@ export function evaluate({ pr, issues, reviews, comments }) {
   if (pr.draft) reasons.push('PR is still a draft.');
   if (!issues.length)
     reasons.push('Link at least one issue with Closes #N or Refs #N.');
+  if (needsTechnicalReview && !technicalApproval)
+    reasons.push(
+      `Technical review approval by @${TECHNICAL_REVIEWER} is missing for this commit.`,
+    );
   if (!storybookPreview && !approved(qa, sha))
     reasons.push(`QA approval by ${roles.qa} is missing for this commit.`);
   if (storybookPreview && !previewApproval)
