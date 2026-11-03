@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import {
+  activeParticipationStatusSchema,
   participationStatusSchema,
   receivedPaymentSchema,
 } from "@/features/registrations/api/registrationSchemas"
@@ -57,7 +58,7 @@ export type RegistrationDetail = z.infer<typeof registrationDetailSchema>
 /** The list filters; they live in the URL, so a refresh keeps them. */
 export const registrationFilterSchema = z.object({
   termId: z.string().uuid().optional().catch(undefined),
-  status: participationStatusSchema.optional().catch(undefined),
+  status: activeParticipationStatusSchema.optional().catch(undefined),
   payment: paymentStateSchema.optional().catch(undefined),
 })
 

@@ -20,6 +20,17 @@ export type ApiErrorCode =
   | "nothing_to_pay"
   | "magic_link_invalid"
   | "participant_session_required"
+  | "registration_unavailable"
+  | "registration_stale"
+  | "approval_changed"
+  | "waitlist_consent_required"
+  | "change_pending"
+  | "change_already_decided"
+  | "change_invalid"
+  | "no_change"
+  | "registration_cancelled"
+  | "term_not_active"
+  | "term_conflict"
 
 export type ApiError = {
   status: number | null
