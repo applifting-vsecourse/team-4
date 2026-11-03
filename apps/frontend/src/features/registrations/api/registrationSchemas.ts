@@ -1,6 +1,10 @@
 import { z } from "zod"
 
-export const participationStatusSchema = z.enum(["confirmed", "waitlisted"])
+/** What the organizer filters by; a released term is no participation. */
+export const activeParticipationStatusSchema = z.enum(["confirmed", "waitlisted"])
+
+/** A term of a registration; "cancelled" is a term the participant released (F35-2a). */
+export const participationStatusSchema = z.enum(["confirmed", "waitlisted", "cancelled"])
 
 export type ParticipationStatus = z.infer<typeof participationStatusSchema>
 
@@ -18,6 +22,18 @@ export const paymentInstructionsSchema = z.object({
   /** Payment reminder date, not a deadline. */
   reminderAt: z.string(),
 })
+
+/** Entered by the organizer, or paid through the QR link (F21-1). */
+export const paymentSourceSchema = z.enum(["organizer", "qr_link"])
+
+export const receivedPaymentSchema = z.object({
+  id: z.string().uuid(),
+  receivedOn: z.string(),
+  amountMinor: z.number().int(),
+  source: paymentSourceSchema,
+})
+
+export type ReceivedPayment = z.infer<typeof receivedPaymentSchema>
 
 export type PaymentInstructions = z.infer<typeof paymentInstructionsSchema>
 
@@ -47,6 +63,8 @@ export const registrationResultSchema = z.object({
   amountDueMinor: z.number().int(),
   /** Null at zero obligation: no reminder date and no request to pay. */
   paymentInstructions: paymentInstructionsSchema.nullable(),
+  /** Token of the QR payment link; null while nothing is owed. */
+  paymentLinkToken: z.string().nullable(),
 })
 
 export type RegistrationResult = z.infer<typeof registrationResultSchema>

@@ -24,11 +24,16 @@ export type SimulatedPaymentFormProps = {
    * the participant and neither allows a second payment.
    */
   isSaving?: boolean
+  onAmountChange?: (amount: string) => void
+  /** "Zaplatit"; not called while saving. */
+  onSubmit?: () => void
+  /** "Zkusit znovu" after a failure: repeats the same attempt. */
+  onRetry?: () => void
 }
 
-// Public payment page opened from the QR (F21-1). Design only: every value is
-// passed in. Opening it creates nothing; only "Zaplatit" records a simulated
-// payment. The page never tells the participant it is a simulation.
+// Public payment page opened from the QR (F21-1). Opening it creates nothing;
+// only "Zaplatit" records a payment. The page never tells the participant that
+// the payment is simulated.
 export function SimulatedPaymentForm({
   eventName,
   debt,
@@ -37,6 +42,9 @@ export function SimulatedPaymentForm({
   isDebtReduced = false,
   errorMessage,
   isSaving = false,
+  onAmountChange,
+  onSubmit,
+  onRetry,
 }: SimulatedPaymentFormProps) {
   return (
     <Card>
@@ -45,7 +53,14 @@ export function SimulatedPaymentForm({
         <CardDescription>{eventName}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
+        <form
+          className="space-y-6"
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (!isSaving) onSubmit?.()
+          }}
+        >
           {debt ? (
             <dl className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm">
               <dt className="font-medium">Zbývá zaplatit</dt>
@@ -72,9 +87,12 @@ export function SimulatedPaymentForm({
               <AlertDescription>
                 <p>{errorMessage}</p>
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   className="mt-2"
+                  onClick={onRetry}
+                  disabled={isSaving}
                 >
                   Zkusit znovu
                 </Button>
@@ -89,7 +107,8 @@ export function SimulatedPaymentForm({
                 <Input
                   id="payment-amount"
                   inputMode="decimal"
-                  defaultValue={amount}
+                  value={amount}
+                  onChange={(event) => onAmountChange?.(event.target.value)}
                   aria-invalid={amountError ? true : undefined}
                   aria-describedby={amountError ? "payment-amount-error" : undefined}
                   disabled={isSaving}
@@ -98,6 +117,7 @@ export function SimulatedPaymentForm({
               </Field>
 
               <Button
+                type="submit"
                 className="w-full sm:w-auto"
                 disabled={isSaving}
               >
@@ -106,7 +126,7 @@ export function SimulatedPaymentForm({
               </Button>
             </>
           ) : null}
-        </div>
+        </form>
       </CardContent>
     </Card>
   )

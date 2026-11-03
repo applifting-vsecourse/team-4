@@ -14,6 +14,7 @@ import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { eventRegistrationQueryOptions } from "@/features/registrations/api/eventRegistrationQueryOptions"
 import { RecordPaymentDialog } from "@/features/registrations/components/RecordPaymentDialog"
+import { RegistrationChangeDecision } from "@/features/registrations/components/RegistrationChangeDecision"
 import { RegistrationDetail } from "@/features/registrations/components/RegistrationDetail"
 
 // Správa akce → Přihlášky → Detail účastníka (S2-11): the organizer's view of
@@ -72,6 +73,13 @@ function RegistrationPage() {
           />
         }
       />
+      <div className="mb-6">
+        <RegistrationChangeDecision
+          organizationId={organizationId}
+          eventId={eventId}
+          registrationId={registrationId}
+        />
+      </div>
       <RegistrationDetail
         registration={registration.data}
         updatedAt={registration.dataUpdatedAt}

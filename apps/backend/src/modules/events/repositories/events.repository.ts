@@ -250,6 +250,7 @@ export class EventsRepository {
             roomAvailabilities: {
               select: { isAvailable: true, baseBeds: true, extraBeds: true },
             },
+            _count: { select: { programmeItems: true } },
           },
         },
       },
@@ -271,6 +272,7 @@ export class EventsRepository {
             fromDate(term.endDate),
             term.priceMinor,
             capacityFromBeds(term.roomAvailabilities),
+            term._count.programmeItems,
           ),
       ),
       toPaymentSettings(event),

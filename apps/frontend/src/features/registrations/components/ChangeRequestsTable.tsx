@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { ClipboardCheck } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -27,7 +28,13 @@ export type PendingChangeRequest = {
 // Správa akce → Přihlášky → Ke schválení (F35-2a): the participants' change
 // requests of this event, oldest first, each opening the registration detail.
 // Design only: every value is passed in.
-export function ChangeRequestsTable({ requests }: { requests: PendingChangeRequest[] }) {
+type ChangeRequestsTableProps = {
+  requests: PendingChangeRequest[]
+  /** The way into the request, e.g. a link to the registration detail. */
+  renderOpen?: (request: PendingChangeRequest) => ReactNode
+}
+
+export function ChangeRequestsTable({ requests, renderOpen }: ChangeRequestsTableProps) {
   if (requests.length === 0) {
     return (
       <Empty>
@@ -66,13 +73,17 @@ export function ChangeRequestsTable({ requests }: { requests: PendingChangeReque
               <TableCell>{request.terms}</TableCell>
               <TableCell>{request.submittedAt}</TableCell>
               <TableCell className="text-right">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label={`Otevřít žádost ${request.participant}`}
-                >
-                  Otevřít
-                </Button>
+                {renderOpen ? (
+                  renderOpen(request)
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Otevřít žádost ${request.participant}`}
+                  >
+                    Otevřít
+                  </Button>
+                )}
               </TableCell>
             </TableRow>
           ))}

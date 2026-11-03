@@ -178,6 +178,7 @@ model Event {
   roomAvailabilities RoomTermAvailability[]
   registrations      Registration[]
   registrationTerms  RegistrationTerm[]
+  programmeItems     ProgrammeItem[]
 
   @@unique([id, organizationId])
   @@index([organizationId, createdAt])
@@ -197,6 +198,7 @@ model EventTerm {
   event              Event                  @relation(fields: [eventId], references: [id], onDelete: Restrict)
   roomAvailabilities RoomTermAvailability[]
   registrationTerms  RegistrationTerm[]
+  programmeItems     ProgrammeItem[]
 
   @@unique([id, eventId])
   @@index([eventId, startDate])
@@ -236,6 +238,28 @@ model RoomTermAvailability {
   @@id([roomId, termId])
   @@index([termId])
   @@map("room_term_availability")
+}
+
+// One item of a term's programme (F65). Start is Europe/Prague wall-clock
+// time, so a date and an `HH:mm` string; the date lies within the term
+// (checked by the service, as terms are editable until registration opens).
+model ProgrammeItem {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  eventId     String   @db.Uuid
+  termId      String   @db.Uuid
+  title       String   @db.VarChar(200)
+  startDate   DateTime @db.Date
+  startTime   String   @db.VarChar(5)
+  place       String?  @db.VarChar(200)
+  description String?  @db.VarChar(1000)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  term  EventTerm @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Cascade)
+  event Event     @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  @@index([termId, startDate, startTime])
+  @@map("programme_item")
 }
 
 // ─── Participants & access ──────────────────────────────────────────────────
@@ -286,6 +310,8 @@ model ParticipantSession {
 enum ParticipationStatus {
   confirmed
   waitlisted
+  // Released by the participant (F35-2a); the row stays as history and holds no bed.
+  cancelled
 
   @@map("participation_status")
 }
@@ -298,6 +324,8 @@ model Registration {
   submissionKey        String @unique @db.Uuid
   payloadHash          String @db.Char(64) // SHA-256 hex of the normalized submission (§3.7)
   variableSymbol       String @unique @default(dbgenerated("(nextval('registration_variable_symbol_seq'::regclass))::text")) @db.VarChar(10)
+  // Unguessable capability of the QR payment link (F21-1): it allows paying this registration and nothing else.
+  paymentToken         String @unique @default(dbgenerated("replace((gen_random_uuid())::text || (gen_random_uuid())::text, '-', '')")) @db.VarChar(64)
 
   firstName String @db.VarChar(100)
   lastName  String @db.VarChar(100)
@@ -306,6 +334,8 @@ model Registration {
 
   receivedAt        DateTime  @default(now()) @db.Timestamptz(3)
   paymentReminderAt DateTime? @db.Timestamptz(3)
+  // Bumped by every executed change (F35-2a); a proposal made on an older one is stale.
+  version           Int       @default(0)
 
   // snapshot of event payment settings at receipt
   bankAccountPrefix   String? @db.VarChar(6)
@@ -319,6 +349,7 @@ model Registration {
   terms              RegistrationTerm[]
   payments           Payment[]
   emails             EmailDelivery[]
+  changes            RegistrationChange[]
 
   @@unique([eventId, participantAccountId])
   @@unique([id, eventId])
@@ -345,7 +376,45 @@ model RegistrationTerm {
   @@map("registration_term")
 }
 
+// A participant's change of an own registration (F35-2a): executed at once
+// (`applied`) or waiting for the organizer. At most one is pending per
+// registration (partial unique index in the migration).
+enum RegistrationChangeStatus {
+  pending
+  applied
+  approved
+  rejected
+
+  @@map("registration_change_status")
+}
+
+model RegistrationChange {
+  id             String                   @id @default(uuid(7)) @db.Uuid
+  registrationId String                   @db.Uuid
+  eventId        String                   @db.Uuid
+  status         RegistrationChangeStatus
+  // What the participant proposed: names, phone, term moves and cancellations.
+  proposal       Json
+  // Original and proposed values as shown to both sides; frozen once decided.
+  summary        Json
+  createdAt      DateTime                 @default(now()) @db.Timestamptz(3)
+  decidedAt      DateTime?                @db.Timestamptz(3)
+
+  registration Registration @relation(fields: [registrationId, eventId], references: [id, eventId], onDelete: Restrict)
+
+  @@index([registrationId, createdAt])
+  @@index([eventId, status, createdAt])
+  @@map("registration_change")
+}
+
 // ─── Payments ───────────────────────────────────────────────────────────────
+
+enum PaymentSource {
+  organizer
+  qr_link
+
+  @@map("payment_source")
+}
 
 model Payment {
   id             String   @id @default(uuid(7)) @db.Uuid
@@ -354,12 +423,13 @@ model Payment {
   submissionKey  String   @unique @db.Uuid
   amountMinor    Int
   receivedOn     DateTime @db.Date
-  recordedById   String
+  source         PaymentSource @default(organizer)
+  recordedById   String? // set for organizer entries only, null for a QR link payment
   createdAt      DateTime @default(now()) @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   registration Registration @relation(fields: [registrationId, organizationId], references: [id, organizationId], onDelete: Restrict)
-  recordedBy   User         @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+  recordedBy   User?        @relation(fields: [recordedById], references: [id], onDelete: Restrict)
 
   @@index([registrationId])
   @@map("payment")

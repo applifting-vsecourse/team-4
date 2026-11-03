@@ -1,4 +1,6 @@
-import { Copy, ExternalLink, QrCode } from "lucide-react"
+import { useState } from "react"
+import { Check, Copy, ExternalLink } from "lucide-react"
+import { QRCodeSVG } from "qrcode.react"
 
 import { Button } from "@/components/ui/button"
 
@@ -7,10 +9,20 @@ export type PaymentQrCardProps = {
   link: string
 }
 
-// Moje přihlášky → Detail přihlášky → Platba → QR / odkaz (F21-1). Design only:
-// every value is passed in. The QR encodes a web link, not a bank instruction;
-// the payment behind it is simulated, which the participant is not told.
+// Moje přihlášky → Detail přihlášky → Platba → QR / odkaz (F21-1). The QR
+// encodes a web link, not a bank instruction.
 export function PaymentQrCard({ link }: PaymentQrCardProps) {
+  const [isCopied, setIsCopied] = useState(false)
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link)
+      setIsCopied(true)
+    } catch {
+      // The link is shown as text, so it can still be copied by hand.
+    }
+  }
+
   return (
     <section
       aria-labelledby="payment-qr-title"
@@ -23,30 +35,35 @@ export function PaymentQrCard({ link }: PaymentQrCardProps) {
         Zaplatit QR kódem
       </h2>
       <div className="flex flex-wrap items-start gap-6">
-        <div className="flex size-40 shrink-0 items-center justify-center rounded-lg border border-border bg-card">
-          <QrCode
+        <div className="flex size-40 shrink-0 items-center justify-center rounded-lg border border-border bg-card p-2">
+          <QRCodeSVG
+            value={link}
             role="img"
             aria-label="QR kód s odkazem na platbu"
-            className="size-28"
+            className="size-full"
           />
         </div>
-        <div className="min-w-0 flex-1 space-y-3 text-sm">
+        <div className="min-w-48 flex-1 space-y-3 text-sm">
           <p>Naskenujte kód telefonem a na otevřené stránce zvolte, kolik chcete zaplatit.</p>
           <p className="font-mono text-xs break-all text-muted-foreground">{link}</p>
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
+              onClick={() => void copy()}
             >
-              <Copy aria-hidden />
-              Zkopírovat odkaz
+              {isCopied ? <Check aria-hidden /> : <Copy aria-hidden />}
+              {isCopied ? "Odkaz zkopírován" : "Zkopírovat odkaz"}
             </Button>
             <Button
               variant="outline"
               size="sm"
+              asChild
             >
-              <ExternalLink aria-hidden />
-              Otevřít platbu
+              <a href={link}>
+                <ExternalLink aria-hidden />
+                Otevřít platbu
+              </a>
             </Button>
           </div>
         </div>

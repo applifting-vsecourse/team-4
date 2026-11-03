@@ -92,9 +92,11 @@ describe('RegistrationResultModel', () => {
       { prefix: null, number: '123456789', bankCode: '0800' },
       new Date('2027-07-11T10:00:00Z'),
       { name: 'Tábor', location: 'Jizerka' },
+      'a'.repeat(64),
     );
     expect(result.selectedPriceMinor).toBe(450_051);
     expect(result.amountDueMinor).toBe(450_050);
+    expect(result.paymentLinkToken).toBe('a'.repeat(64));
     expect(result.paymentInstructions).toMatchObject({
       amountMinor: 450_050,
       variableSymbol: '1001',
@@ -118,9 +120,11 @@ describe('RegistrationResultModel', () => {
       { prefix: null, number: '123456789', bankCode: '0800' },
       null,
       { name: 'Tábor', location: 'Jizerka' },
+      'a'.repeat(64),
     );
     expect(result.amountDueMinor).toBe(0);
     expect(result.paymentInstructions).toBeNull();
+    expect(result.paymentLinkToken).toBeNull();
   });
 });
 

@@ -45,6 +45,7 @@ const registration = (
       id: `p${index}`,
       receivedOn: '2026-10-12',
       amountMinor,
+      source: 'organizer' as const,
     })),
   );
 

@@ -1,6 +1,7 @@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import { ProgrammeList, type ProgrammeDay } from "@/features/programme/components/ProgrammeList"
 import { ProgrammeLoadFailed } from "@/features/programme/components/ProgrammeLoadFailed"
@@ -14,12 +15,20 @@ export type ParticipantProgrammeTerm = {
   days: ProgrammeDay[]
   /** The programme of this term could not be loaded. */
   isLoadFailed?: boolean
+  isRetrying?: boolean
+  /** The programme is still being read. */
+  isLoading?: boolean
 }
 
 // Moje přihlášky → Detail přihlášky → Program termínu (F65), participant.
 // One card per term of the registration. A waitlisted term shows only an
-// explanation, never its content. Design only: every value is passed in.
-export function ParticipantProgramme({ terms }: { terms: ParticipantProgrammeTerm[] }) {
+// explanation, never its content. Every value is passed in.
+type ParticipantProgrammeProps = {
+  terms: ParticipantProgrammeTerm[]
+  onRetry?: (termId: string) => void
+}
+
+export function ParticipantProgramme({ terms, onRetry }: ParticipantProgrammeProps) {
   return (
     <div className="space-y-6">
       {terms.map((term) => (
@@ -42,8 +51,17 @@ export function ParticipantProgramme({ terms }: { terms: ParticipantProgrammeTer
                   Program je dostupný až po potvrzení účasti v tomto termínu.
                 </AlertDescription>
               </Alert>
+            ) : term.isLoading ? (
+              <Skeleton
+                className="h-24 w-full"
+                role="status"
+                aria-label="Načítání programu"
+              />
             ) : term.isLoadFailed ? (
-              <ProgrammeLoadFailed />
+              <ProgrammeLoadFailed
+                onRetry={() => onRetry?.(term.id)}
+                isRetrying={term.isRetrying}
+              />
             ) : term.days.length === 0 ? (
               <p className="text-sm">Program zatím není připravený.</p>
             ) : (

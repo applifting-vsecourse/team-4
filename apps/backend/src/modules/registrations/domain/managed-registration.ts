@@ -2,6 +2,7 @@ import {
   amountDueMinor,
   ParticipationStatus,
   RegistrationTermResult,
+  selectedPriceMinor,
 } from '@/modules/registrations/domain/registration';
 
 /** How a whole registration stands with its payments (data-model.md §3.9). */
@@ -29,11 +30,20 @@ export const paymentState = (
   return paidMinor < dueMinor ? 'partial' : 'paid';
 };
 
+/** Entered by the organizer, or paid through the QR link (F21-1). */
+export type PaymentSource = 'organizer' | 'qr_link';
+
+export const PAYMENT_SOURCES: readonly PaymentSource[] = [
+  'organizer',
+  'qr_link',
+];
+
 export type ReceivedPayment = {
   id: string;
   /** Calendar date the money arrived, yyyy-MM-dd. */
   receivedOn: string;
   amountMinor: number;
+  source: PaymentSource;
 };
 
 /** What the list filters on; term and status match on the same term (§3.10). */
@@ -62,7 +72,7 @@ export class ManagedRegistrationModel {
   ) {}
 
   get selectedPriceMinor(): number {
-    return this.terms.reduce((sum, term) => sum + term.priceMinor, 0);
+    return selectedPriceMinor(this.terms);
   }
 
   /** Σ confirmed terms (S2-16). */

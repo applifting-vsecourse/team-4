@@ -49,3 +49,13 @@ export async function createMagicLink(
   if (rowCount !== 1) throw new Error(`No participant account for ${email}`)
   return token
 }
+
+/** The QR payment token of a registration, which the UI only shows to its participant. */
+export async function paymentToken(registrationId: string): Promise<string> {
+  const { rows } = await db().query<{ paymentToken: string }>(
+    `SELECT "paymentToken" FROM registration WHERE id = $1`,
+    [registrationId],
+  )
+  if (!rows[0]) throw new Error(`No registration ${registrationId}`)
+  return rows[0].paymentToken
+}

@@ -289,6 +289,8 @@ describe('payment obligation (S2-16)', () => {
       include: { terms: true },
     });
     expect(response.body.amountDueMinor).toBe(100_000);
+    // The QR link (F21-1) is offered right away, for this registration only.
+    expect(response.body.paymentLinkToken).toBe(stored.paymentToken);
     expect(response.body.paymentInstructions).toEqual({
       amountMinor: 100_000,
       variableSymbol: stored.variableSymbol,
@@ -316,6 +318,7 @@ describe('payment obligation (S2-16)', () => {
 
       expect(response.body.amountDueMinor).toBe(0);
       expect(response.body.paymentInstructions).toBeNull();
+      expect(response.body.paymentLinkToken).toBeNull();
       const stored = await prisma.registration.findUniqueOrThrow({
         where: { id: response.body.id },
       });
