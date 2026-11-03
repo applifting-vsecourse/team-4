@@ -22,7 +22,8 @@ import { Label } from "@/components/ui/label"
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 
-import { type SelectableTerm } from "@/features/registrations/api/registrationSchemas"
+import { genderSchema, type SelectableTerm } from "@/features/registrations/api/registrationSchemas"
+import { GenderField } from "@/features/registrations/components/GenderField"
 import { toE164 } from "@/features/registrations/lib/phone"
 import { type RegistrationSubmitError } from "@/features/registrations/lib/registrationErrors"
 
@@ -51,6 +52,8 @@ const schema = z.object({
     .min(1, "Vyplňte telefon.")
     .refine((value) => toE164(value) !== null, PHONE_MESSAGE),
   termIds: z.array(z.string()).min(1, "Vyberte alespoň jeden termín."),
+  /** Voluntary (F64); null is "not answered". */
+  gender: genderSchema.nullable(),
 })
 
 export type RegistrationFormValues = z.infer<typeof schema>
@@ -61,6 +64,7 @@ const EMPTY: RegistrationFormValues = {
   email: "",
   phone: "",
   termIds: [],
+  gender: null,
 }
 
 type RegistrationFormProps = {
@@ -259,6 +263,18 @@ export function RegistrationForm({
             )}
           />
         </fieldset>
+
+        <FormField
+          control={form.control}
+          name="gender"
+          render={({ field }) => (
+            <GenderField
+              id="registration-gender"
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
+        />
 
         {submitError ? <SubmitErrorAlert error={submitError} /> : null}
 

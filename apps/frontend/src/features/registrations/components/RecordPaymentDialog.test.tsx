@@ -44,6 +44,8 @@ const DETAIL = {
   paymentState: "partial",
   reminderAt: null,
   variableSymbol: null,
+  gender: null,
+  requiresManualAccommodation: true,
   payments: [
     {
       id: "0190c0de-0000-7000-8000-0000000000b1",

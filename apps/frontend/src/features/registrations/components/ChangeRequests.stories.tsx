@@ -121,6 +121,8 @@ const BASE: Omit<Detail, "terms"> = {
   paymentState: "paid",
   reminderAt: null,
   variableSymbol: "2026110412",
+  gender: "female",
+  requiresManualAccommodation: false,
   payments: [
     {
       id: "4b9c2d1e-7a6f-4e3d-8c2b-1a0f9e8d7c6b",

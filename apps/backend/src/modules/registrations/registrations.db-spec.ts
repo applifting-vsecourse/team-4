@@ -701,6 +701,16 @@ describe('validation', () => {
       { priceMinor: 0 },
       'property priceMinor should not exist',
     ],
+    [
+      'with an unknown gender answer',
+      { gender: 'unknown' },
+      'Vyberte jednu z nabízených odpovědí.',
+    ],
+    [
+      'with several gender answers at once',
+      { gender: ['female', 'male'] },
+      'Vyberte jednu z nabízených odpovědí.',
+    ],
   ])('refuses a form %s', async (_, overrides, message) => {
     const f = await eventWith();
 
@@ -722,6 +732,26 @@ describe('validation', () => {
 
     expect(response.status).toBe(201);
     expect(response.body.phone).toBe(stored);
+  });
+
+  // F64: voluntary, one answer, kept per registration and out of the result.
+  it.each([
+    ['without an answer', {}, null],
+    ['with no answer sent as null', { gender: null }, null],
+    ['with "Žena"', { gender: 'female' }, 'female'],
+    ['with "Nechci uvést"', { gender: 'undisclosed' }, 'undisclosed'],
+  ])('saves a form %s', async (_, overrides, gender) => {
+    const f = await eventWith();
+
+    const response = await submit(f.publicId, form(f.termIds, overrides));
+
+    expect(response.status).toBe(201);
+    expect(response.body).not.toHaveProperty('gender');
+    const saved = await prisma.registration.findUniqueOrThrow({
+      where: { id: response.body.id },
+      select: { gender: true },
+    });
+    expect(saved.gender).toBe(gender);
   });
 });
 

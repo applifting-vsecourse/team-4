@@ -439,3 +439,155 @@ describe('access', () => {
     expect((await get(null, `${f.path}/${registration.id}`)).status).toBe(403);
   });
 });
+
+const put = async (
+  userId: string | null,
+  path: string,
+  body: unknown,
+): Promise<Call> => {
+  const response = await fetch(`${baseUrl}/${path}`, {
+    method: 'PUT',
+    headers: {
+      'content-type': 'application/json',
+      ...(userId ? { 'x-test-user': userId } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  const text = await response.text();
+  return { status: response.status, body: text ? JSON.parse(text) : null };
+};
+
+const stored = async (
+  registrationId: string,
+): Promise<{ gender: string | null; version: number }> =>
+  prisma.registration.findUniqueOrThrow({
+    where: { id: registrationId },
+    select: { gender: true, version: true },
+  });
+
+// F64: the voluntary gender answer as the organizer reads and corrects it.
+describe('the gender answer', () => {
+  it('reads an unanswered registration as not answered, decided by hand', async () => {
+    const f = await eventWith();
+    const registration = await f.register({ 0: 'confirmed' });
+    const detail = await get(f.ownerId, `${f.path}/${registration.id}`);
+    expect(detail.body).toMatchObject({
+      gender: null,
+      requiresManualAccommodation: true,
+    });
+    // Not part of the list.
+    const list = await get(f.ownerId, f.path);
+    expect(list.body.registrations[0]).not.toHaveProperty('gender');
+  });
+
+  it('is corrected, kept after a reload, and cleared back to not answered', async () => {
+    const f = await eventWith();
+    const registration = await f.register({ 0: 'confirmed' });
+    const path = `${f.path}/${registration.id}`;
+
+    const saved = await put(f.ownerId, `${path}/gender`, { gender: 'female' });
+    expect(saved.status).toBe(200);
+    expect(saved.body).toMatchObject({
+      id: registration.id,
+      gender: 'female',
+      requiresManualAccommodation: false,
+    });
+    expect((await get(f.ownerId, path)).body.gender).toBe('female');
+    expect(await stored(registration.id)).toEqual({
+      gender: 'female',
+      version: 1,
+    });
+
+    // The same answer again changes nothing, not even the version.
+    await put(f.ownerId, `${path}/gender`, { gender: 'female' });
+    expect((await stored(registration.id)).version).toBe(1);
+
+    for (const gender of ['other', 'undisclosed']) {
+      const other = await put(f.ownerId, `${path}/gender`, { gender });
+      expect(other.body).toMatchObject({
+        gender,
+        requiresManualAccommodation: true,
+      });
+    }
+
+    const cleared = await put(f.ownerId, `${path}/gender`, { gender: null });
+    expect(cleared.body).toMatchObject({
+      gender: null,
+      requiresManualAccommodation: true,
+    });
+  });
+
+  it('refuses an unknown value, several values or none, keeping the stored one', async () => {
+    const f = await eventWith();
+    const registration = await f.register({ 0: 'confirmed' });
+    const path = `${f.path}/${registration.id}/gender`;
+    await put(f.ownerId, path, { gender: 'male' });
+
+    for (const body of [
+      { gender: 'unknown' },
+      { gender: ['female', 'male'] },
+      {},
+      { gender: 'female', firstName: 'Jiná' },
+    ]) {
+      const refused = await put(f.ownerId, path, body);
+      expect({ body, status: refused.status }).toEqual({ body, status: 400 });
+    }
+    expect(await stored(registration.id)).toEqual({
+      gender: 'male',
+      version: 1,
+    });
+  });
+
+  it('waits for a pending change request of the participant', async () => {
+    const f = await eventWith();
+    const registration = await f.register({ 0: 'confirmed' });
+    await prisma.registrationChange.create({
+      data: {
+        registrationId: registration.id,
+        eventId: f.event.id,
+        status: 'pending',
+        proposal: { gender: 'male', moves: [], cancelledTermIds: [] },
+        summary: {},
+      },
+    });
+
+    const refused = await put(
+      f.ownerId,
+      `${f.path}/${registration.id}/gender`,
+      { gender: 'female' },
+    );
+    expect(refused.status).toBe(409);
+    expect(refused.body.code).toBe('change_pending');
+    expect(await stored(registration.id)).toEqual({
+      gender: null,
+      version: 0,
+    });
+  });
+
+  it('cannot be read or changed through another event, organization or without a session', async () => {
+    const mine = await eventWith();
+    const foreign = await eventWith();
+    const ofForeign = await foreign.register({ 0: 'confirmed' });
+    await prisma.registration.update({
+      where: { id: ofForeign.id },
+      data: { gender: 'female' },
+    });
+
+    for (const path of [
+      `${mine.path}/${ofForeign.id}/gender`,
+      `${foreign.path}/${ofForeign.id}/gender`,
+    ]) {
+      expect((await put(mine.ownerId, path, { gender: 'male' })).status).toBe(
+        404,
+      );
+    }
+    expect(
+      (
+        await put(null, `${foreign.path}/${ofForeign.id}/gender`, {
+          gender: 'male',
+        })
+      ).status,
+    ).toBe(403);
+    expect((await stored(ofForeign.id)).gender).toBe('female');
+  });
+});

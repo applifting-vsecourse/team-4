@@ -201,6 +201,46 @@ describe("validation", () => {
   })
 })
 
+describe("the gender answer (F64)", () => {
+  it("is voluntary: the form is sent without it as not answered", async () => {
+    post.mockReturnValue(respondWith(RESULT))
+    renderForm()
+    expect(screen.getByRole("group", { name: "Pohlaví pro ubytování (nepovinné)" })).toBeVisible()
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await fillContact()
+
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+    expect(sentBody()).toMatchObject({ gender: null })
+  })
+
+  it("sends the one chosen answer, and none again after the choice is cleared", async () => {
+    post.mockReturnValue(respondWith(RESULT))
+    renderForm()
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await fillContact()
+
+    await user.click(screen.getByRole("radio", { name: "Žena" }))
+    await user.click(screen.getByRole("radio", { name: "Nechci uvést" }))
+    expect(screen.getByRole("radio", { name: "Žena" })).not.toBeChecked()
+    expect(screen.getByRole("radio", { name: "Nechci uvést" })).toBeChecked()
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+    expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+    expect(sentBody()).toMatchObject({ gender: "undisclosed" })
+  })
+
+  it("can be cleared back to no answer", async () => {
+    renderForm()
+    await user.click(screen.getByRole("radio", { name: "Muž" }))
+
+    await user.click(screen.getByRole("button", { name: "Zrušit výběr" }))
+
+    for (const radio of screen.getAllByRole("radio")) expect(radio).not.toBeChecked()
+    expect(screen.queryByRole("button", { name: "Zrušit výběr" })).not.toBeInTheDocument()
+  })
+})
+
 describe("submitting", () => {
   it("sends the selection once, shows progress, then the stored result of each term", async () => {
     const scrollTo = vi.spyOn(window, "scrollTo").mockReturnValue(undefined)

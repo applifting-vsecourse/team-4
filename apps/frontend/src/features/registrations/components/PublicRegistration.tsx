@@ -52,6 +52,7 @@ export function PublicRegistration({ publicId, terms }: PublicRegistrationProps)
       // Validated by the form schema; the server normalizes the same way.
       phone: toE164(values.phone) ?? values.phone,
       termIds: values.termIds,
+      gender: values.gender,
     })
   }
 

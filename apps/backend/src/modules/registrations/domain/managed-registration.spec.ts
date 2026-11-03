@@ -47,6 +47,7 @@ const registration = (
       amountMinor,
       source: 'organizer' as const,
     })),
+    null,
   );
 
 describe('ManagedRegistrationModel', () => {

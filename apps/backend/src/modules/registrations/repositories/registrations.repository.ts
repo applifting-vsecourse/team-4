@@ -190,6 +190,7 @@ export class RegistrationsRepository {
           lastName: input.lastName,
           email: input.email,
           phone: input.phone,
+          gender: input.gender ?? null,
           bankAccountPrefix: event.bankAccountPrefix,
           bankAccountNumber: event.bankAccountNumber,
           bankCode: event.bankCode,

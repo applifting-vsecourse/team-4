@@ -1,4 +1,5 @@
 import { type ChangeProposal } from "@/features/registrations/api/registrationChangeSchemas"
+import { type Gender } from "@/features/registrations/api/registrationSchemas"
 import { type ContactErrors } from "@/features/registrations/components/RegistrationChangeForm"
 
 /** What the edit form currently holds. */
@@ -6,11 +7,13 @@ export type EditState = {
   firstName: string
   lastName: string
   phone: string
+  /** Null is "not answered" (F64). */
+  gender: Gender | null
   /** By the active term it belongs to. */
   terms: Record<string, { selectedTermId: string; isCancelled: boolean }>
 }
 
-type Contact = { firstName: string; lastName: string; phone: string }
+type Contact = { firstName: string; lastName: string; phone: string; gender: Gender | null }
 
 const squash = (phone: string) => phone.replace(/\s+/g, "")
 
@@ -34,6 +37,8 @@ export function buildProposal(contact: Contact, state: EditState): ChangeProposa
   if (state.firstName.trim() !== contact.firstName) proposal.firstName = state.firstName.trim()
   if (state.lastName.trim() !== contact.lastName) proposal.lastName = state.lastName.trim()
   if (squash(state.phone) !== squash(contact.phone)) proposal.phone = state.phone.trim()
+  // Null is sent as such: it clears the answer.
+  if (state.gender !== contact.gender) proposal.gender = state.gender
 
   for (const [termId, choice] of Object.entries(state.terms)) {
     if (choice.isCancelled) proposal.cancelledTermIds.push(termId)
@@ -50,6 +55,7 @@ export function buildProposal(contact: Contact, state: EditState): ChangeProposa
     proposal.firstName !== undefined ||
     proposal.lastName !== undefined ||
     proposal.phone !== undefined ||
+    proposal.gender !== undefined ||
     proposal.moves.length > 0 ||
     proposal.cancelledTermIds.length > 0
   return isChanged ? proposal : null

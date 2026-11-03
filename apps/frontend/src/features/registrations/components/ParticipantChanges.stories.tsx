@@ -55,6 +55,7 @@ const CONTACT: ContactValues = {
   lastName: "Nováková",
   email: "jana.novakova@seznam.cz",
   phone: "+420 604 123 456",
+  gender: "female",
 }
 
 // --- Detail přihlášky ------------------------------------------------------

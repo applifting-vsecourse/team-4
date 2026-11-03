@@ -1,3 +1,4 @@
+import { Gender, GENDERS } from '@/modules/registrations/domain/gender';
 import {
   PAYMENT_STATES,
   PaymentState,
@@ -24,6 +25,13 @@ export class ParticipantContactDto {
 
   @ApiProperty({ description: 'E.164.' })
   phone!: string;
+
+  @ApiProperty({
+    enum: GENDERS,
+    nullable: true,
+    description: 'Voluntary answer for accommodation; null when not answered.',
+  })
+  gender!: Gender | null;
 }
 
 export class AvailableTermDto {

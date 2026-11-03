@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import {
+  genderSchema,
   participationStatusSchema,
   paymentInstructionsSchema,
   receivedPaymentSchema,
@@ -40,6 +41,8 @@ export const participantRegistrationSchema = z.object({
     lastName: z.string(),
     email: z.string(),
     phone: z.string(),
+    /** Voluntary answer for accommodation; null when not answered. */
+    gender: genderSchema.nullable(),
   }),
   /** Sent back as `expectedVersion` when changing the registration. */
   version: z.number().int(),

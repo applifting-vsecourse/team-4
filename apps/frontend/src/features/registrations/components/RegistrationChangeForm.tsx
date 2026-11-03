@@ -22,10 +22,21 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-import { type ParticipationStatus } from "@/features/registrations/api/registrationSchemas"
+import {
+  type Gender,
+  type ParticipationStatus,
+} from "@/features/registrations/api/registrationSchemas"
+import { GenderField } from "@/features/registrations/components/GenderField"
 import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
 
-export type ContactValues = { firstName: string; lastName: string; email: string; phone: string }
+export type ContactValues = {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  /** Voluntary answer for accommodation (F64); null is "not answered". */
+  gender: Gender | null
+}
 
 /** A term of the same event the participant may move to. */
 export type TermOption = {
@@ -56,6 +67,7 @@ export type RegistrationChangeFormProps = {
   terms: ChangeableTerm[]
   /** Fields are uncontrolled; these report every edit to the page that owns the state. */
   onContactChange?: (field: "firstName" | "lastName" | "phone", value: string) => void
+  onGenderChange?: (gender: Gender | null) => void
   onTermChange?: (termId: string, change: { selectedTermId: string; isCancelled: boolean }) => void
   onReview?: () => void
   onCancel?: () => void
@@ -72,12 +84,18 @@ export function RegistrationChangeForm({
   contact,
   terms,
   onContactChange,
+  onGenderChange,
   onTermChange,
   onReview,
   onCancel,
   errors = {},
   errorMessage,
 }: RegistrationChangeFormProps) {
+  const [gender, setGender] = useState(contact.gender)
+  const chooseGender = (next: Gender | null) => {
+    setGender(next)
+    onGenderChange?.(next)
+  }
   const [chosen, setChosen] = useState<Record<string, TermChoice>>(() =>
     Object.fromEntries(
       terms.map((term) => [
@@ -162,6 +180,11 @@ export function RegistrationChangeForm({
                 <FieldError>{errors.phone}</FieldError>
               </Field>
             </div>
+            <GenderField
+              id="change-gender"
+              value={gender}
+              onChange={chooseGender}
+            />
           </FieldGroup>
         </CardContent>
       </Card>

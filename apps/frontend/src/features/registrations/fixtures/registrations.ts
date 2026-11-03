@@ -110,6 +110,8 @@ export function makeRegistrationDetail(
     reminderAt: "2027-03-16T09:15:00.000Z",
     variableSymbol: "2700001",
     payments: [],
+    gender: "female",
+    requiresManualAccommodation: false,
     ...overrides,
   })
 }

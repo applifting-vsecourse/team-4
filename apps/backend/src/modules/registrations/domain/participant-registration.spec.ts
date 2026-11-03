@@ -35,6 +35,7 @@ const registration = (
       lastName: 'Nováková',
       email: 'jana@example.com',
       phone: '+420777123456',
+      gender: null,
     },
     0,
     false,

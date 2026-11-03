@@ -8,6 +8,11 @@ export const participationStatusSchema = z.enum(["confirmed", "waitlisted", "can
 
 export type ParticipationStatus = z.infer<typeof participationStatusSchema>
 
+/** The voluntary answer for accommodation (F64); null elsewhere is "not answered". */
+export const genderSchema = z.enum(["female", "male", "other", "undisclosed"])
+
+export type Gender = z.infer<typeof genderSchema>
+
 export const bankAccountSchema = z.object({
   prefix: z.string().nullable(),
   number: z.string(),
@@ -86,4 +91,6 @@ export type RegistrationInput = {
   email: string
   phone: string
   termIds: string[]
+  /** Voluntary; null is "not answered". */
+  gender: Gender | null
 }

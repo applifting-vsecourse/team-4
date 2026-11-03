@@ -2,6 +2,7 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
+import { Gender } from '@/modules/registrations/domain/gender';
 import {
   ManagedRegistrationModel,
   RegistrationFilter,
@@ -15,6 +16,7 @@ const registrationSelect = {
   lastName: true,
   email: true,
   phone: true,
+  gender: true,
   variableSymbol: true,
   paymentReminderAt: true,
   terms: {
@@ -58,6 +60,7 @@ const toModel = (
       amountMinor: payment.amountMinor,
       source: payment.source,
     })),
+    row.gender,
   );
 
 /** Registrations of the scope's event only, of an organization of the caller (§3.2). */
@@ -117,5 +120,41 @@ export class EventRegistrationsRepository {
       select: registrationSelect,
     });
     return row ? toModel(row) : null;
+  }
+
+  /**
+   * The organizer's correction of the gender answer (F64). Locks the
+   * registration like a participant change, so the two cannot overlap; a
+   * waiting change request must be decided first, it was proposed on the old
+   * answer. An actual change bumps the version, so an open participant form
+   * reloads instead of overwriting it.
+   */
+  async updateGender(
+    scope: EventScope,
+    registrationId: string,
+    gender: Gender | null,
+  ): Promise<'updated' | 'not_found' | 'change_pending'> {
+    return this.prisma.$transaction(async (tx) => {
+      const found = await tx.registration.findFirst({
+        where: { id: registrationId, ...inScope(scope) },
+        select: { id: true },
+      });
+      if (!found) return 'not_found';
+      const [locked] = await tx.$queryRaw<{ gender: Gender | null }[]>`
+        SELECT "gender"::text AS "gender" FROM "registration"
+        WHERE "id" = ${registrationId}::uuid
+        FOR UPDATE`;
+      const pending = await tx.registrationChange.count({
+        where: { registrationId, status: 'pending' },
+      });
+      if (pending > 0) return 'change_pending';
+      if (locked.gender !== gender) {
+        await tx.registration.update({
+          where: { id: registrationId },
+          data: { gender, version: { increment: 1 } },
+        });
+      }
+      return 'updated';
+    });
   }
 }

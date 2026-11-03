@@ -1,4 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { Gender, GENDERS } from '@/modules/registrations/domain/gender';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -6,7 +7,9 @@ import {
   ArrayUnique,
   IsArray,
   IsEmail,
+  IsIn,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUUID,
   Matches,
@@ -32,6 +35,8 @@ export const toE164 = ({ value }: { value: unknown }): unknown => {
 
 export const PHONE_MESSAGE =
   'Zadejte telefon s mezinárodní předvolbou, např. +420 777 123 456.';
+
+export const GENDER_MESSAGE = 'Vyberte jednu z nabízených odpovědí.';
 
 /** The fixed form of an adult participant (S2-07). */
 export class RegistrationInputDto {
@@ -93,4 +98,15 @@ export class RegistrationInputDto {
   @ArrayUnique({ message: 'Termín je vybraný víckrát.' })
   @IsUUID('all', { each: true, message: 'Neplatný termín.' })
   termIds!: string[];
+
+  @ApiPropertyOptional({
+    enum: GENDERS,
+    nullable: true,
+    description:
+      'Voluntary answer for accommodation, one value. Left out or null is ' +
+      '"not answered", which differs from `undisclosed`.',
+  })
+  @IsOptional()
+  @IsIn(GENDERS, { message: GENDER_MESSAGE })
+  gender?: Gender | null;
 }

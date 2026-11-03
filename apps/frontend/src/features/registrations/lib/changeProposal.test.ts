@@ -6,7 +6,12 @@ import {
   type EditState,
 } from "@/features/registrations/lib/changeProposal"
 
-const CONTACT = { firstName: "Jana", lastName: "Nováková", phone: "+420604123456" }
+const CONTACT = {
+  firstName: "Jana",
+  lastName: "Nováková",
+  phone: "+420604123456",
+  gender: null,
+} as const satisfies Pick<EditState, "firstName" | "lastName" | "phone" | "gender">
 const T1 = "0190c0de-0000-7000-8000-000000000001"
 const T2 = "0190c0de-0000-7000-8000-000000000002"
 const T3 = "0190c0de-0000-7000-8000-000000000003"
@@ -60,6 +65,20 @@ describe("buildProposal", () => {
     ).toEqual({
       moves: [{ fromTermId: T1, toTermId: T3, acceptWaitlist: false }],
       cancelledTermIds: [T2],
+    })
+  })
+
+  it("sends a changed gender answer, and null when it is cleared (F64)", () => {
+    expect(buildProposal(CONTACT, state({ gender: "undisclosed" }))).toEqual({
+      gender: "undisclosed",
+      moves: [],
+      cancelledTermIds: [],
+    })
+    expect(buildProposal({ ...CONTACT, gender: "male" }, state({ gender: "male" }))).toBeNull()
+    expect(buildProposal({ ...CONTACT, gender: "male" }, state())).toEqual({
+      gender: null,
+      moves: [],
+      cancelledTermIds: [],
     })
   })
 

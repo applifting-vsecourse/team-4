@@ -1,11 +1,16 @@
 import { EventScope } from '@/modules/events/repositories/events.repository';
+import { Gender } from '@/modules/registrations/domain/gender';
 import {
   ManagedRegistrationModel,
   RegistrationFilter,
   RegistrationList,
 } from '@/modules/registrations/domain/managed-registration';
 import { EventRegistrationsRepository } from '@/modules/registrations/repositories/event-registrations.repository';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 const notAvailable = (): NotFoundException =>
   new NotFoundException('Záznam není dostupný');
@@ -42,5 +47,28 @@ export class EventRegistrationsService {
     const registration = await this.repository.findOne(scope, registrationId);
     if (!registration) throw notAvailable();
     return registration;
+  }
+
+  /** The organizer's correction of the gender answer (F64); the saved registration. */
+  async updateGender(
+    scope: EventScope,
+    registrationId: string,
+    gender: Gender | null,
+  ): Promise<ManagedRegistrationModel> {
+    const outcome = await this.repository.updateGender(
+      scope,
+      registrationId,
+      gender,
+    );
+    if (outcome === 'not_found') throw notAvailable();
+    if (outcome === 'change_pending') {
+      throw new ConflictException({
+        statusCode: 409,
+        code: 'change_pending',
+        message:
+          'Přihláška má nevyřízenou žádost o změnu. Nejdřív o ní rozhodněte.',
+      });
+    }
+    return this.get(scope, registrationId);
   }
 }

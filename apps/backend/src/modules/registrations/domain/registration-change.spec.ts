@@ -32,6 +32,7 @@ const subject = (
   firstName: 'Jana',
   lastName: 'Nováková',
   phone: '+420604123456',
+  gender: null,
   paidMinor,
   terms,
 });
@@ -90,6 +91,41 @@ describe('planChange', () => {
       { field: 'phone', original: '+420604123456', proposed: '+420731987654' },
     ]);
     expect(plan.summary.terms.map((t) => t.termId)).toEqual(['t1', 't2']);
+  });
+
+  it('changes the gender answer as data, judged by every active term', () => {
+    const plan = planChange(
+      PLAIN,
+      proposal({ gender: 'other' }),
+      events(),
+      14,
+      NOW,
+    );
+    expect(plan.requiresApproval).toBe(true);
+    expect(plan.kinds).toEqual(['data']);
+    expect(plan.summary.values).toEqual([
+      { field: 'gender', original: null, proposed: 'other' },
+    ]);
+    expect(plan.summary.terms.map((t) => t.termId)).toEqual(['t1', 't2']);
+  });
+
+  it('clears the gender answer back to not answered', () => {
+    const plan = planChange(
+      { ...PLAIN, gender: 'undisclosed' },
+      proposal({ gender: null }),
+      events(),
+      null,
+      NOW,
+    );
+    expect(plan.summary.values).toEqual([
+      { field: 'gender', original: 'undisclosed', proposed: null },
+    ]);
+  });
+
+  it('ignores a gender answer left as it is', () => {
+    expect(() =>
+      planChange(PLAIN, proposal({ gender: null }), events(), 14, NOW),
+    ).toThrow(new InvalidChangeError('no_change'));
   });
 
   it('ignores a field left as it is', () => {
