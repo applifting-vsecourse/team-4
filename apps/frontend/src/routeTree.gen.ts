@@ -18,6 +18,7 @@ import { Route as EPublicIdRouteImport } from './routes/e/$publicId'
 import { Route as MyRegistrationsIndexRouteImport } from './routes/my-registrations/index'
 import { Route as MyRegistrationsRegistrationIdRouteImport } from './routes/my-registrations/$registrationId'
 import { Route as MyRegistrationsVerifyRouteImport } from './routes/my-registrations/verify'
+import { Route as PlatbaTokenRouteImport } from './routes/platba/$token'
 import { Route as ProtectedPagesOrganizationsIndexRouteImport } from './routes/_ProtectedPages/organizations/index'
 import { Route as ProtectedPagesOrganizationsOrganizationIdRouteImport } from './routes/_ProtectedPages/organizations/$organizationId'
 import { Route as ProtectedPagesOrganizationsNewRouteImport } from './routes/_ProtectedPages/organizations/new'
@@ -73,6 +74,11 @@ const MyRegistrationsRegistrationIdRoute =
 const MyRegistrationsVerifyRoute = MyRegistrationsVerifyRouteImport.update({
   id: '/my-registrations/verify',
   path: '/my-registrations/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatbaTokenRoute = PlatbaTokenRouteImport.update({
+  id: '/platba/$token',
+  path: '/platba/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProtectedPagesOrganizationsIndexRoute =
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/e/$publicId': typeof EPublicIdRoute
   '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
   '/my-registrations/verify': typeof MyRegistrationsVerifyRoute
+  '/platba/$token': typeof PlatbaTokenRoute
   '/my-registrations/': typeof MyRegistrationsIndexRoute
   '/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdRouteWithChildren
   '/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
@@ -181,6 +188,7 @@ export interface FileRoutesByTo {
   '/e/$publicId': typeof EPublicIdRoute
   '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
   '/my-registrations/verify': typeof MyRegistrationsVerifyRoute
+  '/platba/$token': typeof PlatbaTokenRoute
   '/my-registrations': typeof MyRegistrationsIndexRoute
   '/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
   '/organizations': typeof ProtectedPagesOrganizationsIndexRoute
@@ -203,6 +211,7 @@ export interface FileRoutesById {
   '/e/$publicId': typeof EPublicIdRoute
   '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
   '/my-registrations/verify': typeof MyRegistrationsVerifyRoute
+  '/platba/$token': typeof PlatbaTokenRoute
   '/my-registrations/': typeof MyRegistrationsIndexRoute
   '/_ProtectedPages/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdRouteWithChildren
   '/_ProtectedPages/organizations/new': typeof ProtectedPagesOrganizationsNewRoute
@@ -226,6 +235,7 @@ export interface FileRouteTypes {
     | '/e/$publicId'
     | '/my-registrations/$registrationId'
     | '/my-registrations/verify'
+    | '/platba/$token'
     | '/my-registrations/'
     | '/organizations/$organizationId'
     | '/organizations/new'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/e/$publicId'
     | '/my-registrations/$registrationId'
     | '/my-registrations/verify'
+    | '/platba/$token'
     | '/my-registrations'
     | '/organizations/new'
     | '/organizations'
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
     | '/e/$publicId'
     | '/my-registrations/$registrationId'
     | '/my-registrations/verify'
+    | '/platba/$token'
     | '/my-registrations/'
     | '/_ProtectedPages/organizations/$organizationId'
     | '/_ProtectedPages/organizations/new'
@@ -291,6 +303,7 @@ export interface RootRouteChildren {
   EPublicIdRoute: typeof EPublicIdRoute
   MyRegistrationsRegistrationIdRoute: typeof MyRegistrationsRegistrationIdRoute
   MyRegistrationsVerifyRoute: typeof MyRegistrationsVerifyRoute
+  PlatbaTokenRoute: typeof PlatbaTokenRoute
   MyRegistrationsIndexRoute: typeof MyRegistrationsIndexRoute
 }
 
@@ -357,6 +370,13 @@ declare module '@tanstack/react-router' {
       path: '/my-registrations/verify'
       fullPath: '/my-registrations/verify'
       preLoaderRoute: typeof MyRegistrationsVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platba/$token': {
+      id: '/platba/$token'
+      path: '/platba/$token'
+      fullPath: '/platba/$token'
+      preLoaderRoute: typeof PlatbaTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_ProtectedPages/organizations/': {
@@ -501,6 +521,7 @@ const rootRouteChildren: RootRouteChildren = {
   EPublicIdRoute: EPublicIdRoute,
   MyRegistrationsRegistrationIdRoute: MyRegistrationsRegistrationIdRoute,
   MyRegistrationsVerifyRoute: MyRegistrationsVerifyRoute,
+  PlatbaTokenRoute: PlatbaTokenRoute,
   MyRegistrationsIndexRoute: MyRegistrationsIndexRoute,
 }
 export const routeTree = rootRouteImport

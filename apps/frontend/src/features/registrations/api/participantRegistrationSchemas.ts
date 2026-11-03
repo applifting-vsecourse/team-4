@@ -3,6 +3,7 @@ import { z } from "zod"
 import {
   participationStatusSchema,
   paymentInstructionsSchema,
+  receivedPaymentSchema,
 } from "@/features/registrations/api/registrationSchemas"
 
 // The signed-in participant's own registrations (S2-14). Amounts are derived
@@ -29,13 +30,9 @@ export const participantRegistrationSchema = z.object({
   balanceMinor: z.number().int(),
   /** Only while a debt remains. */
   paymentInstructions: paymentInstructionsSchema.nullable(),
-  payments: z.array(
-    z.object({
-      id: z.string().uuid(),
-      receivedOn: z.string(),
-      amountMinor: z.number().int(),
-    }),
-  ),
+  /** Token of the QR payment link; only while a debt remains. */
+  paymentLinkToken: z.string().nullable(),
+  payments: z.array(receivedPaymentSchema),
 })
 
 export const participantRegistrationListSchema = z.object({

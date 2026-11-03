@@ -27,7 +27,9 @@ const registration = (
       id: `p${index}`,
       receivedOn: '2026-10-12',
       amountMinor,
+      source: 'organizer' as const,
     })),
+    'a'.repeat(64),
   );
 
 describe('ParticipantRegistrationModel', () => {
@@ -47,6 +49,18 @@ describe('ParticipantRegistrationModel', () => {
       variableSymbol: '2027094',
       reminderAt: REMINDER,
     });
+  });
+
+  it('offers the QR payment link only while a debt remains', () => {
+    expect(registration([['confirmed', 790_000]]).paymentLinkToken).toBe(
+      'a'.repeat(64),
+    );
+    expect(
+      registration([['confirmed', 790_000]], [790_000]).paymentLinkToken,
+    ).toBeNull();
+    expect(
+      registration([['confirmed', 790_000]], [800_000]).paymentLinkToken,
+    ).toBeNull();
   });
 
   it('has no instructions with only waitlisted terms', () => {

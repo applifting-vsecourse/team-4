@@ -30,6 +30,7 @@ export const registrationHandlers = {
               id: "0190c0de-0000-7000-8000-000000000501",
               receivedOn: "2027-03-05",
               amountMinor: 200_000,
+              source: "organizer",
             },
           ],
         }),

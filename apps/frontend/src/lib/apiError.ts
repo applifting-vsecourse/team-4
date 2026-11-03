@@ -16,6 +16,8 @@ export type ApiErrorCode =
   | "already_registered"
   | "submission_key_reused"
   | "received_on_future"
+  | "debt_reduced"
+  | "nothing_to_pay"
   | "magic_link_invalid"
   | "participant_session_required"
 

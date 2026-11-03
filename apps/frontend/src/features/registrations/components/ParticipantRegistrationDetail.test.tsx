@@ -60,8 +60,14 @@ const REGISTRATION: ParticipantRegistration = {
     account: { prefix: null, number: "2501234567", bankCode: "2010" },
     reminderAt: "2027-06-28T08:00:00.000Z",
   },
+  paymentLinkToken: "b".repeat(64),
   payments: [
-    { id: "0190c0de-0000-7000-8000-0000000000b1", receivedOn: "2026-10-15", amountMinor: 200_000 },
+    {
+      id: "0190c0de-0000-7000-8000-0000000000b1",
+      receivedOn: "2026-10-15",
+      amountMinor: 200_000,
+      source: "organizer",
+    },
   ],
 }
 

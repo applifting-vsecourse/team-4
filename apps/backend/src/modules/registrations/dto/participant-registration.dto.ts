@@ -56,6 +56,15 @@ export class ParticipantRegistrationDto {
   paymentInstructions!: PaymentInstructionsDto | null;
 
   @ApiProperty({
+    nullable: true,
+    type: String,
+    description:
+      'Token of the QR payment link (`/platba/{token}`), only while a debt ' +
+      'remains; null otherwise.',
+  })
+  paymentLinkToken!: string | null;
+
+  @ApiProperty({
     type: [ReceivedPaymentDto],
     description: 'By the day received, oldest first.',
   })
@@ -79,6 +88,7 @@ export class ParticipantRegistrationDto {
         account: { ...instructions.account },
         reminderAt: instructions.reminderAt.toISOString(),
       },
+      paymentLinkToken: model.paymentLinkToken,
       payments: model.payments.map(ReceivedPaymentDto.from),
     };
   }

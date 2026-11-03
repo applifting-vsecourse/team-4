@@ -29,6 +29,7 @@ export class ParticipantRegistrationModel {
     private readonly storedReminderAt: Date | null,
     /** By the day received, then as recorded. */
     public readonly payments: ReceivedPayment[],
+    private readonly paymentToken: string,
   ) {}
 
   /** Price of the selected terms; waitlisted ones included. */
@@ -48,6 +49,11 @@ export class ParticipantRegistrationModel {
   /** Positive is a debt, zero settled, negative an overpayment. */
   get balanceMinor(): number {
     return this.amountDueMinor - this.paidMinor;
+  }
+
+  /** Token of the QR payment link; null when nothing is left to pay. */
+  get paymentLinkToken(): string | null {
+    return this.balanceMinor > 0 ? this.paymentToken : null;
   }
 
   get paymentState(): PaymentState {

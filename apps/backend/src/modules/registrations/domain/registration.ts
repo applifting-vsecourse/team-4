@@ -148,7 +148,13 @@ export class RegistrationResultModel {
     public readonly account: BankAccount,
     public readonly reminderAt: Date | null,
     public readonly event: EventSummary,
+    private readonly paymentToken: string,
   ) {}
+
+  /** Token of the QR payment link (F21-1); null while nothing is owed. */
+  get paymentLinkToken(): string | null {
+    return this.amountDueMinor > 0 ? this.paymentToken : null;
+  }
 
   /** Σ confirmed terms (S2-16); 0 for waitlisted-only or free terms. */
   get amountDueMinor(): number {

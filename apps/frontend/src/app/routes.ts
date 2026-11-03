@@ -13,6 +13,7 @@ export const ROUTES = {
   publicEvent: "/e/$publicId",
   myRegistrations: "/my-registrations",
   myRegistration: "/my-registrations/$registrationId",
+  qrPayment: "/platba/$token",
   login: "/login",
   signup: "/signup",
   designSystem: "/design-system",
