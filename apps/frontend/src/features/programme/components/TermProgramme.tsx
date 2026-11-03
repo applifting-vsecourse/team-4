@@ -11,13 +11,29 @@ type TermProgrammeProps = {
   days: ProgrammeDay[]
   /** The programme could not be loaded; the list is not shown as empty. */
   isLoadFailed?: boolean
+  isRetrying?: boolean
+  onAdd?: () => void
+  onEdit?: (itemId: string) => void
+  onDelete?: (itemId: string) => void
+  onRetry?: () => void
 }
 
 // Správa akce → Nastavení → Termíny a ceny → Program termínu (F65), organizer.
-// Design only: every value is passed in.
-export function TermProgramme({ days, isLoadFailed = false }: TermProgrammeProps) {
+// Every value and action is passed in.
+export function TermProgramme({
+  days,
+  isLoadFailed = false,
+  isRetrying,
+  onAdd,
+  onEdit,
+  onDelete,
+  onRetry,
+}: TermProgrammeProps) {
   const addButton = (
-    <Button variant={days.length === 0 ? "default" : "outline"}>
+    <Button
+      variant={days.length === 0 ? "default" : "outline"}
+      onClick={onAdd}
+    >
       <Plus />
       Přidat položku
     </Button>
@@ -36,7 +52,10 @@ export function TermProgramme({ days, isLoadFailed = false }: TermProgrammeProps
       </div>
 
       {isLoadFailed ? (
-        <ProgrammeLoadFailed />
+        <ProgrammeLoadFailed
+          onRetry={onRetry}
+          isRetrying={isRetrying}
+        />
       ) : days.length === 0 ? (
         <Empty>
           <EmptyHeader>
@@ -53,6 +72,8 @@ export function TermProgramme({ days, isLoadFailed = false }: TermProgrammeProps
             <ProgrammeList
               days={days}
               isEditable
+              onEdit={onEdit}
+              onDelete={onDelete}
             />
           </CardContent>
         </Card>

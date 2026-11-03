@@ -17,6 +17,7 @@ import {
   participantChangesQueryOptions,
   participantRegistrationQueryOptions,
 } from "@/features/registrations/api/participantRegistrationQueryOptions"
+import { type ParticipantRegistration } from "@/features/registrations/api/participantRegistrationSchemas"
 import { type ChangeProposal } from "@/features/registrations/api/registrationChangeSchemas"
 import { ChangeRequestCard } from "@/features/registrations/components/ChangeRequestCard"
 import { ChangeReviewDialog } from "@/features/registrations/components/ChangeReviewDialog"
@@ -60,11 +61,14 @@ type ParticipantRegistrationDetailProps = {
   registrationId: string
   /** What replaces the detail when the session has ended (S2-13). */
   sessionEnded: ReactNode
+  /** The programme of the confirmed terms (F65), owned by another feature. */
+  renderProgramme?: (registration: ParticipantRegistration) => ReactNode
 }
 
 export function ParticipantRegistrationDetail({
   registrationId,
   sessionEnded,
+  renderProgramme,
 }: ParticipantRegistrationDetailProps) {
   const query = useQuery(participantRegistrationQueryOptions(registrationId))
   const changesQuery = useQuery(participantChangesQueryOptions(registrationId))
@@ -219,6 +223,8 @@ export function ParticipantRegistrationDetail({
               />
             </CardContent>
           </Card>
+
+          {renderProgramme?.(data)}
 
           <Card>
             <CardHeader>

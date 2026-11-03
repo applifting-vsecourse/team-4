@@ -178,6 +178,7 @@ model Event {
   roomAvailabilities RoomTermAvailability[]
   registrations      Registration[]
   registrationTerms  RegistrationTerm[]
+  programmeItems     ProgrammeItem[]
 
   @@unique([id, organizationId])
   @@index([organizationId, createdAt])
@@ -197,6 +198,7 @@ model EventTerm {
   event              Event                  @relation(fields: [eventId], references: [id], onDelete: Restrict)
   roomAvailabilities RoomTermAvailability[]
   registrationTerms  RegistrationTerm[]
+  programmeItems     ProgrammeItem[]
 
   @@unique([id, eventId])
   @@index([eventId, startDate])
@@ -236,6 +238,28 @@ model RoomTermAvailability {
   @@id([roomId, termId])
   @@index([termId])
   @@map("room_term_availability")
+}
+
+// One item of a term's programme (F65). Start is Europe/Prague wall-clock
+// time, so a date and an `HH:mm` string; the date lies within the term
+// (checked by the service, as terms are editable until registration opens).
+model ProgrammeItem {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  eventId     String   @db.Uuid
+  termId      String   @db.Uuid
+  title       String   @db.VarChar(200)
+  startDate   DateTime @db.Date
+  startTime   String   @db.VarChar(5)
+  place       String?  @db.VarChar(200)
+  description String?  @db.VarChar(1000)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  term  EventTerm @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Cascade)
+  event Event     @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  @@index([termId, startDate, startTime])
+  @@map("programme_item")
 }
 
 // ─── Participants & access ──────────────────────────────────────────────────
