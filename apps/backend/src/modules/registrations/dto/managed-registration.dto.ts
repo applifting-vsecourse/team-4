@@ -1,3 +1,4 @@
+import { Gender, GENDERS } from '@/modules/registrations/domain/gender';
 import {
   ManagedRegistrationModel,
   PAYMENT_SOURCES,
@@ -137,6 +138,28 @@ export class RegistrationDetailDto extends RegistrationSummaryDto {
   })
   payments!: ReceivedPaymentDto[];
 
+  @ApiProperty({
+    enum: GENDERS,
+    nullable: true,
+    description:
+      "The participant's voluntary answer for accommodation; null when not answered.",
+  })
+  gender!: Gender | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'The own words for `gender: other`; null when none.',
+  })
+  genderOther!: string | null;
+
+  @ApiProperty({
+    description:
+      'The organizer decides the accommodation by hand: for `other`, ' +
+      '`undisclosed` and no answer.',
+  })
+  requiresManualAccommodation!: boolean;
+
   static from(model: ManagedRegistrationModel): RegistrationDetailDto {
     const hasObligation = model.amountDueMinor > 0;
     return {
@@ -145,6 +168,9 @@ export class RegistrationDetailDto extends RegistrationSummaryDto {
       reminderAt: model.reminderAt?.toISOString() ?? null,
       variableSymbol: hasObligation ? model.variableSymbol : null,
       payments: model.payments.map(ReceivedPaymentDto.from),
+      gender: model.gender,
+      genderOther: model.genderOther,
+      requiresManualAccommodation: model.requiresManualAccommodation,
     };
   }
 }

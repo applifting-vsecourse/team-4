@@ -23,7 +23,12 @@ import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 import { toE164 } from "@/lib/phone"
 
-import { type SelectableTerm } from "@/features/registrations/api/registrationSchemas"
+import {
+  genderOtherSchema,
+  genderSchema,
+  type SelectableTerm,
+} from "@/features/registrations/api/registrationSchemas"
+import { GenderField } from "@/features/registrations/components/GenderField"
 import { type RegistrationSubmitError } from "@/features/registrations/lib/registrationErrors"
 
 const PHONE_MESSAGE = "Zadejte telefon s mezinárodní předvolbou, např. +420 777 123 456."
@@ -51,6 +56,10 @@ const schema = z.object({
     .min(1, "Vyplňte telefon.")
     .refine((value) => toE164(value) !== null, PHONE_MESSAGE),
   termIds: z.array(z.string()).min(1, "Vyberte alespoň jeden termín."),
+  /** Voluntary (F64); null is "not answered". */
+  gender: genderSchema.nullable(),
+  /** Own words for "Jiná odpověď"; sent only beside it. */
+  genderOther: genderOtherSchema,
 })
 
 export type RegistrationFormValues = z.infer<typeof schema>
@@ -61,6 +70,8 @@ const EMPTY: RegistrationFormValues = {
   email: "",
   phone: "",
   termIds: [],
+  gender: null,
+  genderOther: null,
 }
 
 type RegistrationFormProps = {
@@ -102,6 +113,8 @@ export function RegistrationForm({
       email: typed.email ?? "",
       phone: typed.phone ?? "",
       termIds: (typed.termIds ?? []).filter((id): id is string => typeof id === "string"),
+      gender: typed.gender ?? null,
+      genderOther: typed.genderOther ?? null,
     })
   }, [typed, onValuesChange])
 
@@ -276,6 +289,21 @@ export function RegistrationForm({
             )}
           />
         </fieldset>
+
+        <FormField
+          control={form.control}
+          name="gender"
+          render={({ field }) => (
+            <GenderField
+              id="registration-gender"
+              value={{ gender: field.value, genderOther: typed.genderOther ?? null }}
+              onChange={(answer) => {
+                field.onChange(answer.gender)
+                form.setValue("genderOther", answer.genderOther)
+              }}
+            />
+          )}
+        />
 
         {submitError ? <SubmitErrorAlert error={submitError} /> : null}
 

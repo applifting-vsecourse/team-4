@@ -339,6 +339,17 @@ enum ParticipationStatus {
   @@map("participation_status")
 }
 
+// The participant's own answer (F64); `other`, `undisclosed` and no answer
+// leave the accommodation to the organizer.
+enum Gender {
+  female
+  male
+  other
+  undisclosed
+
+  @@map("gender")
+}
+
 model Registration {
   id                   String @id @default(uuid(7)) @db.Uuid
   organizationId       String @db.Uuid
@@ -354,6 +365,12 @@ model Registration {
   lastName  String @db.VarChar(100)
   email     String @db.VarChar(320) // as submitted
   phone     String @db.VarChar(16) // E.164
+  // Voluntary answer for accommodation (F64), per registration, never the
+  // account identity. Null is "not answered", distinct from `undisclosed`.
+  gender    Gender?
+  // The participant's own words for `other`; null for every other answer
+  // (CHECK in the migration).
+  genderOther String? @db.VarChar(100)
 
   receivedAt        DateTime  @default(now()) @db.Timestamptz(3)
   paymentReminderAt DateTime? @db.Timestamptz(3)

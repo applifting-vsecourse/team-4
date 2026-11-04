@@ -84,6 +84,8 @@ const MIXED: ParticipantRegistration = {
     lastName: "Nováková",
     email: "jana@example.com",
     phone: "+420604123456",
+    gender: null,
+    genderOther: null,
   },
   version: 0,
   isCancelled: false,

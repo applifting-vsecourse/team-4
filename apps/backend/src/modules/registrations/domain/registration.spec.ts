@@ -60,8 +60,19 @@ describe('submissionHash', () => {
     ['e-mail', { email: 'jana2@example.com' }],
     ['phone', { phone: '+420777123457' }],
     ['terms', { termIds: ['a'] }],
+    ['gender', { gender: 'female' as const }],
+    [
+      'own gender words',
+      { gender: 'other' as const, genderOther: 'nebinární' },
+    ],
   ])('changes with the %s', (_, change) => {
     expect(submissionHash({ ...input, ...change })).not.toBe(
+      submissionHash(input),
+    );
+  });
+
+  it('is the same for no gender answer, left out or null', () => {
+    expect(submissionHash({ ...input, gender: null })).toBe(
       submissionHash(input),
     );
   });

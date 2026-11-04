@@ -8,6 +8,8 @@ const DRAFT = {
   email: "jana@example.test",
   phone: "+420 777 123 456",
   termIds: ["t1", "t2"],
+  gender: "other" as const,
+  genderOther: "nebinární",
 }
 
 afterEach(() => {

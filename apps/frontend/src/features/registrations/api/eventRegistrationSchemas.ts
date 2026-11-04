@@ -2,6 +2,8 @@ import { z } from "zod"
 
 import {
   activeParticipationStatusSchema,
+  genderOtherSchema,
+  genderSchema,
   participationStatusSchema,
   receivedPaymentSchema,
 } from "@/features/registrations/api/registrationSchemas"
@@ -49,6 +51,11 @@ export const registrationDetailSchema = registrationSummarySchema.extend({
   reminderAt: z.string().nullable(),
   variableSymbol: z.string().nullable(),
   payments: z.array(receivedPaymentSchema),
+  /** The participant's voluntary answer for accommodation; null when not answered. */
+  gender: genderSchema.nullable(),
+  genderOther: genderOtherSchema,
+  /** "Jiná odpověď", "Nechci uvést" or no answer: the organizer decides the accommodation. */
+  requiresManualAccommodation: z.boolean(),
 })
 
 export type RegistrationSummary = z.infer<typeof registrationSummarySchema>
