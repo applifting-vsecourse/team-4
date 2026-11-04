@@ -517,6 +517,26 @@ describe('the gender answer', () => {
     });
   });
 
+  it('keeps own words with "Jiná odpověď" and drops them with another answer', async () => {
+    const f = await eventWith();
+    const registration = await f.register({ 0: 'confirmed' });
+    const path = `${f.path}/${registration.id}`;
+
+    const saved = await put(f.ownerId, `${path}/gender`, {
+      gender: 'other',
+      genderOther: ' nebinární ',
+    });
+    expect(saved.body).toMatchObject({
+      gender: 'other',
+      genderOther: 'nebinární',
+      requiresManualAccommodation: true,
+    });
+    expect((await get(f.ownerId, path)).body.genderOther).toBe('nebinární');
+
+    const another = await put(f.ownerId, `${path}/gender`, { gender: 'male' });
+    expect(another.body).toMatchObject({ gender: 'male', genderOther: null });
+  });
+
   it('refuses an unknown value, several values or none, keeping the stored one', async () => {
     const f = await eventWith();
     const registration = await f.register({ 0: 'confirmed' });
@@ -528,6 +548,8 @@ describe('the gender answer', () => {
       { gender: ['female', 'male'] },
       {},
       { gender: 'female', firstName: 'Jiná' },
+      { gender: 'female', genderOther: 'nebinární' },
+      { gender: 'other', genderOther: 'x'.repeat(101) },
     ]) {
       const refused = await put(f.ownerId, path, body);
       expect({ body, status: refused.status }).toEqual({ body, status: 400 });

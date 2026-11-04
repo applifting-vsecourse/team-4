@@ -32,6 +32,13 @@ export class ParticipantContactDto {
     description: 'Voluntary answer for accommodation; null when not answered.',
   })
   gender!: Gender | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'The own words for `gender: other`; null when none.',
+  })
+  genderOther!: string | null;
 }
 
 export class AvailableTermDto {

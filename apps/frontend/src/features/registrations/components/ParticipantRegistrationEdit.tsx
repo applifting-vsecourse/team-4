@@ -146,6 +146,7 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
       lastName: contact.lastName,
       phone: contact.phone,
       gender: contact.gender,
+      genderOther: contact.genderOther,
       terms: Object.fromEntries(
         active.map((term) => [term.termId, { selectedTermId: term.termId, isCancelled: false }]),
       ),
@@ -205,7 +206,7 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
         errors={errors}
         errorMessage={message}
         onContactChange={(field, value) => setState((current) => ({ ...current, [field]: value }))}
-        onGenderChange={(gender) => setState((current) => ({ ...current, gender }))}
+        onGenderChange={(answer) => setState((current) => ({ ...current, ...answer }))}
         onTermChange={(termId, change) =>
           setState((current) => ({ ...current, terms: { ...current.terms, [termId]: change } }))
         }

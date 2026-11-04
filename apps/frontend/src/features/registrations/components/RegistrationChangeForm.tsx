@@ -24,6 +24,7 @@ import {
 
 import {
   type Gender,
+  type GenderAnswer,
   type ParticipationStatus,
 } from "@/features/registrations/api/registrationSchemas"
 import { GenderField } from "@/features/registrations/components/GenderField"
@@ -36,6 +37,8 @@ export type ContactValues = {
   phone: string
   /** Voluntary answer for accommodation (F64); null is "not answered". */
   gender: Gender | null
+  /** Own words for "Jiná odpověď"; null when none. */
+  genderOther: string | null
 }
 
 /** A term of the same event the participant may move to. */
@@ -67,7 +70,7 @@ export type RegistrationChangeFormProps = {
   terms: ChangeableTerm[]
   /** Fields are uncontrolled; these report every edit to the page that owns the state. */
   onContactChange?: (field: "firstName" | "lastName" | "phone", value: string) => void
-  onGenderChange?: (gender: Gender | null) => void
+  onGenderChange?: (answer: GenderAnswer) => void
   onTermChange?: (termId: string, change: { selectedTermId: string; isCancelled: boolean }) => void
   onReview?: () => void
   onCancel?: () => void
@@ -91,8 +94,11 @@ export function RegistrationChangeForm({
   errors = {},
   errorMessage,
 }: RegistrationChangeFormProps) {
-  const [gender, setGender] = useState(contact.gender)
-  const chooseGender = (next: Gender | null) => {
+  const [gender, setGender] = useState<GenderAnswer>({
+    gender: contact.gender,
+    genderOther: contact.genderOther,
+  })
+  const chooseGender = (next: GenderAnswer) => {
     setGender(next)
     onGenderChange?.(next)
   }

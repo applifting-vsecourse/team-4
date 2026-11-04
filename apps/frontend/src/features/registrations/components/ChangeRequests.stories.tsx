@@ -122,6 +122,7 @@ const BASE: Omit<Detail, "terms"> = {
   reminderAt: null,
   variableSymbol: "2026110412",
   gender: "female",
+  genderOther: null,
   requiresManualAccommodation: false,
   payments: [
     {

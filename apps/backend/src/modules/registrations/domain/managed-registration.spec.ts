@@ -48,6 +48,7 @@ const registration = (
       source: 'organizer' as const,
     })),
     null,
+    null,
   );
 
 describe('ManagedRegistrationModel', () => {

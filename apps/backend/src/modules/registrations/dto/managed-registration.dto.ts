@@ -147,6 +147,13 @@ export class RegistrationDetailDto extends RegistrationSummaryDto {
   gender!: Gender | null;
 
   @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'The own words for `gender: other`; null when none.',
+  })
+  genderOther!: string | null;
+
+  @ApiProperty({
     description:
       'The organizer decides the accommodation by hand: for `other`, ' +
       '`undisclosed` and no answer.',
@@ -162,6 +169,7 @@ export class RegistrationDetailDto extends RegistrationSummaryDto {
       variableSymbol: hasObligation ? model.variableSymbol : null,
       payments: model.payments.map(ReceivedPaymentDto.from),
       gender: model.gender,
+      genderOther: model.genderOther,
       requiresManualAccommodation: model.requiresManualAccommodation,
     };
   }

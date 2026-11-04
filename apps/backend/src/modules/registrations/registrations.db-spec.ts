@@ -711,6 +711,21 @@ describe('validation', () => {
       { gender: ['female', 'male'] },
       'Vyberte jednu z nabízených odpovědí.',
     ],
+    [
+      'with own gender words beside another answer',
+      { gender: 'female', genderOther: 'nebinární' },
+      'Vlastní odpověď lze uvést jen u „Jiná odpověď“.',
+    ],
+    [
+      'with own gender words and no answer',
+      { genderOther: 'nebinární' },
+      'Vlastní odpověď lze uvést jen u „Jiná odpověď“.',
+    ],
+    [
+      'with own gender words too long',
+      { gender: 'other', genderOther: 'x'.repeat(101) },
+      'Vlastní odpověď může mít nejvýše 100 znaků.',
+    ],
   ])('refuses a form %s', async (_, overrides, message) => {
     const f = await eventWith();
 
@@ -736,22 +751,51 @@ describe('validation', () => {
 
   // F64: voluntary, one answer, kept per registration and out of the result.
   it.each([
-    ['without an answer', {}, null],
-    ['with no answer sent as null', { gender: null }, null],
-    ['with "Žena"', { gender: 'female' }, 'female'],
-    ['with "Nechci uvést"', { gender: 'undisclosed' }, 'undisclosed'],
-  ])('saves a form %s', async (_, overrides, gender) => {
+    ['without an answer', {}, null, null],
+    ['with no answer sent as null', { gender: null }, null, null],
+    ['with "Žena"', { gender: 'female' }, 'female', null],
+    ['with "Nechci uvést"', { gender: 'undisclosed' }, 'undisclosed', null],
+    ['with "Jiná odpověď" alone', { gender: 'other' }, 'other', null],
+    [
+      'with "Jiná odpověď" and blank own words',
+      { gender: 'other', genderOther: '   ' },
+      'other',
+      null,
+    ],
+    [
+      'with "Jiná odpověď" and own words',
+      { gender: 'other', genderOther: '  nebinární ' },
+      'other',
+      'nebinární',
+    ],
+  ])('saves a form %s', async (_, overrides, gender, genderOther) => {
     const f = await eventWith();
 
     const response = await submit(f.publicId, form(f.termIds, overrides));
 
     expect(response.status).toBe(201);
     expect(response.body).not.toHaveProperty('gender');
+    expect(response.body).not.toHaveProperty('genderOther');
     const saved = await prisma.registration.findUniqueOrThrow({
       where: { id: response.body.id },
-      select: { gender: true },
+      select: { gender: true, genderOther: true },
     });
-    expect(saved.gender).toBe(gender);
+    expect(saved).toEqual({ gender, genderOther });
+  });
+
+  it('keeps own words only with "Jiná odpověď" in the database', async () => {
+    const f = await eventWith();
+    const response = await submit(
+      f.publicId,
+      form(f.termIds, { gender: 'other', genderOther: 'nebinární' }),
+    );
+
+    await expect(
+      prisma.registration.update({
+        where: { id: response.body.id },
+        data: { gender: 'female' },
+      }),
+    ).rejects.toThrow(/registration_gender_other_chk/);
   });
 });
 

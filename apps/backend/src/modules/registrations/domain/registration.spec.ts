@@ -61,6 +61,10 @@ describe('submissionHash', () => {
     ['phone', { phone: '+420777123457' }],
     ['terms', { termIds: ['a'] }],
     ['gender', { gender: 'female' as const }],
+    [
+      'own gender words',
+      { gender: 'other' as const, genderOther: 'nebinární' },
+    ],
   ])('changes with the %s', (_, change) => {
     expect(submissionHash({ ...input, ...change })).not.toBe(
       submissionHash(input),

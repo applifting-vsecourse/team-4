@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import {
+  genderOtherSchema,
   genderSchema,
   participationStatusSchema,
   type Gender,
@@ -50,6 +51,12 @@ export const changeSummarySchema = z.object({
         field: z.literal("gender"),
         original: genderSchema.nullable(),
         proposed: genderSchema.nullable(),
+      }),
+      // Null is no own words for "Jiná odpověď".
+      z.object({
+        field: z.literal("genderOther"),
+        original: genderOtherSchema,
+        proposed: genderOtherSchema,
       }),
     ]),
   ),
@@ -112,6 +119,8 @@ export type ChangeProposal = {
   phone?: string
   /** Null clears the answer back to "not answered". */
   gender?: Gender | null
+  /** Own words for `other`; null removes them. */
+  genderOther?: string | null
   moves: { fromTermId: string; toTermId: string; acceptWaitlist: boolean }[]
   cancelledTermIds: string[]
 }

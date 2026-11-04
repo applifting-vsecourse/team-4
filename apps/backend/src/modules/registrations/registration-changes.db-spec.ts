@@ -864,13 +864,42 @@ describe('the gender answer', () => {
     expect(await genderOf(registration)).toBe('other');
   });
 
-  it.each([
-    ['an unknown value', 'unknown'],
-    ['several values at once', ['female', 'male']],
-  ])('refuses %s and keeps the stored answer', async (_, gender) => {
+  it('adds own words to "Jiná odpověď" and drops them with another answer', async () => {
     const fixture = await setup(null);
     const registration = await register(fixture, [1]);
-    const body = { moves: [], cancelledTermIds: [], gender };
+    const stored = async () =>
+      prisma.registration.findUniqueOrThrow({
+        where: { id: registration.id },
+        select: { gender: true, genderOther: true },
+      });
+
+    const set = await submit(registration, {
+      gender: 'other',
+      genderOther: 'nebinární',
+    });
+    expect(set.body.change.summary.values).toEqual([
+      { field: 'gender', original: null, proposed: 'other' },
+      { field: 'genderOther', original: null, proposed: 'nebinární' },
+    ]);
+    const detail = await call('GET', base(registration), own(registration));
+    expect(detail.body.contact).toMatchObject({
+      gender: 'other',
+      genderOther: 'nebinární',
+    });
+
+    await submit(registration, { gender: 'female' });
+    expect(await stored()).toEqual({ gender: 'female', genderOther: null });
+  });
+
+  it.each([
+    ['an unknown value', { gender: 'unknown' }],
+    ['several values at once', { gender: ['female', 'male'] }],
+    ['own words beside another answer', { gender: 'male', genderOther: 'x' }],
+    ['own words beside no stored answer', { genderOther: 'nebinární' }],
+  ])('refuses %s and keeps the stored answer', async (_, change) => {
+    const fixture = await setup(null);
+    const registration = await register(fixture, [1]);
+    const body = { moves: [], cancelledTermIds: [], ...change };
 
     const preview = await call(
       'POST',

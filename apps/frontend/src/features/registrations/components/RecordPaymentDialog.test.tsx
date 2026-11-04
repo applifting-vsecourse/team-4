@@ -45,6 +45,7 @@ const DETAIL = {
   reminderAt: null,
   variableSymbol: null,
   gender: null,
+  genderOther: null,
   requiresManualAccommodation: true,
   payments: [
     {

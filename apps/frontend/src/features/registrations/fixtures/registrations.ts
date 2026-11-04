@@ -111,6 +111,7 @@ export function makeRegistrationDetail(
     variableSymbol: "2700001",
     payments: [],
     gender: "female",
+    genderOther: null,
     requiresManualAccommodation: false,
     ...overrides,
   })

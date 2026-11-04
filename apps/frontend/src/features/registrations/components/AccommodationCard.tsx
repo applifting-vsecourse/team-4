@@ -3,11 +3,11 @@ import type { ReactNode } from "react"
 import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-import { type Gender } from "@/features/registrations/api/registrationSchemas"
+import { type GenderAnswer } from "@/features/registrations/api/registrationSchemas"
 import { genderText } from "@/features/registrations/lib/gender"
 
 type AccommodationCardProps = {
-  gender: Gender | null
+  answer: GenderAnswer
   /** Organizer only: the answer does not decide the accommodation. */
   isManualAccommodation?: boolean
   /** E.g. the organizer's "Opravit". */
@@ -17,9 +17,10 @@ type AccommodationCardProps = {
 }
 
 // F64, Detail přihlášky (participant and organizer): the stored gender answer
-// for accommodation. No answer reads "Neuvedeno", apart from "Nechci uvést".
+// for accommodation and the own words for "Jiná odpověď". No answer reads
+// "Neuvedeno", apart from "Nechci uvést".
 export function AccommodationCard({
-  gender,
+  answer,
   isManualAccommodation = false,
   action,
   children,
@@ -33,9 +34,17 @@ export function AccommodationCard({
       <CardContent>
         <div className="space-y-4">
           {children ?? (
-            <dl className="space-y-1 text-sm">
-              <dt className="text-muted-foreground">Pohlaví pro ubytování</dt>
-              <dd>{genderText(gender)}</dd>
+            <dl className="space-y-3 text-sm">
+              <div className="space-y-1">
+                <dt className="text-muted-foreground">Pohlaví pro ubytování</dt>
+                <dd>{genderText(answer.gender)}</dd>
+              </div>
+              {answer.genderOther ? (
+                <div className="space-y-1">
+                  <dt className="text-muted-foreground">Vlastní odpověď</dt>
+                  <dd className="break-words">{answer.genderOther}</dd>
+                </div>
+              ) : null}
             </dl>
           )}
           {isManualAccommodation ? (

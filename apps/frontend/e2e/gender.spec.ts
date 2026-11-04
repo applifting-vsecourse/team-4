@@ -13,6 +13,7 @@ const terms: TermSpec[] = [
 ]
 const rooms = [{ label: "Chatka", baseBeds: 4, terms: [0] }]
 const ANSWER = "Pohlaví pro ubytování"
+const OWN_WORDS = "Vlastní odpověď"
 
 test.afterAll(closeDb)
 
@@ -25,7 +26,7 @@ test("the answer from the form is shown to both sides, changed and corrected", a
 
   const context = await browser.newContext()
   const participant = await context.newPage()
-  await participant.goto(`/e/${event.publicId}`)
+  await participant.goto(`/e/${event.publicId}/registration`)
   await participant.getByRole("checkbox", { name: /1\. turnus/ }).check()
   await participant.getByLabel("Jméno").fill(jana.firstName)
   await participant.getByLabel("Příjmení").fill(jana.lastName)
@@ -66,14 +67,60 @@ test("the answer from the form is shown to both sides, changed and corrected", a
 
   await page.getByRole("button", { name: "Opravit" }).click()
   await page.getByRole("radio", { name: "Jiná odpověď" }).check()
+  await page.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" }).fill("nebinární")
   await page.getByRole("button", { name: "Uložit" }).click()
   await expect(definition(page, ANSWER)).toHaveText("Jiná odpověď")
+  await expect(definition(page, OWN_WORDS)).toHaveText("nebinární")
   await expect(page.getByText("Ubytování je potřeba určit ručně")).toBeVisible()
   await page.reload()
   await expect(definition(page, ANSWER)).toHaveText("Jiná odpověď")
+  await expect(definition(page, OWN_WORDS)).toHaveText("nebinární")
 
   await participant.reload()
   await expect(definition(participant, ANSWER)).toHaveText("Jiná odpověď")
+  await expect(definition(participant, OWN_WORDS)).toHaveText("nebinární")
+  await context.close()
+})
+
+test("the own words of Jiná odpověď are sent from the form and changed in the edit", async ({
+  page,
+  browser,
+}) => {
+  const event = await setUpEvent(page.request, { terms, rooms })
+  const context = await browser.newContext()
+  const participant = await context.newPage()
+  const eva = newParticipant("Eva")
+
+  await participant.goto(`/e/${event.publicId}/registration`)
+  await participant.getByRole("checkbox", { name: /1\. turnus/ }).check()
+  await participant.getByLabel("Jméno").fill(eva.firstName)
+  await participant.getByLabel("Příjmení").fill(eva.lastName)
+  await participant.getByLabel("E-mail").fill(eva.email)
+  await participant.getByLabel("Telefon").fill("+420 777 123 456")
+  await participant.getByRole("radio", { name: "Jiná odpověď" }).check()
+  await participant.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" }).fill("nebinární")
+  await participant.getByRole("button", { name: "Odeslat přihlášku" }).click()
+  await expect(participant.getByRole("region", { name: "Přihláška je uložená" })).toBeVisible()
+
+  await participant.goto(`/my-registrations/verify?token=${await createMagicLink(eva.email)}`)
+  await participant
+    .getByRole("link", { name: new RegExp(event.name) })
+    .first()
+    .click()
+  await expect(definition(participant, OWN_WORDS)).toHaveText("nebinární")
+
+  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  const words = participant.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" })
+  await expect(words).toHaveValue("nebinární")
+  await words.fill("agender")
+  await participant.getByRole("button", { name: "Zkontrolovat změny" }).click()
+  const review = participant.getByRole("dialog", { name: "Kontrola změn přihlášky" })
+  await expect(review).toContainText("Vlastní odpověď")
+  await expect(review).toContainText("agender")
+  await review.getByRole("button", { name: "Potvrdit změnu" }).click()
+  await expect(participant.getByRole("heading", { name: event.name, level: 1 })).toBeVisible()
+  await participant.reload()
+  await expect(definition(participant, OWN_WORDS)).toHaveText("agender")
   await context.close()
 })
 

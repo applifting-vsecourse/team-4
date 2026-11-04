@@ -239,6 +239,43 @@ describe("the gender answer (F64)", () => {
     for (const radio of screen.getAllByRole("radio")) expect(radio).not.toBeChecked()
     expect(screen.queryByRole("button", { name: "Zrušit výběr" })).not.toBeInTheDocument()
   })
+
+  it("asks for the own words only with Jiná odpověď and sends them trimmed", async () => {
+    post.mockReturnValue(respondWith(RESULT))
+    renderForm()
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await fillContact()
+    const wordsField = { name: "Vlastní odpověď (nepovinné)" }
+    expect(screen.queryByRole("textbox", wordsField)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("radio", { name: "Jiná odpověď" }))
+    await user.type(screen.getByRole("textbox", wordsField), "  nebinární ")
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+    expect(sentBody()).toMatchObject({ gender: "other", genderOther: "nebinární" })
+  })
+
+  it("drops the own words with another answer", async () => {
+    post.mockReturnValue(respondWith(RESULT))
+    renderForm()
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await fillContact()
+
+    await user.click(screen.getByRole("radio", { name: "Jiná odpověď" }))
+    await user.type(
+      screen.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" }),
+      "nebinární",
+    )
+    await user.click(screen.getByRole("radio", { name: "Žena" }))
+    expect(
+      screen.queryByRole("textbox", { name: "Vlastní odpověď (nepovinné)" }),
+    ).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+    expect(sentBody()).toMatchObject({ gender: "female", genderOther: null })
+  })
 })
 
 describe("submitting", () => {

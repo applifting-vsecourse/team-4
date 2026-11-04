@@ -16,6 +16,8 @@ export type RegistrationInput = {
   termIds: string[];
   /** Voluntary (F64); left out or null is "not answered". */
   gender?: Gender | null;
+  /** The own words for `other` only; left out or null is none. */
+  genderOther?: string | null;
 };
 
 /** One registration per e-mail and event: trimmed and lower-cased (T1). */
@@ -37,6 +39,7 @@ export const submissionHash = (input: RegistrationInput): string =>
         input.phone,
         [...input.termIds].sort(),
         ...(input.gender ? [input.gender] : []),
+        ...(input.genderOther ? [input.genderOther] : []),
       ]),
     )
     .digest('hex');

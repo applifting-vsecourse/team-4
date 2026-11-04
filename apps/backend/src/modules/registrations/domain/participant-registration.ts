@@ -40,6 +40,8 @@ export class ParticipantRegistrationModel {
       phone: string;
       /** Voluntary answer for accommodation (F64); null when not answered. */
       gender: Gender | null;
+      /** The own words for `other`; null otherwise. */
+      genderOther: string | null;
     },
     /** Bumped by every executed change (F35-2a). */
     public readonly version: number,

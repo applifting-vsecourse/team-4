@@ -14,10 +14,14 @@ const FIELD_LABELS = {
   lastName: "Příjmení",
   phone: "Telefon",
   gender: "Pohlaví pro ubytování",
+  genderOther: "Vlastní odpověď",
 } as const
 
-const valueText = (value: ChangeSummaryData["values"][number], side: "original" | "proposed") =>
-  value.field === "gender" ? genderText(value[side]) : value[side]
+const valueText = (value: ChangeSummaryData["values"][number], side: "original" | "proposed") => {
+  if (value.field === "gender") return genderText(value[side])
+  if (value.field === "genderOther") return value[side] ?? "Neuvedeno"
+  return value[side]
+}
 
 /** The balance as one signed line: a debt, settled, or an overpayment. */
 const balanceText = (balanceMinor: number) => {

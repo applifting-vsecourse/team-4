@@ -84,8 +84,8 @@ export class EventRegistrationsController {
   @ApiOperation({
     summary: "Corrects the participant's gender answer (F64)",
     description:
-      'Returns the saved registration. 400 for an unknown value or several ' +
-      'at once; 404 for a registration of another event or organization; ' +
+      'Returns the saved registration. 400 for an unknown value, several ' +
+      'at once or own words beside an answer other than `other`; 404 for a registration of another event or organization; ' +
       '409 `change_pending` while a change request of the participant waits.',
   })
   async updateGender(
@@ -99,7 +99,7 @@ export class EventRegistrationsController {
       await this.registrations.updateGender(
         { organizationId, ownerId: user.id, eventId },
         registrationId,
-        body.gender,
+        { gender: body.gender, genderOther: body.genderOther ?? null },
       ),
     );
   }

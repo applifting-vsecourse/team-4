@@ -6,15 +6,19 @@ import { Button } from "@/components/ui/button"
 import { readApiError } from "@/lib/apiError"
 
 import { type RegistrationDetail } from "@/features/registrations/api/eventRegistrationSchemas"
-import { type Gender } from "@/features/registrations/api/registrationSchemas"
+import { type GenderAnswer } from "@/features/registrations/api/registrationSchemas"
 import { AccommodationCard } from "@/features/registrations/components/AccommodationCard"
 import { GenderField } from "@/features/registrations/components/GenderField"
 import { useUpdateGender } from "@/features/registrations/hooks/useUpdateGender"
+import { NO_GENDER_ANSWER } from "@/features/registrations/lib/gender"
 
 type OrganizerAccommodationCardProps = {
   organizationId: string
   eventId: string
-  registration: Pick<RegistrationDetail, "id" | "gender" | "requiresManualAccommodation">
+  registration: Pick<
+    RegistrationDetail,
+    "id" | "gender" | "genderOther" | "requiresManualAccommodation"
+  >
 }
 
 /** A refused or failed save; the stored answer stays and nothing reads as success. */
@@ -33,18 +37,22 @@ export function OrganizerAccommodationCard({
   registration,
 }: OrganizerAccommodationCardProps) {
   const update = useUpdateGender(organizationId, eventId, registration.id)
-  const [draft, setDraft] = useState<Gender | null>(null)
+  const stored: GenderAnswer = {
+    gender: registration.gender,
+    genderOther: registration.genderOther,
+  }
+  const [draft, setDraft] = useState<GenderAnswer>(NO_GENDER_ANSWER)
   const [isEditing, setIsEditing] = useState(false)
 
   const startEditing = () => {
     update.reset()
-    setDraft(registration.gender)
+    setDraft(stored)
     setIsEditing(true)
   }
 
   return (
     <AccommodationCard
-      gender={registration.gender}
+      answer={stored}
       isManualAccommodation={registration.requiresManualAccommodation}
       action={
         isEditing ? null : (

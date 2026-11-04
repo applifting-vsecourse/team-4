@@ -2,6 +2,7 @@ import { z } from "zod"
 
 import {
   activeParticipationStatusSchema,
+  genderOtherSchema,
   genderSchema,
   participationStatusSchema,
   receivedPaymentSchema,
@@ -52,6 +53,7 @@ export const registrationDetailSchema = registrationSummarySchema.extend({
   payments: z.array(receivedPaymentSchema),
   /** The participant's voluntary answer for accommodation; null when not answered. */
   gender: genderSchema.nullable(),
+  genderOther: genderOtherSchema,
   /** "Jiná odpověď", "Nechci uvést" or no answer: the organizer decides the accommodation. */
   requiresManualAccommodation: z.boolean(),
 })

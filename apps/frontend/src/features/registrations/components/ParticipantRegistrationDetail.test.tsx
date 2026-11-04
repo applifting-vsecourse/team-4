@@ -75,6 +75,7 @@ const REGISTRATION: DetailData = {
     email: "jana@example.com",
     phone: "+420604123456",
     gender: null,
+    genderOther: null,
   },
   version: 0,
   isCancelled: false,

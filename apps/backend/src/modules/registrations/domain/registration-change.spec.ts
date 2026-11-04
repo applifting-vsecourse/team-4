@@ -33,6 +33,7 @@ const subject = (
   lastName: 'Nováková',
   phone: '+420604123456',
   gender: null,
+  genderOther: null,
   paidMinor,
   terms,
 });
@@ -120,6 +121,62 @@ describe('planChange', () => {
     expect(plan.summary.values).toEqual([
       { field: 'gender', original: 'undisclosed', proposed: null },
     ]);
+  });
+
+  it('adds the own words to "Jiná odpověď"', () => {
+    const plan = planChange(
+      PLAIN,
+      proposal({ gender: 'other', genderOther: 'nebinární' }),
+      events(),
+      null,
+      NOW,
+    );
+    expect(plan.summary.values).toEqual([
+      { field: 'gender', original: null, proposed: 'other' },
+      { field: 'genderOther', original: null, proposed: 'nebinární' },
+    ]);
+  });
+
+  it('changes only the own words of a kept "Jiná odpověď"', () => {
+    const plan = planChange(
+      { ...PLAIN, gender: 'other', genderOther: 'nebinární' },
+      proposal({ genderOther: 'agender' }),
+      events(),
+      null,
+      NOW,
+    );
+    expect(plan.summary.values).toEqual([
+      { field: 'genderOther', original: 'nebinární', proposed: 'agender' },
+    ]);
+  });
+
+  it('drops the own words with another answer', () => {
+    const plan = planChange(
+      { ...PLAIN, gender: 'other', genderOther: 'nebinární' },
+      proposal({ gender: 'undisclosed' }),
+      events(),
+      null,
+      NOW,
+    );
+    expect(plan.summary.values).toEqual([
+      { field: 'gender', original: 'other', proposed: 'undisclosed' },
+      { field: 'genderOther', original: 'nebinární', proposed: null },
+    ]);
+  });
+
+  it.each([
+    ['with another answer', { gender: 'female' as const }],
+    ['beside a stored answer other than "Jiná odpověď"', {}],
+  ])('refuses own words %s', (_, change) => {
+    expect(() =>
+      planChange(
+        { ...PLAIN, gender: 'male' },
+        proposal({ ...change, genderOther: 'nebinární' }),
+        events(),
+        null,
+        NOW,
+      ),
+    ).toThrow(new InvalidChangeError('gender_other_mismatch'));
   });
 
   it('ignores a gender answer left as it is', () => {

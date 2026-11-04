@@ -1,5 +1,5 @@
 import { EventScope } from '@/modules/events/repositories/events.repository';
-import { Gender } from '@/modules/registrations/domain/gender';
+import { GenderAnswer } from '@/modules/registrations/domain/gender';
 import {
   ManagedRegistrationModel,
   RegistrationFilter,
@@ -53,12 +53,12 @@ export class EventRegistrationsService {
   async updateGender(
     scope: EventScope,
     registrationId: string,
-    gender: Gender | null,
+    answer: GenderAnswer,
   ): Promise<ManagedRegistrationModel> {
     const outcome = await this.repository.updateGender(
       scope,
       registrationId,
-      gender,
+      answer,
     );
     if (outcome === 'not_found') throw notAvailable();
     if (outcome === 'change_pending') {

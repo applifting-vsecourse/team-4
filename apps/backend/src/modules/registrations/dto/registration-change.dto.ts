@@ -1,4 +1,8 @@
-import { Gender, GENDERS } from '@/modules/registrations/domain/gender';
+import {
+  Gender,
+  GENDER_OTHER_MAX_LENGTH,
+  GENDERS,
+} from '@/modules/registrations/domain/gender';
 import { ParticipationStatus } from '@/modules/registrations/domain/registration';
 import {
   CHANGEABLE_FIELDS,
@@ -12,6 +16,7 @@ import {
 } from '@/modules/registrations/domain/registration-change';
 import {
   GENDER_MESSAGE,
+  GenderOther,
   PHONE_MESSAGE,
   toE164,
   trim,
@@ -105,6 +110,17 @@ export class ChangeProposalDto {
   @IsIn([...GENDERS, null], { message: GENDER_MESSAGE })
   gender?: Gender | null;
 
+  @ApiPropertyOptional({
+    type: String,
+    maxLength: GENDER_OTHER_MAX_LENGTH,
+    nullable: true,
+    description:
+      'The own words for `gender: other` (this proposal or the stored one), ' +
+      'else 400; null removes them. Another answer drops them by itself.',
+  })
+  @GenderOther('allow')
+  genderOther?: string | null;
+
   @ApiProperty({ type: [TermMoveDto] })
   @IsArray()
   @ArrayMaxSize(100)
@@ -147,7 +163,9 @@ export class ChangedValueDto {
   @ApiProperty({
     nullable: true,
     type: String,
-    description: 'For `gender` one of its values, or null when not answered.',
+    description:
+      'For `gender` one of its values, or null when not answered; for ' +
+      '`genderOther` null when there are no own words.',
   })
   original!: string | null;
 

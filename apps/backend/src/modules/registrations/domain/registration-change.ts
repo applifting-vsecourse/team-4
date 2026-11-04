@@ -1,5 +1,5 @@
 import { requiresApproval } from '@/modules/events/domain/change-approval';
-import { Gender } from '@/modules/registrations/domain/gender';
+import { Gender, genderOtherFits } from '@/modules/registrations/domain/gender';
 import {
   amountDueMinor,
   decideParticipation,
@@ -12,8 +12,15 @@ import { TermCapacity } from '@/modules/rooms/domain/room';
 const TEXT_FIELDS = ['firstName', 'lastName', 'phone'] as const;
 type TextField = (typeof TEXT_FIELDS)[number];
 
-/** The data a participant may change: the contact fields and the gender answer (F64). */
-export const CHANGEABLE_FIELDS = [...TEXT_FIELDS, 'gender'] as const;
+/**
+ * The data a participant may change: the contact fields and the gender
+ * answer with its own words for "Jiná odpověď" (F64).
+ */
+export const CHANGEABLE_FIELDS = [
+  ...TEXT_FIELDS,
+  'gender',
+  'genderOther',
+] as const;
 export type ChangeableField = (typeof CHANGEABLE_FIELDS)[number];
 
 export type TermMove = {
@@ -30,6 +37,11 @@ export type ChangeProposal = {
   phone?: string;
   /** Null clears the answer back to "not answered" (F64). */
   gender?: Gender | null;
+  /**
+   * The own words for `other`; null removes them. Another answer drops them
+   * without being asked.
+   */
+  genderOther?: string | null;
   moves: TermMove[];
   cancelledTermIds: string[];
 };
@@ -39,7 +51,9 @@ export type ChangeKind = 'data' | 'move' | 'cancel_terms' | 'cancel_all';
 export type ChangedValue =
   | { field: TextField; original: string; proposed: string }
   /** Null is "not answered". */
-  | { field: 'gender'; original: Gender | null; proposed: Gender | null };
+  | { field: 'gender'; original: Gender | null; proposed: Gender | null }
+  /** Null is no own words. */
+  | { field: 'genderOther'; original: string | null; proposed: string | null };
 
 /** A term the change touches; null where it is not part of the registration. */
 export type PlannedTerm = {
@@ -85,7 +99,8 @@ export type ChangeErrorCode =
   | 'registration_cancelled'
   | 'term_not_active'
   | 'term_unknown'
-  | 'term_conflict';
+  | 'term_conflict'
+  | 'gender_other_mismatch';
 
 const MESSAGES: Record<ChangeErrorCode, string> = {
   no_change: 'Nic se nezměnilo.',
@@ -93,6 +108,7 @@ const MESSAGES: Record<ChangeErrorCode, string> = {
   term_not_active: 'Termín není součástí přihlášky.',
   term_unknown: 'Termín nepatří k této akci.',
   term_conflict: 'Termíny změny si odporují.',
+  gender_other_mismatch: 'Vlastní odpověď lze uvést jen u „Jiná odpověď“.',
 };
 
 export class InvalidChangeError extends Error {
@@ -107,6 +123,7 @@ export type ChangeSubject = {
   lastName: string;
   phone: string;
   gender: Gender | null;
+  genderOther: string | null;
   terms: RegistrationTermResult[];
   paidMinor: number;
 };
@@ -171,11 +188,28 @@ export const planChange = (
       values.push({ field, original: subject[field], proposed });
     }
   }
-  if (proposal.gender !== undefined && proposal.gender !== subject.gender) {
+  const gender =
+    proposal.gender !== undefined ? proposal.gender : subject.gender;
+  if (gender !== subject.gender) {
     values.push({
       field: 'gender',
       original: subject.gender,
-      proposed: proposal.gender,
+      proposed: gender,
+    });
+  }
+  const proposedOther =
+    proposal.genderOther !== undefined
+      ? proposal.genderOther
+      : subject.genderOther;
+  if (proposal.genderOther != null && !genderOtherFits(gender, proposedOther)) {
+    throw new InvalidChangeError('gender_other_mismatch');
+  }
+  const genderOther = gender === 'other' ? proposedOther : null;
+  if (genderOther !== subject.genderOther) {
+    values.push({
+      field: 'genderOther',
+      original: subject.genderOther,
+      proposed: genderOther,
     });
   }
   if (values.length + cancelled.size + proposal.moves.length === 0) {

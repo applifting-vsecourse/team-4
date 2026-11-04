@@ -368,6 +368,9 @@ model Registration {
   // Voluntary answer for accommodation (F64), per registration, never the
   // account identity. Null is "not answered", distinct from `undisclosed`.
   gender    Gender?
+  // The participant's own words for `other`; null for every other answer
+  // (CHECK in the migration).
+  genderOther String? @db.VarChar(100)
 
   receivedAt        DateTime  @default(now()) @db.Timestamptz(3)
   paymentReminderAt DateTime? @db.Timestamptz(3)

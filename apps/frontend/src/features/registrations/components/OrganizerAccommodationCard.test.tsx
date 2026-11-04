@@ -93,13 +93,36 @@ describe("OrganizerAccommodationCard", () => {
     expect(await screen.findByRole("button", { name: "Opravit" })).toBeInTheDocument()
     expect(put).toHaveBeenCalledWith(
       `organizations/${ORGANIZATION}/events/${EVENT}/registrations/${registration.id}/gender`,
-      { json: { gender: "female" } },
+      { json: { gender: "female", genderOther: null } },
     )
     expect(
       queryClient.getQueryData<RegistrationDetail>(
         eventRegistrationKeys.detail(ORGANIZATION, EVENT, registration.id),
       )?.gender,
     ).toBe("female")
+  })
+
+  it("shows and corrects the own words of Jiná odpověď", async () => {
+    const registration = makeRegistrationDetail({
+      gender: "other",
+      genderOther: "nebinární",
+      requiresManualAccommodation: true,
+    })
+    put.mockReturnValue(respondWith({ ...registration, genderOther: "agender" }))
+    renderCard(registration)
+    expect(screen.getByText("Vlastní odpověď")).toBeInTheDocument()
+    expect(screen.getByText("nebinární")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Opravit" }))
+    const words = screen.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" })
+    expect(words).toHaveValue("nebinární")
+    await user.clear(words)
+    await user.type(words, " agender ")
+    await user.click(screen.getByRole("button", { name: "Uložit" }))
+
+    expect(put).toHaveBeenCalledWith(expect.any(String), {
+      json: { gender: "other", genderOther: "agender" },
+    })
   })
 
   it("keeps the choice and the stored answer when saving fails, without a success", async () => {

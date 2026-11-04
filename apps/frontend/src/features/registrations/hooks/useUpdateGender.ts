@@ -4,7 +4,8 @@ import { api } from "@/lib/api-client"
 
 import { eventRegistrationKeys } from "@/features/registrations/api/eventRegistrationQueryOptions"
 import { registrationDetailSchema } from "@/features/registrations/api/eventRegistrationSchemas"
-import { type Gender } from "@/features/registrations/api/registrationSchemas"
+import { type GenderAnswer } from "@/features/registrations/api/registrationSchemas"
+import { toGenderAnswer } from "@/features/registrations/lib/gender"
 
 /**
  * The organizer's correction of the gender answer (F64). The answer is the
@@ -14,12 +15,12 @@ import { type Gender } from "@/features/registrations/api/registrationSchemas"
 export function useUpdateGender(organizationId: string, eventId: string, registrationId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (gender: Gender | null) =>
+    mutationFn: async (answer: GenderAnswer) =>
       registrationDetailSchema.parse(
         await api
           .put(
             `organizations/${organizationId}/events/${eventId}/registrations/${registrationId}/gender`,
-            { json: { gender } },
+            { json: toGenderAnswer(answer) },
           )
           .json(),
       ),

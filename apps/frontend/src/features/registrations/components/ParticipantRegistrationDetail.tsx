@@ -225,7 +225,7 @@ export function ParticipantRegistrationDetail({
             </CardContent>
           </Card>
 
-          <AccommodationCard gender={data.contact.gender} />
+          <AccommodationCard answer={data.contact} />
 
           {renderProgramme?.(data)}
 

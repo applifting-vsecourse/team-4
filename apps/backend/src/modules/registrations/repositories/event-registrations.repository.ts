@@ -2,7 +2,7 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
-import { Gender } from '@/modules/registrations/domain/gender';
+import { GenderAnswer } from '@/modules/registrations/domain/gender';
 import {
   ManagedRegistrationModel,
   RegistrationFilter,
@@ -17,6 +17,7 @@ const registrationSelect = {
   email: true,
   phone: true,
   gender: true,
+  genderOther: true,
   variableSymbol: true,
   paymentReminderAt: true,
   terms: {
@@ -61,6 +62,7 @@ const toModel = (
       source: payment.source,
     })),
     row.gender,
+    row.genderOther,
   );
 
 /** Registrations of the scope's event only, of an organization of the caller (§3.2). */
@@ -132,7 +134,7 @@ export class EventRegistrationsRepository {
   async updateGender(
     scope: EventScope,
     registrationId: string,
-    gender: Gender | null,
+    answer: GenderAnswer,
   ): Promise<'updated' | 'not_found' | 'change_pending'> {
     return this.prisma.$transaction(async (tx) => {
       const found = await tx.registration.findFirst({
@@ -140,18 +142,21 @@ export class EventRegistrationsRepository {
         select: { id: true },
       });
       if (!found) return 'not_found';
-      const [locked] = await tx.$queryRaw<{ gender: Gender | null }[]>`
-        SELECT "gender"::text AS "gender" FROM "registration"
+      const [locked] = await tx.$queryRaw<GenderAnswer[]>`
+        SELECT "gender"::text AS "gender", "genderOther" FROM "registration"
         WHERE "id" = ${registrationId}::uuid
         FOR UPDATE`;
       const pending = await tx.registrationChange.count({
         where: { registrationId, status: 'pending' },
       });
       if (pending > 0) return 'change_pending';
-      if (locked.gender !== gender) {
+      if (
+        locked.gender !== answer.gender ||
+        locked.genderOther !== answer.genderOther
+      ) {
         await tx.registration.update({
           where: { id: registrationId },
-          data: { gender, version: { increment: 1 } },
+          data: { ...answer, version: { increment: 1 } },
         });
       }
       return 'updated';

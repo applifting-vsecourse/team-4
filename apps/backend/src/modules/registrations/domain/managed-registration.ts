@@ -75,6 +75,8 @@ export class ManagedRegistrationModel {
     public readonly payments: ReceivedPayment[],
     /** Voluntary answer for accommodation (F64); null when not answered. */
     public readonly gender: Gender | null,
+    /** The own words for `other`; null otherwise. */
+    public readonly genderOther: string | null,
   ) {}
 
   /** The organizer decides the accommodation by hand (F64). */
