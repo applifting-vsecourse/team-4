@@ -12,12 +12,21 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-import { type OverviewTerm } from "@/features/accommodation/components/EventCapacityOverview"
 import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
-import { STATUS_BADGE } from "@/features/accommodation/lib/proposal"
+import { type TermCapacity } from "@/features/accommodation/components/TermCapacitySummary"
+import { STATUS_BADGE, type EvaluationStatus } from "@/features/accommodation/lib/proposal"
+
+export type OccupancyTerm = {
+  id: string
+  label: string
+  /** Already formatted, e.g. "4.–11. 7. 2027". */
+  dates: string
+  status: EvaluationStatus
+  capacity: TermCapacity
+}
 
 export type TermOccupancyTableProps = {
-  terms: OverviewTerm[]
+  terms: OccupancyTerm[]
   /** Already formatted, e.g. "dnes 14:35". */
   updatedAt: string
   /** The load failed: an error with a retry, never zeros. */

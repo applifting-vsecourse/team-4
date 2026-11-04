@@ -52,9 +52,9 @@ function BedUse({ label, used, total }: { label: string; used: number; total: nu
   )
 }
 
-// One term's participation, capacity and proposal (F17-1), shared by Přehled
-// akce, Ubytování → Obsazenost and the term evaluation, so all three read the
-// same numbers. Design only: every value is passed in.
+// One term's participation, capacity and proposal (F17-1) in the term
+// evaluation; Ubytování → Obsazenost shows the same numbers per term. Design
+// only: every value is passed in.
 export function TermCapacitySummary({ term }: { term: TermCapacity }) {
   const capacity = term.baseBeds + term.extraBeds
 
