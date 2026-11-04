@@ -55,13 +55,25 @@ export function EventCatalogList({ events }: { events: CatalogEventItem[] }) {
                 />
                 <span className="min-w-0 break-words">{event.location}</span>
               </p>
-              <p className="flex items-start gap-1.5 text-sm">
-                <CalendarDays
-                  aria-hidden
-                  className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                />
-                <span className="min-w-0 break-words">{event.terms.join(" · ")}</span>
-              </p>
+              {event.terms.length > 0 ? (
+                <div className="flex items-start gap-1.5 text-sm">
+                  <CalendarDays
+                    aria-hidden
+                    className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                  />
+                  {/* One term per line, so several terms stay easy to tell apart. */}
+                  <ul className="min-w-0 flex-1">
+                    {event.terms.map((term) => (
+                      <li
+                        key={term}
+                        className="break-words"
+                      >
+                        {term}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               {event.ageGroup ? (
                 <div className="mt-auto pt-1">
                   <Badge variant="secondary">{event.ageGroup}</Badge>
