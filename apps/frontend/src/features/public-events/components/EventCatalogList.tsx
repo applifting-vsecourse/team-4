@@ -13,13 +13,14 @@ export type CatalogEventItem = {
   location: string
   /** Already formatted, one entry per term. */
   terms: string[]
-  ageGroup: string
+  /** Shown only once the catalog filters by age group (F54-2b). */
+  ageGroup?: string
   /** Image uploaded by the organizer; `null` shows the default image. */
   imageUrl: string | null
 }
 
 // Veřejný katalog akcí → mřížka karet akcí s odkazem na veřejný detail (F54-2).
-// Design only: every value is passed in. Shows no capacity or private data.
+// Every value is passed in. Shows no capacity or private data.
 export function EventCatalogList({ events }: { events: CatalogEventItem[] }) {
   return (
     <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -61,9 +62,11 @@ export function EventCatalogList({ events }: { events: CatalogEventItem[] }) {
                 />
                 <span className="min-w-0 break-words">{event.terms.join(" · ")}</span>
               </p>
-              <div className="mt-auto pt-1">
-                <Badge variant="secondary">{event.ageGroup}</Badge>
-              </div>
+              {event.ageGroup ? (
+                <div className="mt-auto pt-1">
+                  <Badge variant="secondary">{event.ageGroup}</Badge>
+                </div>
+              ) : null}
             </div>
           </Card>
         </li>
