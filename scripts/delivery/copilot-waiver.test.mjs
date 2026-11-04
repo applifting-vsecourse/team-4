@@ -404,6 +404,7 @@ async function checkScenario(mode) {
           ? { ...pr, base: { ref: 'feature/prerequisite' } }
           : pr,
       ];
+    else if (path.endsWith('/timeline')) data = [];
     else if (path.endsWith('/pulls/12/reviews')) {
       if (mode === 'api-error') throw new Error('Review API unavailable');
       data = reviews;

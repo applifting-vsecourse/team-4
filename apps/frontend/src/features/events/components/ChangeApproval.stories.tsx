@@ -146,7 +146,7 @@ function SettingsPage(props: ChangeApprovalSettingsProps) {
                         id="public-link"
                         className="min-w-0 flex-1 basis-60"
                         readOnly
-                        value="https://akc.io/e/modra-hora-2027"
+                        value="https://akc.io/e/modra-hora-2027/registration"
                       />
                       <Button
                         type="button"

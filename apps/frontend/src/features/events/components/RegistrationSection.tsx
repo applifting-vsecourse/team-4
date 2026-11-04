@@ -17,7 +17,7 @@ import { ChangeApprovalSection } from "@/features/events/components/ChangeApprov
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { useRefreshEvent } from "@/features/events/hooks/useEventMutations"
 import { useOpenRegistration } from "@/features/events/hooks/useOpenRegistration"
-import { publicEventUrl } from "@/features/events/lib/publicLink"
+import { publicRegistrationUrl } from "@/features/events/lib/publicLink"
 
 type Condition = { blocker: OpeningBlocker; label: string; fixIn: "edit" | "terms" | "payments" }
 
@@ -48,7 +48,7 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
   const [isCopied, setIsCopied] = useState(false)
   const [hasCopyFailed, setHasCopyFailed] = useState(false)
 
-  const link = publicEventUrl(event.publicId)
+  const link = publicRegistrationUrl(event.publicId)
   const isDraft = event.status === "draft"
   const canOpen = isDraft && event.openingBlockers.length === 0
 

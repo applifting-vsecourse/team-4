@@ -8,6 +8,9 @@ import {
   requirementsTransition,
   PM,
   QA,
+  TECHNICAL_REVIEWER,
+  technicalReviewApproval,
+  technicalReviewRequired,
 } from './lib.mjs';
 const sha = 'a'.repeat(40);
 const time = (second) => `2026-10-16T14:00:${String(second).padStart(2, '0')}Z`;
@@ -79,6 +82,36 @@ test('ordinary comments do not dismiss an approval', () => {
   const f = fixture();
   f.reviews.push(review(PM, 5, 'COMMENTED'));
   assert.equal(evaluate(f).pass, true);
+});
+test('technical-review requires rmnskb approval on the current commit', () => {
+  const f = fixture();
+  f.pr.labels.push({ name: 'technical-review' });
+  assert.equal(evaluate(f).pass, false);
+  f.reviews.push(review(TECHNICAL_REVIEWER, 5));
+  assert.equal(evaluate(f).pass, true);
+  f.pr.head.sha = 'b'.repeat(40);
+  assert.equal(evaluate(f).pass, false);
+});
+test('technical-review remains required after its label is removed', () => {
+  assert.equal(
+    technicalReviewRequired({ labels: [] }, [
+      { event: 'labeled', label: { name: 'technical-review' } },
+    ]),
+    true,
+  );
+  const f = fixture();
+  f.pr.technicalReviewRequired = true;
+  assert.equal(evaluate(f).pass, false);
+});
+test('the technical reviewer cannot approve their own PR or use a stale approval', () => {
+  const f = fixture();
+  f.pr.labels.push({ name: 'technical-review' });
+  f.reviews.push(review(TECHNICAL_REVIEWER, 5, 'APPROVED', 'b'.repeat(40)));
+  assert.equal(technicalReviewApproval(f.pr, f.reviews), null);
+  f.pr.user.login = TECHNICAL_REVIEWER;
+  f.reviews.push(review(TECHNICAL_REVIEWER, 6));
+  assert.equal(technicalReviewApproval(f.pr, f.reviews), null);
+  assert.equal(evaluate(f).pass, false);
 });
 test('forged handoffs and verdicts are rejected', () => {
   for (const index of [0, 1]) {

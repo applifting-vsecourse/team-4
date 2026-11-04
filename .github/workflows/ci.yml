@@ -89,6 +89,13 @@ jobs:
       - name: Test frontend stories
         run: pnpm frontend test:stories
 
+      # Photos of the public presentation (F55) go to MinIO, as in docker-compose.
+      - name: Start object storage
+        run: >-
+          docker run -d --name storage -p 9000:9000
+          -e MINIO_ROOT_USER=akcio -e MINIO_ROOT_PASSWORD=akcio-secret
+          bitnamilegacy/minio:2025.7.23
+
       # The money path end to end; Playwright starts the backend and frontend.
       - name: End-to-end tests
         run: pnpm frontend test:e2e

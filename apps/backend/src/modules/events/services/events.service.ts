@@ -4,6 +4,7 @@ import {
   EventInput,
   EventSummaryModel,
   findOpeningBlockers,
+  PublicCatalogEventModel,
   PublicEventModel,
   TermInput,
 } from '@/modules/events/domain/event';
@@ -11,6 +12,7 @@ import {
   findInvalidAccountField,
   PaymentSettings,
 } from '@/modules/events/domain/payment-settings';
+import { PresentationInput } from '@/modules/events/domain/presentation';
 import {
   EventScope,
   EventsRepository,
@@ -133,6 +135,35 @@ export class EventsService {
   }
 
   /**
+   * Conditions and the public contact stay editable after the first opening;
+   * the description follows the lock of the other basics (F55, S2-06).
+   */
+  async updatePresentation(
+    scope: EventScope,
+    input: PresentationInput,
+  ): Promise<EventDetailModel> {
+    const outcome = await this.repository.withLockedEvent(
+      scope,
+      async (event) => {
+        if (
+          event.isLocked &&
+          (await event.description()) !== input.description
+        ) {
+          throw new ConflictException({
+            statusCode: 409,
+            code: 'event_locked',
+            field: 'description',
+            message: 'Od prvního otevření přihlašování nelze měnit popis akce.',
+          });
+        }
+        await event.updatePresentation(input);
+      },
+    );
+    if (!outcome.found) throw notAvailable();
+    return this.get(scope);
+  }
+
+  /**
    * Draft → open for the whole event (S2-06). The preconditions are read under
    * the event row lock, which every write to the terms, the basics and the
    * payment settings also takes, so nothing changes between check and update.
@@ -170,6 +201,13 @@ export class EventsService {
   /** Null-safe for the public link: anything but an open event is unavailable. */
   async getPublic(publicId: string): Promise<PublicEventModel> {
     const event = await this.repository.findOpenByPublicId(publicId);
+    if (!event) throw notAvailable();
+    return event;
+  }
+
+  /** Unpublished and unknown events give the same 404 (F55). */
+  async getPublished(publicId: string): Promise<PublicCatalogEventModel> {
+    const event = await this.repository.findPublishedByPublicId(publicId);
     if (!event) throw notAvailable();
     return event;
   }

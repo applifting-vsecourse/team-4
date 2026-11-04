@@ -33,11 +33,14 @@ import {
   requirementsTransition,
   readyMarker,
   storybookPreviewApproval,
+  technicalReviewApproval,
+  technicalReviewRequired,
 } from '../delivery/lib.mjs';
 
 import { ciEvidence } from './ci-evidence.mjs';
 import { planReview, executeReview } from './batches.mjs';
 import { ensureQaReviewRequest } from './qa-review.mjs';
+import { ensureTechnicalReviewRequest } from './technical-review.mjs';
 import {
   copilotWaiver,
   waiverMarker,
@@ -113,6 +116,18 @@ async function listComments(number) {
     const batch = await api(
       cfg.githubToken,
       `/repos/${cfg.repo}/issues/${number}/comments?per_page=100&page=${page}`,
+    );
+    all.push(...batch);
+    if (batch.length < 100) return all;
+  }
+}
+
+async function listTimeline(number) {
+  const all = [];
+  for (let page = 1; ; page++) {
+    const batch = await api(
+      cfg.githubToken,
+      `/repos/${cfg.repo}/issues/${number}/timeline?per_page=100&page=${page}`,
     );
     all.push(...batch);
     if (batch.length < 100) return all;
@@ -475,6 +490,18 @@ async function processIssue(board, item) {
         reviews.push(...batch);
         if (batch.length < 100) break;
       }
+      pr.technicalReviewRequired = technicalReviewRequired(
+        pr,
+        technicalReviewRequired(pr) ? [] : await listTimeline(number),
+      );
+      if (pr.technicalReviewRequired && runScope.type !== 'pr')
+        await ensureTechnicalReviewRequest({
+          api: (path, options) => api(cfg.githubToken, path, options),
+          repo: cfg.repo,
+          pr,
+          requiredByHistory: true,
+          dryRun: cfg.dryRun,
+        });
       if (pr.state !== 'open' || pr.base.ref !== 'main')
         throw new Error(`PR #${number} is not open against main`);
       if (severityFor(pr) !== 'low')
@@ -624,6 +651,9 @@ async function processIssue(board, item) {
         !sameSeverity(pr, initial.find((s) => s.pr.number === pr.number).pr) ||
         pr.head.sha !==
           initial.find((s) => s.pr.number === pr.number).pr.head.sha ||
+        pr.technicalReviewRequired !==
+          initial.find((s) => s.pr.number === pr.number).pr
+            .technicalReviewRequired ||
         pr.state !== 'open' ||
         pr.base.ref !== 'main' ||
         requirementsApproval(
@@ -652,6 +682,10 @@ async function processIssue(board, item) {
     if (live?.source !== r.waiver.source) r.status = 'stale';
   }
   const decision = decideIssue(results);
+  const technicalPending = current.filter(
+    ({ pr, reviews }) =>
+      pr.technicalReviewRequired && !technicalReviewApproval(pr, reviews),
+  );
   let moved = false;
   const previews = current.filter(({ pr }) => isStorybookPreview(pr));
   const previewOnly = previews.length > 0 && previews.length === current.length;
@@ -667,8 +701,15 @@ async function processIssue(board, item) {
   const mixedIssueReadyForQa =
     implementationResults.length > 0 &&
     decideIssue(implementationResults).outcome === 'pass';
-  const handoffReady = decision.outcome === 'pass' || mixedIssueReadyForQa;
-  if (decision.outcome === 'pass' && previewOnly && !previewsApproved) {
+  const handoffReady =
+    (decision.outcome === 'pass' || mixedIssueReadyForQa) &&
+    technicalPending.length === 0;
+  if (
+    decision.outcome === 'pass' &&
+    previewOnly &&
+    !previewsApproved &&
+    technicalPending.length === 0
+  ) {
     if (item.status.name === STATUS_TESTING)
       moved = await moveStatus(board, item, STATUS_REVIEW);
     const state = `storybook-preview-awaiting-pm|${resultsKey(results) || 'no-pr'}`;
@@ -679,7 +720,11 @@ async function processIssue(board, item) {
         `${marker}\nStorybook preview passed independent review. Waiting for current-commit PM approval; no QA handoff will be sent until preview approval is recorded.`,
       );
     }
-  } else if (decision.outcome === 'pass' && previewOnly) {
+  } else if (
+    decision.outcome === 'pass' &&
+    previewOnly &&
+    technicalPending.length === 0
+  ) {
     moved = await moveStatus(board, item, 'Sprint Backlog');
     const state = `storybook-preview-approved|${resultsKey(results) || 'no-pr'}`;
     const marker = issueMarker({ issue: issue.number, state });
@@ -726,6 +771,20 @@ async function processIssue(board, item) {
         });
       }
     }
+  } else if (technicalPending.length) {
+    if (item.status.name === STATUS_TESTING)
+      moved = await moveStatus(board, item, STATUS_REVIEW);
+    const waitingFor = technicalPending
+      .map(({ pr }) => `#${pr.number}`)
+      .join(', ');
+    const state = `technical-review-awaiting|${waitingFor}|${resultsKey(results) || 'no-pr'}`;
+    const marker = issueMarker({ issue: issue.number, state });
+    if (!hasBotComment(await listComments(issue.number), marker)) {
+      await postComment(
+        issue.number,
+        `${marker}\nAgent review passed; waiting for current-commit technical approval from @rmnskb on PRs ${waitingFor}. QA handoff is paused until approval is recorded.`,
+      );
+    }
   } else if (item.status.name === STATUS_TESTING) {
     await moveStatus(board, item, STATUS_REVIEW);
   }
@@ -749,7 +808,24 @@ async function processIssue(board, item) {
   console.log(`  -> ${decision.outcome}${moved ? ' (moved)' : ''}`);
 }
 
-const scope = await eventScope();
+const runScope = await eventScope();
+if (runScope.type === 'pr') {
+  const pr = await api(
+    cfg.githubToken,
+    `/repos/${cfg.repo}/pulls/${runScope.number}`,
+  );
+  const timeline = technicalReviewRequired(pr)
+    ? []
+    : await listTimeline(pr.number);
+  if (technicalReviewRequired(pr, timeline))
+    await ensureTechnicalReviewRequest({
+      api: (path, options) => api(cfg.githubToken, path, options),
+      repo: cfg.repo,
+      pr,
+      requiredByHistory: true,
+      dryRun: cfg.dryRun,
+    });
+}
 const board = await loadBoard();
 if (!board.project.field) throw new Error('Status field not found');
 
@@ -765,7 +841,7 @@ const candidates = board.items.filter(
     i.content?.state === 'OPEN' &&
     i.content.repository?.nameWithOwner === cfg.repo &&
     (!cfg.onlyIssue || i.content.number === cfg.onlyIssue) &&
-    includesIssue(scope, i.content),
+    includesIssue(runScope, i.content),
 );
 console.log(
   `${candidates.length} issue(s) in active delivery stages${cfg.dryRun ? ' [dry-run]' : ''}`,
