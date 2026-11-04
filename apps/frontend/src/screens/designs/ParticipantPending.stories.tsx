@@ -126,7 +126,7 @@ function Decided() {
 }
 
 const meta = {
-  title: "Designs/F13-1 F14-1 Participant registration",
+  title: "Designs/Accommodation evaluation/F13-1 F14-1 Participant registration",
   parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "desktop", isRotated: false } },
 } satisfies Meta

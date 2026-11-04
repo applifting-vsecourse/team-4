@@ -213,7 +213,7 @@ const BARBORA: DetailProps = {
 }
 
 const meta = {
-  title: "Designs/F13-1 F14-1 F39-1 Registration detail",
+  title: "Designs/Accommodation evaluation/F13-1 F14-1 F39-1 Registration detail",
   component: Detail,
   parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "desktop", isRotated: false } },

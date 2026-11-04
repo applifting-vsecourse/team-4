@@ -306,7 +306,7 @@ function bulk(state: BulkConfirmationState, staleReason?: string): ReactNode {
 }
 
 const meta = {
-  title: "Designs/F13-1 F14-1 F16-1 F17-1 F39-1 Term evaluation",
+  title: "Designs/Accommodation evaluation/F13-1 F14-1 F16-1 F17-1 F39-1 Term evaluation",
   component: Screen,
   parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "desktop", isRotated: false } },

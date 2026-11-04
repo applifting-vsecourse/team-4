@@ -179,7 +179,7 @@ function Occupancy({ children }: { children: ReactNode }) {
 }
 
 const meta = {
-  title: "Designs/F17-1 Term capacity",
+  title: "Designs/Accommodation evaluation/F17-1 Term capacity",
   component: Overview,
   parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "desktop", isRotated: false } },

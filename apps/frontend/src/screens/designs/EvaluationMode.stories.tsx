@@ -23,7 +23,7 @@ function Settings(props: EvaluationModeSettingsProps) {
 }
 
 const meta = {
-  title: "Designs/F13-1 Evaluation mode",
+  title: "Designs/Accommodation evaluation/F13-1 Evaluation mode",
   component: Settings,
   parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "desktop", isRotated: false } },
