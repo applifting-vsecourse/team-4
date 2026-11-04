@@ -30,7 +30,7 @@ export function referencedIssueNumbers(body = '') {
   return [...numbers];
 }
 
-/** Open or closed pull requests that close or reference an issue. */
+/** Pull requests with a native closing link or an explicit reference in their body. */
 export function pullRequestsLinkedToIssue(issue) {
   const prs = new Map();
   for (const pr of issue.closedByPullRequestsReferences?.nodes ?? [])
@@ -45,7 +45,8 @@ export function pullRequestsLinkedToIssue(issue) {
       target?.__typename !== 'Issue' ||
       target.number !== issue.number ||
       (issue.repository?.nameWithOwner &&
-        target.repository?.nameWithOwner !== issue.repository.nameWithOwner)
+        target.repository?.nameWithOwner !== issue.repository.nameWithOwner) ||
+      !referencedIssueNumbers(source.body).includes(issue.number)
     )
       continue;
     addByNumber(prs, source);
