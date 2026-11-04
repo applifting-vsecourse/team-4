@@ -1,0 +1,75 @@
+import { CircleAlert } from "lucide-react"
+
+import { Alert, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Field, FieldLabel } from "@/components/ui/field"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+
+export type EvaluationMode = "automatic" | "manual"
+
+export type EvaluationModeSettingsProps = {
+  /** The saved mode; the form starts on it. */
+  mode: EvaluationMode
+  /** A failed save, already worded; the saved mode stays. */
+  saveError?: string
+}
+
+// Správa akce → Nastavení → Automatizace (F13-1; spec v4 §5): whether the
+// proposal of a term is recalculated on its own after a change of inputs, or
+// only from "Přepočítat". Neither mode confirms anybody. Design only: every
+// value is passed in.
+export function EvaluationModeSettings({ mode, saveError }: EvaluationModeSettingsProps) {
+  return (
+    <section
+      aria-labelledby="automation-heading"
+      className="space-y-4"
+    >
+      <h2
+        id="automation-heading"
+        className="text-h4"
+      >
+        Automatizace
+      </h2>
+      <Card>
+        <CardContent>
+          <RadioGroup
+            defaultValue={mode}
+            aria-label="Aktualizace návrhu vyhodnocení"
+          >
+            <Field orientation="horizontal">
+              <RadioGroupItem
+                id="mode-automatic"
+                value="automatic"
+              />
+              <FieldLabel htmlFor="mode-automatic">
+                Přepočítat návrh automaticky po každé změně
+              </FieldLabel>
+            </Field>
+            <Field orientation="horizontal">
+              <RadioGroupItem
+                id="mode-manual"
+                value="manual"
+              />
+              <FieldLabel htmlFor="mode-manual">
+                Přepočítat návrh jen tlačítkem Přepočítat
+              </FieldLabel>
+            </Field>
+          </RadioGroup>
+          {saveError ? (
+            <Alert
+              variant="destructive"
+              className="mt-4"
+            >
+              <CircleAlert />
+              <AlertTitle>{saveError}</AlertTitle>
+            </Alert>
+          ) : null}
+        </CardContent>
+        <CardFooter>
+          <Button>Uložit</Button>
+        </CardFooter>
+      </Card>
+    </section>
+  )
+}

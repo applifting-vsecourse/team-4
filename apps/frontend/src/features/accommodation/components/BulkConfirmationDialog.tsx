@@ -25,8 +25,10 @@ export type BulkConfirmationDialogProps = {
   state: BulkConfirmationState
   /** Already formatted, e.g. "1. turnus, 4.–11. 7. 2027". */
   term: string
-  /** Participations the confirmation creates. */
-  count: number
+  /** The people the confirmation confirms in the term, by position. */
+  people: string[]
+  /** Who of the proposal stays as they are, already worded, e.g. "3 neubytovatelní, 2 ruční určení". */
+  remaining?: string
   /** Why the proposal is no longer valid, worded from the error code (state stale). */
   staleReason?: string
 }
@@ -37,18 +39,20 @@ function participations(count: number) {
   return `${count} účastí`
 }
 
-// Správa akce → Přihlášky → Ke schválení → Potvrdit všechny vhodné (F14-1):
-// the one explicit confirmation of the term's proposal. Design only: every
-// value is passed in.
+// Správa akce → Přihlášky → Vyhodnocení → Potvrdit všechny vhodné (F14-1):
+// the one explicit confirmation of the term's proposal, with the people it
+// confirms. Design only: every value is passed in.
 export function BulkConfirmationDialog({
   isOpen,
   state,
   term,
-  count,
+  people,
+  remaining,
   staleReason,
 }: BulkConfirmationDialogProps) {
   const isSaving = state === "saving"
   const isStale = state === "stale"
+  const count = people.length
 
   return (
     <Dialog open={isOpen}>
@@ -57,6 +61,17 @@ export function BulkConfirmationDialog({
           <DialogTitle>Potvrdit všechny vhodné</DialogTitle>
           <DialogDescription>{term}</DialogDescription>
         </DialogHeader>
+
+        {isStale ? null : (
+          <div className="space-y-3 text-sm">
+            <ol className="list-decimal space-y-1 pl-6">
+              {people.map((name) => (
+                <li key={name}>{name}</li>
+              ))}
+            </ol>
+            {remaining ? <p className="text-muted-foreground">Beze změny: {remaining}</p> : null}
+          </div>
+        )}
 
         {isStale ? (
           <Alert variant="destructive">

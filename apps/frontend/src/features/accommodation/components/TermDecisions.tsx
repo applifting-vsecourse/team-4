@@ -2,6 +2,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
+import { RESULT_BADGE, type ProposalResult } from "@/features/accommodation/lib/proposal"
+
 export type DecisionTermState = "confirmed" | "pending" | "waitlisted"
 
 export type DecisionTerm = {
@@ -10,6 +12,8 @@ export type DecisionTerm = {
   /** Already formatted, e.g. "4.–11. 7. 2027 · 4 800 Kč". */
   details: string
   state: DecisionTermState
+  /** The person in the term's current proposal (F13-1); missing when confirmed or without one. */
+  proposal?: { result: ProposalResult; reason?: string }
 }
 
 const STATE_BADGE: Record<
@@ -46,6 +50,15 @@ export function TermDecisions({ terms }: { terms: DecisionTerm[] }) {
                   </Badge>
                 </div>
                 <p className="text-muted-foreground">{term.details}</p>
+                {term.proposal ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="text-muted-foreground">Návrh:</span>
+                    <Badge variant={RESULT_BADGE[term.proposal.result].variant}>
+                      {RESULT_BADGE[term.proposal.result].label}
+                    </Badge>
+                    {term.proposal.reason ? <span>{term.proposal.reason}</span> : null}
+                  </div>
+                ) : null}
               </div>
               {term.state === "confirmed" ? null : (
                 <div className="flex flex-wrap justify-end gap-2">
