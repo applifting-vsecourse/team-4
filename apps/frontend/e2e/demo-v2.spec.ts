@@ -502,15 +502,15 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
 
   await scene(
     visitor,
-    "Telefon vyžaduje mezinárodní předvolbu, mezery nevadí",
+    "Telefon musí být platný pro vybranou zemi, mezery nevadí",
     ["S2-07"],
     async () => {
       await termBox("Sobota").check()
       await termBox("Neděle").check()
-      await fillContact(jana, "777123456")
+      await fillContact(jana, "123")
       await submit()
       await expect(
-        visitor.getByText("Zadejte telefon s mezinárodní předvolbou, např. +420 777 123 456."),
+        visitor.getByText("Zadejte platné telefonní číslo pro vybranou zemi, např. 777 123 456."),
       ).toBeVisible()
       await expect(termBox("Neděle")).toBeChecked()
       await type(visitor.getByLabel("Telefon"), "+420 777 123 456")
