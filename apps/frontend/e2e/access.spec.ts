@@ -3,14 +3,14 @@ import { expect, test } from "@playwright/test"
 
 import { createOrganization, setUpEvent, signUpOrganizer } from "./support/api"
 
-// Doors that stay closed: a draft's public link (S2-06) and another
-// organization's event (S2-03).
+// Doors that stay closed: a draft's registration link (S2-06), an unpublished
+// event's catalog detail (F55) and another organization's event (S2-03).
 
 const terms = [
   { label: "Turnus", startDate: "2027-08-01", endDate: "2027-08-07", priceMinor: 100000 },
 ]
 
-test("a draft's public link and an unknown one show the same unavailable page", async ({
+test("a draft's registration link and an unknown one show the same unavailable page", async ({
   page,
   browser,
 }) => {
@@ -18,13 +18,20 @@ test("a draft's public link and an unknown one show the same unavailable page", 
 
   const visitorContext = await browser.newContext()
   const visitor = await visitorContext.newPage()
-  await visitor.goto(`/e/${draft.publicId}`)
+  await visitor.goto(`/e/${draft.publicId}/registration`)
   await expect(visitor.getByText("Akce není dostupná")).toBeVisible()
   await expect(visitor.getByText(draft.name)).toBeHidden()
   await expect(visitor.getByText(draft.location)).toBeHidden()
   await expect(visitor.getByText(terms[0]!.label)).toBeHidden()
 
   // Well-formed, like a real link (12 base64url characters), but unknown.
+  await visitor.goto(`/e/${randomBytes(9).toString("base64url")}/registration`)
+  await expect(visitor.getByText("Akce není dostupná")).toBeVisible()
+
+  // The unpublished draft's catalog detail and an unknown one look the same too.
+  await visitor.goto(`/e/${draft.publicId}`)
+  await expect(visitor.getByText("Akce není dostupná")).toBeVisible()
+  await expect(visitor.getByText(draft.name)).toBeHidden()
   await visitor.goto(`/e/${randomBytes(9).toString("base64url")}`)
   await expect(visitor.getByText("Akce není dostupná")).toBeVisible()
   await visitorContext.close()

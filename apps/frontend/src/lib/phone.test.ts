@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { toE164 } from "@/features/registrations/lib/phone"
+import { toE164 } from "@/lib/phone"
 
 describe("toE164", () => {
   it.each([

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
+import { expect, within } from "storybook/test"
 
 import { screenMeta, showsHeading } from "@/screens/screenMeta"
 
@@ -8,7 +9,7 @@ import { PUBLIC_ID } from "@/features/public-events/fixtures/publicEvent"
 const meta = {
   title: "Screens/Public/PublicEvent",
   ...screenMeta,
-  args: { url: `/e/${PUBLIC_ID}` },
+  args: { url: `/e/${PUBLIC_ID}/registration` },
   beforeEach: ({ msw }) => {
     msw.use(...publicEventHandlers.detail())
   },
@@ -16,7 +17,11 @@ const meta = {
 
 export default meta
 
-/** Public page of an event with open registration and the registration form (S2-06, S2-07). */
+/** Registration form of an event with open registration, linking to its detail (S2-06, S2-07, F55). */
 export const PublicEvent: StoryObj<typeof meta> = {
-  play: showsHeading("Letní tábor Modrá Hora 2027"),
+  play: async (context) => {
+    await showsHeading("Letní tábor Modrá Hora 2027")(context)
+    const back = within(context.canvasElement).getByRole("link", { name: "Zpět na detail akce" })
+    await expect(back).toHaveAttribute("href", `/e/${PUBLIC_ID}`)
+  },
 }

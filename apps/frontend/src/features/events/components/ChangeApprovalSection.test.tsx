@@ -29,6 +29,9 @@ const EVENT: EventDetail = {
   changeApprovalDays: null,
   publicId: "abcdefghijkl",
   isPublished: false,
+  conditions: "",
+  contact: null,
+  photos: [],
   openingBlockers: [],
 }
 

@@ -93,7 +93,7 @@ test("the result of a new registration offers the QR link right away", async ({
   const event = await setUpEvent(organizerContext.request, { terms, rooms })
   await organizerContext.close()
 
-  await page.goto(`/e/${event.publicId}`)
+  await page.goto(`/e/${event.publicId}/registration`)
   await page.getByRole("checkbox", { name: /Turnus/ }).check()
   await page.getByLabel("Jméno").fill("Marie")
   await page.getByLabel("Příjmení").fill("Nováková")

@@ -1,6 +1,13 @@
 import { expect, test } from "@playwright/test"
 
-import { API_URL, createOrganization, setUpEvent, signUpOrganizer } from "./support/api"
+import {
+  API_URL,
+  createOrganization,
+  setUpEvent,
+  signUpOrganizer,
+  unpublish,
+  type OpenEvent,
+} from "./support/api"
 
 // Catalog publication (F54-1): a failed change is not confirmed and changes
 // nothing, and another organization's setting can be neither seen nor changed.
@@ -12,10 +19,18 @@ const terms = [
 const origin = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3050").origin
 const toggleName = "Zveřejnit ve veřejném katalogu"
 
+// The first test publishes through the UI; withdraw it so the dev catalog stays as it was.
+let published: OpenEvent | undefined
+test.afterEach(async ({ page }) => {
+  if (published) await unpublish(page.request, published)
+  published = undefined
+})
+
 test("a failed publication change shows an error, saves nothing and can be retried", async ({
   page,
 }) => {
   const event = await setUpEvent(page.request, { terms, isOpen: false })
+  published = event
   const eventUrl = `${API_URL}/organizations/${event.organizationId}/events/${event.eventId}`
   const isPublished = async () =>
     ((await (await page.request.get(eventUrl)).json()) as { isPublished: boolean }).isPublished

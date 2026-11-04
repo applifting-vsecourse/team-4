@@ -45,6 +45,7 @@ async function scenario(options) {
           options.severityByPr?.[12 + i] ??
           (options.unapproved ? 'severity:high' : 'severity:standard'),
       },
+      ...(options.technicalReview ? [{ name: 'technical-review' }] : []),
     ],
     issue_url: `https://api.github.com/repos/owner/repo/issues/${12 + i}`,
     user: { login: author },
@@ -65,6 +66,14 @@ async function scenario(options) {
       submitted_at: '2000-01-01T00:00:00Z',
     },
   ];
+  if (options.technicalApproved)
+    reviews.push({
+      id: 2,
+      user: { login: 'rmnskb' },
+      state: 'APPROVED',
+      commit_id: sha,
+      submitted_at: '2001-01-01T00:00:00Z',
+    });
   const bot = (body, at = '2001-01-01T00:00:00Z') => ({
     id: calls.length + 10,
     user: { login: 'github-actions[bot]' },
@@ -213,6 +222,7 @@ async function scenario(options) {
                                   __typename: 'PullRequest',
                                   number: pr.number,
                                   state: 'OPEN',
+                                  body: `Refs #${issue.number}`,
                                   repository: {
                                     nameWithOwner: 'owner/repo',
                                   },
@@ -244,7 +254,11 @@ async function scenario(options) {
           },
         };
       } else data = { data: { node: { status: { name: status } } } };
-    } else if (path.endsWith('/issues/78')) data = issue;
+    } else if (path.endsWith('/timeline'))
+      data = options.technicalReview
+        ? [{ event: 'labeled', label: { name: 'technical-review' } }]
+        : [];
+    else if (path.endsWith('/issues/78')) data = issue;
     else if (path.endsWith('/comments')) {
       const number = Number(path.split('/').at(-2));
       if (opts.method === 'POST') {
@@ -261,12 +275,14 @@ async function scenario(options) {
     else if (path.endsWith('/requested_reviewers')) {
       const number = Number(path.split('/').at(-2));
       if (opts.method === 'POST') {
-        calls.push('request:' + number);
-        assert.ok(
-          comments
-            .get(number)
-            .some((c) => c.body.startsWith('<!-- delivery-ready')),
-        );
+        const technical = body.reviewers.includes('rmnskb');
+        calls.push((technical ? 'technical-request:' : 'request:') + number);
+        if (!technical)
+          assert.ok(
+            comments
+              .get(number)
+              .some((c) => c.body.startsWith('<!-- delivery-ready')),
+          );
         if (options.failOnce && !failed) {
           failed = true;
           return { ok: false, status: 503, text: async () => 'unavailable' };
@@ -677,6 +693,22 @@ test('fresh review waits for CI without a model verdict or QA handoff', () => {
       (c) => c.includes('result=pass') || c.includes('result=error'),
     ),
   );
+});
+test('PR label event requests technical review before agent review or QA handoff', () => {
+  const r = run({ technicalReview: true, eventPr: 12 });
+  assert.ok(r.calls.includes('technical-request:12'));
+  assert.ok(!r.calls.includes('handoff:12'));
+  assert.equal(r.status, 'Ready for Code Review');
+});
+test('an existing current-commit technical approval allows QA handoff', () => {
+  const r = run({
+    technicalReview: true,
+    technicalApproved: true,
+    eventPr: 12,
+  });
+  assert.ok(!r.calls.includes('technical-request:12'));
+  assert.ok(r.calls.includes('handoff:12'), JSON.stringify(r));
+  assert.equal(r.status, 'Ready for Testing');
 });
 
 test('CI API errors never run the already-planned review or produce a pass', () => {

@@ -1,6 +1,8 @@
 import type { ReactNode } from "react"
-import { CalendarX, MapPin } from "lucide-react"
+import { Link } from "@tanstack/react-router"
+import { ArrowLeft, CalendarX, MapPin } from "lucide-react"
 
+import { ROUTES } from "@/app/routes"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
@@ -42,16 +44,35 @@ export function PublicEventLoadError({ onRetry }: { onRetry: () => void }) {
 
 // Content of an open event: name, description and place, then the
 // registration form (S2-07) the route puts in. Availability is deliberately
-// not shown: the server decides each term when saving (S2-08).
+// not shown: the server decides each term when saving (S2-08). A published
+// event links back to its catalog detail (F55) above the name; the typed values survive the visit.
 export function PublicEventView({
+  publicId,
   event,
   registration,
 }: {
+  publicId: string
   event: PublicEvent
   registration: ReactNode
 }) {
   return (
     <article>
+      {event.isPublished ? (
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="mb-6"
+        >
+          <Link
+            to={ROUTES.publicEvent}
+            params={{ publicId }}
+          >
+            <ArrowLeft aria-hidden />
+            Zpět na detail akce
+          </Link>
+        </Button>
+      ) : null}
       <h1 className="text-h2 break-words">{event.name}</h1>
       <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
         <MapPin

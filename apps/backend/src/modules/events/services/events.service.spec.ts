@@ -24,6 +24,9 @@ const detail = new EventDetailModel(
   'public12chars',
   false,
   null,
+  '',
+  null,
+  [],
 );
 
 const term = (overrides: Partial<TermInput> = {}): TermInput => ({
@@ -52,6 +55,8 @@ describe('EventsService', () => {
     terms: jest.fn(),
     updateBasics: jest.fn(),
     updatePaymentSettings: jest.fn(),
+    description: jest.fn(),
+    updatePresentation: jest.fn(),
     insertTerm: jest.fn(),
     updateTerm: jest.fn(),
     deleteTerm: jest.fn(),
@@ -62,6 +67,7 @@ describe('EventsService', () => {
     create: jest.fn(),
     withLockedEvent: jest.fn(),
     findOpenByPublicId: jest.fn(),
+    findPublishedByPublicId: jest.fn(),
   };
   const service = new EventsService(repository as unknown as EventsRepository);
 
@@ -321,6 +327,54 @@ describe('EventsService', () => {
       repository.findOpenByPublicId.mockResolvedValue(null);
       await expect(service.getPublic('abc')).rejects.toBeInstanceOf(
         NotFoundException,
+      );
+    });
+  });
+
+  describe('public presentation', () => {
+    const input = {
+      description: 'Týden v lesích.',
+      conditions: 'Věk 11 až 15 let.',
+      contact: { name: 'Jana', email: 'jana@example.test', phone: null },
+    };
+
+    it('saves conditions and contact on a draft', async () => {
+      await service.updatePresentation(scope, input);
+      expect(event.updatePresentation).toHaveBeenCalledWith(input);
+    });
+
+    it('keeps conditions and contact editable on a locked event', async () => {
+      event.isLocked = true;
+      event.description.mockResolvedValue('Týden v lesích.');
+      await service.updatePresentation(scope, { ...input, contact: null });
+      expect(event.updatePresentation).toHaveBeenCalledWith({
+        ...input,
+        contact: null,
+      });
+    });
+
+    it('refuses a new description on a locked event at its field', async () => {
+      event.isLocked = true;
+      event.description.mockResolvedValue('Původní popis.');
+      await expect(
+        service.updatePresentation(scope, input),
+      ).rejects.toMatchObject({
+        response: { code: 'event_locked', field: 'description' },
+      });
+      expect(event.updatePresentation).not.toHaveBeenCalled();
+    });
+
+    it('hides a foreign or missing event behind the same 404', async () => {
+      repository.withLockedEvent.mockResolvedValue({ found: false });
+      await expect(
+        service.updatePresentation(scope, input),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('gives an unpublished or unknown catalog detail the same 404', async () => {
+      repository.findPublishedByPublicId.mockResolvedValue(null);
+      await expect(service.getPublished('abc')).rejects.toEqual(
+        new NotFoundException('Záznam není dostupný'),
       );
     });
   });

@@ -47,6 +47,9 @@ const READY: EventDetail = {
   publicId: "abcdefghijkl",
   isPublished: false,
   changeApprovalDays: null,
+  conditions: "",
+  contact: null,
+  photos: [],
   openingBlockers: [],
 }
 
@@ -105,7 +108,7 @@ describe("RegistrationSection", () => {
     renderPage({ ...READY, openingBlockers: ["terms"] })
 
     expect(screen.getByLabelText("Veřejný odkaz na přihlášku")).toHaveValue(
-      `${window.location.origin}/e/abcdefghijkl`,
+      `${window.location.origin}/e/abcdefghijkl/registration`,
     )
   })
 
@@ -141,7 +144,7 @@ describe("RegistrationSection", () => {
     expect(screen.queryByText("Zkopírováno")).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Kopírovat" }))
 
-    expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/e/abcdefghijkl`)
+    expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/e/abcdefghijkl/registration`)
     expect(await screen.findByText("Zkopírováno")).toBeInTheDocument()
   })
 

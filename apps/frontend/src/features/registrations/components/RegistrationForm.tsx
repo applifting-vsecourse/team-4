@@ -21,10 +21,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
+import { toE164 } from "@/lib/phone"
 
 import { genderSchema, type SelectableTerm } from "@/features/registrations/api/registrationSchemas"
 import { GenderField } from "@/features/registrations/components/GenderField"
-import { toE164 } from "@/features/registrations/lib/phone"
 import { type RegistrationSubmitError } from "@/features/registrations/lib/registrationErrors"
 
 const PHONE_MESSAGE = "Zadejte telefon s mezinárodní předvolbou, např. +420 777 123 456."
@@ -69,6 +69,10 @@ const EMPTY: RegistrationFormValues = {
 
 type RegistrationFormProps = {
   terms: SelectableTerm[]
+  /** Values to start from, e.g. a draft kept for the browser tab. */
+  initialValues?: RegistrationFormValues | null
+  /** Every change of the typed values, e.g. to keep them as a draft. */
+  onValuesChange?: (values: RegistrationFormValues) => void
   isSubmitting: boolean
   submitError: RegistrationSubmitError | null
   onSubmit: (values: RegistrationFormValues) => void
@@ -79,18 +83,31 @@ type RegistrationFormProps = {
 // term when saving (S2-08), and a full term can be selected like any other.
 export function RegistrationForm({
   terms,
+  initialValues,
+  onValuesChange,
   isSubmitting,
   submitError,
   onSubmit,
 }: RegistrationFormProps) {
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: EMPTY,
+    defaultValues: initialValues ?? EMPTY,
   })
   const { setError } = form
   const selectedIds = useWatch({ control: form.control, name: "termIds" })
   const selected = terms.filter((term) => selectedIds.includes(term.id))
   const totalMinor = selected.reduce((sum, term) => sum + term.priceMinor, 0)
+
+  const typed = useWatch({ control: form.control })
+  useEffect(() => {
+    onValuesChange?.({
+      firstName: typed.firstName ?? "",
+      lastName: typed.lastName ?? "",
+      email: typed.email ?? "",
+      phone: typed.phone ?? "",
+      termIds: (typed.termIds ?? []).filter((id): id is string => typeof id === "string"),
+    })
+  }, [typed, onValuesChange])
 
   useEffect(() => {
     if (submitError?.kind === "terms") {

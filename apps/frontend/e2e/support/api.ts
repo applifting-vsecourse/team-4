@@ -157,6 +157,30 @@ export async function register(
   })
 }
 
+/** Lists the event in the public catalog (F54-1), as its organizer. */
+export async function publish(request: APIRequestContext, event: OpenEvent): Promise<void> {
+  await json(
+    await request.put(
+      `${API_URL}/organizations/${event.organizationId}/events/${event.eventId}/publication`,
+      { data: { isPublished: true }, headers },
+    ),
+  )
+}
+
+/**
+ * Withdraws the event from the public catalog again. Specs that publish call
+ * this when they finish: they run against the dev servers, so a published test
+ * event would otherwise stay in the real catalog.
+ */
+export async function unpublish(request: APIRequestContext, event: OpenEvent): Promise<void> {
+  await json(
+    await request.put(
+      `${API_URL}/organizations/${event.organizationId}/events/${event.eventId}/publication`,
+      { data: { isPublished: false }, headers },
+    ),
+  )
+}
+
 /** Today's date in Prague, as the API's `receivedOn` expects it. */
 const todayInPrague = () =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Prague" }).format(new Date())
