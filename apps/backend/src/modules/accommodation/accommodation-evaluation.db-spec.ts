@@ -442,4 +442,25 @@ describe('the database', () => {
       }),
     ).rejects.toThrow(/accommodation_intervention_reason_chk/);
   });
+
+  it('refuses a position change for a term of another event', async () => {
+    const fixture = await setup([{ baseBeds: 1, termIndexes: [0] }]);
+    const other = await setup([{ baseBeds: 1, termIndexes: [0] }]);
+    const p1 = await person(fixture, 'Žena');
+
+    await expect(
+      prisma.accommodationIntervention.create({
+        data: {
+          eventId: fixture.event.id,
+          termId: other.terms[0].id,
+          registrationId: p1.id,
+          kind: 'position',
+          actorId: fixture.ownerId,
+          reason: 'organizační tým',
+          before: [],
+          after: [],
+        },
+      }),
+    ).rejects.toThrow(/accommodation_intervention_termId_eventId_fkey/);
+  });
 });

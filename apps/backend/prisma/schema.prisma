@@ -224,12 +224,13 @@ model EventTerm {
   createdAt  DateTime @default(now()) @db.Timestamptz(3)
   updatedAt  DateTime @updatedAt @db.Timestamptz(3)
 
-  event              Event                   @relation(fields: [eventId], references: [id], onDelete: Restrict)
-  roomAvailabilities RoomTermAvailability[]
-  registrationTerms  RegistrationTerm[]
-  accommodationOrder AccommodationTermOrder?
-  accommodationRuns  AccommodationRun[]
-  programmeItems     ProgrammeItem[]
+  event                      Event                       @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  roomAvailabilities         RoomTermAvailability[]
+  registrationTerms          RegistrationTerm[]
+  accommodationOrder         AccommodationTermOrder?
+  accommodationRuns          AccommodationRun[]
+  accommodationInterventions AccommodationIntervention[]
+  programmeItems             ProgrammeItem[]
 
   @@unique([id, eventId])
   @@index([eventId, startDate])
@@ -369,13 +370,13 @@ model Registration {
   // Unguessable capability of the QR payment link (F21-1): it allows paying this registration and nothing else.
   paymentToken         String @unique @default(dbgenerated("replace((gen_random_uuid())::text || (gen_random_uuid())::text, '-', '')")) @db.VarChar(64)
 
-  firstName String @db.VarChar(100)
-  lastName  String @db.VarChar(100)
-  email     String @db.VarChar(320) // as submitted
-  phone     String @db.VarChar(16) // E.164
+  firstName   String  @db.VarChar(100)
+  lastName    String  @db.VarChar(100)
+  email       String  @db.VarChar(320) // as submitted
+  phone       String  @db.VarChar(16) // E.164
   // Voluntary answer for accommodation (F64), per registration, never the
   // account identity. Null is "not answered", distinct from `undisclosed`.
-  gender    Gender?
+  gender      Gender?
   // The participant's own words for `other`; null for every other answer
   // (CHECK in the migration).
   genderOther String? @db.VarChar(100)
@@ -595,6 +596,8 @@ model AccommodationIntervention {
   createdAt      DateTime                      @default(now()) @db.Timestamptz(3)
 
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  // The term of a position change belongs to the same event.
+  term         EventTerm?   @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Restrict)
   registration Registration @relation(fields: [registrationId, eventId], references: [id, eventId], onDelete: Restrict)
   actor        User         @relation(fields: [actorId], references: [id], onDelete: Restrict)
 

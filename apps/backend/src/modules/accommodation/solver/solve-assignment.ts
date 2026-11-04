@@ -90,6 +90,19 @@ export async function solveAssignment(
     (sum, room) => sum + room.baseBeds + room.extraBeds,
     0,
   );
+  // A confirmed participant without an effective value fits no homogeneous
+  // room, and none is guessed for them: the organizer resolves it (§4, §7.4).
+  const undetermined = input.hasHardAttribute
+    ? input.confirmed.filter((p) => p.value === null).map((p) => p.id)
+    : [];
+  if (undetermined.length > 0) {
+    return {
+      status: 'infeasible',
+      conflicting: undetermined,
+      constraint: 'homogeneity',
+      stats: stats(),
+    };
+  }
   const solver = await loadHighs();
 
   try {

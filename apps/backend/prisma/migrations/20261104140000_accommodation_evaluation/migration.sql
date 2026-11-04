@@ -105,6 +105,9 @@ ALTER TABLE "accommodation_term_order" ADD CONSTRAINT "accommodation_term_order_
 ALTER TABLE "accommodation_intervention" ADD CONSTRAINT "accommodation_intervention_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "event"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "accommodation_intervention" ADD CONSTRAINT "accommodation_intervention_termId_eventId_fkey" FOREIGN KEY ("termId", "eventId") REFERENCES "event_term"("id", "eventId") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "accommodation_intervention" ADD CONSTRAINT "accommodation_intervention_registrationId_eventId_fkey" FOREIGN KEY ("registrationId", "eventId") REFERENCES "registration"("id", "eventId") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey

@@ -71,24 +71,33 @@ export const placement = (
 
 const capacity = (room: SolverRoom): number => room.baseBeds + room.extraBeds;
 
+const participantOf = (
+  source: ConfirmedParticipant | Candidate,
+  isConfirmed: boolean,
+): Omit<Participant, 'roomIndexes'> => ({
+  id: source.id,
+  value: source.value,
+  softValues: source.softValues ?? {},
+  isConfirmed,
+});
+
 const toParticipant = (
   source: ConfirmedParticipant | Candidate,
   isConfirmed: boolean,
   rooms: SolverRoom[],
 ): Participant => {
-  const pinned =
-    isConfirmed && 'roomId' in source && source.roomId
-      ? rooms.findIndex((room) => room.id === source.roomId)
-      : -1;
+  const open = rooms.flatMap((room, index) =>
+    capacity(room) > 0 ? [index] : [],
+  );
+  if (!isConfirmed || !('roomId' in source) || !source.roomId) {
+    return { ...participantOf(source, isConfirmed), roomIndexes: open };
+  }
+  // A confirmed participant stays in their room. If it is no longer available
+  // or has no bed, they are never moved elsewhere: they no longer fit (§7.4).
+  const pinned = rooms.findIndex((room) => room.id === source.roomId);
   return {
-    id: source.id,
-    value: source.value,
-    softValues: source.softValues ?? {},
-    isConfirmed,
-    roomIndexes:
-      pinned >= 0
-        ? [pinned]
-        : rooms.flatMap((room, index) => (capacity(room) > 0 ? [index] : [])),
+    ...participantOf(source, isConfirmed),
+    roomIndexes: open.includes(pinned) ? [pinned] : [],
   };
 };
 

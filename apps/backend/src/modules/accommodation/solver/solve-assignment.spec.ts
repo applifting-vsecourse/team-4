@@ -226,21 +226,74 @@ describe('solveAssignment', () => {
     expect(reasons(result)).toEqual({ P3: 'A' });
   });
 
-  it('reports a capacity conflict when the confirmed outnumber the beds', async () => {
-    const result = await solveAssignment(
-      term({
-        rooms: [room('R1', 1)],
-        confirmed: [
-          { id: 'A', value: 'Ž' },
-          { id: 'B', value: 'Ž' },
-        ],
-      }),
-    );
-    expect(result).toMatchObject({
+  it('reports the confirmed participants when they outnumber the beds', async () => {
+    const input = term({
+      rooms: [room('R1', 1)],
+      confirmed: [
+        { id: 'A', value: 'Ž' },
+        { id: 'B', value: 'Ž' },
+      ],
+    });
+
+    // Phase 1 names everyone of the value that no longer fits; phase 2 the
+    // fewest who would have to stay out.
+    expect(await solveAssignment(input, { phase: 1 })).toMatchObject({
+      status: 'infeasible',
+      constraint: 'capacity',
+      conflicting: ['A', 'B'],
+    });
+    const phaseTwo = await solveAssignment(input, { phase: 2 });
+    expect(phaseTwo).toMatchObject({
       status: 'infeasible',
       constraint: 'capacity',
     });
+    expect(
+      phaseTwo.status === 'infeasible' ? phaseTwo.conflicting : [],
+    ).toHaveLength(1);
   });
+
+  it.each([1, 2] as const)(
+    'reports a confirmed participant without an effective value instead of placing them (phase %i)',
+    async (phase) => {
+      const result = await solveAssignment(
+        term({
+          rooms: [room('R1', 2), room('R2', 2)],
+          confirmed: [
+            { id: 'A', value: 'Ž' },
+            { id: 'B', value: null },
+          ],
+          candidates: queue(['P1', 'Ž']),
+        }),
+        { phase },
+      );
+      expect(result).toMatchObject({
+        status: 'infeasible',
+        constraint: 'homogeneity',
+        conflicting: ['B'],
+      });
+    },
+  );
+
+  it.each([
+    ['has no bed', [room('R1', 0), room('R2', 2)]],
+    ['is no longer available', [room('R2', 2)]],
+  ])(
+    'never moves a confirmed participant whose room %s (phase 2)',
+    async (_, rooms) => {
+      const result = await solveAssignment(
+        term({
+          rooms,
+          confirmed: [{ id: 'A', value: 'Ž', roomId: 'R1' }],
+          candidates: queue(['P1', 'Ž']),
+        }),
+        { phase: 2 },
+      );
+      expect(result).toMatchObject({
+        status: 'infeasible',
+        conflicting: ['A'],
+      });
+    },
+  );
 
   it('groups by the higher-ranked soft attribute first in the room proposal (phase 2)', async () => {
     const result = await solveAssignment(
