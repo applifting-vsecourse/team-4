@@ -1,4 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
+import {
+  Gender,
+  GENDER_OTHER_MAX_LENGTH,
+  GENDERS,
+} from '@/modules/registrations/domain/gender';
+import { applyDecorators } from '@nestjs/common';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -6,11 +12,16 @@ import {
   ArrayUnique,
   IsArray,
   IsEmail,
+  IsIn,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUUID,
   Matches,
   MaxLength,
+  ValidateBy,
+  ValidateIf,
+  ValidationArguments,
 } from 'class-validator';
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
@@ -32,6 +43,50 @@ export const toE164 = ({ value }: { value: unknown }): unknown => {
 
 export const PHONE_MESSAGE =
   'Zadejte telefon s mezinárodní předvolbou, např. +420 777 123 456.';
+
+export const GENDER_MESSAGE = 'Vyberte jednu z nabízených odpovědí.';
+
+const GENDER_OTHER_LENGTH_MESSAGE = `Vlastní odpověď může mít nejvýše ${GENDER_OTHER_MAX_LENGTH} znaků.`;
+export const GENDER_OTHER_MESSAGE =
+  'Vlastní odpověď lze uvést jen u „Jiná odpověď“.';
+
+/** Trimmed; an empty answer is no answer (null). */
+const trimToNull = ({ value }: { value: unknown }): unknown => {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  return trimmed === '' ? null : trimmed;
+};
+
+/**
+ * The own words for "Jiná odpověď" (F64): a string or null, and only beside
+ * `gender: 'other'`. Where the DTO may leave the gender out (a change
+ * proposal), `missingGender` lets the domain check it against the stored one.
+ */
+export const GenderOther = (
+  missingGender: 'reject' | 'allow' = 'reject',
+): PropertyDecorator =>
+  applyDecorators(
+    Transform(trimToNull),
+    // Left out or null is no words; they need no check.
+    ValidateIf((_: object, value: unknown) => value != null),
+    ValidateBy({
+      name: 'genderOther',
+      validator: {
+        validate: (_: unknown, args?: ValidationArguments) => {
+          const { gender } = args?.object as { gender?: unknown };
+          return (
+            gender === 'other' ||
+            (missingGender === 'allow' && gender === undefined)
+          );
+        },
+        defaultMessage: () => GENDER_OTHER_MESSAGE,
+      },
+    }),
+    IsString({ message: GENDER_OTHER_LENGTH_MESSAGE }),
+    MaxLength(GENDER_OTHER_MAX_LENGTH, {
+      message: GENDER_OTHER_LENGTH_MESSAGE,
+    }),
+  );
 
 /** The fixed form of an adult participant (S2-07). */
 export class RegistrationInputDto {
@@ -93,4 +148,26 @@ export class RegistrationInputDto {
   @ArrayUnique({ message: 'Termín je vybraný víckrát.' })
   @IsUUID('all', { each: true, message: 'Neplatný termín.' })
   termIds!: string[];
+
+  @ApiPropertyOptional({
+    enum: GENDERS,
+    nullable: true,
+    description:
+      'Voluntary answer for accommodation, one value. Left out or null is ' +
+      '"not answered", which differs from `undisclosed`.',
+  })
+  @IsOptional()
+  @IsIn(GENDERS, { message: GENDER_MESSAGE })
+  gender?: Gender | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    maxLength: GENDER_OTHER_MAX_LENGTH,
+    nullable: true,
+    description:
+      'Voluntary own words for `gender: other`, and only with it (else 400). ' +
+      'Trimmed; empty is null.',
+  })
+  @GenderOther()
+  genderOther?: string | null;
 }

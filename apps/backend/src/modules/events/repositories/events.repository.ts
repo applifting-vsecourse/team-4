@@ -11,6 +11,7 @@ import {
   EventTermModel,
   OpeningInput,
   PublicCatalogEventModel,
+  PublicCatalogItemModel,
   PublicEventModel,
   publicRegistrationStatus,
   TermInput,
@@ -512,6 +513,48 @@ export class EventsRepository {
       publicRegistrationStatus(event.status),
       event.terms.map(toPublicTerm),
     );
+  }
+
+  /**
+   * Every published event, nearest term first; events without a term last
+   * (F54-2a). The order is fixed here so reloading never reshuffles the list.
+   */
+  async findPublished(): Promise<PublicCatalogItemModel[]> {
+    const events = await this.prisma.event.findMany({
+      where: { isPublished: true },
+      select: {
+        publicId: true,
+        name: true,
+        location: true,
+        organization: { select: { name: true } },
+        photos: {
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          select: { id: true },
+          take: 1,
+        },
+        terms: PUBLIC_TERM_SELECT,
+      },
+    });
+    return events
+      .map(
+        (event) =>
+          new PublicCatalogItemModel(
+            event.publicId,
+            event.name,
+            event.organization.name,
+            event.location,
+            event.photos[0]?.id ?? null,
+            event.terms.map(toPublicTerm),
+          ),
+      )
+      .sort(
+        (a, b) =>
+          (a.terms[0]?.startDate ?? '9999-12-31').localeCompare(
+            b.terms[0]?.startDate ?? '9999-12-31',
+          ) ||
+          a.name.localeCompare(b.name, 'cs') ||
+          a.publicId.localeCompare(b.publicId),
+      );
   }
 
   /** The object key of a photo of a published event; null otherwise. */

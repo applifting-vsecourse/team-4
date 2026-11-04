@@ -78,6 +78,8 @@ const snapshotSelect = {
   lastName: true,
   email: true,
   phone: true,
+  gender: true,
+  genderOther: true,
   paymentReminderAt: true,
   paymentReminderDays: true,
   event: { select: { changeApprovalDays: true } },
@@ -123,6 +125,8 @@ const subjectOf = (row: Snapshot): ChangeSubject => ({
   firstName: row.firstName,
   lastName: row.lastName,
   phone: row.phone,
+  gender: row.gender,
+  genderOther: row.genderOther,
   paidMinor: row.payments.reduce((sum, p) => sum + p.amountMinor, 0),
   terms: row.terms.map((term) => ({
     termId: term.termId,

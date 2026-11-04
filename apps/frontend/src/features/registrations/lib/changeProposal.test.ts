@@ -6,7 +6,13 @@ import {
   type EditState,
 } from "@/features/registrations/lib/changeProposal"
 
-const CONTACT = { firstName: "Jana", lastName: "Nováková", phone: "+420604123456" }
+const CONTACT = {
+  firstName: "Jana",
+  lastName: "Nováková",
+  phone: "+420604123456",
+  gender: null,
+  genderOther: null,
+} as const satisfies Pick<EditState, "firstName" | "lastName" | "phone" | "gender" | "genderOther">
 const T1 = "0190c0de-0000-7000-8000-000000000001"
 const T2 = "0190c0de-0000-7000-8000-000000000002"
 const T3 = "0190c0de-0000-7000-8000-000000000003"
@@ -60,6 +66,40 @@ describe("buildProposal", () => {
     ).toEqual({
       moves: [{ fromTermId: T1, toTermId: T3, acceptWaitlist: false }],
       cancelledTermIds: [T2],
+    })
+  })
+
+  it("sends a changed gender answer, and null when it is cleared (F64)", () => {
+    expect(buildProposal(CONTACT, state({ gender: "undisclosed" }))).toEqual({
+      gender: "undisclosed",
+      moves: [],
+      cancelledTermIds: [],
+    })
+    expect(buildProposal({ ...CONTACT, gender: "male" }, state({ gender: "male" }))).toBeNull()
+    expect(buildProposal({ ...CONTACT, gender: "male" }, state())).toEqual({
+      gender: null,
+      moves: [],
+      cancelledTermIds: [],
+    })
+  })
+
+  it("sends own words only beside Jiná odpověď, trimmed, and null when they are removed", () => {
+    expect(buildProposal(CONTACT, state({ gender: "other", genderOther: "  nebinární " }))).toEqual(
+      { gender: "other", genderOther: "nebinární", moves: [], cancelledTermIds: [] },
+    )
+
+    const other = { ...CONTACT, gender: "other", genderOther: "nebinární" } as const
+    expect(buildProposal(other, state({ ...other }))).toBeNull()
+    expect(buildProposal(other, state({ gender: "other", genderOther: " " }))).toEqual({
+      genderOther: null,
+      moves: [],
+      cancelledTermIds: [],
+    })
+    // Another answer drops the words on the server; they are not sent.
+    expect(buildProposal(other, state({ gender: "male", genderOther: null }))).toEqual({
+      gender: "male",
+      moves: [],
+      cancelledTermIds: [],
     })
   })
 

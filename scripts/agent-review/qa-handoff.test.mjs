@@ -222,6 +222,7 @@ async function scenario(options) {
                                   __typename: 'PullRequest',
                                   number: pr.number,
                                   state: 'OPEN',
+                                  body: `Refs #${issue.number}`,
                                   repository: {
                                     nameWithOwner: 'owner/repo',
                                   },

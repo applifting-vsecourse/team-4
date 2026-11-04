@@ -1,7 +1,9 @@
 import {
   catalogEventSchema,
+  catalogListSchema,
   publicEventSchema,
   type CatalogEvent,
+  type CatalogItem,
   type PublicEvent,
 } from "@/features/public-events/api/publicEventSchemas"
 
@@ -49,3 +51,40 @@ export const CATALOG_EVENT: CatalogEvent = catalogEventSchema.parse({
   registrationStatus: "open",
   terms: PUBLIC_EVENT.terms,
 })
+
+/** The public catalog (F54-2a): events of several organizations. */
+export const CATALOG_LIST: CatalogItem[] = catalogListSchema.parse([
+  {
+    publicId: PUBLIC_ID,
+    name: PUBLIC_EVENT.name,
+    organizationName: "Spolek Modrá Hora",
+    location: "Tábořiště Modrá Hora, Hlinsko",
+    coverPhotoId: uuid(401),
+    terms: PUBLIC_EVENT.terms.map(({ id, label, startDate, endDate }) => ({
+      id,
+      label,
+      startDate,
+      endDate,
+    })),
+  },
+  {
+    publicId: "mesto-hrou-2027",
+    name: "Příměstský tábor Město hrou",
+    organizationName: "Dům dětí a mládeže Praha 4",
+    location: "DDM Praha 4, Praha",
+    // The organizer added no photo: the card shows the default image.
+    coverPhotoId: null,
+    terms: [
+      { id: uuid(201), label: "Týden 1", startDate: "2027-07-19", endDate: "2027-07-23" },
+      { id: uuid(202), label: "Týden 2", startDate: "2027-08-09", endDate: "2027-08-13" },
+    ],
+  },
+  {
+    publicId: "podzimni-vikend-2027",
+    name: "Podzimní víkend pro mladé organizátory",
+    organizationName: "Junák Brno",
+    location: "Skautská základna Kameňák, Brno",
+    coverPhotoId: null,
+    terms: [{ id: uuid(301), label: "Víkend", startDate: "2027-10-15", endDate: "2027-10-17" }],
+  },
+])

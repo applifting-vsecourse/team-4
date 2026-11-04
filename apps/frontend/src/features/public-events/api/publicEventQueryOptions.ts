@@ -5,10 +5,12 @@ import { api, HTTPError } from "@/lib/api-client"
 
 import {
   catalogEventSchema,
+  catalogListSchema,
   publicEventSchema,
 } from "@/features/public-events/api/publicEventSchemas"
 
 export const publicEventKeys = {
+  catalogList: ["public-event", "catalog"] as const,
   detail: (publicId: string) => ["public-event", publicId] as const,
   catalogDetail: (publicId: string) => ["public-event", publicId, "catalog"] as const,
 }
@@ -54,4 +56,16 @@ export const publicEventQueryOptions = (publicId: string) =>
         throw error
       }
     },
+  })
+
+/**
+ * The public catalog (F54-2a): published events of all organizations. A
+ * failure stays an error, so it is never mistaken for an empty catalog. The
+ * catalog follows publishing, so a stale list is not kept.
+ */
+export const catalogListQueryOptions = () =>
+  queryOptions({
+    queryKey: publicEventKeys.catalogList,
+    queryFn: async () => catalogListSchema.parse(await api.get("public/catalog/events").json()),
+    staleTime: 0,
   })

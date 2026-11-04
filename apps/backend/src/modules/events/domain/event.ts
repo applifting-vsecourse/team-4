@@ -158,6 +158,22 @@ export class PublicCatalogEventModel {
   ) {}
 }
 
+/** One published event in the public catalog list (F54-2a). Nothing internal. */
+export class PublicCatalogItemModel {
+  constructor(
+    public readonly publicId: string,
+    public readonly name: string,
+    public readonly organizationName: string,
+    public readonly location: string,
+    /** The first photo of the presentation, shown on the card; null without. */
+    public readonly coverPhotoId: string | null,
+    public readonly terms: Pick<
+      EventTermModel,
+      'id' | 'label' | 'startDate' | 'endDate'
+    >[],
+  ) {}
+}
+
 /** A room's beds in one term; an unavailable room adds none (F11-1). */
 export type RoomBeds = {
   isAvailable: boolean;

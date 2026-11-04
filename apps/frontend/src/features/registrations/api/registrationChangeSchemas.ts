@@ -1,6 +1,11 @@
 import { z } from "zod"
 
-import { participationStatusSchema } from "@/features/registrations/api/registrationSchemas"
+import {
+  genderOtherSchema,
+  genderSchema,
+  participationStatusSchema,
+  type Gender,
+} from "@/features/registrations/api/registrationSchemas"
 
 // Participant changes of an own registration and the organizer's approval
 // (F35-2a). Amounts and outcomes are worked out by the server; the client only
@@ -35,11 +40,25 @@ const moneySchema = z.object({
 
 export const changeSummarySchema = z.object({
   values: z.array(
-    z.object({
-      field: z.enum(["firstName", "lastName", "phone"]),
-      original: z.string(),
-      proposed: z.string(),
-    }),
+    z.discriminatedUnion("field", [
+      z.object({
+        field: z.enum(["firstName", "lastName", "phone"]),
+        original: z.string(),
+        proposed: z.string(),
+      }),
+      // F64: null is "not answered".
+      z.object({
+        field: z.literal("gender"),
+        original: genderSchema.nullable(),
+        proposed: genderSchema.nullable(),
+      }),
+      // Null is no own words for "Jiná odpověď".
+      z.object({
+        field: z.literal("genderOther"),
+        original: genderOtherSchema,
+        proposed: genderOtherSchema,
+      }),
+    ]),
   ),
   terms: z.array(plannedTermSchema),
   original: moneySchema,
@@ -98,6 +117,10 @@ export type ChangeProposal = {
   firstName?: string
   lastName?: string
   phone?: string
+  /** Null clears the answer back to "not answered". */
+  gender?: Gender | null
+  /** Own words for `other`; null removes them. */
+  genderOther?: string | null
   moves: { fromTermId: string; toTermId: string; acceptWaitlist: boolean }[]
   cancelledTermIds: string[]
 }

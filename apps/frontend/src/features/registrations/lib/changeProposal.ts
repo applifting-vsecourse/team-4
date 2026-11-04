@@ -1,16 +1,22 @@
 import { type ChangeProposal } from "@/features/registrations/api/registrationChangeSchemas"
+import { type Gender, type GenderAnswer } from "@/features/registrations/api/registrationSchemas"
 import { type ContactErrors } from "@/features/registrations/components/RegistrationChangeForm"
+import { toGenderAnswer } from "@/features/registrations/lib/gender"
 
 /** What the edit form currently holds. */
 export type EditState = {
   firstName: string
   lastName: string
   phone: string
+  /** Null is "not answered" (F64). */
+  gender: Gender | null
+  /** Own words for "Jiná odpověď" as typed. */
+  genderOther: string | null
   /** By the active term it belongs to. */
   terms: Record<string, { selectedTermId: string; isCancelled: boolean }>
 }
 
-type Contact = { firstName: string; lastName: string; phone: string }
+type Contact = { firstName: string; lastName: string; phone: string } & GenderAnswer
 
 const squash = (phone: string) => phone.replace(/\s+/g, "")
 
@@ -34,6 +40,13 @@ export function buildProposal(contact: Contact, state: EditState): ChangeProposa
   if (state.firstName.trim() !== contact.firstName) proposal.firstName = state.firstName.trim()
   if (state.lastName.trim() !== contact.lastName) proposal.lastName = state.lastName.trim()
   if (squash(state.phone) !== squash(contact.phone)) proposal.phone = state.phone.trim()
+  // Null is sent as such: it clears the answer. Another answer than "Jiná
+  // odpověď" drops its own words on the server by itself.
+  const answer = toGenderAnswer(state)
+  if (answer.gender !== contact.gender) proposal.gender = answer.gender
+  if (answer.gender === "other" && answer.genderOther !== contact.genderOther) {
+    proposal.genderOther = answer.genderOther
+  }
 
   for (const [termId, choice] of Object.entries(state.terms)) {
     if (choice.isCancelled) proposal.cancelledTermIds.push(termId)
@@ -50,6 +63,8 @@ export function buildProposal(contact: Contact, state: EditState): ChangeProposa
     proposal.firstName !== undefined ||
     proposal.lastName !== undefined ||
     proposal.phone !== undefined ||
+    proposal.gender !== undefined ||
+    proposal.genderOther !== undefined ||
     proposal.moves.length > 0 ||
     proposal.cancelledTermIds.length > 0
   return isChanged ? proposal : null

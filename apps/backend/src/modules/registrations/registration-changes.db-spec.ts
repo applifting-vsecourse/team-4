@@ -813,6 +813,114 @@ describe('capacity: failures and concurrent approvals', () => {
   });
 });
 
+// F64: the voluntary gender answer changes like the other data.
+describe('the gender answer', () => {
+  const genderOf = async (registration: Registration) =>
+    (
+      await prisma.registration.findUniqueOrThrow({
+        where: { id: registration.id },
+        select: { gender: true },
+      })
+    ).gender;
+
+  it('is set, shown after a reload and cleared back to not answered', async () => {
+    const fixture = await setup(null);
+    const registration = await register(fixture, [1]);
+    const before = await call('GET', base(registration), own(registration));
+    expect(before.body.contact.gender).toBeNull();
+
+    const set = await submit(registration, { gender: 'undisclosed' });
+    expect(set.body.outcome).toBe('applied');
+    expect(set.body.change.summary.values).toEqual([
+      { field: 'gender', original: null, proposed: 'undisclosed' },
+    ]);
+    const detail = await call('GET', base(registration), own(registration));
+    expect(detail.body.contact.gender).toBe('undisclosed');
+
+    const cleared = await submit(registration, { gender: null });
+    expect(cleared.body.change.summary.values).toEqual([
+      { field: 'gender', original: 'undisclosed', proposed: null },
+    ]);
+    expect(await genderOf(registration)).toBeNull();
+    expect(await version(registration)).toBe(2);
+  });
+
+  it('keeps the original answer until the organizer approves the change', async () => {
+    const fixture = await setup(14);
+    const registration = await register(fixture, [0, 1]);
+    await prisma.registration.update({
+      where: { id: registration.id },
+      data: { gender: 'female' },
+    });
+
+    const requested = await submit(registration, { gender: 'other' });
+    expect(requested.body.outcome).toBe('requested');
+    expect(await genderOf(registration)).toBe('female');
+
+    const path = `${managed(fixture, registration)}/changes/${requested.body.change.id}`;
+    expect(
+      (await call('POST', `${path}/approve`, owner(fixture))).body.status,
+    ).toBe('approved');
+    expect(await genderOf(registration)).toBe('other');
+  });
+
+  it('adds own words to "Jiná odpověď" and drops them with another answer', async () => {
+    const fixture = await setup(null);
+    const registration = await register(fixture, [1]);
+    const stored = async () =>
+      prisma.registration.findUniqueOrThrow({
+        where: { id: registration.id },
+        select: { gender: true, genderOther: true },
+      });
+
+    const set = await submit(registration, {
+      gender: 'other',
+      genderOther: 'nebinární',
+    });
+    expect(set.body.change.summary.values).toEqual([
+      { field: 'gender', original: null, proposed: 'other' },
+      { field: 'genderOther', original: null, proposed: 'nebinární' },
+    ]);
+    const detail = await call('GET', base(registration), own(registration));
+    expect(detail.body.contact).toMatchObject({
+      gender: 'other',
+      genderOther: 'nebinární',
+    });
+
+    await submit(registration, { gender: 'female' });
+    expect(await stored()).toEqual({ gender: 'female', genderOther: null });
+  });
+
+  it.each([
+    ['an unknown value', { gender: 'unknown' }],
+    ['several values at once', { gender: ['female', 'male'] }],
+    ['own words beside another answer', { gender: 'male', genderOther: 'x' }],
+    ['own words beside no stored answer', { genderOther: 'nebinární' }],
+  ])('refuses %s and keeps the stored answer', async (_, change) => {
+    const fixture = await setup(null);
+    const registration = await register(fixture, [1]);
+    const body = { moves: [], cancelledTermIds: [], ...change };
+
+    const preview = await call(
+      'POST',
+      `${base(registration)}/changes/preview`,
+      own(registration),
+      body,
+    );
+    const submitted = await call(
+      'POST',
+      `${base(registration)}/changes`,
+      own(registration),
+      { ...body, expectedVersion: 0, expectsApproval: false },
+    );
+
+    expect(preview.status).toBe(400);
+    expect(submitted.status).toBe(400);
+    expect(await genderOf(registration)).toBeNull();
+    expect(await version(registration)).toBe(0);
+  });
+});
+
 describe('stale requests and null fields', () => {
   it('refuses to approve a request made on an older version of the registration', async () => {
     const fixture = await setup(14);

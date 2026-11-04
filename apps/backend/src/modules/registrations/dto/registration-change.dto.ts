@@ -1,5 +1,11 @@
+import {
+  Gender,
+  GENDER_OTHER_MAX_LENGTH,
+  GENDERS,
+} from '@/modules/registrations/domain/gender';
 import { ParticipationStatus } from '@/modules/registrations/domain/registration';
 import {
+  CHANGEABLE_FIELDS,
   ChangeableField,
   ChangeKind,
   ChangePlan,
@@ -9,6 +15,8 @@ import {
   PlannedTerm,
 } from '@/modules/registrations/domain/registration-change';
 import {
+  GENDER_MESSAGE,
+  GenderOther,
   PHONE_MESSAGE,
   toE164,
   trim,
@@ -23,6 +31,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsString,
@@ -35,7 +44,7 @@ import {
 } from 'class-validator';
 
 const KINDS: ChangeKind[] = ['data', 'move', 'cancel_terms', 'cancel_all'];
-const FIELDS: ChangeableField[] = ['firstName', 'lastName', 'phone'];
+const FIELDS: readonly ChangeableField[] = CHANGEABLE_FIELDS;
 const STATES: ParticipationStatus[] = ['confirmed', 'waitlisted', 'cancelled'];
 const STATUSES = ['pending', 'applied', 'approved', 'rejected'] as const;
 
@@ -91,6 +100,27 @@ export class ChangeProposalDto {
   @Matches(/^\+[1-9]\d{6,14}$/, { message: PHONE_MESSAGE })
   phone?: string;
 
+  @ApiPropertyOptional({
+    enum: GENDERS,
+    nullable: true,
+    description:
+      'The voluntary answer for accommodation; null clears it back to "not answered".',
+  })
+  @ValidateIf((_: object, value: unknown) => value !== undefined)
+  @IsIn([...GENDERS, null], { message: GENDER_MESSAGE })
+  gender?: Gender | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    maxLength: GENDER_OTHER_MAX_LENGTH,
+    nullable: true,
+    description:
+      'The own words for `gender: other` (this proposal or the stored one), ' +
+      'else 400; null removes them. Another answer drops them by itself.',
+  })
+  @GenderOther('allow')
+  genderOther?: string | null;
+
   @ApiProperty({ type: [TermMoveDto] })
   @IsArray()
   @ArrayMaxSize(100)
@@ -130,11 +160,17 @@ export class ChangedValueDto {
   @ApiProperty({ enum: FIELDS })
   field!: ChangeableField;
 
-  @ApiProperty()
-  original!: string;
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description:
+      'For `gender` one of its values, or null when not answered; for ' +
+      '`genderOther` null when there are no own words.',
+  })
+  original!: string | null;
 
-  @ApiProperty()
-  proposed!: string;
+  @ApiProperty({ nullable: true, type: String })
+  proposed!: string | null;
 }
 
 export class PlannedTermDto {

@@ -1,5 +1,8 @@
 import { photoResponse } from '@/modules/events/controllers/photo-response';
-import { PublicCatalogEventDto } from '@/modules/events/dto/event.dto';
+import {
+  PublicCatalogEventDto,
+  PublicCatalogItemDto,
+} from '@/modules/events/dto/event.dto';
 import { EventPhotosService } from '@/modules/events/services/event-photos.service';
 import { EventsService } from '@/modules/events/services/events.service';
 import {
@@ -11,7 +14,12 @@ import {
   Res,
   StreamableFile,
 } from '@nestjs/common';
-import { ApiOperation, ApiProduces, ApiTags } from '@nestjs/swagger';
+import {
+  ApiOkResponse,
+  ApiOperation,
+  ApiProduces,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 
 // Same shape check as the registration link: anything else cannot match.
@@ -27,6 +35,21 @@ export class PublicCatalogController {
     private readonly events: EventsService,
     private readonly photos: EventPhotosService,
   ) {}
+
+  @Get()
+  @ApiOperation({
+    summary: 'The public catalog of published events',
+    description:
+      'No sign-in. Published events of all organizations, nearest term first; ' +
+      'an empty array when none is published. Never returns registrations, ' +
+      "capacity, payment settings or the organizer's account contact.",
+  })
+  @ApiOkResponse({ type: [PublicCatalogItemDto] })
+  async list(): Promise<PublicCatalogItemDto[]> {
+    return (await this.events.listPublished()).map((item) =>
+      PublicCatalogItemDto.from(item),
+    );
+  }
 
   @Get(':publicId')
   @ApiOperation({

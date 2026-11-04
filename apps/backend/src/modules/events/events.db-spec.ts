@@ -1309,6 +1309,46 @@ describe('public presentation and catalog detail (F55)', () => {
     ).toBe(404);
   });
 
+  it('lists published events only and follows publication', async () => {
+    const listCall = async (): Promise<
+      { publicId: string; [key: string]: unknown }[]
+    > =>
+      (await (await fetch(`${baseUrl}/public/catalog/events`)).json()) as {
+        publicId: string;
+      }[];
+
+    const { ownerId, path } = await readyEvent();
+    const publicId = (await call(ownerId, 'GET', path)).body.publicId;
+    expect((await listCall()).map((item) => item.publicId)).not.toContain(
+      publicId,
+    );
+
+    await call(ownerId, 'PUT', `${path}/publication`, { isPublished: true });
+    const item = (await listCall()).find(
+      (entry) => entry.publicId === publicId,
+    );
+    expect(item).toEqual({
+      publicId,
+      name: BASICS.name,
+      organizationName: expect.any(String),
+      location: BASICS.location,
+      coverPhotoId: null,
+      terms: [
+        {
+          id: expect.any(String),
+          label: FIRST.label,
+          startDate: FIRST.startDate,
+          endDate: FIRST.endDate,
+        },
+      ],
+    });
+
+    await call(ownerId, 'PUT', `${path}/publication`, { isPublished: false });
+    expect((await listCall()).map((entry) => entry.publicId)).not.toContain(
+      publicId,
+    );
+  });
+
   it('limits the photos, rejects other files and removes a photo', async () => {
     const { ownerId, path } = await draftEvent();
     expect(

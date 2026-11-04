@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type APIRequestContext } from "@playwright/test"
 
-import { publish, setUpEvent, type TermSpec } from "./support/api"
+import { publish, setUpEvent, unpublish, type OpenEvent, type TermSpec } from "./support/api"
 
 // Public event detail (F55): the organizer's presentation reaches the catalog
 // detail, which leads to the registration form and back without losing the
@@ -17,12 +17,23 @@ const PHOTO = Buffer.from(
   "base64",
 )
 
+// Published events are withdrawn again, so the tests leave the dev catalog as it was.
+const published: OpenEvent[] = []
+const publishEvent = async (request: APIRequestContext, event: OpenEvent) => {
+  await publish(request, event)
+  published.push(event)
+}
+
+test.afterEach(async ({ page }) => {
+  for (const event of published.splice(0)) await unpublish(page.request, event)
+})
+
 test("the organizer's presentation is shown on the public detail, which leads to the form and back", async ({
   page,
   browser,
 }) => {
   const event = await setUpEvent(page.request, { terms })
-  await publish(page.request, event)
+  await publishEvent(page.request, event)
 
   await page.goto(`/organizations/${event.organizationId}/events/${event.eventId}/settings`)
   const presentation = page.getByRole("region", { name: "Veřejná prezentace" })
@@ -67,7 +78,7 @@ test("the organizer's presentation is shown on the public detail, which leads to
   await visitor.getByLabel("Jméno").fill("Anna")
   await visitor.getByRole("checkbox", { name: /2\. turnus/ }).check()
 
-  await visitor.getByRole("link", { name: "Zobrazit detail akce" }).click()
+  await visitor.getByRole("link", { name: "Zpět na detail akce" }).click()
   await expect(visitor).toHaveURL(new RegExp(`/e/${event.publicId}$`))
   await visitor.getByRole("link", { name: "Vyplnit přihlášku" }).click()
   await expect(visitor.getByLabel("Jméno")).toHaveValue("Anna")
@@ -83,9 +94,11 @@ test("a published draft explains registration is not open; an unpublished event 
   page,
   browser,
 }) => {
-  const draft = await setUpEvent(page.request, { terms, isOpen: false })
-  await publish(page.request, draft)
+  // Each setUpEvent signs up a new organizer on `page.request`; the published
+  // draft is set up last so the same session can withdraw it afterwards.
   const open = await setUpEvent(page.request, { terms })
+  const draft = await setUpEvent(page.request, { terms, isOpen: false })
+  await publishEvent(page.request, draft)
 
   const visitorContext = await browser.newContext()
   const visitor = await visitorContext.newPage()
@@ -105,7 +118,7 @@ test("a published draft explains registration is not open; an unpublished event 
 
   await visitor.goto(`/e/${open.publicId}/registration`)
   await expect(visitor.getByRole("heading", { level: 1, name: open.name })).toBeVisible()
-  await expect(visitor.getByRole("link", { name: "Zobrazit detail akce" })).toBeHidden()
+  await expect(visitor.getByRole("link", { name: "Zpět na detail akce" })).toBeHidden()
   await expect(visitor.getByRole("button", { name: "Odeslat přihlášku" })).toBeVisible()
   await visitorContext.close()
 })
