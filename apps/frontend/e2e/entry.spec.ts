@@ -21,6 +21,15 @@ test("the landing page leads organizers and participants to different sign-ins",
   await expect(page.getByLabel("Heslo")).toBeHidden()
 })
 
+test("the landing page leads a visitor to the public catalog without signing in", async ({
+  page,
+}) => {
+  await page.goto("/")
+  await page.getByRole("main").getByRole("link", { name: "Katalog akcí" }).click()
+  await expect(page).toHaveURL(/\/events$/)
+  await expect(page.getByRole("heading", { name: "Katalog akcí", level: 1 })).toBeVisible()
+})
+
 test("an organizer reloading inside the second organization stays in it", async ({ page }) => {
   await signUpOrganizer(page.request)
   await createOrganization(page.request)

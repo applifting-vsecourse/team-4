@@ -1,12 +1,14 @@
+import { Link } from "@tanstack/react-router"
 import { CalendarX, TriangleAlert } from "lucide-react"
 
+import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 
-// Detail akce (F55): states without event data. Design only.
+// Detail akce (F55): states without event data.
 
 /** Unpublished, unknown and unavailable events look the same and show no event data. */
-export function PublicEventDetailUnavailable({ catalogHref }: { catalogHref: string }) {
+export function PublicEventDetailUnavailable() {
   return (
     <Empty>
       <EmptyHeader>
@@ -20,7 +22,7 @@ export function PublicEventDetailUnavailable({ catalogHref }: { catalogHref: str
           asChild
           variant="outline"
         >
-          <a href={catalogHref}>Zpět do katalogu</a>
+          <Link to={ROUTES.catalog}>Zpět do katalogu</Link>
         </Button>
       </EmptyContent>
     </Empty>
@@ -28,13 +30,7 @@ export function PublicEventDetailUnavailable({ catalogHref }: { catalogHref: str
 }
 
 /** The load failed; not presented as a missing event. */
-export function PublicEventDetailError({
-  catalogHref,
-  onRetry,
-}: {
-  catalogHref: string
-  onRetry: () => void
-}) {
+export function PublicEventDetailError({ onRetry }: { onRetry: () => void }) {
   return (
     <Empty>
       <EmptyHeader>
@@ -50,7 +46,7 @@ export function PublicEventDetailError({
             asChild
             variant="outline"
           >
-            <a href={catalogHref}>Zpět do katalogu</a>
+            <Link to={ROUTES.catalog}>Zpět do katalogu</Link>
           </Button>
         </div>
       </EmptyContent>

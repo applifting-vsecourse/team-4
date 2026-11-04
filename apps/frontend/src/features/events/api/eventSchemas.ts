@@ -36,6 +36,13 @@ export const eventSummarySchema = z.object({
 
 export const eventSummariesSchema = z.array(eventSummarySchema)
 
+// Public contact on the catalog detail (F55); never the account's own contact.
+export const publicContactSchema = z.object({
+  name: z.string(),
+  email: z.string(),
+  phone: z.string().nullable(),
+})
+
 export const eventDetailSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
@@ -48,6 +55,9 @@ export const eventDetailSchema = z.object({
   changeApprovalDays: z.number().int().nullable(),
   publicId: z.string(),
   isPublished: z.boolean(),
+  conditions: z.string(),
+  contact: publicContactSchema.nullable(),
+  photos: z.array(z.object({ id: z.string().uuid() })),
   openingBlockers: z.array(openingBlockerSchema),
 })
 
@@ -56,6 +66,16 @@ export type EventStatus = z.infer<typeof eventStatusSchema>
 export type EventTerm = z.infer<typeof eventTermSchema>
 export type EventSummary = z.infer<typeof eventSummarySchema>
 export type EventDetail = z.infer<typeof eventDetailSchema>
+export type PublicContact = z.infer<typeof publicContactSchema>
+
+/** Body of PUT …/presentation; empty contact fields remove the public contact. */
+export type PresentationInput = {
+  description: string
+  conditions: string
+  contactName: string
+  contactEmail: string
+  contactPhone: string
+}
 
 export type EventInput = Pick<EventDetail, "name" | "description" | "location">
 export type TermInput = Pick<EventTerm, "label" | "startDate" | "endDate" | "priceMinor">

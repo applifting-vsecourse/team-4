@@ -1,14 +1,18 @@
 import type { ReactNode } from "react"
 import type { Meta, StoryObj } from "@storybook/react-vite"
+import { Link } from "@tanstack/react-router"
+import { ArrowLeft } from "lucide-react"
 import { fn } from "storybook/test"
 
+import { ROUTES } from "@/app/routes"
 import { Header } from "@/components/Header/Header"
 import { Button } from "@/components/ui/button"
 
 import {
   EventPublicPresentation,
+  type EventPublicPresentationProps,
   type PresentationPhoto,
-} from "@/features/public-events/components/EventPublicPresentation"
+} from "@/features/events/components/EventPublicPresentation"
 import {
   PublicEventDetail,
   type PublicEventDetailProps,
@@ -20,9 +24,10 @@ import {
   PublicEventDetailUnavailable,
 } from "@/features/public-events/components/PublicEventDetailStates"
 
-// F55 design preview: public event detail with a link to the registration, and
-// the organizer's photos and public contact. Static only: no router logic,
-// queries or API; every value is hard-coded.
+// F55 design reference: public event detail with a link to the registration,
+// and the organizer's photos, description, conditions and public contact. The
+// same components as the app, with hard-coded values and no API.
+// Lives with the screens because it shows components of two features.
 
 function photo(fill: string, hill: string): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"><rect width="640" height="360" fill="${fill}"/><path d="M0 360V250q160-110 320-30t320-50v190z" fill="${hill}"/></svg>`
@@ -56,6 +61,7 @@ const TERM_2: PublicEventDetailTerm = {
 const TERMS: PublicEventDetailTerm[] = [TERM_1, TERM_2]
 
 const EVENT: PublicEventDetailProps = {
+  publicId: "modra-hora-2027",
   name: "Letní tábor Modrá Hora 2027",
   organizationName: "Spolek Modrá Hora",
   description:
@@ -70,10 +76,7 @@ const EVENT: PublicEventDetailProps = {
   ],
   contact: { name: "Jana Nováková", email: "tabor@modrahora.example", phone: "+420 604 123 456" },
   registrationStatus: "open",
-  registrationHref: "#prihlaska",
 }
-
-const CATALOG_HREF = "#katalog"
 
 function PublicPage({ children }: { children: ReactNode }) {
   return (
@@ -86,7 +89,10 @@ function PublicPage({ children }: { children: ReactNode }) {
           size="sm"
           className="self-start"
         >
-          <a href={CATALOG_HREF}>← Katalog akcí</a>
+          <Link to={ROUTES.catalog}>
+            <ArrowLeft aria-hidden />
+            Katalog akcí
+          </Link>
         </Button>
         {children}
       </main>
@@ -150,7 +156,7 @@ export const NoTerms: Story = {
 export const Unavailable: Story = {
   render: () => (
     <PublicPage>
-      <PublicEventDetailUnavailable catalogHref={CATALOG_HREF} />
+      <PublicEventDetailUnavailable />
     </PublicPage>
   ),
 }
@@ -159,10 +165,7 @@ export const Unavailable: Story = {
 export const LoadFailed: Story = {
   render: () => (
     <PublicPage>
-      <PublicEventDetailError
-        catalogHref={CATALOG_HREF}
-        onRetry={fn()}
-      />
+      <PublicEventDetailError onRetry={fn()} />
     </PublicPage>
   ),
 }
@@ -179,63 +182,60 @@ function OrganizerPage({ children }: { children: ReactNode }) {
   )
 }
 
-const CONTACT = {
-  name: "Jana Nováková",
-  email: "tabor@modrahora.example",
-  phone: "+420 604 123 456",
+const PRESENTATION = {
+  description: EVENT.description,
+  conditions: EVENT.conditions.join("\n"),
+  contactName: "Jana Nováková",
+  contactEmail: "tabor@modrahora.example",
+  contactPhone: "+420 604 123 456",
 }
 
-/** Organizer: saved description, photos and public contact. */
-export const OrganizerPresentation: Story = {
-  render: () => (
+function Presentation(overrides: Partial<EventPublicPresentationProps> = {}) {
+  return (
     <OrganizerPage>
       <EventPublicPresentation
-        description={EVENT.description}
+        initialValues={PRESENTATION}
         photos={PRESENTATION_PHOTOS}
-        contact={CONTACT}
+        onSubmit={fn()}
+        onAddPhoto={fn()}
+        onRemovePhoto={fn()}
+        {...overrides}
       />
     </OrganizerPage>
-  ),
+  )
 }
 
-/** Organizer: no photos or public contact yet; the description comes from the event. */
+/** Organizer: saved description, conditions, photos and public contact. */
+export const OrganizerPresentation: Story = { render: () => Presentation() }
+
+/** Organizer: no photos, conditions or public contact yet; the description comes from the event. */
 export const OrganizerPresentationEmpty: Story = {
-  render: () => (
-    <OrganizerPage>
-      <EventPublicPresentation
-        description={EVENT.description}
-        photos={[]}
-        contact={{ name: "", email: "", phone: "" }}
-      />
-    </OrganizerPage>
-  ),
+  render: () =>
+    Presentation({
+      initialValues: {
+        ...PRESENTATION,
+        conditions: "",
+        contactName: "",
+        contactEmail: "",
+        contactPhone: "",
+      },
+      photos: [],
+    }),
 }
 
 /** Organizer: empty description and invalid contact are flagged at the field. */
 export const OrganizerPresentationInvalid: Story = {
-  render: () => (
-    <OrganizerPage>
-      <EventPublicPresentation
-        description=""
-        descriptionError="Vyplňte popis."
-        photos={PRESENTATION_PHOTOS}
-        contact={{ name: "Jana Nováková", email: "tabor@modrahora", phone: "+420 604 123 456" }}
-        contactErrors={{ email: "Zadejte platný e-mail." }}
-      />
-    </OrganizerPage>
-  ),
+  render: () =>
+    Presentation({
+      initialValues: { ...PRESENTATION, description: "", contactEmail: "tabor@modrahora" },
+      fieldErrors: { description: "Vyplňte popis.", contactEmail: "Zadejte platný e-mail." },
+    }),
 }
 
 /** Organizer: saving failed; entered values stay. */
 export const OrganizerPresentationSaveFailed: Story = {
-  render: () => (
-    <OrganizerPage>
-      <EventPublicPresentation
-        description={EVENT.description}
-        photos={PRESENTATION_PHOTOS}
-        contact={CONTACT}
-        errorMessage="Veřejnou prezentaci se nepodařilo uložit. Zkuste to prosím znovu."
-      />
-    </OrganizerPage>
-  ),
+  render: () =>
+    Presentation({
+      errorMessage: "Veřejnou prezentaci se nepodařilo uložit. Zkuste to prosím znovu.",
+    }),
 }

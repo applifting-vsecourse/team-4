@@ -426,7 +426,7 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
     await expect(visitor.getByText("Akce není dostupná")).toBeVisible()
     await expect(visitor.getByText(event.name)).toBeHidden()
     await expect(visitor.getByText(event.location)).toBeHidden()
-    await visitor.goto("/e/neexistujici-akce")
+    await visitor.goto("/e/neexistujici-akce/registration")
     await expect(visitor.getByText("Akce není dostupná")).toBeVisible()
   })
 

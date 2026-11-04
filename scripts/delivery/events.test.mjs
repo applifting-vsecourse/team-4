@@ -103,11 +103,19 @@ test('CI completion selects its associated PRs without falling back to the full 
   assert.equal(includesIssue({ type: 'prs', numbers: [] }, issue), false);
 });
 
-test('PR and issue links include non-closing cross-references', () => {
+test('PR and issue links include closing links and explicit references, excluding dependency mentions', () => {
   const issue = {
     number: 86,
     repository: { nameWithOwner: 'owner/repo' },
-    closedByPullRequestsReferences: { nodes: [] },
+    closedByPullRequestsReferences: {
+      nodes: [
+        {
+          number: 135,
+          state: 'OPEN',
+          repository: { nameWithOwner: 'owner/repo' },
+        },
+      ],
+    },
     timelineItems: {
       pageInfo: { hasNextPage: false },
       nodes: [
@@ -117,6 +125,7 @@ test('PR and issue links include non-closing cross-references', () => {
             __typename: 'PullRequest',
             number: 144,
             state: 'OPEN',
+            body: 'Refs #86',
             repository: { nameWithOwner: 'owner/repo' },
           },
           target: {
@@ -131,6 +140,7 @@ test('PR and issue links include non-closing cross-references', () => {
             __typename: 'PullRequest',
             number: 145,
             state: 'OPEN',
+            body: 'Refs #89',
             repository: { nameWithOwner: 'owner/repo' },
           },
           target: {
@@ -139,14 +149,31 @@ test('PR and issue links include non-closing cross-references', () => {
             repository: { nameWithOwner: 'owner/repo' },
           },
         },
+        {
+          __typename: 'CrossReferencedEvent',
+          source: {
+            __typename: 'PullRequest',
+            number: 146,
+            state: 'OPEN',
+            body: '> Merge only after #86 is implemented.\n\nRefs #89',
+            repository: { nameWithOwner: 'owner/repo' },
+          },
+          target: {
+            __typename: 'Issue',
+            number: 86,
+            repository: { nameWithOwner: 'owner/repo' },
+          },
+        },
       ],
     },
   };
   assert.deepEqual(pullRequestsLinkedToIssue(issue), [
+    { number: 135, state: 'OPEN', repository: { nameWithOwner: 'owner/repo' } },
     { number: 144, state: 'OPEN', repository: { nameWithOwner: 'owner/repo' } },
   ]);
   assert.equal(includesIssue({ type: 'pr', number: 144 }, issue), true);
   assert.equal(includesIssue({ type: 'pr', number: 145 }, issue), false);
+  assert.equal(includesIssue({ type: 'pr', number: 146 }, issue), false);
 
   assert.deepEqual(
     referencedIssueNumbers(
