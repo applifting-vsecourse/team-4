@@ -1,3 +1,4 @@
+import { type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import {
   ArrowRight,
@@ -17,24 +18,17 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 
 import { IllustratedSections } from "./IllustratedSections"
 
 // Landing page in the S3-T2 "Ticket stub" direction (A). Two audiences, one page: organizers
 // (dark panel, leads) and participants (light panel). Colours come only from semantic tokens.
+// Every catalog entry leads to the public catalog (F54-2a); the page shows a preview of it.
 
 const WRAP = "mx-auto w-full max-w-280 px-4 md:px-8"
 const LABEL = "font-mono text-xs tracking-widest uppercase"
-const CATALOG_ANCHOR = "#katalog"
 
 const ORGANIZER_POINTS = [
   {
@@ -62,8 +56,8 @@ const PARTICIPANT_POINTS = [
   },
   {
     icon: MailCheck,
-    title: "Přihláška bez hesla",
-    text: "Stačí e-mail. Odkaz pro vstup vám pošleme.",
+    title: "Návrat k přihláškám bez hesla",
+    text: "Zadejte e-mail, se kterým jste se přihlásili. Odkaz pro vstup vám pošleme.",
   },
   {
     icon: WalletCards,
@@ -71,31 +65,6 @@ const PARTICIPANT_POINTS = [
     text: "Potvrzení i platební údaje máte na jednom místě.",
   },
 ]
-
-// Illustrative events until the public catalog route exists (F54-2a).
-const CATALOG = [
-  {
-    title: "Letní tábor Modrá Hora",
-    place: "Modrá Hora · 12.–19. 7. 2027",
-    badge: "Volná místa",
-    variant: "success",
-    isShifted: false,
-  },
-  {
-    title: "Víkend deskových her",
-    place: "Sázava · 3.–5. 9. 2027",
-    badge: "Poslední místa",
-    variant: "warning",
-    isShifted: true,
-  },
-  {
-    title: "Jazykové soustředění",
-    place: "Jeseníky · 21.–28. 8. 2027",
-    badge: "Jen náhradníci",
-    variant: "secondary",
-    isShifted: false,
-  },
-] as const
 
 const PAIRS = [
   ["Vytvoříte akci a termíny", "Najdou ji v katalogu"],
@@ -106,7 +75,11 @@ const PAIRS = [
 // Placeholders until PO delivers contact details and legal texts.
 const FOOTER_PLACEHOLDERS = ["Kontakt", "Ochrana osobních údajů", "Podmínky použití"]
 
-export function LandingPage() {
+/**
+ * `catalogPreview` fills the catalog section with published events; the route
+ * supplies it, because features do not import each other.
+ */
+export function LandingPage({ catalogPreview }: { catalogPreview: ReactNode }) {
   return (
     <div
       lang="cs"
@@ -137,7 +110,7 @@ export function LandingPage() {
               variant="ghost"
               size="sm"
             >
-              <a href={CATALOG_ANCHOR}>Katalog akcí</a>
+              <Link to={ROUTES.catalog}>Katalog akcí</Link>
             </Button>
             <Button
               asChild
@@ -203,7 +176,7 @@ export function LandingPage() {
                   size="lg"
                   variant="outline"
                 >
-                  <a href={CATALOG_ANCHOR}>Hledám akci</a>
+                  <Link to={ROUTES.catalog}>Hledám akci</Link>
                 </Button>
               </div>
             </div>
@@ -310,10 +283,10 @@ export function LandingPage() {
                     asChild
                     className="w-44"
                   >
-                    <a href={CATALOG_ANCHOR}>
+                    <Link to={ROUTES.catalog}>
                       Procházet katalog
                       <ArrowRight aria-hidden />
-                    </a>
+                    </Link>
                   </Button>
                   <Button
                     asChild
@@ -328,11 +301,10 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* Catalog teaser: three cards, middle one shifted. */}
+        {/* Catalog preview: the soonest published events and the way into the whole catalog. */}
         <section
-          id="katalog"
           aria-labelledby="katalog-nadpis"
-          className="scroll-mt-20 bg-muted py-16 md:py-28"
+          className="bg-muted py-16 md:py-28"
         >
           <div className={WRAP}>
             <div className="mb-12 flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -348,43 +320,17 @@ export function LandingPage() {
               <div className="flex max-w-sm flex-col items-start gap-4">
                 <p>Akce, které pořadatelé zveřejnili. Vyberte termín a přihlaste se.</p>
                 <Button
-                  type="button"
-                  aria-disabled="true"
+                  asChild
                   size="lg"
                 >
-                  Procházet katalog
-                  <ArrowRight aria-hidden />
+                  <Link to={ROUTES.catalog}>
+                    Celý katalog
+                    <ArrowRight aria-hidden />
+                  </Link>
                 </Button>
               </div>
             </div>
-            <ul className="grid gap-6 md:grid-cols-3">
-              {CATALOG.map((event) => (
-                <li
-                  key={event.title}
-                  className={cn(event.isShifted && "md:translate-y-10")}
-                >
-                  <Card>
-                    <CardHeader>
-                      <Badge variant={event.variant}>{event.badge}</Badge>
-                      <CardTitle>{event.title}</CardTitle>
-                      <CardDescription>{event.place}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button
-                        asChild
-                        variant="outline"
-                        size="sm"
-                      >
-                        <a href={CATALOG_ANCHOR}>
-                          Detail akce
-                          <ArrowRight aria-hidden />
-                        </a>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </li>
-              ))}
-            </ul>
+            {catalogPreview}
           </div>
         </section>
 
@@ -456,7 +402,7 @@ export function LandingPage() {
                   size="lg"
                   variant="secondary"
                 >
-                  <a href={CATALOG_ANCHOR}>Hledám akci</a>
+                  <Link to={ROUTES.catalog}>Hledám akci</Link>
                 </Button>
               </div>
             </div>
@@ -550,15 +496,12 @@ function MobileMenu() {
           >
             <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
           </Button>
-          {/* The catalog is on this page: close the menu so the section scrolls into view. */}
-          <SheetClose asChild>
-            <Button
-              asChild
-              variant="outline"
-            >
-              <a href={CATALOG_ANCHOR}>Katalog akcí</a>
-            </Button>
-          </SheetClose>
+          <Button
+            asChild
+            variant="outline"
+          >
+            <Link to={ROUTES.catalog}>Katalog akcí</Link>
+          </Button>
         </nav>
         <div className="flex items-center justify-between px-4">
           <span className="text-sm text-muted-foreground">Motiv</span>

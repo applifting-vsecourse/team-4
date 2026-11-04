@@ -25,9 +25,16 @@ test("the landing page leads a visitor to the public catalog without signing in"
   page,
 }) => {
   await page.goto("/")
-  await page.getByRole("main").getByRole("link", { name: "Katalog akcí" }).click()
+  await page.getByRole("main").getByRole("link", { name: "Hledám akci" }).first().click()
   await expect(page).toHaveURL(/\/events$/)
   await expect(page.getByRole("heading", { name: "Katalog akcí", level: 1 })).toBeVisible()
+
+  await page.goto("/")
+  await page
+    .getByRole("navigation", { name: "Vstup do aplikace" })
+    .getByRole("link", { name: "Katalog akcí" })
+    .click()
+  await expect(page).toHaveURL(/\/events$/)
 })
 
 test("an organizer reloading inside the second organization stays in it", async ({ page }) => {
