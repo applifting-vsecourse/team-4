@@ -50,6 +50,8 @@ const registration = (
     })),
     NO_NEEDS,
     0,
+    null,
+    null,
   );
 
 describe('ManagedRegistrationModel', () => {

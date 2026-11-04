@@ -13,13 +13,14 @@ export type CatalogEventItem = {
   location: string
   /** Already formatted, one entry per term. */
   terms: string[]
-  ageGroup: string
+  /** Shown only once the catalog filters by age group (F54-2b). */
+  ageGroup?: string
   /** Image uploaded by the organizer; `null` shows the default image. */
   imageUrl: string | null
 }
 
 // Veřejný katalog akcí → mřížka karet akcí s odkazem na veřejný detail (F54-2).
-// Design only: every value is passed in. Shows no capacity or private data.
+// Every value is passed in. Shows no capacity or private data.
 export function EventCatalogList({ events }: { events: CatalogEventItem[] }) {
   return (
     <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -54,16 +55,30 @@ export function EventCatalogList({ events }: { events: CatalogEventItem[] }) {
                 />
                 <span className="min-w-0 break-words">{event.location}</span>
               </p>
-              <p className="flex items-start gap-1.5 text-sm">
-                <CalendarDays
-                  aria-hidden
-                  className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                />
-                <span className="min-w-0 break-words">{event.terms.join(" · ")}</span>
-              </p>
-              <div className="mt-auto pt-1">
-                <Badge variant="secondary">{event.ageGroup}</Badge>
-              </div>
+              {event.terms.length > 0 ? (
+                <div className="flex items-start gap-1.5 text-sm">
+                  <CalendarDays
+                    aria-hidden
+                    className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                  />
+                  {/* One term per line, so several terms stay easy to tell apart. */}
+                  <ul className="min-w-0 flex-1">
+                    {event.terms.map((term) => (
+                      <li
+                        key={term}
+                        className="break-words"
+                      >
+                        {term}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {event.ageGroup ? (
+                <div className="mt-auto pt-1">
+                  <Badge variant="secondary">{event.ageGroup}</Badge>
+                </div>
+              ) : null}
             </div>
           </Card>
         </li>

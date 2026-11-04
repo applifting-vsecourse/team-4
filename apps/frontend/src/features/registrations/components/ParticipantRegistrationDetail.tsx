@@ -19,6 +19,7 @@ import {
 } from "@/features/registrations/api/participantRegistrationQueryOptions"
 import { type ParticipantRegistration } from "@/features/registrations/api/participantRegistrationSchemas"
 import { type ChangeProposal } from "@/features/registrations/api/registrationChangeSchemas"
+import { AccommodationCard } from "@/features/registrations/components/AccommodationCard"
 import { ChangeRequestCard } from "@/features/registrations/components/ChangeRequestCard"
 import { ChangeReviewDialog } from "@/features/registrations/components/ChangeReviewDialog"
 import { LoadFailedAlert } from "@/features/registrations/components/LoadFailedAlert"
@@ -226,6 +227,7 @@ export function ParticipantRegistrationDetail({
           </Card>
 
           <RegistrationNeedsSummary values={data.needs} />
+          <AccommodationCard answer={data.contact} />
 
           {renderProgramme?.(data)}
 

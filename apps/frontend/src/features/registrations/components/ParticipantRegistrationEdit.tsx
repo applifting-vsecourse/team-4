@@ -42,7 +42,8 @@ type ParticipantRegistrationEditProps = {
   onLeave: () => void
 }
 
-const NOTHING_CHANGED = "Nic jste nezměnili. Upravte údaje, přesuňte termín nebo se z něj odhlaste."
+const NOTHING_CHANGED =
+  "Nic jste nezměnili. Upravte údaje nebo pohlaví pro ubytování, přesuňte termín nebo se z něj odhlaste."
 
 // Moje přihlášky → Detail přihlášky → Úprava přihlášky (F35-2a): personal and
 // contact data in the scope of the registration form (not the e-mail), a move
@@ -150,6 +151,8 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
       lastName: contact.lastName,
       phone: contact.phone,
       needs,
+      gender: contact.gender,
+      genderOther: contact.genderOther,
       terms: Object.fromEntries(
         active.map((term) => [term.termId, { selectedTermId: term.termId, isCancelled: false }]),
       ),
@@ -207,7 +210,7 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
   return (
     <>
       <RegistrationChangeForm
-        contact={{ ...contact, phone: contact.phone }}
+        contact={contact}
         terms={formTerms}
         needs={needs}
         errors={errors}
@@ -215,6 +218,7 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
         errorMessage={message}
         onContactChange={(field, value) => setState((current) => ({ ...current, [field]: value }))}
         onNeedsChange={(next) => setState((current) => ({ ...current, needs: next }))}
+        onGenderChange={(answer) => setState((current) => ({ ...current, ...answer }))}
         onTermChange={(termId, change) =>
           setState((current) => ({ ...current, terms: { ...current.terms, [termId]: change } }))
         }

@@ -21,10 +21,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
+import { toE164 } from "@/lib/phone"
 
-import { NO_NEEDS, type SelectableTerm } from "@/features/registrations/api/registrationSchemas"
+import {
+  genderOtherSchema,
+  genderSchema,
+  NO_NEEDS,
+  type SelectableTerm,
+} from "@/features/registrations/api/registrationSchemas"
+import { GenderField } from "@/features/registrations/components/GenderField"
 import { RegistrationNeedsFields } from "@/features/registrations/components/RegistrationNeedsFields"
-import { toE164 } from "@/features/registrations/lib/phone"
 import { type RegistrationSubmitError } from "@/features/registrations/lib/registrationErrors"
 import { registrationNeedsFormSchema } from "@/features/registrations/lib/registrationNeeds"
 
@@ -53,6 +59,10 @@ const schema = z.object({
     .min(1, "Vyplňte telefon.")
     .refine((value) => toE164(value) !== null, PHONE_MESSAGE),
   termIds: z.array(z.string()).min(1, "Vyberte alespoň jeden termín."),
+  /** Voluntary (F64); null is "not answered". */
+  gender: genderSchema.nullable(),
+  /** Own words for "Jiná odpověď"; sent only beside it. */
+  genderOther: genderOtherSchema,
   needs: registrationNeedsFormSchema,
 })
 
@@ -64,11 +74,17 @@ const EMPTY: RegistrationFormValues = {
   email: "",
   phone: "",
   termIds: [],
+  gender: null,
+  genderOther: null,
   needs: NO_NEEDS,
 }
 
 type RegistrationFormProps = {
   terms: SelectableTerm[]
+  /** Values to start from, e.g. a draft kept for the browser tab. */
+  initialValues?: RegistrationFormValues | null
+  /** Every change of the typed values, e.g. to keep them as a draft. */
+  onValuesChange?: (values: RegistrationFormValues) => void
   isSubmitting: boolean
   submitError: RegistrationSubmitError | null
   onSubmit: (values: RegistrationFormValues) => void
@@ -80,19 +96,36 @@ type RegistrationFormProps = {
 // term when saving (S2-08), and a full term can be selected like any other.
 export function RegistrationForm({
   terms,
+  initialValues,
+  onValuesChange,
   isSubmitting,
   submitError,
   onSubmit,
 }: RegistrationFormProps) {
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: EMPTY,
+    defaultValues: initialValues ?? EMPTY,
   })
   const { setError } = form
   const selectedIds = useWatch({ control: form.control, name: "termIds" })
   const selected = terms.filter((term) => selectedIds.includes(term.id))
   const totalMinor = selected.reduce((sum, term) => sum + term.priceMinor, 0)
   const needsErrors = form.formState.errors.needs
+
+  const typed = useWatch({ control: form.control })
+  useEffect(() => {
+    onValuesChange?.({
+      firstName: typed.firstName ?? "",
+      lastName: typed.lastName ?? "",
+      email: typed.email ?? "",
+      phone: typed.phone ?? "",
+      termIds: (typed.termIds ?? []).filter((id): id is string => typeof id === "string"),
+      gender: typed.gender ?? null,
+      genderOther: typed.genderOther ?? null,
+      // Complete, unlike the watched copy, which types every part as optional.
+      needs: form.getValues("needs"),
+    })
+  }, [typed, onValuesChange])
 
   useEffect(() => {
     if (submitError?.kind === "terms") {
@@ -265,6 +298,21 @@ export function RegistrationForm({
             )}
           />
         </fieldset>
+
+        <FormField
+          control={form.control}
+          name="gender"
+          render={({ field }) => (
+            <GenderField
+              id="registration-gender"
+              value={{ gender: field.value, genderOther: typed.genderOther ?? null }}
+              onChange={(answer) => {
+                field.onChange(answer.gender)
+                form.setValue("genderOther", answer.genderOther)
+              }}
+            />
+          )}
+        />
 
         <fieldset className="space-y-4">
           <legend className="mb-4 text-h4">Doprava, strava a zdraví</legend>

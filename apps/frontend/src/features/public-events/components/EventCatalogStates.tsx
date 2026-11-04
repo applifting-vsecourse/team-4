@@ -5,7 +5,7 @@ import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 
-// Veřejný katalog akcí → stavy bez výpisu (F54-2). Design only.
+// Veřejný katalog akcí → stavy bez výpisu (F54-2).
 
 /** No event is published at all; different from a filter with no match. */
 export function EventCatalogEmpty() {

@@ -1,3 +1,4 @@
+import { GenderUpdateDto } from '@/modules/registrations/dto/gender-update.dto';
 import {
   RegistrationDetailDto,
   RegistrationListDto,
@@ -86,8 +87,9 @@ export class EventRegistrationsController {
     description:
       'Replaces only these fields, at once and without approval; the ' +
       'participant sees the same values. 409 `registration_stale` when the ' +
-      'registration changed after `expectedVersion`; 404 for a foreign or ' +
-      'missing registration.',
+      'registration changed after `expectedVersion`, 409 `change_pending` ' +
+      'while a change request of the participant waits; 404 for a foreign ' +
+      'or missing registration.',
   })
   async correctNeeds(
     @User() user: Identity,
@@ -102,6 +104,30 @@ export class EventRegistrationsController {
         registrationId,
         body.needs,
         body.expectedVersion,
+      ),
+    );
+  }
+
+  @Put(':registrationId/gender')
+  @ApiOperation({
+    summary: "Corrects the participant's gender answer (F64)",
+    description:
+      'Returns the saved registration. 400 for an unknown value, several ' +
+      'at once or own words beside an answer other than `other`; 404 for a registration of another event or organization; ' +
+      '409 `change_pending` while a change request of the participant waits.',
+  })
+  async updateGender(
+    @User() user: Identity,
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @Param('registrationId', ParseUUIDPipe) registrationId: string,
+    @Body() body: GenderUpdateDto,
+  ): Promise<RegistrationDetailDto> {
+    return RegistrationDetailDto.from(
+      await this.registrations.updateGender(
+        { organizationId, ownerId: user.id, eventId },
+        registrationId,
+        { gender: body.gender, genderOther: body.genderOther ?? null },
       ),
     );
   }

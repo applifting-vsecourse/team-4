@@ -10,13 +10,26 @@ import {
   type ChangedValue,
   type ChangeSummaryProps,
 } from "@/features/registrations/components/ChangeSummary"
+import { genderText } from "@/features/registrations/lib/gender"
 import {
   formatDiet,
   formatHealth,
   formatTransport,
 } from "@/features/registrations/lib/registrationNeeds"
 
-const FIELD_LABELS = { firstName: "Jméno", lastName: "Příjmení", phone: "Telefon" } as const
+const FIELD_LABELS = {
+  firstName: "Jméno",
+  lastName: "Příjmení",
+  phone: "Telefon",
+  gender: "Pohlaví pro ubytování",
+  genderOther: "Vlastní odpověď",
+} as const
+
+const valueText = (value: ChangeSummaryData["values"][number], side: "original" | "proposed") => {
+  if (value.field === "gender") return genderText(value[side])
+  if (value.field === "genderOther") return value[side] ?? "Neuvedeno"
+  return value[side]
+}
 
 /** The balance as one signed line: a debt, settled, or an overpayment. */
 const balanceText = (balanceMinor: number) => {
@@ -48,8 +61,8 @@ export function toSummaryProps(summary: ChangeSummaryData): ChangeSummaryProps {
     values: [
       ...summary.values.map((value) => ({
         label: FIELD_LABELS[value.field],
-        original: value.original,
-        proposed: value.proposed,
+        original: valueText(value, "original"),
+        proposed: valueText(value, "proposed"),
       })),
       ...needsRows(summary.needs),
     ],

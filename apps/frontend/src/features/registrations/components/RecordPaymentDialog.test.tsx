@@ -47,6 +47,9 @@ const DETAIL = {
   variableSymbol: null,
   needs: NO_NEEDS,
   version: 0,
+  gender: null,
+  genderOther: null,
+  requiresManualAccommodation: true,
   payments: [
     {
       id: "0190c0de-0000-7000-8000-0000000000b1",

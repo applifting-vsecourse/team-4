@@ -1,4 +1,5 @@
 import { EventScope } from '@/modules/events/repositories/events.repository';
+import { GenderAnswer } from '@/modules/registrations/domain/gender';
 import {
   ManagedRegistrationModel,
   RegistrationFilter,
@@ -14,6 +15,15 @@ import {
 
 const notAvailable = (): NotFoundException =>
   new NotFoundException('Záznam není dostupný');
+
+/** An organizer correction waits until the participant's request is decided. */
+const changePending = (): ConflictException =>
+  new ConflictException({
+    statusCode: 409,
+    code: 'change_pending',
+    message:
+      'Přihláška má nevyřízenou žádost o změnu. Nejdřív o ní rozhodněte.',
+  });
 
 @Injectable()
 export class EventRegistrationsService {
@@ -70,6 +80,23 @@ export class EventRegistrationsService {
           'Přihláška se mezitím změnila. Načtěte ji znovu a údaje uložte znovu.',
       });
     }
+    if (outcome.kind === 'change_pending') throw changePending();
     return outcome.registration;
+  }
+
+  /** The organizer's correction of the gender answer (F64); the saved registration. */
+  async updateGender(
+    scope: EventScope,
+    registrationId: string,
+    answer: GenderAnswer,
+  ): Promise<ManagedRegistrationModel> {
+    const outcome = await this.repository.updateGender(
+      scope,
+      registrationId,
+      answer,
+    );
+    if (outcome === 'not_found') throw notAvailable();
+    if (outcome === 'change_pending') throw changePending();
+    return this.get(scope, registrationId);
   }
 }

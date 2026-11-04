@@ -37,6 +37,8 @@ const subject = (
   lastName: 'Nováková',
   phone: '+420604123456',
   needs: NO_NEEDS,
+  gender: null,
+  genderOther: null,
   paidMinor,
   terms,
 });
@@ -95,6 +97,97 @@ describe('planChange', () => {
       { field: 'phone', original: '+420604123456', proposed: '+420731987654' },
     ]);
     expect(plan.summary.terms.map((t) => t.termId)).toEqual(['t1', 't2']);
+  });
+
+  it('changes the gender answer as data, judged by every active term', () => {
+    const plan = planChange(
+      PLAIN,
+      proposal({ gender: 'other' }),
+      events(),
+      14,
+      NOW,
+    );
+    expect(plan.requiresApproval).toBe(true);
+    expect(plan.kinds).toEqual(['data']);
+    expect(plan.summary.values).toEqual([
+      { field: 'gender', original: null, proposed: 'other' },
+    ]);
+    expect(plan.summary.terms.map((t) => t.termId)).toEqual(['t1', 't2']);
+  });
+
+  it('clears the gender answer back to not answered', () => {
+    const plan = planChange(
+      { ...PLAIN, gender: 'undisclosed' },
+      proposal({ gender: null }),
+      events(),
+      null,
+      NOW,
+    );
+    expect(plan.summary.values).toEqual([
+      { field: 'gender', original: 'undisclosed', proposed: null },
+    ]);
+  });
+
+  it('adds the own words to "Jiná odpověď"', () => {
+    const plan = planChange(
+      PLAIN,
+      proposal({ gender: 'other', genderOther: 'nebinární' }),
+      events(),
+      null,
+      NOW,
+    );
+    expect(plan.summary.values).toEqual([
+      { field: 'gender', original: null, proposed: 'other' },
+      { field: 'genderOther', original: null, proposed: 'nebinární' },
+    ]);
+  });
+
+  it('changes only the own words of a kept "Jiná odpověď"', () => {
+    const plan = planChange(
+      { ...PLAIN, gender: 'other', genderOther: 'nebinární' },
+      proposal({ genderOther: 'agender' }),
+      events(),
+      null,
+      NOW,
+    );
+    expect(plan.summary.values).toEqual([
+      { field: 'genderOther', original: 'nebinární', proposed: 'agender' },
+    ]);
+  });
+
+  it('drops the own words with another answer', () => {
+    const plan = planChange(
+      { ...PLAIN, gender: 'other', genderOther: 'nebinární' },
+      proposal({ gender: 'undisclosed' }),
+      events(),
+      null,
+      NOW,
+    );
+    expect(plan.summary.values).toEqual([
+      { field: 'gender', original: 'other', proposed: 'undisclosed' },
+      { field: 'genderOther', original: 'nebinární', proposed: null },
+    ]);
+  });
+
+  it.each([
+    ['with another answer', { gender: 'female' as const }],
+    ['beside a stored answer other than "Jiná odpověď"', {}],
+  ])('refuses own words %s', (_, change) => {
+    expect(() =>
+      planChange(
+        { ...PLAIN, gender: 'male' },
+        proposal({ ...change, genderOther: 'nebinární' }),
+        events(),
+        null,
+        NOW,
+      ),
+    ).toThrow(new InvalidChangeError('gender_other_mismatch'));
+  });
+
+  it('ignores a gender answer left as it is', () => {
+    expect(() =>
+      planChange(PLAIN, proposal({ gender: null }), events(), 14, NOW),
+    ).toThrow(new InvalidChangeError('no_change'));
   });
 
   it('judges a change of the needs by every active term', () => {

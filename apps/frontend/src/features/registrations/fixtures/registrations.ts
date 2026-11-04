@@ -113,6 +113,9 @@ export function makeRegistrationDetail(
     payments: [],
     needs: NO_NEEDS,
     version: 0,
+    gender: "female",
+    genderOther: null,
+    requiresManualAccommodation: false,
     ...overrides,
   })
 }

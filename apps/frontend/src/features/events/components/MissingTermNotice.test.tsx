@@ -35,6 +35,9 @@ const EVENT: EventDetail = {
   publicId: "abcdefghijkl",
   isPublished: false,
   changeApprovalDays: null,
+  conditions: "",
+  contact: null,
+  photos: [],
   openingBlockers: [],
 }
 const TERM: EventDetail["terms"][number] = {

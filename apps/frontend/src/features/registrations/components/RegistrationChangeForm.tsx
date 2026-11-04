@@ -23,14 +23,26 @@ import {
 } from "@/components/ui/select"
 
 import {
+  type Gender,
+  type GenderAnswer,
   type ParticipationStatus,
   type RegistrationNeeds,
 } from "@/features/registrations/api/registrationSchemas"
+import { GenderField } from "@/features/registrations/components/GenderField"
 import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
 import { RegistrationNeedsFields } from "@/features/registrations/components/RegistrationNeedsFields"
 import { type RegistrationNeedsErrors } from "@/features/registrations/lib/registrationNeeds"
 
-export type ContactValues = { firstName: string; lastName: string; email: string; phone: string }
+export type ContactValues = {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  /** Voluntary answer for accommodation (F64); null is "not answered". */
+  gender: Gender | null
+  /** Own words for "Jiná odpověď"; null when none. */
+  genderOther: string | null
+}
 
 /** A term of the same event the participant may move to. */
 export type TermOption = {
@@ -63,6 +75,7 @@ export type RegistrationChangeFormProps = {
   needs: RegistrationNeeds
   /** Fields are uncontrolled; these report every edit to the page that owns the state. */
   onContactChange?: (field: "firstName" | "lastName" | "phone", value: string) => void
+  onGenderChange?: (answer: GenderAnswer) => void
   onTermChange?: (termId: string, change: { selectedTermId: string; isCancelled: boolean }) => void
   onNeedsChange?: (needs: RegistrationNeeds) => void
   onReview?: () => void
@@ -82,6 +95,7 @@ export function RegistrationChangeForm({
   terms,
   needs,
   onContactChange,
+  onGenderChange,
   onTermChange,
   onNeedsChange,
   onReview,
@@ -90,6 +104,14 @@ export function RegistrationChangeForm({
   needsErrors,
   errorMessage,
 }: RegistrationChangeFormProps) {
+  const [gender, setGender] = useState<GenderAnswer>({
+    gender: contact.gender,
+    genderOther: contact.genderOther,
+  })
+  const chooseGender = (next: GenderAnswer) => {
+    setGender(next)
+    onGenderChange?.(next)
+  }
   const [chosen, setChosen] = useState<Record<string, TermChoice>>(() =>
     Object.fromEntries(
       terms.map((term) => [
@@ -174,6 +196,11 @@ export function RegistrationChangeForm({
                 <FieldError>{errors.phone}</FieldError>
               </Field>
             </div>
+            <GenderField
+              id="change-gender"
+              value={gender}
+              onChange={chooseGender}
+            />
           </FieldGroup>
         </CardContent>
       </Card>

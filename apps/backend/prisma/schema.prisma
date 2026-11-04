@@ -169,6 +169,12 @@ model Event {
   // Days before a term's start from which registration changes need approval (F35-1a); null = never.
   changeApprovalDays  Int?
 
+  // Public presentation on the catalog detail (F55). Never the account's own contact.
+  conditions   String  @default("") @db.Text
+  contactName  String? @db.VarChar(200)
+  contactEmail String? @db.VarChar(320)
+  contactPhone String? @db.VarChar(20)
+
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
@@ -179,10 +185,27 @@ model Event {
   registrations      Registration[]
   registrationTerms  RegistrationTerm[]
   programmeItems     ProgrammeItem[]
+  photos             EventPhoto[]
 
   @@unique([id, organizationId])
   @@index([organizationId, createdAt])
   @@map("event")
+}
+
+// A photo of the public presentation (F55); the bytes live in object storage
+// under `objectKey`.
+model EventPhoto {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  eventId     String   @db.Uuid
+  objectKey   String   @unique @db.VarChar(200)
+  contentType String   @db.VarChar(50)
+  byteSize    Int
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  @@index([eventId, createdAt])
+  @@map("event_photo")
 }
 
 model EventTerm {
@@ -332,6 +355,17 @@ enum ParticipationStatus {
   @@map("participation_status")
 }
 
+// The participant's own answer (F64); `other`, `undisclosed` and no answer
+// leave the accommodation to the organizer.
+enum Gender {
+  female
+  male
+  other
+  undisclosed
+
+  @@map("gender")
+}
+
 model Registration {
   id                   String @id @default(uuid(7)) @db.Uuid
   organizationId       String @db.Uuid
@@ -347,6 +381,12 @@ model Registration {
   lastName  String @db.VarChar(100)
   email     String @db.VarChar(320) // as submitted
   phone     String @db.VarChar(16) // E.164
+  // Voluntary answer for accommodation (F64), per registration, never the
+  // account identity. Null is "not answered", distinct from `undisclosed`.
+  gender    Gender?
+  // The participant's own words for `other`; null for every other answer
+  // (CHECK in the migration).
+  genderOther String? @db.VarChar(100)
 
   receivedAt        DateTime  @default(now()) @db.Timestamptz(3)
   paymentReminderAt DateTime? @db.Timestamptz(3)

@@ -87,6 +87,22 @@ describe("OrganizerNeedsSection", () => {
     expect(screen.getByRole("button", { name: "Uložit údaje" })).toBeEnabled()
   })
 
+  it("asks to decide a waiting change request first and keeps the values", async () => {
+    put.mockReturnValue(failure(409, { code: "change_pending" }))
+    const user = setup()
+
+    await user.click(screen.getByRole("button", { name: "Upravit" }))
+    await user.click(screen.getByRole("checkbox", { name: "Veganská" }))
+    await user.click(screen.getByRole("button", { name: "Uložit údaje" }))
+
+    expect(
+      await screen.findByText(
+        "Přihláška má nevyřízenou žádost o změnu. Nejdřív o ní rozhodněte, údaje zůstaly zachované.",
+      ),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("checkbox", { name: "Veganská" })).toBeChecked()
+  })
+
   it("does not overwrite a registration that changed meanwhile and offers a reload", async () => {
     put.mockReturnValue(failure(409, { code: "registration_stale" }))
     const onReload = vi.fn()

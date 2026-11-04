@@ -202,6 +202,83 @@ describe("validation", () => {
   })
 })
 
+describe("the gender answer (F64)", () => {
+  it("is voluntary: the form is sent without it as not answered", async () => {
+    post.mockReturnValue(respondWith(RESULT))
+    renderForm()
+    expect(screen.getByRole("group", { name: "Pohlaví pro ubytování (nepovinné)" })).toBeVisible()
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await fillContact()
+
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+    expect(sentBody()).toMatchObject({ gender: null })
+  })
+
+  it("sends the one chosen answer, and none again after the choice is cleared", async () => {
+    post.mockReturnValue(respondWith(RESULT))
+    renderForm()
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await fillContact()
+
+    await user.click(screen.getByRole("radio", { name: "Žena" }))
+    await user.click(screen.getByRole("radio", { name: "Nechci uvést" }))
+    expect(screen.getByRole("radio", { name: "Žena" })).not.toBeChecked()
+    expect(screen.getByRole("radio", { name: "Nechci uvést" })).toBeChecked()
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+    expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+    expect(sentBody()).toMatchObject({ gender: "undisclosed" })
+  })
+
+  it("can be cleared back to no answer", async () => {
+    renderForm()
+    await user.click(screen.getByRole("radio", { name: "Muž" }))
+
+    await user.click(screen.getByRole("button", { name: "Zrušit výběr" }))
+
+    for (const radio of screen.getAllByRole("radio")) expect(radio).not.toBeChecked()
+    expect(screen.queryByRole("button", { name: "Zrušit výběr" })).not.toBeInTheDocument()
+  })
+
+  it("asks for the own words only with Jiná odpověď and sends them trimmed", async () => {
+    post.mockReturnValue(respondWith(RESULT))
+    renderForm()
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await fillContact()
+    const wordsField = { name: "Vlastní odpověď (nepovinné)" }
+    expect(screen.queryByRole("textbox", wordsField)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("radio", { name: "Jiná odpověď" }))
+    await user.type(screen.getByRole("textbox", wordsField), "  nebinární ")
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+    expect(sentBody()).toMatchObject({ gender: "other", genderOther: "nebinární" })
+  })
+
+  it("drops the own words with another answer", async () => {
+    post.mockReturnValue(respondWith(RESULT))
+    renderForm()
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await fillContact()
+
+    await user.click(screen.getByRole("radio", { name: "Jiná odpověď" }))
+    await user.type(
+      screen.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" }),
+      "nebinární",
+    )
+    await user.click(screen.getByRole("radio", { name: "Žena" }))
+    expect(
+      screen.queryByRole("textbox", { name: "Vlastní odpověď (nepovinné)" }),
+    ).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+    expect(sentBody()).toMatchObject({ gender: "female", genderOther: null })
+  })
+})
+
 describe("submitting", () => {
   it("sends the selection once, shows progress, then the stored result of each term", async () => {
     const scrollTo = vi.spyOn(window, "scrollTo").mockReturnValue(undefined)
@@ -390,3 +467,34 @@ describe("submitting", () => {
     expect(await screen.findByText("Vyberte termíny této akce.")).toBeInTheDocument()
   })
 })
+
+describe("draft for the browser tab (F55)", () => {
+  it("brings back the typed values after leaving the form, and forgets them once saved", async () => {
+    const first = renderAndLeave()
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await fillContact()
+    first.unmount()
+
+    renderForm()
+    expect(screen.getByLabelText("Jméno")).toHaveValue("Jana")
+    expect(screen.getByLabelText("E-mail")).toHaveValue("jana@example.com")
+    expect(screen.getByLabelText(/1\. turnus/)).toBeChecked()
+
+    post.mockReturnValue(respondWith(RESULT))
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+    expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+    expect(window.sessionStorage.getItem("akcio:registration-draft:abcdefghijkl")).toBeNull()
+  })
+})
+
+function renderAndLeave() {
+  const queryClient = new QueryClient()
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <PublicRegistration
+        publicId="abcdefghijkl"
+        terms={TERMS}
+      />
+    </QueryClientProvider>,
+  )
+}

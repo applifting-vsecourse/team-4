@@ -2,6 +2,7 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
+import { GenderAnswer } from '@/modules/registrations/domain/gender';
 import {
   ManagedRegistrationModel,
   RegistrationFilter,
@@ -22,6 +23,8 @@ const registrationSelect = {
   lastName: true,
   email: true,
   phone: true,
+  gender: true,
+  genderOther: true,
   variableSymbol: true,
   paymentReminderAt: true,
   version: true,
@@ -69,6 +72,8 @@ const toModel = (
     })),
     needsOf(row),
     row.version,
+    row.gender,
+    row.genderOther,
   );
 
 /** Registrations of the scope's event only, of an organization of the caller (§3.2). */
@@ -82,7 +87,9 @@ export type NeedsCorrection =
   | { kind: 'corrected'; registration: ManagedRegistrationModel }
   | { kind: 'not_found' }
   /** The registration changed after the organizer loaded it. */
-  | { kind: 'stale' };
+  | { kind: 'stale' }
+  /** A participant change request waits for a decision. */
+  | { kind: 'change_pending' };
 
 @Injectable()
 export class EventRegistrationsRepository {
@@ -138,8 +145,9 @@ export class EventRegistrationsRepository {
 
   /**
    * The organizer's correction of the needs (F63): only these fields, at once,
-   * on the version the organizer saw. The registration row is locked, so a
-   * participant change cannot slip in between the check and the update.
+   * on the version the organizer saw, and not while a participant change
+   * request waits (like the gender correction, F64). The registration row is
+   * locked, so a participant change cannot slip in between.
    */
   async correctNeeds(
     scope: EventScope,
@@ -161,6 +169,11 @@ export class EventRegistrationsRepository {
         select: registrationSelect,
       });
       if (current.version !== expectedVersion) return { kind: 'stale' };
+      // A waiting request was proposed on the current needs; decide it first.
+      const pending = await tx.registrationChange.count({
+        where: { registrationId, status: 'pending' },
+      });
+      if (pending > 0) return { kind: 'change_pending' };
       if (sameNeeds(needsOf(current), needs)) {
         return { kind: 'corrected', registration: toModel(current) };
       }
@@ -170,6 +183,45 @@ export class EventRegistrationsRepository {
         select: registrationSelect,
       });
       return { kind: 'corrected', registration: toModel(updated) };
+    });
+  }
+
+  /**
+   * The organizer's correction of the gender answer (F64). Locks the
+   * registration like a participant change, so the two cannot overlap; a
+   * waiting change request must be decided first, it was proposed on the old
+   * answer. An actual change bumps the version, so an open participant form
+   * reloads instead of overwriting it.
+   */
+  async updateGender(
+    scope: EventScope,
+    registrationId: string,
+    answer: GenderAnswer,
+  ): Promise<'updated' | 'not_found' | 'change_pending'> {
+    return this.prisma.$transaction(async (tx) => {
+      const found = await tx.registration.findFirst({
+        where: { id: registrationId, ...inScope(scope) },
+        select: { id: true },
+      });
+      if (!found) return 'not_found';
+      const [locked] = await tx.$queryRaw<GenderAnswer[]>`
+        SELECT "gender"::text AS "gender", "genderOther" FROM "registration"
+        WHERE "id" = ${registrationId}::uuid
+        FOR UPDATE`;
+      const pending = await tx.registrationChange.count({
+        where: { registrationId, status: 'pending' },
+      });
+      if (pending > 0) return 'change_pending';
+      if (
+        locked.gender !== answer.gender ||
+        locked.genderOther !== answer.genderOther
+      ) {
+        await tx.registration.update({
+          where: { id: registrationId },
+          data: { ...answer, version: { increment: 1 } },
+        });
+      }
+      return 'updated';
     });
   }
 }

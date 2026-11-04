@@ -56,6 +56,8 @@ export const OWN_REGISTRATION: ParticipantRegistration = participantRegistration
     lastName: "Nováková",
     email: "jana.novakova@seznam.cz",
     phone: "+420604123456",
+    gender: "female",
+    genderOther: null,
   },
   version: 0,
   needs: {
@@ -97,6 +99,8 @@ export const SETTLED_REGISTRATION: ParticipantRegistration = participantRegistra
     lastName: "Nováková",
     email: "jana.novakova@seznam.cz",
     phone: "+420604123456",
+    gender: null,
+    genderOther: null,
   },
   version: 0,
   needs: NO_NEEDS,

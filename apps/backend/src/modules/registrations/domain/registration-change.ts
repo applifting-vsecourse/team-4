@@ -1,4 +1,5 @@
 import { requiresApproval } from '@/modules/events/domain/change-approval';
+import { Gender, genderOtherFits } from '@/modules/registrations/domain/gender';
 import {
   amountDueMinor,
   decideParticipation,
@@ -13,7 +14,18 @@ import {
 import { TermCapacity } from '@/modules/rooms/domain/room';
 
 /** Contact fields a participant may change; the e-mail is the identity (F35-2a). */
-export const CHANGEABLE_FIELDS = ['firstName', 'lastName', 'phone'] as const;
+const TEXT_FIELDS = ['firstName', 'lastName', 'phone'] as const;
+type TextField = (typeof TEXT_FIELDS)[number];
+
+/**
+ * The data a participant may change: the contact fields and the gender
+ * answer with its own words for "Jiná odpověď" (F64).
+ */
+export const CHANGEABLE_FIELDS = [
+  ...TEXT_FIELDS,
+  'gender',
+  'genderOther',
+] as const;
 export type ChangeableField = (typeof CHANGEABLE_FIELDS)[number];
 
 export type TermMove = {
@@ -30,17 +42,25 @@ export type ChangeProposal = {
   phone?: string;
   /** Transport, diet and health as a whole (F63); "" or empty clears a part. */
   needs?: RegistrationNeeds;
+  /** Null clears the answer back to "not answered" (F64). */
+  gender?: Gender | null;
+  /**
+   * The own words for `other`; null removes them. Another answer drops them
+   * without being asked.
+   */
+  genderOther?: string | null;
   moves: TermMove[];
   cancelledTermIds: string[];
 };
 
 export type ChangeKind = 'data' | 'move' | 'cancel_terms' | 'cancel_all';
 
-export type ChangedValue = {
-  field: ChangeableField;
-  original: string;
-  proposed: string;
-};
+export type ChangedValue =
+  | { field: TextField; original: string; proposed: string }
+  /** Null is "not answered". */
+  | { field: 'gender'; original: Gender | null; proposed: Gender | null }
+  /** Null is no own words. */
+  | { field: 'genderOther'; original: string | null; proposed: string | null };
 
 /** A term the change touches; null where it is not part of the registration. */
 export type PlannedTerm = {
@@ -94,7 +114,8 @@ export type ChangeErrorCode =
   | 'registration_cancelled'
   | 'term_not_active'
   | 'term_unknown'
-  | 'term_conflict';
+  | 'term_conflict'
+  | 'gender_other_mismatch';
 
 const MESSAGES: Record<ChangeErrorCode, string> = {
   no_change: 'Nic se nezměnilo.',
@@ -102,6 +123,7 @@ const MESSAGES: Record<ChangeErrorCode, string> = {
   term_not_active: 'Termín není součástí přihlášky.',
   term_unknown: 'Termín nepatří k této akci.',
   term_conflict: 'Termíny změny si odporují.',
+  gender_other_mismatch: 'Vlastní odpověď lze uvést jen u „Jiná odpověď“.',
 };
 
 export class InvalidChangeError extends Error {
@@ -116,6 +138,8 @@ export type ChangeSubject = {
   lastName: string;
   phone: string;
   needs: RegistrationNeeds;
+  gender: Gender | null;
+  genderOther: string | null;
   terms: RegistrationTermResult[];
   paidMinor: number;
 };
@@ -174,17 +198,41 @@ export const planChange = (
   }
 
   const values: ChangedValue[] = [];
-  for (const field of CHANGEABLE_FIELDS) {
+  for (const field of TEXT_FIELDS) {
     const proposed = proposal[field];
     if (proposed !== undefined && proposed !== subject[field]) {
       values.push({ field, original: subject[field], proposed });
     }
   }
+  const gender =
+    proposal.gender !== undefined ? proposal.gender : subject.gender;
+  if (gender !== subject.gender) {
+    values.push({
+      field: 'gender',
+      original: subject.gender,
+      proposed: gender,
+    });
+  }
+  const proposedOther =
+    proposal.genderOther !== undefined
+      ? proposal.genderOther
+      : subject.genderOther;
+  if (proposal.genderOther != null && !genderOtherFits(gender, proposedOther)) {
+    throw new InvalidChangeError('gender_other_mismatch');
+  }
+  const genderOther = gender === 'other' ? proposedOther : null;
+  if (genderOther !== subject.genderOther) {
+    values.push({
+      field: 'genderOther',
+      original: subject.genderOther,
+      proposed: genderOther,
+    });
+  }
   const needs: NeedsChange | null =
     proposal.needs !== undefined && !sameNeeds(subject.needs, proposal.needs)
       ? { original: subject.needs, proposed: normalizeNeeds(proposal.needs) }
       : null;
-  // Names, phone and needs belong to the whole registration.
+  // Names, phone, gender and needs belong to the whole registration.
   const changesData = values.length > 0 || needs !== null;
   if (!changesData && cancelled.size + proposal.moves.length === 0) {
     throw new InvalidChangeError('no_change');
@@ -290,12 +338,15 @@ export const planChange = (
   };
 };
 
-/** The names, phone and needs after the change; used when applying it. */
+export type ChangedFields = Partial<Pick<ChangeSubject, ChangeableField>> &
+  Partial<RegistrationNeeds>;
+
+/** The names, phone, gender answer and needs after the change; used when applying it. */
 export const changedFields = (
   summary: Pick<ChangeSummary, 'values' | 'needs'>,
-): Partial<Record<ChangeableField, string>> & Partial<RegistrationNeeds> => ({
-  ...Object.fromEntries(
+): ChangedFields => ({
+  ...(Object.fromEntries(
     summary.values.map((value) => [value.field, value.proposed]),
-  ),
+  ) as Partial<Pick<ChangeSubject, ChangeableField>>),
   ...summary.needs?.proposed,
 });

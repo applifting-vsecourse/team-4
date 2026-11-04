@@ -1,3 +1,4 @@
+import { Gender } from '@/modules/registrations/domain/gender';
 import {
   PaymentState,
   paymentState,
@@ -38,6 +39,10 @@ export class ParticipantRegistrationModel {
       lastName: string;
       email: string;
       phone: string;
+      /** Voluntary answer for accommodation (F64); null when not answered. */
+      gender: Gender | null;
+      /** The own words for `other`; null otherwise. */
+      genderOther: string | null;
     },
     /** Bumped by every executed change (F35-2a). */
     public readonly version: number,

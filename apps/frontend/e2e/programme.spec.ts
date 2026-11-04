@@ -345,7 +345,7 @@ test("direct links and forged requests reach no foreign programme", async ({ pag
   expect(publicDetail.ok()).toBe(true)
   expect(await publicDetail.text()).not.toContain(DINNER.title)
   const publicPage = await anonymous.newPage()
-  await publicPage.goto(`/e/${event.publicId}`)
+  await publicPage.goto(`/e/${event.publicId}/registration`)
   await expect(publicPage.getByRole("heading", { name: event.name })).toBeVisible()
   await expect(publicPage.getByText(DINNER.title)).toBeHidden()
   await anonymous.close()

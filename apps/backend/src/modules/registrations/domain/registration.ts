@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { Gender } from '@/modules/registrations/domain/gender';
 import {
   NO_NEEDS,
   normalizeNeeds,
@@ -20,6 +21,10 @@ export type RegistrationInput = {
   termIds: string[];
   /** Optional (F63); left out, nothing is provided. */
   needs?: RegistrationNeeds;
+  /** Voluntary (F64); left out or null is "not answered". */
+  gender?: Gender | null;
+  /** The own words for `other` only; left out or null is none. */
+  genderOther?: string | null;
 };
 
 /** One registration per e-mail and event: trimmed and lower-cased (T1). */
@@ -29,6 +34,7 @@ export const normalizeEmail = (email: string): string =>
 /**
  * Tells a retry of the same submission from a reused key with changed content.
  * The term order and the e-mail case do not change what is being submitted.
+ * Without a gender answer the hash is the one stored before F64.
  */
 export const submissionHash = (input: RegistrationInput): string =>
   createHash('sha256')
@@ -40,6 +46,8 @@ export const submissionHash = (input: RegistrationInput): string =>
         input.phone,
         [...input.termIds].sort(),
         normalizeNeeds(input.needs ?? NO_NEEDS),
+        ...(input.gender ? [input.gender] : []),
+        ...(input.genderOther ? [input.genderOther] : []),
       ]),
     )
     .digest('hex');

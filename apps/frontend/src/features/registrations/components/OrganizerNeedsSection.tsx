@@ -18,6 +18,9 @@ import {
 
 const SAVE_FAILED = "Údaje se nepodařilo uložit. Zůstaly zachované, zkuste to prosím znovu."
 
+const CHANGE_PENDING =
+  "Přihláška má nevyřízenou žádost o změnu. Nejdřív o ní rozhodněte, údaje zůstaly zachované."
+
 type OrganizerNeedsSectionProps = {
   organizationId: string
   eventId: string
@@ -134,7 +137,9 @@ function NeedsEditor({
             </Alert>
           ) : correct.isError ? (
             <Alert variant="destructive">
-              <AlertDescription>{SAVE_FAILED}</AlertDescription>
+              <AlertDescription>
+                {apiError?.code === "change_pending" ? CHANGE_PENDING : SAVE_FAILED}
+              </AlertDescription>
             </Alert>
           ) : null}
           <div className="flex flex-wrap gap-2">

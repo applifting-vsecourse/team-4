@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest"
 
-import { vi } from "vitest"
+import { afterEach, vi } from "vitest"
 
 // jsdom has no ResizeObserver; Radix controls with a size (Checkbox) need one.
 globalThis.ResizeObserver ??= class ResizeObserver {
@@ -8,3 +8,8 @@ globalThis.ResizeObserver ??= class ResizeObserver {
   unobserve = vi.fn()
   disconnect = vi.fn()
 }
+
+// Drafts kept for the browser tab must not leak from one test into the next.
+afterEach(() => {
+  window.sessionStorage.clear()
+})

@@ -25,6 +25,10 @@ export const sameSeverity = (a, b) => severityFor(a) === severityFor(b);
 // cannot prove that a code edit has no behavioral effect.
 export function validateSeverity(pr, files) {
   const severity = severityFor(pr);
+  const technicalReview = (pr.labels ?? []).some(
+    (label) =>
+      (typeof label === 'string' ? label : label.name) === 'technical-review',
+  );
   const paths = files.flatMap((file) =>
     [file.filename, file.previous_filename].filter(Boolean),
   );
@@ -38,6 +42,10 @@ export function validateSeverity(pr, files) {
   )
     throw new Error(
       'Review and merge enforcement changes require severity:high.',
+    );
+  if (technicalReview && severity === 'low')
+    throw new Error(
+      'PRs requiring technical review cannot use Low severity; use Standard or High.',
     );
   if (
     severity === 'low' &&

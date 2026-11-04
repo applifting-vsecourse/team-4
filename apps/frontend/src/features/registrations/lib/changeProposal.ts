@@ -1,6 +1,11 @@
 import { type ChangeProposal } from "@/features/registrations/api/registrationChangeSchemas"
-import { type RegistrationNeeds } from "@/features/registrations/api/registrationSchemas"
+import {
+  type Gender,
+  type GenderAnswer,
+  type RegistrationNeeds,
+} from "@/features/registrations/api/registrationSchemas"
 import { type ContactErrors } from "@/features/registrations/components/RegistrationChangeForm"
+import { toGenderAnswer } from "@/features/registrations/lib/gender"
 import { normalizeNeeds, sameNeeds } from "@/features/registrations/lib/registrationNeeds"
 
 /** What the edit form currently holds. */
@@ -8,6 +13,10 @@ export type EditState = {
   firstName: string
   lastName: string
   phone: string
+  /** Null is "not answered" (F64). */
+  gender: Gender | null
+  /** Own words for "Jiná odpověď" as typed. */
+  genderOther: string | null
   /** Transport, diet and health (F63). */
   needs: RegistrationNeeds
   /** By the active term it belongs to. */
@@ -15,7 +24,12 @@ export type EditState = {
 }
 
 /** The registration as it is now. */
-type Current = { firstName: string; lastName: string; phone: string; needs: RegistrationNeeds }
+type Current = {
+  firstName: string
+  lastName: string
+  phone: string
+  needs: RegistrationNeeds
+} & GenderAnswer
 
 const squash = (phone: string) => phone.replace(/\s+/g, "")
 
@@ -39,6 +53,13 @@ export function buildProposal(contact: Current, state: EditState): ChangeProposa
   if (state.firstName.trim() !== contact.firstName) proposal.firstName = state.firstName.trim()
   if (state.lastName.trim() !== contact.lastName) proposal.lastName = state.lastName.trim()
   if (squash(state.phone) !== squash(contact.phone)) proposal.phone = state.phone.trim()
+  // Null is sent as such: it clears the answer. Another answer than "Jiná
+  // odpověď" drops its own words on the server by itself.
+  const answer = toGenderAnswer(state)
+  if (answer.gender !== contact.gender) proposal.gender = answer.gender
+  if (answer.gender === "other" && answer.genderOther !== contact.genderOther) {
+    proposal.genderOther = answer.genderOther
+  }
   // The needs change as one block, like the server stores them.
   if (!sameNeeds(state.needs, contact.needs)) proposal.needs = normalizeNeeds(state.needs)
 
@@ -57,6 +78,8 @@ export function buildProposal(contact: Current, state: EditState): ChangeProposa
     proposal.firstName !== undefined ||
     proposal.lastName !== undefined ||
     proposal.phone !== undefined ||
+    proposal.gender !== undefined ||
+    proposal.genderOther !== undefined ||
     proposal.needs !== undefined ||
     proposal.moves.length > 0 ||
     proposal.cancelledTermIds.length > 0

@@ -1,4 +1,8 @@
 import {
+  Gender,
+  requiresManualAccommodation,
+} from '@/modules/registrations/domain/gender';
+import {
   amountDueMinor,
   ParticipationStatus,
   RegistrationTermResult,
@@ -74,7 +78,16 @@ export class ManagedRegistrationModel {
     public readonly needs: RegistrationNeeds,
     /** Bumped by every executed change (F35-2a) and organizer correction. */
     public readonly version: number,
+    /** Voluntary answer for accommodation (F64); null when not answered. */
+    public readonly gender: Gender | null,
+    /** The own words for `other`; null otherwise. */
+    public readonly genderOther: string | null,
   ) {}
+
+  /** The organizer decides the accommodation by hand (F64). */
+  get requiresManualAccommodation(): boolean {
+    return requiresManualAccommodation(this.gender);
+  }
 
   get selectedPriceMinor(): number {
     return selectedPriceMinor(this.terms);

@@ -8,6 +8,17 @@ export const participationStatusSchema = z.enum(["confirmed", "waitlisted", "can
 
 export type ParticipationStatus = z.infer<typeof participationStatusSchema>
 
+/** The voluntary answer for accommodation (F64); null elsewhere is "not answered". */
+export const genderSchema = z.enum(["female", "male", "other", "undisclosed"])
+
+export type Gender = z.infer<typeof genderSchema>
+
+/** The participant's own words for "Jiná odpověď"; null when there are none. */
+export const genderOtherSchema = z.string().max(100).nullable()
+
+/** The whole answer: `genderOther` is only ever set beside `other`. */
+export type GenderAnswer = { gender: Gender | null; genderOther: string | null }
+
 export const bankAccountSchema = z.object({
   prefix: z.string().nullable(),
   number: z.string(),
@@ -118,4 +129,8 @@ export type RegistrationInput = {
   phone: string
   termIds: string[]
   needs: RegistrationNeeds
+  /** Voluntary; null is "not answered". */
+  gender: Gender | null
+  /** Own words for `other` only; null when none. */
+  genderOther: string | null
 }

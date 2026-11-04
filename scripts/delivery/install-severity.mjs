@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { readFileSync, readdirSync } from 'node:fs';
 import { SEVERITY_LABELS } from './severity.mjs';
+import { TECHNICAL_REVIEW_LABEL } from './lib.mjs';
 import { severityRuleset } from './ruleset.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const gh = (args, input) =>
@@ -83,6 +84,16 @@ for (const [index, name] of SEVERITY_LABELS.entries()) {
     }),
   );
 }
+if (!existingLabels.some((label) => label.name === TECHNICAL_REVIEW_LABEL))
+  gh(
+    ['api', `repos/${repo}/labels`, '--method', 'POST', '--input', '-'],
+    JSON.stringify({
+      name: TECHNICAL_REVIEW_LABEL,
+      color: '1d76db',
+      description:
+        'Requires current-commit technical approval from rmnskb before QA or merge.',
+    }),
+  );
 gh(['api', path, '--method', 'PUT', '--input', '-'], JSON.stringify(proposed));
 const installed = gh(['api', path]);
 const rule = installed.rules.find(

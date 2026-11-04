@@ -3,6 +3,7 @@ import {
   findInvalidAccountField,
   PaymentSettings,
 } from '@/modules/events/domain/payment-settings';
+import { PublicContact } from '@/modules/events/domain/presentation';
 
 export type EventStatus = 'draft' | 'open' | 'closed';
 
@@ -98,6 +99,11 @@ export class EventDetailModel {
     public readonly isPublished: boolean,
     /** Days before a term's start from which changes need approval; null = no approval. */
     public readonly changeApprovalDays: number | null,
+    /** Public presentation on the catalog detail (F55). */
+    public readonly conditions: string,
+    public readonly contact: PublicContact | null,
+    /** Ids of the photos, oldest first. */
+    public readonly photoIds: string[],
   ) {}
 
   get openingBlockers(): OpeningBlocker[] {
@@ -120,6 +126,50 @@ export class PublicEventModel {
     public readonly terms: Omit<
       EventTermModel,
       'capacity' | 'programmeItemCount'
+    >[],
+    /** Listed in the catalog, so the form can link to the public detail. */
+    public readonly isPublished: boolean,
+  ) {}
+}
+
+/** Registration as a visitor of the catalog detail sees it; a draft is "not open yet". */
+export type PublicRegistrationStatus = 'open' | 'not-open' | 'closed';
+
+export const publicRegistrationStatus = (
+  status: EventStatus,
+): PublicRegistrationStatus =>
+  status === 'open' ? 'open' : status === 'closed' ? 'closed' : 'not-open';
+
+/** The catalog detail of a published event (F55). No capacity, nothing internal. */
+export class PublicCatalogEventModel {
+  constructor(
+    public readonly name: string,
+    public readonly organizationName: string,
+    public readonly description: string,
+    public readonly location: string,
+    public readonly conditions: string,
+    public readonly contact: PublicContact | null,
+    public readonly photoIds: string[],
+    public readonly registrationStatus: PublicRegistrationStatus,
+    public readonly terms: Omit<
+      EventTermModel,
+      'capacity' | 'programmeItemCount'
+    >[],
+  ) {}
+}
+
+/** One published event in the public catalog list (F54-2a). Nothing internal. */
+export class PublicCatalogItemModel {
+  constructor(
+    public readonly publicId: string,
+    public readonly name: string,
+    public readonly organizationName: string,
+    public readonly location: string,
+    /** The first photo of the presentation, shown on the card; null without. */
+    public readonly coverPhotoId: string | null,
+    public readonly terms: Pick<
+      EventTermModel,
+      'id' | 'label' | 'startDate' | 'endDate'
     >[],
   ) {}
 }

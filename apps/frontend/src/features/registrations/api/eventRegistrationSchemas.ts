@@ -2,6 +2,8 @@ import { z } from "zod"
 
 import {
   activeParticipationStatusSchema,
+  genderOtherSchema,
+  genderSchema,
   participationStatusSchema,
   receivedPaymentSchema,
   registrationNeedsSchema,
@@ -54,6 +56,11 @@ export const registrationDetailSchema = registrationSummarySchema.extend({
   needs: registrationNeedsSchema,
   /** Sent back as `expectedVersion` when correcting the needs. */
   version: z.number().int(),
+  /** The participant's voluntary answer for accommodation; null when not answered. */
+  gender: genderSchema.nullable(),
+  genderOther: genderOtherSchema,
+  /** "Jiná odpověď", "Nechci uvést" or no answer: the organizer decides the accommodation. */
+  requiresManualAccommodation: z.boolean(),
 })
 
 export type RegistrationSummary = z.infer<typeof registrationSummarySchema>

@@ -25,7 +25,7 @@ const needsCard = (page: Page) =>
 /** Jana registers through the public form for both terms, with her needs. */
 async function registerWithNeeds(page: Page, event: OpenEvent) {
   const jana = newParticipant("Jana")
-  await page.goto(`/e/${event.publicId}`)
+  await page.goto(`/e/${event.publicId}/registration`)
   await page.getByRole("checkbox", { name: /Turnus 1/ }).check()
   await page.getByRole("checkbox", { name: /Turnus 2/ }).check()
   await page.getByLabel("Jméno").fill(jana.firstName)

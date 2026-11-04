@@ -472,6 +472,27 @@ describe('the organizer corrects the needs', () => {
     expect(await stored(registration.id)).toMatchObject(FILLED);
   });
 
+  it('waits until a participant change request is decided', async () => {
+    const fixture = await setup(14);
+    const registration = await register(fixture);
+    const request = await change(registration, FILLED);
+    expect(request.body.outcome).toBe('requested');
+
+    const result = await call(
+      'PUT',
+      `${managed(fixture, registration.id)}/needs`,
+      { user: fixture.ownerId },
+      { expectedVersion: 0, needs: { ...NO_NEEDS, health: 'Astma' } },
+    );
+
+    expect(result.status).toBe(409);
+    expect(result.body.code).toBe('change_pending');
+    expect(await stored(registration.id)).toMatchObject({
+      ...NO_NEEDS,
+      version: 0,
+    });
+  });
+
   it('refuses "Bez omezení" with a diet', async () => {
     const fixture = await setup();
     const registration = await register(fixture);

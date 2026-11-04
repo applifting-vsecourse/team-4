@@ -28,6 +28,8 @@ type RegistrationDetailProps = {
   onRefresh: () => unknown
   /** Transport, diet and health with the organizer's correction (F63). */
   needs?: ReactNode
+  /** The gender answer and its correction (F64), under the contacts. */
+  accommodation?: ReactNode
 }
 
 // The organizer's view of one registration (S2-11): contacts,
@@ -40,6 +42,7 @@ export function RegistrationDetail({
   hasRefreshFailed,
   onRefresh,
   needs,
+  accommodation,
 }: RegistrationDetailProps) {
   const updated = formatPragueDateTime(new Date(updatedAt).toISOString())
 
@@ -97,6 +100,8 @@ export function RegistrationDetail({
               </dl>
             </CardContent>
           </Card>
+
+          {accommodation}
 
           <Card>
             <CardHeader>
