@@ -5,6 +5,7 @@ import {
   EventTermModel,
   OpeningBlocker,
   PublicCatalogEventModel,
+  PublicCatalogItemModel,
   PublicEventModel,
   PublicRegistrationStatus,
 } from '@/modules/events/domain/event';
@@ -363,6 +364,65 @@ export class PublicCatalogEventDto {
         startDate: term.startDate,
         endDate: term.endDate,
         priceMinor: term.priceMinor,
+      })),
+    };
+  }
+}
+
+export class PublicCatalogItemTermDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty()
+  label!: string;
+
+  @ApiProperty({ format: 'date', example: '2027-07-01' })
+  startDate!: string;
+
+  @ApiProperty({ format: 'date', example: '2027-07-07' })
+  endDate!: string;
+}
+
+export class PublicCatalogItemDto {
+  @ApiProperty({ description: 'Link id of the detail `/e/:publicId`.' })
+  publicId!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty()
+  organizationName!: string;
+
+  @ApiProperty()
+  location!: string;
+
+  @ApiProperty({
+    format: 'uuid',
+    nullable: true,
+    type: String,
+    description:
+      'First photo, served at `public/catalog/events/:publicId/photos/:id`.',
+  })
+  coverPhotoId!: string | null;
+
+  @ApiProperty({
+    type: [PublicCatalogItemTermDto],
+    description: 'By start date.',
+  })
+  terms!: PublicCatalogItemTermDto[];
+
+  static from(model: PublicCatalogItemModel): PublicCatalogItemDto {
+    return {
+      publicId: model.publicId,
+      name: model.name,
+      organizationName: model.organizationName,
+      location: model.location,
+      coverPhotoId: model.coverPhotoId,
+      terms: model.terms.map((term) => ({
+        id: term.id,
+        label: term.label,
+        startDate: term.startDate,
+        endDate: term.endDate,
       })),
     };
   }

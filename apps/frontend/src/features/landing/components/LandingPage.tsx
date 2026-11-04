@@ -21,8 +21,8 @@ import { AppPreview } from "./AppPreview"
 import { EntryCard } from "./EntryCard"
 import { LandingSection } from "./LandingSection"
 
-// Hero copy is the text approved in S2-01. Only what Sprint 2 delivers: no public catalog, adult
-// participants only, rooms and beds without assigning people to rooms.
+// Hero copy is the text approved in S2-01. Only what Sprint 2 delivers: adult participants only,
+// rooms and beds without assigning people to rooms. The public catalog (F54-2a) is a plain entry.
 
 const FEATURES = [
   {
@@ -74,6 +74,10 @@ export function LandingPage() {
             aria-label="Vstup do aplikace"
             className="hidden items-center gap-2 md:flex"
           >
+            <CatalogButton
+              variant="ghost"
+              size="sm"
+            />
             <MyRegistrationsButton
               variant="ghost"
               size="sm"
@@ -114,6 +118,10 @@ export function LandingPage() {
                 className="w-full sm:w-auto"
               />
               <MyRegistrationsButton
+                variant="outline"
+                className="w-full sm:w-auto"
+              />
+              <CatalogButton
                 variant="outline"
                 className="w-full sm:w-auto"
               />
@@ -252,6 +260,7 @@ function MobileMenu() {
         >
           <OrganizerButton />
           <MyRegistrationsButton />
+          <CatalogButton />
         </nav>
         <div className="flex items-center justify-between px-4">
           <span className="text-sm text-muted-foreground">Motiv</span>
@@ -308,6 +317,23 @@ function MyRegistrationsButton({
         Moje přihlášky
         {hasArrow ? <ArrowRight aria-hidden /> : null}
       </Link>
+    </Button>
+  )
+}
+
+function CatalogButton({
+  variant = "outline",
+  size = "default",
+  className,
+}: Omit<EntryButtonProps, "hasArrow">) {
+  return (
+    <Button
+      asChild
+      variant={variant}
+      size={size}
+      className={className}
+    >
+      <Link to={ROUTES.catalog}>Katalog akcí</Link>
     </Button>
   )
 }

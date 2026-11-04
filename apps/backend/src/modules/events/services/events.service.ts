@@ -5,6 +5,7 @@ import {
   EventSummaryModel,
   findOpeningBlockers,
   PublicCatalogEventModel,
+  PublicCatalogItemModel,
   PublicEventModel,
   TermInput,
 } from '@/modules/events/domain/event';
@@ -203,6 +204,11 @@ export class EventsService {
     const event = await this.repository.findOpenByPublicId(publicId);
     if (!event) throw notAvailable();
     return event;
+  }
+
+  /** The public catalog: published events only, across organizations (F54-2a). */
+  listPublished(): Promise<PublicCatalogItemModel[]> {
+    return this.repository.findPublished();
   }
 
   /** Unpublished and unknown events give the same 404 (F55). */

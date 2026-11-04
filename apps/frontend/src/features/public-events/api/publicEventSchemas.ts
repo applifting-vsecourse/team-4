@@ -38,3 +38,25 @@ export const catalogEventSchema = z.object({
 })
 
 export type CatalogEvent = z.infer<typeof catalogEventSchema>
+
+// One published event in the public catalog list (F54-2a): enough for a card,
+// nothing of capacity, registrations or the organization's account.
+export const catalogItemSchema = z.object({
+  publicId: z.string(),
+  name: z.string(),
+  organizationName: z.string(),
+  location: z.string(),
+  coverPhotoId: z.string().uuid().nullable(),
+  terms: z.array(
+    z.object({
+      id: z.string().uuid(),
+      label: z.string(),
+      startDate: z.string(),
+      endDate: z.string(),
+    }),
+  ),
+})
+
+export const catalogListSchema = z.array(catalogItemSchema)
+
+export type CatalogItem = z.infer<typeof catalogItemSchema>
