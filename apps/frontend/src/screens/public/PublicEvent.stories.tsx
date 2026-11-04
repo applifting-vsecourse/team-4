@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
+import { expect, within } from "storybook/test"
 
 import { screenMeta, showsHeading } from "@/screens/screenMeta"
 
@@ -18,5 +19,9 @@ export default meta
 
 /** Registration form of an event with open registration, linking to its detail (S2-06, S2-07, F55). */
 export const PublicEvent: StoryObj<typeof meta> = {
-  play: showsHeading("Letní tábor Modrá Hora 2027"),
+  play: async (context) => {
+    await showsHeading("Letní tábor Modrá Hora 2027")(context)
+    const back = within(context.canvasElement).getByRole("link", { name: "Zpět na detail akce" })
+    await expect(back).toHaveAttribute("href", `/e/${PUBLIC_ID}`)
+  },
 }

@@ -67,7 +67,7 @@ test("the organizer's presentation is shown on the public detail, which leads to
   await visitor.getByLabel("Jméno").fill("Anna")
   await visitor.getByRole("checkbox", { name: /2\. turnus/ }).check()
 
-  await visitor.getByRole("link", { name: "Zobrazit detail akce" }).click()
+  await visitor.getByRole("link", { name: "Zpět na detail akce" }).click()
   await expect(visitor).toHaveURL(new RegExp(`/e/${event.publicId}$`))
   await visitor.getByRole("link", { name: "Vyplnit přihlášku" }).click()
   await expect(visitor.getByLabel("Jméno")).toHaveValue("Anna")
@@ -105,7 +105,7 @@ test("a published draft explains registration is not open; an unpublished event 
 
   await visitor.goto(`/e/${open.publicId}/registration`)
   await expect(visitor.getByRole("heading", { level: 1, name: open.name })).toBeVisible()
-  await expect(visitor.getByRole("link", { name: "Zobrazit detail akce" })).toBeHidden()
+  await expect(visitor.getByRole("link", { name: "Zpět na detail akce" })).toBeHidden()
   await expect(visitor.getByRole("button", { name: "Odeslat přihlášku" })).toBeVisible()
   await visitorContext.close()
 })

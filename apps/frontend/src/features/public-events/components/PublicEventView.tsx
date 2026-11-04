@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { CalendarX, MapPin } from "lucide-react"
+import { ArrowLeft, CalendarX, MapPin } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -45,7 +45,7 @@ export function PublicEventLoadError({ onRetry }: { onRetry: () => void }) {
 // Content of an open event: name, description and place, then the
 // registration form (S2-07) the route puts in. Availability is deliberately
 // not shown: the server decides each term when saving (S2-08). A published
-// event links to its catalog detail (F55); the typed values survive the visit.
+// event links back to its catalog detail (F55) above the name; the typed values survive the visit.
 export function PublicEventView({
   publicId,
   event,
@@ -57,6 +57,22 @@ export function PublicEventView({
 }) {
   return (
     <article>
+      {event.isPublished ? (
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className="mb-6"
+        >
+          <Link
+            to={ROUTES.publicEvent}
+            params={{ publicId }}
+          >
+            <ArrowLeft aria-hidden />
+            Zpět na detail akce
+          </Link>
+        </Button>
+      ) : null}
       <h1 className="text-h2 break-words">{event.name}</h1>
       <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
         <MapPin
@@ -65,17 +81,6 @@ export function PublicEventView({
         />
         <span className="min-w-0 break-words">{event.location}</span>
       </p>
-      {event.isPublished ? (
-        <p className="mt-2 text-sm">
-          <Link
-            to={ROUTES.publicEvent}
-            params={{ publicId }}
-            className="text-foreground underline underline-offset-4"
-          >
-            Zobrazit detail akce
-          </Link>
-        </p>
-      ) : null}
       <p className="mt-6 max-w-prose text-sm whitespace-pre-line">{event.description}</p>
 
       <section
