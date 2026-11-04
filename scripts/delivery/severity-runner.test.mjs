@@ -42,7 +42,8 @@ async function scenario(mode) {
         ],
         head: { sha: mode === 'push' ? 'b'.repeat(40) : sha },
       };
-    } else if (path.includes('/check-runs')) data = { check_runs: [] };
+    } else if (path.endsWith('/timeline')) data = [];
+    else if (path.includes('/check-runs')) data = { check_runs: [] };
     else if (path.includes('/statuses/')) {
       statuses.push(JSON.parse(options.body));
       data = {};

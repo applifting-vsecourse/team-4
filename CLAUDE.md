@@ -115,6 +115,22 @@ mixed changes, use the highest applicable severity. Migrations, permissions or
 authentication, payments, destructive operations, deployment and approval-
 workflow changes require High; routine features, UI work and bug fixes use
 Standard. Mixed/unknown severity labels block delivery.
+Also apply `technical-review` when the PR adds or replaces a Docker Compose
+service, adds a package/dependency, or makes a comparable shared infrastructure
+or tooling change that needs Bogdan's technical sign-off. Apply it when creating
+the PR, or immediately afterward if the creation tool cannot set labels. Routine
+feature work such as adding a page does not need this label. For non-draft PRs,
+the workflow requests `rmnskb` as soon as the labeled PR is opened or labeled,
+and requires
+his approval on the current commit before QA handoff and
+merge until that review is recorded. Once applied, removing the label does not
+remove the approval requirement; Bogdan's current-commit approval satisfies it.
+Before opening a non-draft PR, launch a fresh independent agent with no access to
+the implementation conversation or plan to review the final diff. Give it the
+issue description and acceptance criteria, the diff, and only the repository
+instructions needed to assess them. Resolve its actionable findings or record
+why each finding is not applicable before opening the PR. If you cannot launch
+an independent agent, do not open the non-draft PR; report the blocker.
 Low requires CI but skips linked issues, requirements approval, code review and
 QA. It is limited to documentation/text and isolated test files; executable or
 configuration changes cannot use Low. Enforcement changes always require High.

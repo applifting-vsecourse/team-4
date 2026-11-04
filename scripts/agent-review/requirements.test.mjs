@@ -40,7 +40,9 @@ function run(
           calls.push('diff'); return {ok:true,text:async()=> 'x'.repeat(110000)};
         }
         data=pr;
-      } else if (path.endsWith('/issues/78')) {
+        } else if (path.endsWith('/timeline')) {
+          data = [];
+        } else if (path.endsWith('/issues/78')) {
         data={number:78,title:'Task',body:'Task'};
       } else if (path.endsWith('/comments')) {
         if(path.endsWith('/issues/78/comments') && revokeBeforeReview && reviewReads>1 && !resetSent) {
