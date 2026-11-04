@@ -9,6 +9,9 @@ import { EVENT_SUMMARIES, EVENTS } from "@/features/events/fixtures/events"
 
 const LIST = `${env.VITE_API_URL}/organizations/:organizationId/events`
 
+// Stand-in for an uploaded photo of the public presentation (F55).
+const PHOTO = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"><rect width="640" height="360" fill="#bae6fd"/><path d="M0 360V250q160-110 320-30t320-50v190z" fill="#4d7c0f"/></svg>`
+
 export const eventHandlers = {
   list: () => [
     http.get(LIST, () => HttpResponse.json(EVENT_SUMMARIES)),
@@ -18,5 +21,9 @@ export const eventHandlers = {
         ? HttpResponse.json(event)
         : HttpResponse.json({ message: "Not Found" }, { status: 404 })
     }),
+    http.get(
+      `${LIST}/:eventId/photos/:photoId`,
+      () => new HttpResponse(PHOTO, { headers: { "Content-Type": "image/svg+xml" } }),
+    ),
   ],
 }

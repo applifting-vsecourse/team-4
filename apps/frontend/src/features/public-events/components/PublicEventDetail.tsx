@@ -1,10 +1,14 @@
+import { useState } from "react"
+import { Link } from "@tanstack/react-router"
 import { Info, Mail, MapPin, Phone } from "lucide-react"
 
+import { ROUTES } from "@/app/routes"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-// Veřejný katalog akcí → Detail akce (F55). Design only: every value is passed in.
+// Veřejný katalog akcí → Detail akce (F55). Every value is passed in already
+// formatted; see `toPublicEventDetail` for the API mapping.
 
 export type PublicEventPhoto = { src: string; alt: string }
 
@@ -15,6 +19,7 @@ export type PublicEventDetailTerm = {
   // Already formatted, e.g. "2 400 Kč".
   price: string
   // Shown only when the organizer allows public free spots, e.g. "Volná místa: 12".
+  // No such setting exists yet, so the detail never sets it.
   freeSpots?: string
   // Capacity is full or zero: a registration still lands among the substitutes.
   isWaitlist?: boolean
@@ -25,6 +30,7 @@ export type PublicEventContact = { name: string; email: string; phone?: string }
 export type PublicEventRegistrationStatus = "open" | "not-open" | "closed" | "no-terms"
 
 export type PublicEventDetailProps = {
+  publicId: string
   name: string
   organizationName: string
   description: string
@@ -35,7 +41,6 @@ export type PublicEventDetailProps = {
   // The organizer left the public contact empty.
   contact: PublicEventContact | null
   registrationStatus: PublicEventRegistrationStatus
-  registrationHref: string
 }
 
 const STATUS_MESSAGES: Record<Exclude<PublicEventRegistrationStatus, "open">, string> = {
@@ -45,22 +50,27 @@ const STATUS_MESSAGES: Record<Exclude<PublicEventRegistrationStatus, "open">, st
 }
 
 function PhotoGallery({ photos }: { photos: PublicEventPhoto[] }) {
-  const [first, ...rest] = photos
+  // A photo that fails to load is left out instead of showing a broken image.
+  const [failed, setFailed] = useState<string[]>([])
+  const [first, ...rest] = photos.filter((photo) => !failed.includes(photo.src))
   if (!first) return null
+  const hide = (photo: PublicEventPhoto) => () => setFailed((sources) => [...sources, photo.src])
   return (
     <ul className="grid grid-cols-3 gap-2">
       <li className="col-span-3">
         <img
           src={first.src}
           alt={first.alt}
+          onError={hide(first)}
           className="aspect-video w-full rounded-lg object-cover"
         />
       </li>
-      {rest.slice(0, 3).map((photo) => (
+      {rest.map((photo) => (
         <li key={photo.src}>
           <img
             src={photo.src}
             alt={photo.alt}
+            onError={hide(photo)}
             className="aspect-video w-full rounded-md object-cover"
           />
         </li>
@@ -93,13 +103,13 @@ function TermList({ terms }: { terms: PublicEventDetailTerm[] }) {
 }
 
 function RegistrationCard({
+  publicId,
   terms,
   status,
-  href,
 }: {
+  publicId: string
   terms: PublicEventDetailTerm[]
   status: PublicEventRegistrationStatus
-  href: string
 }) {
   return (
     <Card>
@@ -116,7 +126,12 @@ function RegistrationCard({
               asChild
               className="w-full"
             >
-              <a href={href}>Vyplnit přihlášku</a>
+              <Link
+                to={ROUTES.publicRegistration}
+                params={{ publicId }}
+              >
+                Vyplnit přihlášku
+              </Link>
             </Button>
           ) : (
             <p className="flex items-start gap-2 text-sm">
@@ -169,6 +184,7 @@ function ContactBlock({ contact }: { contact: PublicEventContact | null }) {
 }
 
 export function PublicEventDetail({
+  publicId,
   name,
   organizationName,
   description,
@@ -178,7 +194,6 @@ export function PublicEventDetail({
   conditions,
   contact,
   registrationStatus,
-  registrationHref,
 }: PublicEventDetailProps) {
   return (
     <article className="space-y-8">
@@ -212,11 +227,20 @@ export function PublicEventDetail({
             >
               Podmínky účasti
             </h2>
-            <ul className="max-w-prose list-disc space-y-1 pl-5 text-sm">
-              {conditions.map((condition) => (
-                <li key={condition}>{condition}</li>
-              ))}
-            </ul>
+            {conditions.length > 0 ? (
+              <ul className="max-w-prose list-disc space-y-1 pl-5 text-sm">
+                {conditions.map((condition, index) => (
+                  <li
+                    key={index}
+                    className="break-words"
+                  >
+                    {condition}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm">Organizátor podmínky účasti neuvedl.</p>
+            )}
           </section>
           <section aria-labelledby="event-contact">
             <h2
@@ -230,9 +254,9 @@ export function PublicEventDetail({
         </div>
         <aside className="md:sticky md:top-20 md:self-start">
           <RegistrationCard
+            publicId={publicId}
             terms={terms}
             status={registrationStatus}
-            href={registrationHref}
           />
         </aside>
       </div>

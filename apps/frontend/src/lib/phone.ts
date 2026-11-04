@@ -11,3 +11,8 @@ export function toE164(value: string) {
   const phone = parsePhoneNumberFromString(trimmed)
   return phone?.isValid() ? phone.number : null
 }
+
+/** A stored E.164 number for reading ("+420604123456" → "+420 604 123 456"). */
+export function formatPhone(value: string) {
+  return parsePhoneNumberFromString(value)?.formatInternational() ?? value
+}

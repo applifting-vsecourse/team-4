@@ -4,9 +4,12 @@ import {
   EventSummaryModel,
   EventTermModel,
   OpeningBlocker,
+  PublicCatalogEventModel,
   PublicEventModel,
+  PublicRegistrationStatus,
 } from '@/modules/events/domain/event';
 import { PaymentSettings } from '@/modules/events/domain/payment-settings';
+import { PublicContact } from '@/modules/events/domain/presentation';
 import { ApiProperty } from '@nestjs/swagger';
 
 const STATUSES: EventStatus[] = ['draft', 'open', 'closed'];
@@ -127,6 +130,28 @@ export class PaymentSettingsDto {
   }
 }
 
+export class PublicContactDto {
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty()
+  email!: string;
+
+  @ApiProperty({ type: String, nullable: true, example: '+420604123456' })
+  phone!: string | null;
+
+  static from(model: PublicContact | null): PublicContactDto | null {
+    return model
+      ? { name: model.name, email: model.email, phone: model.phone }
+      : null;
+  }
+}
+
+export class EventPhotoDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+}
+
 export class EventDetailDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
@@ -182,6 +207,19 @@ export class EventDetailDto {
   })
   changeApprovalDays!: number | null;
 
+  @ApiProperty({ description: 'One condition per line; empty without any.' })
+  conditions!: string;
+
+  @ApiProperty({
+    type: PublicContactDto,
+    nullable: true,
+    description: 'Public contact on the catalog detail; null when left empty.',
+  })
+  contact!: PublicContactDto | null;
+
+  @ApiProperty({ type: [EventPhotoDto], description: 'Oldest first.' })
+  photos!: EventPhotoDto[];
+
   @ApiProperty({
     enum: BLOCKERS,
     isArray: true,
@@ -206,6 +244,9 @@ export class EventDetailDto {
       publicId: model.publicId,
       isPublished: model.isPublished,
       changeApprovalDays: model.changeApprovalDays,
+      conditions: model.conditions,
+      contact: PublicContactDto.from(model.contact),
+      photos: model.photoIds.map((id) => ({ id })),
       openingBlockers: model.openingBlockers,
     };
   }
@@ -242,11 +283,80 @@ export class PublicEventDto {
   @ApiProperty({ type: [PublicEventTermDto], description: 'By start date.' })
   terms!: PublicEventTermDto[];
 
+  @ApiProperty({
+    description: 'Listed in the catalog, so the form can link to the detail.',
+  })
+  isPublished!: boolean;
+
   static from(model: PublicEventModel): PublicEventDto {
     return {
       name: model.name,
       description: model.description,
       location: model.location,
+      terms: model.terms.map((term) => ({
+        id: term.id,
+        label: term.label,
+        startDate: term.startDate,
+        endDate: term.endDate,
+        priceMinor: term.priceMinor,
+      })),
+      isPublished: model.isPublished,
+    };
+  }
+}
+
+const REGISTRATION_STATUSES: PublicRegistrationStatus[] = [
+  'open',
+  'not-open',
+  'closed',
+];
+
+/** The catalog detail (F55): no capacity, registrations or internal data. */
+export class PublicCatalogEventDto {
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty()
+  organizationName!: string;
+
+  @ApiProperty()
+  description!: string;
+
+  @ApiProperty()
+  location!: string;
+
+  @ApiProperty({ description: 'One condition per line; empty without any.' })
+  conditions!: string;
+
+  @ApiProperty({ type: PublicContactDto, nullable: true })
+  contact!: PublicContactDto | null;
+
+  @ApiProperty({
+    type: [EventPhotoDto],
+    description:
+      'Oldest first; served at `public/catalog/events/:publicId/photos/:id`.',
+  })
+  photos!: EventPhotoDto[];
+
+  @ApiProperty({
+    enum: REGISTRATION_STATUSES,
+    description: '`not-open` before the first opening.',
+  })
+  registrationStatus!: PublicRegistrationStatus;
+
+  @ApiProperty({ type: [PublicEventTermDto], description: 'By start date.' })
+  terms!: PublicEventTermDto[];
+
+  static from(model: PublicCatalogEventModel): PublicCatalogEventDto {
+    return {
+      name: model.name,
+      organizationName: model.organizationName,
+      description: model.description,
+      location: model.location,
+      conditions: model.conditions,
+      contact: PublicContactDto.from(model.contact),
+      photos: model.photoIds.map((id) => ({ id })),
+      registrationStatus: model.registrationStatus,
       terms: model.terms.map((term) => ({
         id: term.id,
         label: term.label,
