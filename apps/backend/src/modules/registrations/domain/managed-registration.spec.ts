@@ -3,7 +3,6 @@ import {
   paymentState,
 } from '@/modules/registrations/domain/managed-registration';
 import { ParticipationStatus } from '@/modules/registrations/domain/registration';
-import { NO_NEEDS } from '@/modules/registrations/domain/registration-needs';
 
 describe('paymentState', () => {
   it.each([
@@ -48,8 +47,6 @@ const registration = (
       amountMinor,
       source: 'organizer' as const,
     })),
-    NO_NEEDS,
-    0,
     null,
     null,
   );

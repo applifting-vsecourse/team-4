@@ -1,7 +1,7 @@
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import { GenderAnswer } from '@/modules/registrations/domain/gender';
 import {
-  ManagedRegistrationModel,
+  ManagedRegistrationDetailModel,
   RegistrationFilter,
   RegistrationList,
 } from '@/modules/registrations/domain/managed-registration';
@@ -53,7 +53,7 @@ export class EventRegistrationsService {
   async get(
     scope: EventScope,
     registrationId: string,
-  ): Promise<ManagedRegistrationModel> {
+  ): Promise<ManagedRegistrationDetailModel> {
     const registration = await this.repository.findOne(scope, registrationId);
     if (!registration) throw notAvailable();
     return registration;
@@ -64,7 +64,7 @@ export class EventRegistrationsService {
     registrationId: string,
     needs: RegistrationNeeds,
     expectedVersion: number,
-  ): Promise<ManagedRegistrationModel> {
+  ): Promise<ManagedRegistrationDetailModel> {
     const outcome = await this.repository.correctNeeds(
       scope,
       registrationId,
@@ -89,7 +89,7 @@ export class EventRegistrationsService {
     scope: EventScope,
     registrationId: string,
     answer: GenderAnswer,
-  ): Promise<ManagedRegistrationModel> {
+  ): Promise<ManagedRegistrationDetailModel> {
     const outcome = await this.repository.updateGender(
       scope,
       registrationId,
