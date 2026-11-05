@@ -7,6 +7,13 @@ import {
   ManagedRegistrationModel,
   RegistrationFilter,
 } from '@/modules/registrations/domain/managed-registration';
+import {
+  needsOf,
+  needsSelect,
+  normalizeNeeds,
+  RegistrationNeeds,
+  sameNeeds,
+} from '@/modules/registrations/domain/registration-needs';
 import { Injectable } from '@nestjs/common';
 
 const registrationSelect = {
@@ -20,6 +27,8 @@ const registrationSelect = {
   genderOther: true,
   variableSymbol: true,
   paymentReminderAt: true,
+  version: true,
+  ...needsSelect,
   terms: {
     orderBy: [{ term: { startDate: 'asc' } }, { termId: 'asc' }],
     select: {
@@ -61,6 +70,8 @@ const toModel = (
       amountMinor: payment.amountMinor,
       source: payment.source,
     })),
+    needsOf(row),
+    row.version,
     row.gender,
     row.genderOther,
   );
@@ -71,6 +82,14 @@ const inScope = (scope: EventScope): Prisma.RegistrationWhereInput => ({
   organizationId: scope.organizationId,
   event: { organization: { ownerId: scope.ownerId } },
 });
+
+export type NeedsCorrection =
+  | { kind: 'corrected'; registration: ManagedRegistrationModel }
+  | { kind: 'not_found' }
+  /** The registration changed after the organizer loaded it. */
+  | { kind: 'stale' }
+  /** A participant change request waits for a decision. */
+  | { kind: 'change_pending' };
 
 @Injectable()
 export class EventRegistrationsRepository {
@@ -122,6 +141,49 @@ export class EventRegistrationsRepository {
       select: registrationSelect,
     });
     return row ? toModel(row) : null;
+  }
+
+  /**
+   * The organizer's correction of the needs (F63): only these fields, at once,
+   * on the version the organizer saw, and not while a participant change
+   * request waits (like the gender correction, F64). The registration row is
+   * locked, so a participant change cannot slip in between.
+   */
+  async correctNeeds(
+    scope: EventScope,
+    registrationId: string,
+    needs: RegistrationNeeds,
+    expectedVersion: number,
+  ): Promise<NeedsCorrection> {
+    return this.prisma.$transaction(async (tx) => {
+      const owned = await tx.registration.findFirst({
+        where: { id: registrationId, ...inScope(scope) },
+        select: { id: true },
+      });
+      if (!owned) return { kind: 'not_found' };
+      await tx.$queryRaw`
+        SELECT "id" FROM "registration"
+        WHERE "id" = ${registrationId}::uuid FOR UPDATE`;
+      const current = await tx.registration.findUniqueOrThrow({
+        where: { id: registrationId },
+        select: registrationSelect,
+      });
+      if (current.version !== expectedVersion) return { kind: 'stale' };
+      // A waiting request was proposed on the current needs; decide it first.
+      const pending = await tx.registrationChange.count({
+        where: { registrationId, status: 'pending' },
+      });
+      if (pending > 0) return { kind: 'change_pending' };
+      if (sameNeeds(needsOf(current), needs)) {
+        return { kind: 'corrected', registration: toModel(current) };
+      }
+      const updated = await tx.registration.update({
+        where: { id: registrationId },
+        data: { ...normalizeNeeds(needs), version: { increment: 1 } },
+        select: registrationSelect,
+      });
+      return { kind: 'corrected', registration: toModel(updated) };
+    });
   }
 
   /**

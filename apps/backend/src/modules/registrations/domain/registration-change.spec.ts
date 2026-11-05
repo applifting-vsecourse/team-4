@@ -6,6 +6,10 @@ import {
   InvalidChangeError,
   planChange,
 } from '@/modules/registrations/domain/registration-change';
+import {
+  NO_NEEDS,
+  RegistrationNeeds,
+} from '@/modules/registrations/domain/registration-needs';
 
 // "Today" is 2026-10-26; with a 14-day threshold a term starting on or before
 // 2026-11-09 needs approval.
@@ -32,6 +36,7 @@ const subject = (
   firstName: 'Jana',
   lastName: 'Nováková',
   phone: '+420604123456',
+  needs: NO_NEEDS,
   gender: null,
   genderOther: null,
   paidMinor,
@@ -183,6 +188,50 @@ describe('planChange', () => {
     expect(() =>
       planChange(PLAIN, proposal({ gender: null }), events(), 14, NOW),
     ).toThrow(new InvalidChangeError('no_change'));
+  });
+
+  it('judges a change of the needs by every active term', () => {
+    const needs: RegistrationNeeds = {
+      ...NO_NEEDS,
+      transport: 'shared',
+      diet: ['vegan', 'vegetarian'],
+      health: '  Astma  ',
+    };
+    const plan = planChange(PLAIN, proposal({ needs }), events(), 14, NOW);
+    expect(plan.requiresApproval).toBe(true);
+    expect(plan.kinds).toEqual(['data']);
+    expect(plan.summary.values).toEqual([]);
+    expect(plan.summary.needs).toEqual({
+      original: NO_NEEDS,
+      proposed: {
+        ...needs,
+        diet: ['vegetarian', 'vegan'],
+        health: 'Astma',
+      },
+    });
+    expect(plan.summary.terms.map((t) => t.termId)).toEqual(['t1', 't2']);
+  });
+
+  it('takes the same needs as no change, and clearing them as one', () => {
+    const filled = { ...PLAIN, needs: { ...NO_NEEDS, dietNote: 'Bez ořechů' } };
+    expect(() =>
+      planChange(
+        filled,
+        proposal({ needs: { ...NO_NEEDS, dietNote: ' Bez ořechů ' } }),
+        events(),
+        null,
+        NOW,
+      ),
+    ).toThrow(new InvalidChangeError('no_change'));
+    const cleared = planChange(
+      filled,
+      proposal({ needs: NO_NEEDS }),
+      events(),
+      null,
+      NOW,
+    );
+    expect(cleared.summary.needs?.proposed).toEqual(NO_NEEDS);
+    expect(cleared.requiresApproval).toBe(false);
   });
 
   it('ignores a field left as it is', () => {
