@@ -128,7 +128,8 @@ export class ChangeProposalDto {
     type: RegistrationNeedsDto,
     description:
       'Transport, diet and health as a whole (F63); left out, they stay. ' +
-      'A change of the whole registration, like the names.',
+      'A change of the whole registration, like the names. Sent, every ' +
+      'field is required (else 400).',
   })
   @IsOptional()
   @ValidateNested()

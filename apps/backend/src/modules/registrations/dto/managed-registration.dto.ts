@@ -146,6 +146,7 @@ export class RegistrationDetailDto extends RegistrationSummaryDto {
     description: 'Send back as `expectedVersion` when correcting the needs.',
   })
   version!: number;
+
   @ApiProperty({
     enum: GENDERS,
     nullable: true,
