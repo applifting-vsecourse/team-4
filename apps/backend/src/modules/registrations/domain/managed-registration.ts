@@ -74,10 +74,6 @@ export class ManagedRegistrationModel {
     private readonly storedReminderAt: Date | null,
     /** By the day received, then as recorded. */
     public readonly payments: ReceivedPayment[],
-    /** Transport, diet and health (F63). */
-    public readonly needs: RegistrationNeeds,
-    /** Bumped by every executed change (F35-2a) and organizer correction. */
-    public readonly version: number,
     /** Voluntary answer for accommodation (F64); null when not answered. */
     public readonly gender: Gender | null,
     /** The own words for `other`; null otherwise. */
@@ -114,6 +110,19 @@ export class ManagedRegistrationModel {
   /** At most one per registration, and none without an obligation. */
   get reminderAt(): Date | null {
     return this.amountDueMinor > 0 ? this.storedReminderAt : null;
+  }
+}
+
+/** One registration opened by its organizer: also what only the detail shows. */
+export class ManagedRegistrationDetailModel extends ManagedRegistrationModel {
+  constructor(
+    registration: ConstructorParameters<typeof ManagedRegistrationModel>,
+    /** Transport, diet and health (F63). */
+    public readonly needs: RegistrationNeeds,
+    /** Bumped by every executed change (F35-2a) and organizer correction. */
+    public readonly version: number,
+  ) {
+    super(...registration);
   }
 }
 

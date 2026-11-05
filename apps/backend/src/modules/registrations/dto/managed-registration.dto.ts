@@ -1,5 +1,6 @@
 import { Gender, GENDERS } from '@/modules/registrations/domain/gender';
 import {
+  ManagedRegistrationDetailModel,
   ManagedRegistrationModel,
   PAYMENT_SOURCES,
   PAYMENT_STATES,
@@ -169,7 +170,7 @@ export class RegistrationDetailDto extends RegistrationSummaryDto {
   })
   requiresManualAccommodation!: boolean;
 
-  static from(model: ManagedRegistrationModel): RegistrationDetailDto {
+  static from(model: ManagedRegistrationDetailModel): RegistrationDetailDto {
     const hasObligation = model.amountDueMinor > 0;
     return {
       ...RegistrationSummaryDto.from(model),
