@@ -71,8 +71,10 @@ export class RegistrationChangesController {
     summary: 'Approves a request and makes the change once',
     description:
       '409 `registration_stale` when the registration changed after the ' +
-      'proposal; 409 `change_already_decided` after a rejection. Approving ' +
-      'twice returns the approved request without changing anything.',
+      'proposal; 409 `release_consent_required` for a move that gives up a ' +
+      'confirmed place without the participant’s consent (reject it instead); ' +
+      '409 `change_already_decided` after a rejection. Approving twice ' +
+      'returns the approved request without changing anything.',
   })
   async approve(
     @User() user: Identity,

@@ -96,6 +96,20 @@ describe("RegistrationChangeDecision", () => {
     )
   })
 
+  it("explains that a move without consent to give up a confirmed place can only be rejected", async () => {
+    get.mockReturnValue(answer({ changes: [change()] }))
+    post.mockReturnValue({
+      json: () =>
+        Promise.reject(new FakeHTTPError({ status: 409 }, { code: "release_consent_required" })),
+    })
+    renderDecision()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Schválit" }))
+
+    expect(await screen.findByText(/Žádost lze jen zamítnout/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Zamítnout" })).toBeEnabled()
+  })
+
   it("rejects a request", async () => {
     get.mockReturnValue(answer({ changes: [change()] }))
     post.mockReturnValue(

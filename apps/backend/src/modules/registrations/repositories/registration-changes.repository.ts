@@ -84,7 +84,9 @@ export type DecisionOutcome =
   /** The registration changed after the proposal was made. */
   | { kind: 'stale' }
   | { kind: 'not_found' }
-  | { kind: 'invalid'; error: InvalidChangeError };
+  | { kind: 'invalid'; error: InvalidChangeError }
+  /** A request filed without consent to give up a confirmed place; it can only be rejected. */
+  | { kind: 'release_consent_required'; plan: ChangePlan };
 
 const snapshotSelect = {
   id: true,
@@ -410,7 +412,6 @@ export class RegistrationChangesRepository {
         });
         const proposal = row.proposal as unknown as StoredProposal;
         // Never overwrite data that changed after the participant confirmed.
-        // An unchanged registration also keeps the consent given on submit.
         if (proposal.baseVersion !== snapshot.version) return { kind: 'stale' };
         let plan: ChangePlan;
         try {
@@ -418,6 +419,10 @@ export class RegistrationChangesRepository {
           plan = await this.plan(tx, snapshot, proposal, now);
         } catch (error) {
           return invalid(error);
+        }
+        // A request filed before S3-01 never asked to give up a confirmed place.
+        if (plan.moves.some((move) => needsConsent(move))) {
+          return { kind: 'release_consent_required', plan };
         }
         await this.apply(tx, snapshot, plan, now);
         const updated = await tx.registrationChange.update({

@@ -85,9 +85,11 @@ export function RegistrationChangeDecision({
                 <AlertDescription>
                   {failure.code === "change_already_decided"
                     ? "O žádosti už bylo rozhodnuto jinak. Načtěte stránku znovu."
-                    : failure.code === "change_invalid"
-                      ? (failure.message ?? DECISION_FAILED)
-                      : DECISION_FAILED}
+                    : failure.code === "release_consent_required"
+                      ? "Účastník nesouhlasil se ztrátou potvrzeného místa. Žádost lze jen zamítnout."
+                      : failure.code === "change_invalid"
+                        ? (failure.message ?? DECISION_FAILED)
+                        : DECISION_FAILED}
                 </AlertDescription>
               </Alert>
             ) : undefined

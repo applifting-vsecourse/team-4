@@ -25,9 +25,9 @@ import {
  * decided yet (S3-01); it needs the participant's explicit consent.
  */
 export type ReleaseConsent = {
-  /** The new term, e.g. "Turnus 3". */
+  /** The new terms, e.g. "Turnus 3". */
   targetTerm: string
-  /** The confirmed term the participant gives up, e.g. "Turnus 2". */
+  /** The confirmed terms the participant gives up, e.g. "Turnus 1, Turnus 2". */
   lostTerm: string
   /** Initial state of the consent checkbox. */
   isGiven?: boolean
@@ -192,10 +192,10 @@ function ReleaseNotice({
     <div className="space-y-3">
       <Alert>
         <TriangleAlert />
-        <AlertTitle>
+        <AlertDescription>
           Přesunem přijdete o potvrzené místo v termínu {lostTerm}. O účasti v termínu {targetTerm}{" "}
           rozhodne organizátor.
-        </AlertTitle>
+        </AlertDescription>
       </Alert>
       <Field orientation="horizontal">
         <Checkbox

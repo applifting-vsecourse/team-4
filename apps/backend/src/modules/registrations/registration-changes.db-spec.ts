@@ -588,6 +588,50 @@ describe('giving up a confirmed place (S3-01)', () => {
     });
   });
 
+  it('refuses to approve a request filed before S3-01 without consent, which can only be rejected', async () => {
+    const fixture = await setup(14);
+    const registration = await register(fixture, [0]);
+    const requested = await submit(registration, {
+      moves: [
+        {
+          fromTermId: fixture.terms[0].id,
+          toTermId: fixture.terms[1].id,
+          acceptRelease: true,
+        },
+      ],
+    });
+    expect(requested.body.outcome).toBe('requested');
+    // Stored the way the old form sent it: `acceptWaitlist`, no `acceptRelease`.
+    const stored = await prisma.registrationChange.findUniqueOrThrow({
+      where: { id: requested.body.change.id },
+    });
+    const proposal = stored.proposal as {
+      moves: { fromTermId: string; toTermId: string }[];
+    };
+    await prisma.registrationChange.update({
+      where: { id: stored.id },
+      data: {
+        proposal: {
+          ...proposal,
+          moves: proposal.moves.map(({ fromTermId, toTermId }) => ({
+            fromTermId,
+            toTermId,
+            acceptWaitlist: false,
+          })),
+        },
+      },
+    });
+
+    const path = `${managed(fixture, registration)}/changes/${stored.id}`;
+    const approve = await call('POST', `${path}/approve`, owner(fixture));
+
+    expect(approve.status).toBe(409);
+    expect(approve.body.code).toBe('release_consent_required');
+    expect(await statuses(registration)).toEqual({ 'Turnus 1': 'confirmed' });
+    const reject = await call('POST', `${path}/reject`, owner(fixture));
+    expect(reject.status).toBe(200);
+  });
+
   it('needs no consent to move a place that is not confirmed', async () => {
     const fixture = await setup(null);
     const registration = await register(fixture, [1], 'waitlisted');

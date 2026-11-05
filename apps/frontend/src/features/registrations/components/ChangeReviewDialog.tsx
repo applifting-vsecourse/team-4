@@ -109,12 +109,19 @@ export function ChangeReviewDialog({
 
   const summary = toSummaryProps(preview.summary)
   const isCancellation = preview.kinds.every((kind) => kind.startsWith("cancel"))
-  const consentMove = preview.moves.find((move) => move.requiresReleaseConsent)
-  const labelOf = (termId: string) =>
-    preview.summary.terms.find((term) => term.termId === termId)?.label ?? ""
-  const release: ReleaseConsent | undefined = consentMove
-    ? { targetTerm: labelOf(consentMove.toTermId), lostTerm: labelOf(consentMove.fromTermId) }
-    : undefined
+  const consentMoves = preview.moves.filter((move) => move.requiresReleaseConsent)
+  const labelsOf = (termIds: string[]) =>
+    termIds
+      .map((termId) => preview.summary.terms.find((term) => term.termId === termId)?.label ?? "")
+      .join(", ")
+  // One consent covers every confirmed place the change gives up.
+  const release: ReleaseConsent | undefined =
+    consentMoves.length > 0
+      ? {
+          targetTerm: labelsOf(consentMoves.map((move) => move.toTermId)),
+          lostTerm: labelsOf(consentMoves.map((move) => move.fromTermId)),
+        }
+      : undefined
 
   const confirm = (isReleaseAccepted: boolean) => {
     setError(null)
