@@ -71,6 +71,11 @@ erDiagram
 | `Registration`                                  | `registration`                                   | Submission: personal data snapshot, VS, payment snapshot, reminder date.                          |
 | `RegistrationTerm`                              | `registration_term`                              | Selected term + participation outcome + price snapshot.                                           |
 | `RegistrationChange`                            | `registration_change`                            | A participant's change of an own registration, executed or awaiting approval (§3.13).             |
+| `AccommodationRules`                            | `accommodation_rules`                            | Hard attribute, its non-determining answers and ranked soft attributes of an event (§3.14).       |
+| `AccommodationManualValue`                      | `accommodation_manual_value`                     | The organizer's determination of a participant's effective value (§3.14).                         |
+| `AccommodationTermOrder`                        | `accommodation_term_order`                       | A manually changed order of a term's unconfirmed participants (§3.14).                            |
+| `AccommodationIntervention`                     | `accommodation_intervention`                     | Immutable record of a manual position change or determination, with its reason (§3.14).           |
+| `AccommodationRun`                              | `accommodation_run`                              | Immutable evaluation of one term: input snapshot, order used and proposal (§3.14).                |
 | `Payment`                                       | `payment`                                        | Received payment recorded by an organizer.                                                        |
 | `EmailDelivery`                                 | `email_delivery`                                 | Outbound e-mail log (status, provider id, sanitized error).                                       |
 
@@ -404,6 +409,32 @@ cancel single terms or the whole registration.
   amount due shows as an overpayment (negative balance). If a change makes something owed
   for the first time, `paymentReminderAt` is set once, as in §3.9.
 
+### 3.14 Accommodation evaluation (S3-T3, S3-T4)
+
+The rules are the S3-T3 specification v4 on #181. One term is evaluated at a time from its
+current data; a run only proposes and never changes a participation, a debt or a room.
+
+- **Rules.** `accommodation_rules` holds at most one hard attribute (the categorical question
+  that splits rooms), its non-determining answers and the ranked soft attributes. No row means
+  no hard attribute: capacity and order alone decide.
+- **Effective value.** A participant's determining answer, or the organizer's determination in
+  `accommodation_manual_value`. The determination stores the answer it was made on
+  (`basedOnAnswer`) and applies only while the answer is still the same, so any change of the
+  answer cancels it without a trigger. Without an effective value the participant is not
+  evaluated (reason R); no value is guessed.
+- **Order.** By `registration.receivedAt`, then by registration id. A manual order
+  (`accommodation_term_order`, F39-1) wins; someone it does not list goes right after everyone
+  received before them.
+- **Runs.** `accommodation_run` stores the rooms with the term's beds, the rules, every
+  participant's answer, determination and effective value, the order with positions, the
+  solver version and the proposal (or the conflict, or the error of a failed run). A
+  confirmation will point to the run it used (F13-1).
+- **Immutability.** A trigger refuses every UPDATE and DELETE of `accommodation_run` and
+  `accommodation_intervention`; they are the evidence of a proposal and an order (F39-1).
+- **Writers.** Rules, determinations, orders and interventions are written by F14-1, F39-1
+  and the rules settings; until then they have no rows. Answers to the hard attribute are read
+  through a provider that the story adding categorical questions (F64) implements.
+
 ## 4. Field reference
 
 ### Organization / OrganizationMember
@@ -466,6 +497,22 @@ cancel single terms or the whole registration.
 | `summary`                   | jsonb                                    | Original and proposed values, terms, price and balance; frozen on decision. |
 | `createdAt`, `decidedAt`    | timestamptz, timestamptz?                | `decidedAt` is null exactly while `pending` (CHECK).                        |
 
+### Accommodation evaluation
+
+| Field                                                | Type                                    | Notes                                                                     |
+| ---------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------- |
+| `accommodation_rules.hardAttribute`                  | varchar(64)?                            | Null: no hard attribute.                                                  |
+| `accommodation_rules.nonDeterminingValues`           | varchar(100)[]                          | Answers that do not determine a room.                                     |
+| `accommodation_rules.softAttributes`                 | varchar(64)[]                           | Most important first (phase 2).                                           |
+| `accommodation_manual_value.value`, `.basedOnAnswer` | varchar(100), varchar(100)?             | Valid only while the answer equals `basedOnAnswer`. One per registration. |
+| `accommodation_manual_value.reason`                  | varchar(500)                            | Not blank (CHECK).                                                        |
+| `accommodation_term_order.registrationIds`           | uuid[]                                  | The manual order of the term.                                             |
+| `accommodation_intervention.kind`                    | enum `position/manual_value`            | `termId` set exactly for `position` (CHECK). Reason not blank. Immutable. |
+| `accommodation_intervention.before`, `.after`        | jsonb                                   | Order or value before and after.                                          |
+| `accommodation_run.status`                           | enum `solved/infeasible/timeout/failed` | `result` null and `error` set exactly when `failed` (CHECK). Immutable.   |
+| `accommodation_run.input`, `.result`                 | jsonb, jsonb?                           | Snapshot of everything the run decided from; the proposal.                |
+| `accommodation_run.triggeredById`, `.solverVersion`  | text?, varchar(64)                      | Null author: the system.                                                  |
+
 ### Payment
 
 | Field                              | Type        | Notes                           |
@@ -526,6 +573,8 @@ filtered by `participantAccountId` from the session.
 | `registration_term (termId, status)`                       | Occupancy counts, filters, capacity checks under lock. |
 | `registration_change (registrationId, createdAt)`          | History of one registration.                           |
 | `registration_change (eventId, status, createdAt)`         | Organizer's Ke schválení queue.                        |
+| `accommodation_run (termId, startedAt)`                    | Latest proposal of a term.                             |
+| `accommodation_intervention (eventId, createdAt)`          | Intervention history of an event.                      |
 | `payment (registrationId)`                                 | Balance.                                               |
 | `participant_magic_link (participantAccountId, createdAt)` | Rate limiting.                                         |
 | `email_delivery (status, createdAt)`                       | Operator view of failures.                             |
