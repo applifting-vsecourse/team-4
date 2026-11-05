@@ -88,7 +88,7 @@ describe("RegistrationSection", () => {
     renderPage({ ...READY, openingBlockers: ["terms", "paymentSettings"] })
 
     expect(screen.getByRole("button", { name: "Otevřít přihlašování" })).toBeDisabled()
-    expect(screen.getByText(/Alespoň jeden termín s cenou/)).toBeInTheDocument()
+    expect(screen.getByText(/Alespoň jeden termín/)).toBeInTheDocument()
     const links = screen.getAllByRole("link", { name: "Doplnit" })
     expect(links).toHaveLength(2)
     expect(links[0]).toHaveAttribute(
@@ -116,6 +116,8 @@ describe("RegistrationSection", () => {
     }
     renderPage({ ...READY, terms: [term] })
 
+    expect(screen.getByText(/Alespoň jeden termín \(zdarma\)/)).toBeInTheDocument()
+    expect(screen.queryByText(/s cenou/)).not.toBeInTheDocument()
     expect(screen.getByText(/Platební údaje nejsou potřeba/)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Otevřít přihlašování" })).toBeEnabled()
   })

@@ -25,7 +25,7 @@ const CONDITIONS: Condition[] = [
   { blocker: "name", label: "Název akce", fixIn: "edit" },
   { blocker: "description", label: "Popis akce", fixIn: "edit" },
   { blocker: "location", label: "Místo konání", fixIn: "edit" },
-  { blocker: "terms", label: "Alespoň jeden termín s cenou", fixIn: "terms" },
+  { blocker: "terms", label: "Alespoň jeden termín", fixIn: "terms" },
   {
     blocker: "paymentSettings",
     label: "Číslo účtu a počet dní do připomenutí platby",
@@ -39,6 +39,14 @@ const FREE_PAYMENT_CONDITION: Condition = {
   label: "Platební údaje nejsou potřeba, všechny termíny jsou zdarma",
   fixIn: "payments",
 }
+
+// With only 0 Kč terms "s cenou" would mislead, and no payment data is needed.
+const freeCondition = (condition: Condition): Condition =>
+  condition.blocker === "paymentSettings"
+    ? FREE_PAYMENT_CONDITION
+    : condition.blocker === "terms"
+      ? { ...condition, label: "Alespoň jeden termín (zdarma)" }
+      : condition
 
 type RegistrationSectionProps = {
   organizationId: string
@@ -148,11 +156,7 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
                   {CONDITIONS.map((condition) => (
                     <ConditionRow
                       key={condition.blocker}
-                      condition={
-                        condition.blocker === "paymentSettings" && isFree
-                          ? FREE_PAYMENT_CONDITION
-                          : condition
-                      }
+                      condition={isFree ? freeCondition(condition) : condition}
                       isMissing={event.openingBlockers.includes(condition.blocker)}
                       organizationId={organizationId}
                       eventId={event.id}
