@@ -339,6 +339,22 @@ model ParticipantSession {
 
 // ─── Registrations ──────────────────────────────────────────────────────────
 
+enum TransportChoice {
+  own
+  shared
+
+  @@map("transport_choice")
+}
+
+enum DietChoice {
+  vegetarian
+  vegan
+  gluten_free
+  lactose_free
+
+  @@map("diet_choice")
+}
+
 enum ParticipationStatus {
   confirmed
   waitlisted
@@ -385,6 +401,15 @@ model Registration {
   paymentReminderAt DateTime? @db.Timestamptz(3)
   // Bumped by every executed change (F35-2a); a proposal made on an older one is stale.
   version           Int       @default(0)
+
+  // Optional needs for the whole registration (F63); empty text is "not provided".
+  transport            TransportChoice?
+  transportNote        String           @default("") @db.VarChar(500)
+  // Explicit "Bez omezení"; never stored together with a diet choice.
+  hasNoDietRestriction Boolean          @default(false)
+  diet                 DietChoice[]     @default([])
+  dietNote             String           @default("") @db.VarChar(500)
+  health               String           @default("") @db.VarChar(2000)
 
   // snapshot of event payment settings at receipt
   bankAccountPrefix   String? @db.VarChar(6)
