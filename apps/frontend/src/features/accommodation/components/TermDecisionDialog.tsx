@@ -1,6 +1,3 @@
-import { CircleAlert } from "lucide-react"
-
-import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -12,6 +9,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+import {
+  DeterminationFields,
+  type DeterminationFieldsProps,
+} from "@/features/accommodation/components/DeterminationFields"
+import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
+
 export type TermDecision = "confirm" | "waitlist"
 
 export type TermDecisionDialogProps = {
@@ -22,6 +25,11 @@ export type TermDecisionDialogProps = {
   term: string
   /** Why the decision was not saved (capacity, rules), worded from the error code. */
   rejectedReason?: string
+  /**
+   * Confirming a person without an effective value: the organizer determines
+   * it in the same dialog (spec v4 §3). Waitlisting needs no value.
+   */
+  determination?: DeterminationFieldsProps
 }
 
 const TITLE: Record<TermDecision, string> = {
@@ -29,7 +37,12 @@ const TITLE: Record<TermDecision, string> = {
   waitlist: "Zařadit mezi náhradníky",
 }
 
-// Správa akce → Přihlášky → detail přihlášky, or a row of Ke schválení (F14-1):
+const REJECTED: Record<TermDecision, string> = {
+  confirm: "Účast nebyla potvrzena",
+  waitlist: "Zařazení mezi náhradníky nebylo uloženo",
+}
+
+// Správa akce → Přihlášky → detail přihlášky, or a row of Vyhodnocení (F14-1):
 // one person's decision in one term. Design only: every value is passed in.
 export function TermDecisionDialog({
   isOpen,
@@ -37,6 +50,7 @@ export function TermDecisionDialog({
   person,
   term,
   rejectedReason,
+  determination,
 }: TermDecisionDialogProps) {
   return (
     <Dialog open={isOpen}>
@@ -48,11 +62,13 @@ export function TermDecisionDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {determination && !rejectedReason ? <DeterminationFields {...determination} /> : null}
+
         {rejectedReason ? (
-          <Alert variant="destructive">
-            <CircleAlert />
-            <AlertTitle>{rejectedReason}</AlertTitle>
-          </Alert>
+          <ErrorAlert
+            title={REJECTED[decision]}
+            detail={rejectedReason}
+          />
         ) : null}
 
         <DialogFooter>

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -105,10 +105,10 @@ function renderForm(terms: SelectableTerm[] = TERMS) {
 const user = userEvent.setup()
 
 async function fillContact(phone = "+420 777 123 456") {
-  await user.type(screen.getByLabelText("Jméno"), "Jana")
-  await user.type(screen.getByLabelText("Příjmení"), "Nováková")
-  await user.type(screen.getByLabelText("E-mail"), "jana@example.com")
-  await user.type(screen.getByLabelText("Telefon"), phone)
+  await user.type(screen.getByLabelText(/^Jméno/), "Jana")
+  await user.type(screen.getByLabelText(/^Příjmení/), "Nováková")
+  await user.type(screen.getByLabelText(/^E-mail/), "jana@example.com")
+  await user.type(screen.getByLabelText(/^Telefon/), phone)
 }
 
 const total = () =>
@@ -119,9 +119,16 @@ const sentBody = (call = 0) =>
 
 beforeEach(() => {
   post.mockReset()
+  // jsdom lacks what Radix Select and scrolling to a field rely on.
+  Element.prototype.hasPointerCapture = () => false
+  Element.prototype.releasePointerCapture = () => undefined
+  Element.prototype.scrollIntoView = () => undefined
 })
 
 afterEach(() => {
+  delete (Element.prototype as Partial<Element>).hasPointerCapture
+  delete (Element.prototype as Partial<Element>).releasePointerCapture
+  delete (Element.prototype as Partial<Element>).scrollIntoView
   vi.restoreAllMocks()
 })
 
@@ -153,6 +160,7 @@ describe("selecting terms", () => {
     renderForm([])
 
     expect(screen.getByText("Akce nemá termíny k výběru")).toBeInTheDocument()
+    expect(screen.getByText(/Pořadatel zatím nevypsal žádný termín/)).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Odeslat přihlášku" })).not.toBeInTheDocument()
   })
 })
@@ -160,8 +168,8 @@ describe("selecting terms", () => {
 describe("validation", () => {
   it("shows each problem at its field, sends nothing and keeps what was filled in", async () => {
     renderForm()
-    await user.type(screen.getByLabelText("Jméno"), "Jana")
-    await user.type(screen.getByLabelText("E-mail"), "jana@")
+    await user.type(screen.getByLabelText(/^Jméno/), "Jana")
+    await user.type(screen.getByLabelText(/^E-mail/), "jana@")
 
     await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
 
@@ -169,11 +177,11 @@ describe("validation", () => {
     expect(screen.getByText("Vyplňte příjmení.")).toBeInTheDocument()
     expect(screen.getByText("Zadejte platný e-mail.")).toBeInTheDocument()
     expect(screen.getByText("Vyplňte telefon.")).toBeInTheDocument()
-    expect(screen.getByLabelText("Jméno")).toHaveValue("Jana")
+    expect(screen.getByLabelText(/^Jméno/)).toHaveValue("Jana")
     expect(post).not.toHaveBeenCalled()
   })
 
-  it.each(["777 123 456", "+420 12"])("refuses the phone %s", async (phone) => {
+  it.each(["123", "+420 12"])("refuses the phone %s", async (phone) => {
     renderForm()
     await user.click(screen.getByLabelText(/1\. turnus/))
     await fillContact(phone)
@@ -181,13 +189,17 @@ describe("validation", () => {
     await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
 
     expect(
-      await screen.findByText("Zadejte telefon s mezinárodní předvolbou, např. +420 777 123 456."),
+      await screen.findByText(
+        "Zadejte platné telefonní číslo pro vybranou zemi, např. 777 123 456.",
+      ),
     ).toBeInTheDocument()
     expect(post).not.toHaveBeenCalled()
   })
 
   it.each([
     ["+420 777 123 456", "+420777123456"],
+    ["777 123 456", "+420777123456"],
+    ["+421 905 123 456", "+421905123456"],
     ["+44 7911 123456", "+447911123456"],
   ])("sends the phone %s as %s", async (phone, e164) => {
     post.mockReturnValue(respondWith(RESULT))
@@ -199,6 +211,68 @@ describe("validation", () => {
 
     await screen.findByText("Přihláška je uložená")
     expect(sentBody()).toMatchObject({ phone: e164 })
+  })
+})
+
+describe("usability (S4-C03)", () => {
+  it("offers Czechia with +420 and takes the prefix of another chosen country", async () => {
+    post.mockReturnValue(respondWith(RESULT))
+    renderForm()
+    const country = screen.getByRole("combobox", { name: "Země a předvolba" })
+    expect(country).toHaveTextContent("🇨🇿 +420")
+
+    await user.click(country)
+    await user.click(await screen.findByRole("option", { name: /Slovensko/ }))
+    expect(country).toHaveTextContent("🇸🇰 +421")
+
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await fillContact("905 123 456")
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+    await screen.findByText("Přihláška je uložená")
+    expect(sentBody()).toMatchObject({ phone: "+421905123456" })
+  })
+
+  it("keeps a prefix typed by hand while it is typed", async () => {
+    renderForm()
+    const phone = screen.getByLabelText(/^Telefon/)
+    await user.type(phone, "+421905")
+    expect(phone).toHaveValue("+421905")
+    expect(screen.getByRole("combobox", { name: "Země a předvolba" })).toHaveTextContent("🇸🇰 +421")
+  })
+
+  it("keeps the digits of a number typed with its prefix when the country is changed", async () => {
+    renderForm()
+    const phone = screen.getByLabelText(/^Telefon/)
+    await user.type(phone, "+421 905 123 456")
+
+    await user.click(screen.getByRole("combobox", { name: "Země a předvolba" }))
+    await user.click(await screen.findByRole("option", { name: /Česko/ }))
+
+    expect(phone).toHaveValue("905123456")
+    expect(screen.getByRole("combobox", { name: "Země a předvolba" })).toHaveTextContent("+420")
+  })
+
+  it("marks required fields and explains the mark", () => {
+    renderForm()
+    expect(screen.getByText(/Pole označená hvězdičkou/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^Jméno/)).toBeRequired()
+    expect(screen.getByLabelText(/^E-mail/)).toBeRequired()
+    expect(screen.getByLabelText(/^Telefon/)).toBeRequired()
+  })
+
+  it("moves focus to the first invalid field and keeps the other values", async () => {
+    renderForm()
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await user.type(screen.getByLabelText(/^Jméno/), "Jana")
+    const scroll = vi.fn()
+    Element.prototype.scrollIntoView = scroll
+
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    await waitFor(() => expect(screen.getByLabelText(/^Příjmení/)).toHaveFocus())
+    expect(scroll).toHaveBeenCalled()
+    expect(screen.getByLabelText(/^Jméno/)).toHaveValue("Jana")
+    expect(screen.getByLabelText(/1\. turnus/)).toBeChecked()
   })
 })
 
@@ -405,7 +479,7 @@ describe("submitting", () => {
     await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
     expect(await screen.findByText(/Přihlášku se nepodařilo odeslat/)).toBeInTheDocument()
     expect(screen.queryByText("Přihláška je uložená")).not.toBeInTheDocument()
-    expect(screen.getByLabelText("Příjmení")).toHaveValue("Nováková")
+    expect(screen.getByLabelText(/^Příjmení/)).toHaveValue("Nováková")
     expect(screen.getByLabelText(/1\. turnus/)).toBeChecked()
 
     await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
@@ -435,7 +509,7 @@ describe("submitting", () => {
       "href",
       "/my-registrations",
     )
-    expect(screen.getByLabelText("E-mail")).toHaveValue("jana@example.com")
+    expect(screen.getByLabelText(/^E-mail/)).toHaveValue("jana@example.com")
   })
 
   it("explains a refused submit to an event that is not open", async () => {
@@ -476,8 +550,8 @@ describe("draft for the browser tab (F55)", () => {
     first.unmount()
 
     renderForm()
-    expect(screen.getByLabelText("Jméno")).toHaveValue("Jana")
-    expect(screen.getByLabelText("E-mail")).toHaveValue("jana@example.com")
+    expect(screen.getByLabelText(/^Jméno/)).toHaveValue("Jana")
+    expect(screen.getByLabelText(/^E-mail/)).toHaveValue("jana@example.com")
     expect(screen.getByLabelText(/1\. turnus/)).toBeChecked()
 
     post.mockReturnValue(respondWith(RESULT))
