@@ -340,6 +340,8 @@ model ParticipantSession {
 // ─── Registrations ──────────────────────────────────────────────────────────
 
 enum ParticipationStatus {
+  // Waits for the organizer's decision (S3-01): holds no bed and owes nothing.
+  pending
   confirmed
   waitlisted
   // Released by the participant (F35-2a); the row stays as history and holds no bed.

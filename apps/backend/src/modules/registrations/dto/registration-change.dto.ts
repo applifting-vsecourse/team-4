@@ -45,7 +45,12 @@ import {
 
 const KINDS: ChangeKind[] = ['data', 'move', 'cancel_terms', 'cancel_all'];
 const FIELDS: readonly ChangeableField[] = CHANGEABLE_FIELDS;
-const STATES: ParticipationStatus[] = ['confirmed', 'waitlisted', 'cancelled'];
+const STATES: ParticipationStatus[] = [
+  'pending',
+  'confirmed',
+  'waitlisted',
+  'cancelled',
+];
 const STATUSES = ['pending', 'applied', 'approved', 'rejected'] as const;
 
 // ─── Input ──────────────────────────────────────────────────────────────────
@@ -68,11 +73,12 @@ export class TermMoveDto {
 
   @ApiProperty({
     description:
-      'Consent to end on the waitlist and lose a confirmed place. Required ' +
-      'when the move would end there, else 409 `waitlist_consent_required`.',
+      'Consent to give up the confirmed place of `fromTermId`; the new term ' +
+      "waits for the organizer's decision. Required when moving from a " +
+      'confirmed term, else 409 `release_consent_required`.',
   })
   @IsBoolean()
-  acceptWaitlist!: boolean;
+  acceptRelease!: boolean;
 }
 
 /** What a participant changes; a field left out stays as it is. */
@@ -237,21 +243,24 @@ export class PlannedMoveDto {
   @ApiProperty({ format: 'uuid' })
   toTermId!: string;
 
-  @ApiProperty({ enum: STATES })
+  @ApiProperty({
+    enum: STATES,
+    description: 'Always `pending`: the organizer decides the new term.',
+  })
   resultStatus!: ParticipationStatus;
 
   @ApiProperty({
     description:
-      'The move ends on the waitlist and gives up a confirmed place.',
+      'The move gives up a confirmed place: send `acceptRelease: true`.',
   })
-  requiresWaitlistConsent!: boolean;
+  requiresReleaseConsent!: boolean;
 
   static from(move: PlannedMove): PlannedMoveDto {
     return {
       fromTermId: move.fromTermId,
       toTermId: move.toTermId,
       resultStatus: move.resultStatus,
-      requiresWaitlistConsent: move.requiresWaitlistConsent,
+      requiresReleaseConsent: move.requiresReleaseConsent,
     };
   }
 }
@@ -327,16 +336,9 @@ export class RegistrationChangeDto {
   @ApiProperty({
     type: ChangeSummaryDto,
     description:
-      'Worked out against today’s capacity while pending, frozen once decided.',
+      'Worked out against today’s prices while pending, frozen once decided.',
   })
   summary!: ChangeSummaryDto;
-
-  @ApiProperty({
-    description:
-      'Pending, and a move now ends on the waitlist without the ' +
-      'participant’s consent: approving waits for it.',
-  })
-  needsParticipantConsent!: boolean;
 
   @ApiProperty({
     description:
@@ -357,7 +359,6 @@ export class RegistrationChangeDto {
       createdAt: model.createdAt.toISOString(),
       decidedAt: model.decidedAt?.toISOString() ?? null,
       summary: ChangeSummaryDto.from(model.summary),
-      needsParticipantConsent: model.needsParticipantConsent,
       isStale: model.isStale,
       participant: { ...model.registration },
     };

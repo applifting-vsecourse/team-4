@@ -77,8 +77,10 @@ export const changePreviewSchema = z.object({
     z.object({
       fromTermId: z.string().uuid(),
       toTermId: z.string().uuid(),
+      /** Always "pending": the organizer decides the new term (S3-01). */
       resultStatus: participationStatusSchema,
-      requiresWaitlistConsent: z.boolean(),
+      /** The move gives up a confirmed place: send `acceptRelease: true`. */
+      requiresReleaseConsent: z.boolean(),
     }),
   ),
   summary: changeSummarySchema,
@@ -94,8 +96,6 @@ export const registrationChangeSchema = z.object({
   createdAt: z.string(),
   decidedAt: z.string().nullable(),
   summary: changeSummarySchema,
-  /** Waiting, and a move now ends on the waitlist without the participant's consent. */
-  needsParticipantConsent: z.boolean(),
   /** Waiting, and the registration changed after the proposal was made. */
   isStale: z.boolean(),
   participant: z.object({ firstName: z.string(), lastName: z.string(), email: z.string() }),
@@ -121,7 +121,7 @@ export type ChangeProposal = {
   gender?: Gender | null
   /** Own words for `other`; null removes them. */
   genderOther?: string | null
-  moves: { fromTermId: string; toTermId: string; acceptWaitlist: boolean }[]
+  moves: { fromTermId: string; toTermId: string; acceptRelease: boolean }[]
   cancelledTermIds: string[]
 }
 

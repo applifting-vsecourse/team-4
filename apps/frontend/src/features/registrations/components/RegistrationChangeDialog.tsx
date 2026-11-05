@@ -20,14 +20,15 @@ import {
   type ChangeSummaryProps,
 } from "@/features/registrations/components/ChangeSummary"
 
-/** The move ends on the waitlist; it needs the participant's explicit consent. */
-export type WaitlistConsent = {
-  /** The full target term, e.g. "Turnus 3". */
+/**
+ * The move gives up a confirmed place for a term the organizer has not
+ * decided yet (S3-01); it needs the participant's explicit consent.
+ */
+export type ReleaseConsent = {
+  /** The new term, e.g. "Turnus 3". */
   targetTerm: string
   /** The confirmed term the participant gives up, e.g. "Turnus 2". */
   lostTerm: string
-  /** The capacity was re-checked on execution and the result changed. */
-  hasResultChanged?: boolean
   /** Initial state of the consent checkbox. */
   isGiven?: boolean
 }
@@ -43,14 +44,14 @@ export type RegistrationChangeDialogProps = {
   isApprovalNewlyRequired?: boolean
   /** Terms or payments are affected, so the financial settlement is mentioned. */
   hasFinancialImpact?: boolean
-  waitlist?: WaitlistConsent
+  release?: ReleaseConsent
   errorMessage?: string
   /** The registration changed meanwhile; the proposal must not overwrite it. */
   isStale?: boolean
   isSubmitting?: boolean
   onOpenChange?: (isOpen: boolean) => void
-  /** Confirms the change; `isWaitlistAccepted` is the state of the consent checkbox. */
-  onConfirm?: (isWaitlistAccepted: boolean) => void
+  /** Confirms the change; `isReleaseAccepted` is the state of the consent checkbox. */
+  onConfirm?: (isReleaseAccepted: boolean) => void
   /** Loads the registration again after a stale proposal. */
   onReload?: () => void
 }
@@ -66,7 +67,7 @@ export function RegistrationChangeDialog({
   isApprovalRequired = false,
   isApprovalNewlyRequired = false,
   hasFinancialImpact = false,
-  waitlist,
+  release,
   errorMessage,
   isStale = false,
   isSubmitting = false,
@@ -74,7 +75,7 @@ export function RegistrationChangeDialog({
   onConfirm,
   onReload,
 }: RegistrationChangeDialogProps) {
-  const [isWaitlistConsentGiven, setIsWaitlistConsentGiven] = useState(waitlist?.isGiven ?? false)
+  const [isReleaseConsentGiven, setIsReleaseConsentGiven] = useState(release?.isGiven ?? false)
   const isRequest = isApprovalRequired || isApprovalNewlyRequired
   const confirmLabel = isRequest
     ? "Odeslat žádost o schválení"
@@ -138,11 +139,11 @@ export function RegistrationChangeDialog({
             </Alert>
           ) : null}
 
-          {waitlist ? (
-            <WaitlistNotice
-              {...waitlist}
-              isGiven={isWaitlistConsentGiven}
-              onGivenChange={setIsWaitlistConsentGiven}
+          {release ? (
+            <ReleaseNotice
+              {...release}
+              isGiven={isReleaseConsentGiven}
+              onGivenChange={setIsReleaseConsentGiven}
             />
           ) : null}
         </div>
@@ -168,8 +169,8 @@ export function RegistrationChangeDialog({
             <Button
               type="button"
               variant={isCancellation && !isRequest ? "destructive" : "default"}
-              disabled={isSubmitting || (waitlist ? !isWaitlistConsentGiven : false)}
-              onClick={() => onConfirm?.(isWaitlistConsentGiven)}
+              disabled={isSubmitting || (release ? !isReleaseConsentGiven : false)}
+              onClick={() => onConfirm?.(isReleaseConsentGiven)}
             >
               {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
               {confirmLabel}
@@ -181,31 +182,29 @@ export function RegistrationChangeDialog({
   )
 }
 
-function WaitlistNotice({
+function ReleaseNotice({
   targetTerm,
   lostTerm,
-  hasResultChanged,
   isGiven,
   onGivenChange,
-}: WaitlistConsent & { onGivenChange: (isGiven: boolean) => void }) {
+}: ReleaseConsent & { onGivenChange: (isGiven: boolean) => void }) {
   return (
     <div className="space-y-3">
       <Alert>
         <TriangleAlert />
         <AlertTitle>
-          {hasResultChanged
-            ? `${targetTerm} se mezitím zaplnil. Místo v termínu ${lostTerm} vám zatím zůstává.`
-            : `${targetTerm} je plně obsazený. Přesunem přijdete o potvrzené místo v termínu ${lostTerm}.`}
+          Přesunem přijdete o potvrzené místo v termínu {lostTerm}. O účasti v termínu {targetTerm}{" "}
+          rozhodne organizátor.
         </AlertTitle>
       </Alert>
       <Field orientation="horizontal">
         <Checkbox
-          id="waitlist-consent"
+          id="release-consent"
           checked={isGiven}
           onCheckedChange={(checked) => onGivenChange(checked === true)}
         />
-        <FieldLabel htmlFor="waitlist-consent">
-          Souhlasím, že v termínu {targetTerm} budu náhradník.
+        <FieldLabel htmlFor="release-consent">
+          Souhlasím, že přijdu o potvrzené místo v termínu {lostTerm}.
         </FieldLabel>
       </Field>
     </div>

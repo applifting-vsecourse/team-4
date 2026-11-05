@@ -2,7 +2,12 @@ import { createHash } from 'node:crypto';
 import { Gender } from '@/modules/registrations/domain/gender';
 import { TermCapacity } from '@/modules/rooms/domain/room';
 
-export type ParticipationStatus = 'confirmed' | 'waitlisted' | 'cancelled';
+/**
+ * `pending` waits for the organizer's decision (S3-01, spec v4 §3): a moved
+ * term starts there. Only `confirmed` holds a bed and creates a debt.
+ */
+export type ParticipationStatus =
+  'pending' | 'confirmed' | 'waitlisted' | 'cancelled';
 
 /** A submission as the API received it, already trimmed and in E.164. */
 export type RegistrationInput = {

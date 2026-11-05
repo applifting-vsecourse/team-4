@@ -2,7 +2,6 @@ import { requiresApproval } from '@/modules/events/domain/change-approval';
 import { Gender, genderOtherFits } from '@/modules/registrations/domain/gender';
 import {
   amountDueMinor,
-  decideParticipation,
   ParticipationStatus,
   RegistrationTermResult,
 } from '@/modules/registrations/domain/registration';
@@ -26,8 +25,8 @@ export type ChangeableField = (typeof CHANGEABLE_FIELDS)[number];
 export type TermMove = {
   fromTermId: string;
   toTermId: string;
-  /** Consent to end on the waitlist and lose the confirmed place of `fromTermId`. */
-  acceptWaitlist: boolean;
+  /** Consent to give up the confirmed place of `fromTermId`; the new term waits for the organizer. */
+  acceptRelease: boolean;
 };
 
 /** What a participant proposes; a missing field stays as it is. */
@@ -82,9 +81,10 @@ export type ChangeSummary = {
 };
 
 export type PlannedMove = TermMove & {
+  /** Always `pending`: the organizer decides the new term (S3-01). */
   resultStatus: ParticipationStatus;
-  /** The result is the waitlist and a confirmed place is given up. */
-  requiresWaitlistConsent: boolean;
+  /** A confirmed place is given up for a term that is not decided yet. */
+  requiresReleaseConsent: boolean;
 };
 
 export type ChangePlan = {
@@ -128,10 +128,10 @@ export type ChangeSubject = {
   paidMinor: number;
 };
 
-/** A term of the event with its bed situation and current price. */
+/** A term of the event with its current price. */
 export type EventTermInfo = Pick<
   TermCapacity,
-  'id' | 'label' | 'startDate' | 'endDate' | 'capacity' | 'confirmed'
+  'id' | 'label' | 'startDate' | 'endDate'
 > & { priceMinor: number };
 
 const money = (
@@ -143,10 +143,10 @@ const money = (
 };
 
 /**
- * Works out a proposal against the registration and the event's current
- * capacity: what changes, what each term ends as, and whether the organizer
- * must approve (affected terms by kind of change, F35-2a). Pure; the caller
- * holds the locks that keep the capacity true until it is applied.
+ * Works out a proposal against the registration and the event's terms: what
+ * changes, what each term ends as, and whether the organizer must approve
+ * (affected terms by kind of change, F35-2a). A moved-to term waits for the
+ * organizer's decision (S3-01), whatever its capacity. Pure.
  */
 export const planChange = (
   subject: ChangeSubject,
@@ -217,14 +217,11 @@ export const planChange = (
   }
 
   const moves: PlannedMove[] = proposal.moves.map((move) => {
-    const target = eventTerms.get(move.toTermId) as EventTermInfo;
-    const resultStatus = decideParticipation(target);
     const from = own.get(move.fromTermId) as RegistrationTermResult;
     return {
       ...move,
-      resultStatus,
-      requiresWaitlistConsent:
-        resultStatus === 'waitlisted' && from.status === 'confirmed',
+      resultStatus: 'pending',
+      requiresReleaseConsent: from.status === 'confirmed',
     };
   });
 

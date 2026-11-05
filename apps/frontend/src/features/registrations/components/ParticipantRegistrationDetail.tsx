@@ -30,7 +30,6 @@ import { RegistrationChangeActions } from "@/features/registrations/components/R
 import { RegistrationHistory } from "@/features/registrations/components/RegistrationHistory"
 import { RegistrationTermStates } from "@/features/registrations/components/RegistrationTermStates"
 import { SimulatedPaymentHistory } from "@/features/registrations/components/SimulatedPaymentHistory"
-import { useAcceptWaitlist } from "@/features/registrations/hooks/useRegistrationChange"
 import {
   describeHistoryEntry,
   describeKinds,
@@ -73,7 +72,6 @@ export function ParticipantRegistrationDetail({
 }: ParticipantRegistrationDetailProps) {
   const query = useQuery(participantRegistrationQueryOptions(registrationId))
   const changesQuery = useQuery(participantChangesQueryOptions(registrationId))
-  const acceptWaitlist = useAcceptWaitlist(registrationId)
   const [cancelProposal, setCancelProposal] = useState<ChangeProposal | null>(null)
   const { data } = query
   const changes = changesQuery.data ?? []
@@ -180,32 +178,6 @@ export function ParticipantRegistrationDetail({
               submittedAt={formatChangeTime(request.createdAt)}
               decidedAt={request.decidedAt ? formatChangeTime(request.decidedAt) : undefined}
               summary={toSummaryProps(request.summary)}
-              notice={
-                request.needsParticipantConsent ? (
-                  <Alert>
-                    <AlertDescription>
-                      <div className="flex flex-col items-start gap-3">
-                        <p>
-                          Cílový termín se mezitím zaplnil. Žádost lze schválit, až budete souhlasit
-                          s tím, že v něm budete náhradník; do té doby vám zůstává současné místo.
-                        </p>
-                        {acceptWaitlist.isError ? (
-                          <p className="text-destructive">
-                            Souhlas se nepodařilo uložit. Zkuste to prosím znovu.
-                          </p>
-                        ) : null}
-                        <Button
-                          size="sm"
-                          disabled={acceptWaitlist.isPending}
-                          onClick={() => acceptWaitlist.mutate(request.id)}
-                        >
-                          Souhlasím s náhradnictvím
-                        </Button>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                ) : undefined
-              }
             />
           ) : null}
 

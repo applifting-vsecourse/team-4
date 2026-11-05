@@ -56,11 +56,6 @@ export class AvailableTermDto {
 
   @ApiProperty({ description: 'Current price in haléře.' })
   priceMinor!: number;
-
-  @ApiProperty({
-    description: 'No bed is free: moving there means the waitlist.',
-  })
-  isFull!: boolean;
 }
 
 export class ParticipantRegistrationDto {
@@ -80,7 +75,7 @@ export class ParticipantRegistrationDto {
   terms!: RegistrationTermResultDto[];
 
   @ApiProperty({
-    description: 'Σ selected terms in haléře, waitlisted included.',
+    description: 'Σ selected terms in haléře, unconfirmed included.',
   })
   selectedPriceMinor!: number;
 
@@ -177,7 +172,7 @@ export class ParticipantRegistrationDetailDto extends ParticipantRegistrationDto
 
   static fromDetail(
     model: ParticipantRegistrationModel,
-    terms: (EventTermInfo & { isFull: boolean })[],
+    terms: EventTermInfo[],
   ): ParticipantRegistrationDetailDto {
     return {
       ...ParticipantRegistrationDto.from(model),
@@ -187,7 +182,6 @@ export class ParticipantRegistrationDetailDto extends ParticipantRegistrationDto
         startDate: term.startDate,
         endDate: term.endDate,
         priceMinor: term.priceMinor,
-        isFull: term.isFull,
       })),
     };
   }

@@ -41,15 +41,12 @@ const subject = (
 const info = (
   id: string,
   startDate: string,
-  free = 1,
   priceMinor = 290_000,
 ): EventTermInfo => ({
   id,
   label: id.toUpperCase(),
   startDate,
   endDate: startDate,
-  capacity: free,
-  confirmed: 0,
   priceMinor,
 });
 
@@ -196,7 +193,7 @@ describe('planChange', () => {
     const to = events(info('t3', '2026-12-04'));
     const move = (toId: string, from = 't2') =>
       proposal({
-        moves: [{ fromTermId: from, toTermId: toId, acceptWaitlist: false }],
+        moves: [{ fromTermId: from, toTermId: toId, acceptRelease: false }],
       });
 
     expect(planChange(later, move('t3'), to, 14, NOW).requiresApproval).toBe(
@@ -276,11 +273,11 @@ describe('planChange', () => {
     });
   });
 
-  it('moves onto the new term at its price and a free bed', () => {
+  it('moves onto the new term at its price, waiting for the organizer (S3-01)', () => {
     const plan = planChange(
       subject([T2]),
       proposal({
-        moves: [{ fromTermId: 't2', toTermId: 't3', acceptWaitlist: false }],
+        moves: [{ fromTermId: 't2', toTermId: 't3', acceptRelease: false }],
       }),
       events(info('t3', '2026-12-04')),
       null,
@@ -290,55 +287,45 @@ describe('planChange', () => {
       {
         fromTermId: 't2',
         toTermId: 't3',
-        acceptWaitlist: false,
-        resultStatus: 'confirmed',
-        requiresWaitlistConsent: false,
+        acceptRelease: false,
+        resultStatus: 'pending',
+        requiresReleaseConsent: true,
       },
     ]);
     expect(
       plan.summary.terms.map((t) => [t.termId, t.original, t.proposed]),
     ).toEqual([
       ['t2', 'confirmed', 'cancelled'],
-      ['t3', null, 'confirmed'],
+      ['t3', null, 'pending'],
     ]);
-    expect(plan.summary.proposed.dueMinor).toBe(290_000);
-  });
-
-  it('needs consent when a confirmed place becomes a waitlist one', () => {
-    const plan = planChange(
-      subject([T2]),
-      proposal({
-        moves: [{ fromTermId: 't2', toTermId: 't3', acceptWaitlist: false }],
-      }),
-      events(info('t3', '2026-12-04', 0)),
-      null,
-      NOW,
-    );
-    expect(plan.moves[0]).toMatchObject({
-      resultStatus: 'waitlisted',
-      requiresWaitlistConsent: true,
-    });
+    // The confirmed place is given up and nothing new is due yet.
     expect(plan.summary.proposed.dueMinor).toBe(0);
   });
 
-  it('needs no consent to move a waitlist place onto another waitlist', () => {
-    const plan = planChange(
-      subject([term('t2', '2026-11-20', 'waitlisted')]),
-      proposal({
-        moves: [{ fromTermId: 't2', toTermId: 't3', acceptWaitlist: false }],
-      }),
-      events(info('t3', '2026-12-04', 0)),
-      null,
-      NOW,
-    );
-    expect(plan.moves[0].requiresWaitlistConsent).toBe(false);
-  });
+  it.each(['pending', 'waitlisted'] as const)(
+    'needs no consent to move a %s place',
+    (status) => {
+      const plan = planChange(
+        subject([term('t2', '2026-11-20', status)]),
+        proposal({
+          moves: [{ fromTermId: 't2', toTermId: 't3', acceptRelease: false }],
+        }),
+        events(info('t3', '2026-12-04')),
+        null,
+        NOW,
+      );
+      expect(plan.moves[0]).toMatchObject({
+        resultStatus: 'pending',
+        requiresReleaseConsent: false,
+      });
+    },
+  );
 
   it('brings a term released earlier back at today’s price', () => {
     const plan = planChange(
       subject([T2, term('t3', '2026-12-04', 'cancelled', 100_000)]),
       proposal({
-        moves: [{ fromTermId: 't2', toTermId: 't3', acceptWaitlist: false }],
+        moves: [{ fromTermId: 't2', toTermId: 't3', acceptRelease: false }],
       }),
       events(info('t3', '2026-12-04')),
       null,
@@ -346,7 +333,7 @@ describe('planChange', () => {
     );
     expect(plan.summary.terms.find((t) => t.termId === 't3')).toMatchObject({
       original: 'cancelled',
-      proposed: 'confirmed',
+      proposed: 'pending',
       priceMinor: 290_000,
     });
   });
@@ -360,14 +347,14 @@ describe('planChange', () => {
     [
       'a target of another event',
       proposal({
-        moves: [{ fromTermId: 't2', toTermId: 'x', acceptWaitlist: false }],
+        moves: [{ fromTermId: 't2', toTermId: 'x', acceptRelease: false }],
       }),
       'term_unknown',
     ],
     [
       'a move onto a term already held',
       proposal({
-        moves: [{ fromTermId: 't2', toTermId: 't1', acceptWaitlist: false }],
+        moves: [{ fromTermId: 't2', toTermId: 't1', acceptRelease: false }],
       }),
       'term_conflict',
     ],
@@ -375,7 +362,7 @@ describe('planChange', () => {
       'a term both moved and cancelled',
       proposal({
         cancelledTermIds: ['t2'],
-        moves: [{ fromTermId: 't2', toTermId: 't3', acceptWaitlist: false }],
+        moves: [{ fromTermId: 't2', toTermId: 't3', acceptRelease: false }],
       }),
       'term_conflict',
     ],

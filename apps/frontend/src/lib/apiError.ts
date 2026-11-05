@@ -27,7 +27,7 @@ export type ApiErrorCode =
   | "registration_unavailable"
   | "registration_stale"
   | "approval_changed"
-  | "waitlist_consent_required"
+  | "release_consent_required"
   | "change_pending"
   | "change_already_decided"
   | "change_invalid"

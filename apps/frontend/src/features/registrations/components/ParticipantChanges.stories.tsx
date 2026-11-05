@@ -102,26 +102,17 @@ const PHONE_CHANGE: ChangeSummaryProps = {
   ],
 }
 
-/** Turnus 2 → full Turnus 4: the confirmed place is lost, the new one is a waitlist one. */
-const MOVE_TO_FULL: ChangeSummaryProps = {
+/** Turnus 2 → Turnus 4: the confirmed place is lost, the organizer decides the new term. */
+const MOVE_RELEASING: ChangeSummaryProps = {
   terms: [
     { ...T2, original: "confirmed", proposed: "cancelled" },
-    { ...T4, original: null, proposed: "waitlisted" },
+    { ...T4, original: null, proposed: "pending" },
   ],
   money: [
     { label: "K úhradě za potvrzené termíny", original: "4 800 Kč", proposed: "2 400 Kč" },
     { label: "Zaplaceno", original: "4 800 Kč", proposed: "4 800 Kč" },
     { label: "Přeplatek", original: "0 Kč", proposed: "2 400 Kč" },
   ],
-}
-
-/** Turnus 3 filled up between the review and the execution. */
-const MOVE_RESULT_CHANGED: ChangeSummaryProps = {
-  terms: [
-    { ...T2, original: "confirmed", proposed: "cancelled" },
-    { ...T3, original: null, proposed: "waitlisted" },
-  ],
-  money: MOVE_TO_FULL.money,
 }
 
 /** Only Turnus 2 is cancelled; outside the threshold, so directly. */
@@ -394,12 +385,12 @@ export const ApprovalNewlyRequired: Story = {
   render: review({ summary: MOVE_T2_T3, hasFinancialImpact: true, isApprovalNewlyRequired: true }),
 }
 
-/** A move to a full term: the lost place is named, nothing goes without consent. */
-export const MoveToWaitlist: Story = {
+/** A move from a confirmed term: the lost place is named, nothing goes without consent. */
+export const MoveReleasingConfirmed: Story = {
   render: review({
-    summary: MOVE_TO_FULL,
+    summary: MOVE_RELEASING,
     hasFinancialImpact: true,
-    waitlist: { targetTerm: "Turnus 4", lostTerm: "Turnus 2" },
+    release: { targetTerm: "Turnus 4", lostTerm: "Turnus 2" },
   }),
   play: async () => {
     const confirm = await screen.findByRole("button", { name: "Potvrdit změnu" })
@@ -407,15 +398,6 @@ export const MoveToWaitlist: Story = {
     await userEvent.click(screen.getByRole("checkbox", { name: /Souhlasím/ }))
     await expect(confirm).toBeEnabled()
   },
-}
-
-/** Capacity re-checked on execution: the result is now a waitlist, the place stays until consent. */
-export const MoveResultChanged: Story = {
-  render: review({
-    summary: MOVE_RESULT_CHANGED,
-    hasFinancialImpact: true,
-    waitlist: { targetTerm: "Turnus 3", lostTerm: "Turnus 2", hasResultChanged: true },
-  }),
 }
 
 /** Cancelling one term: only it is released, an overpayment may appear. */

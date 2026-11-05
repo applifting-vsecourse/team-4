@@ -3,12 +3,14 @@ import { Badge } from "@/components/ui/badge"
 import { type ParticipationStatus } from "@/features/registrations/api/registrationSchemas"
 
 export const PARTICIPATION_LABELS: Record<ParticipationStatus, string> = {
+  pending: "Čeká na rozhodnutí organizátora",
   confirmed: "Potvrzeno",
   waitlisted: "Náhradník",
   cancelled: "Odhlášeno",
 }
 
 const BADGE_VARIANTS = {
+  pending: "secondary",
   confirmed: "success",
   waitlisted: "warning",
   cancelled: "secondary",

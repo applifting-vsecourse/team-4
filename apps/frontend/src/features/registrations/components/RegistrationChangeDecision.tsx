@@ -80,13 +80,6 @@ export function RegistrationChangeDecision({
                   zamítnout a účastník ji podá znovu.
                 </AlertTitle>
               </Alert>
-            ) : shown.status === "pending" && shown.needsParticipantConsent ? (
-              <Alert>
-                <AlertTitle>
-                  Cílový termín se mezitím zaplnil. Přesun lze schválit až po novém souhlasu
-                  účastníka.
-                </AlertTitle>
-              </Alert>
             ) : failure ? (
               <Alert variant="destructive">
                 <AlertDescription>
@@ -111,7 +104,7 @@ export function RegistrationChangeDecision({
                   Zamítnout
                 </Button>
                 <Button
-                  disabled={decide.isPending || shown.needsParticipantConsent || shown.isStale}
+                  disabled={decide.isPending || shown.isStale}
                   onClick={() => decide.mutate({ changeId: shown.id, decision: "approve" })}
                 >
                   <Check />

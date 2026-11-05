@@ -25,7 +25,7 @@ export interface ConfirmationTerm {
   startDate: string;
   endDate: string;
   priceMinor: number;
-  status: 'confirmed' | 'waitlisted';
+  status: 'pending' | 'confirmed' | 'waitlisted';
 }
 
 export interface ConfirmationPayment {
@@ -43,6 +43,18 @@ export interface RegistrationConfirmationProps {
   payment: ConfirmationPayment | null;
   url: string;
 }
+
+const STATUS_LABEL: Record<ConfirmationTerm['status'], string> = {
+  pending: 'Čeká na rozhodnutí organizátora',
+  confirmed: 'Potvrzeno',
+  waitlisted: 'Náhradník',
+};
+
+const STATUS_TONE: Record<ConfirmationTerm['status'], string> = {
+  pending: 'text-gray-600',
+  confirmed: 'text-green-700',
+  waitlisted: 'text-amber-700',
+};
 
 export const confirmationSubject = (eventName: string): string =>
   `akc.io — přihláška přijata: ${eventName}`;
@@ -77,6 +89,7 @@ export const RegistrationConfirmation = ({
   payment,
   url,
 }: RegistrationConfirmationProps): React.JSX.Element => {
+  const hasPending = terms.some((term) => term.status === 'pending');
   const hasWaitlisted = terms.some((term) => term.status === 'waitlisted');
   return (
     <Html lang="cs">
@@ -124,11 +137,9 @@ export const RegistrationConfirmation = ({
                           {formatMoney(term.priceMinor)}
                         </Text>
                         <Text
-                          className={`m-0 text-xs font-semibold ${term.status === 'confirmed' ? 'text-green-700' : 'text-amber-700'}`}
+                          className={`m-0 text-xs font-semibold ${STATUS_TONE[term.status]}`}
                         >
-                          {term.status === 'confirmed'
-                            ? 'Potvrzeno'
-                            : 'Náhradník'}
+                          {STATUS_LABEL[term.status]}
                         </Text>
                       </td>
                     </tr>
@@ -152,6 +163,13 @@ export const RegistrationConfirmation = ({
               ) : null}
             </Section>
 
+            {hasPending ? (
+              <Text className="text-sm text-gray-600 leading-5">
+                O účasti v termínech označených „Čeká na rozhodnutí
+                organizátora“ rozhodne organizátor. Za tyto termíny zatím nic
+                neplatíte; po potvrzení vám pošleme platební instrukce.
+              </Text>
+            ) : null}
             {hasWaitlisted ? (
               <Text className="text-sm text-gray-600 leading-5">
                 U termínů označených „Náhradník“ zatím nemáte zajištěné místo.

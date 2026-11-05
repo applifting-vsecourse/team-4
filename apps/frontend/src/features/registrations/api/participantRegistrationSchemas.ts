@@ -61,8 +61,6 @@ export const availableTermSchema = z.object({
   startDate: z.string(),
   endDate: z.string(),
   priceMinor: z.number().int(),
-  /** No bed is free: moving there means the waitlist. */
-  isFull: z.boolean(),
 })
 
 export const participantRegistrationDetailSchema = participantRegistrationSchema.extend({

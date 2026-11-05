@@ -1,10 +1,13 @@
 import { z } from "zod"
 
 /** What the organizer filters by; a released term is no participation. */
-export const activeParticipationStatusSchema = z.enum(["confirmed", "waitlisted"])
+export const activeParticipationStatusSchema = z.enum(["pending", "confirmed", "waitlisted"])
 
-/** A term of a registration; "cancelled" is a term the participant released (F35-2a). */
-export const participationStatusSchema = z.enum(["confirmed", "waitlisted", "cancelled"])
+/**
+ * A term of a registration: "pending" waits for the organizer's decision
+ * (S3-01), "cancelled" is a term the participant released (F35-2a).
+ */
+export const participationStatusSchema = z.enum(["pending", "confirmed", "waitlisted", "cancelled"])
 
 export type ParticipationStatus = z.infer<typeof participationStatusSchema>
 
@@ -68,9 +71,9 @@ export const registrationResultSchema = z.object({
       status: participationStatusSchema,
     }),
   ),
-  /** Sum of the selected terms, waitlisted ones included; not the amount due. */
+  /** Sum of the selected terms, unconfirmed ones included; not the amount due. */
   selectedPriceMinor: z.number().int(),
-  /** Σ confirmed terms; 0 for waitlisted-only or free terms. */
+  /** Σ confirmed terms; 0 while none is confirmed or for free terms. */
   amountDueMinor: z.number().int(),
   /** Null at zero obligation: no reminder date and no request to pay. */
   paymentInstructions: paymentInstructionsSchema.nullable(),

@@ -64,7 +64,7 @@ describe("buildProposal", () => {
         }),
       ),
     ).toEqual({
-      moves: [{ fromTermId: T1, toTermId: T3, acceptWaitlist: false }],
+      moves: [{ fromTermId: T1, toTermId: T3, acceptRelease: false }],
       cancelledTermIds: [T2],
     })
   })

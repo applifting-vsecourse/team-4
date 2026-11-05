@@ -38,18 +38,6 @@ export function useSubmitChange(registrationId: string) {
   })
 }
 
-/** The participant agrees to the waitlist for a request that waits. */
-export function useAcceptWaitlist(registrationId: string) {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: async (changeId: string) =>
-      registrationChangeSchema.parse(
-        await api.post(`${ownPath(registrationId)}/${changeId}/accept-waitlist`).json(),
-      ),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: participantRegistrationKeys.all() }),
-  })
-}
-
 /** The organizer approves or rejects a request; both are safe to repeat. */
 export function useDecideChange(organizationId: string, eventId: string, registrationId: string) {
   const queryClient = useQueryClient()

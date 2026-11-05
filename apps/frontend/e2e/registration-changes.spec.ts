@@ -74,11 +74,15 @@ test("a move outside the approval threshold is made at once", async ({ page, bro
   await expect(
     review.getByText("Storno poplatek a případnou vratku řeší organizátor"),
   ).toBeVisible()
+  // The new term waits for the organizer, so the confirmed place needs consent (S3-01).
+  await expect(review.getByText(/O účasti v termínu Turnus 3 rozhodne organizátor/)).toBeVisible()
+  await expect(review.getByRole("button", { name: "Potvrdit změnu" })).toBeDisabled()
+  await review.getByRole("checkbox", { name: /Souhlasím/ }).check()
   await review.getByRole("button", { name: "Potvrdit změnu" }).click()
 
   await expect(participant.getByRole("heading", { name: event.name, level: 1 })).toBeVisible()
   await expect(termRow(participant, "Turnus 2")).toContainText("Odhlášeno")
-  await expect(termRow(participant, "Turnus 3")).toContainText("Potvrzeno")
+  await expect(termRow(participant, "Turnus 3")).toContainText("Čeká na rozhodnutí organizátora")
   await expect(termRow(participant, "Turnus 1")).toContainText("Potvrzeno")
   await expect(participant.getByText("Historie změn")).toBeVisible()
   await context.close()
