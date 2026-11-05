@@ -76,6 +76,7 @@ erDiagram
 | `AccommodationTermOrder`                        | `accommodation_term_order`                       | A manually changed order of a term's unconfirmed participants (§3.14).                            |
 | `AccommodationIntervention`                     | `accommodation_intervention`                     | Immutable record of a manual position change or determination, with its reason (§3.14).           |
 | `AccommodationRun`                              | `accommodation_run`                              | Immutable evaluation of one term: input snapshot, order used and proposal (§3.14).                |
+| `AccommodationTermState`                        | `accommodation_term_state`                       | Input version, scheduled and running evaluation of a term (§3.14).                                |
 | `Payment`                                       | `payment`                                        | Received payment recorded by an organizer.                                                        |
 | `EmailDelivery`                                 | `email_delivery`                                 | Outbound e-mail log (status, provider id, sanitized error).                                       |
 
@@ -406,7 +407,7 @@ cancel single terms or the whole registration.
   amount due shows as an overpayment (negative balance). A change never confirms a term, so it
   never makes something owed for the first time.
 
-### 3.14 Accommodation evaluation (S3-T3, S3-T4)
+### 3.14 Accommodation evaluation (S3-T3, S3-T4, S3-01)
 
 The rules are the S3-T3 specification v4 on #181. One term is evaluated at a time from its
 current data; a run only proposes and never changes a participation, a debt or a room.
@@ -428,9 +429,20 @@ current data; a run only proposes and never changes a participation, a debt or a
   confirmation will point to the run it used (F13-1).
 - **Immutability.** A trigger refuses every UPDATE and DELETE of `accommodation_run` and
   `accommodation_intervention`; they are the evidence of a proposal and an order (F39-1).
+- **Versions and scheduling (S3-01, spec v4 §5).** `accommodation_term_state` holds the term's
+  `inputVersion`. Every change a run depends on bumps it in the same transaction: a saved
+  registration, an executed change or gender correction in the term, a room edit (all terms of
+  the event). A run stores the version it read and is current while they are equal. In the
+  `automatic` mode a change sets `dueAt` 10 s ahead (each further change moves it); in the
+  `manual` mode only "Přepočítat" sets it, to now.
+- **Worker.** Every backend process polls the state rows for due evaluations and takes them
+  with `FOR UPDATE SKIP LOCKED`, so at most one evaluation runs per term (`runningRunId`). A
+  change while it runs bumps the version, so the stored result is stale at once and the next
+  evaluation waits until the running one is stored. One left running for 2 minutes is taken
+  again.
 - **Writers.** Rules, determinations, orders and interventions are written by F14-1, F39-1
-  and the rules settings; until then they have no rows. Answers to the hard attribute are read
-  through a provider that the story adding categorical questions (F64) implements.
+  and the rules settings; until then they have no rows. Answers to the hard attribute come from
+  the registration: the F64 gender answer when the hard attribute is `gender`.
 
 ## 4. Field reference
 
@@ -509,6 +521,11 @@ current data; a run only proposes and never changes a participation, a debt or a
 | `accommodation_run.status`                           | enum `solved/infeasible/timeout/failed` | `result` null and `error` set exactly when `failed` (CHECK). Immutable.   |
 | `accommodation_run.input`, `.result`                 | jsonb, jsonb?                           | Snapshot of everything the run decided from; the proposal.                |
 | `accommodation_run.triggeredById`, `.solverVersion`  | text?, varchar(64)                      | Null author: the system.                                                  |
+| `accommodation_run.inputVersion`                     | int                                     | The term version it read; current while equal.                            |
+| `accommodation_term_state.inputVersion`              | int default 0                           | Bumped with every input change. No row: 0.                                |
+| `accommodation_term_state.dueAt`, `.requestedById`   | timestamptz?, text?                     | Next evaluation; who asked (null: system).                                |
+| `accommodation_term_state.running*`                  | uuid?, int?, text?, timestamptz?        | The evaluation in progress; all null or set.                              |
+| `event.accommodationEvaluationMode`                  | enum `automatic/manual`                 | `automatic` (default) schedules after changes.                            |
 
 ### Payment
 

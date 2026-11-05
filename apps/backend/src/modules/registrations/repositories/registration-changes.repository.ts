@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import { termInputsChanged } from '@/modules/accommodation/repositories/term-inputs';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import {
@@ -591,6 +592,13 @@ export class RegistrationChangesRepository {
       where: { id: snapshot.id },
       data: { ...changedFields(plan.summary), version: { increment: 1 } },
     });
+    // The participation or the answer changed in every term it touched.
+    await termInputsChanged(tx, snapshot.eventId, [
+      ...new Set([
+        ...snapshot.terms.map((term) => term.termId),
+        ...plan.summary.terms.map((term) => term.termId),
+      ]),
+    ]);
   }
 }
 

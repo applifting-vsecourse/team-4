@@ -165,12 +165,14 @@ model Event {
   // Listing in the public catalog; independent of the registration status.
   isPublished    Boolean     @default(false)
 
-  bankAccountPrefix   String? @db.VarChar(6)
-  bankAccountNumber   String? @db.VarChar(10)
-  bankCode            String? @db.Char(4)
-  paymentReminderDays Int?
+  bankAccountPrefix           String?                     @db.VarChar(6)
+  bankAccountNumber           String?                     @db.VarChar(10)
+  bankCode                    String?                     @db.Char(4)
+  paymentReminderDays         Int?
   // Days before a term's start from which registration changes need approval (F35-1a); null = never.
-  changeApprovalDays  Int?
+  changeApprovalDays          Int?
+  // Whether a change of a term's inputs schedules its evaluation (S3-01, spec v4 §5).
+  accommodationEvaluationMode AccommodationEvaluationMode @default(automatic)
 
   // Public presentation on the catalog detail (F55). Never the account's own contact.
   conditions   String  @default("") @db.Text
@@ -228,6 +230,7 @@ model EventTerm {
   roomAvailabilities         RoomTermAvailability[]
   registrationTerms          RegistrationTerm[]
   accommodationOrder         AccommodationTermOrder?
+  accommodationState         AccommodationTermState?
   accommodationRuns          AccommodationRun[]
   accommodationInterventions AccommodationIntervention[]
   programmeItems             ProgrammeItem[]
@@ -607,6 +610,41 @@ model AccommodationIntervention {
   @@map("accommodation_intervention")
 }
 
+enum AccommodationEvaluationMode {
+  // A change of a term's inputs evaluates it after 10 s without another change.
+  automatic
+  // Only "Přepočítat" evaluates a term.
+  manual
+
+  @@map("accommodation_evaluation_mode")
+}
+
+// The evaluation state of a term (S3-01, spec v4 §5): the version of its
+// inputs, a scheduled evaluation and the one running. No row: version 0,
+// nothing scheduled.
+model AccommodationTermState {
+  termId         String    @id @db.Uuid
+  eventId        String    @db.Uuid
+  // Bumped by every change a run depends on; a run is current while equal.
+  inputVersion   Int       @default(0)
+  // When the next evaluation is due; null when none is scheduled.
+  dueAt          DateTime? @db.Timestamptz(3)
+  // The evaluation in progress: its future run id, the version it read and
+  // who asked for it (null: the system). All null when none runs.
+  runningRunId   String?   @db.Uuid
+  runningVersion Int?
+  runningById    String?
+  runningSince   DateTime? @db.Timestamptz(3)
+  // Who asked for the scheduled evaluation; null when the system scheduled it.
+  requestedById  String?
+
+  term EventTerm @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Cascade)
+
+  @@unique([termId, eventId])
+  @@index([dueAt])
+  @@map("accommodation_term_state")
+}
+
 enum AccommodationRunStatus {
   solved
   infeasible
@@ -630,6 +668,8 @@ model AccommodationRun {
   // The proposal; null for a failed run.
   result        Json?
   error         String?                @db.Text
+  // The term's input version the run read (S3-01); it is current while equal.
+  inputVersion  Int
   startedAt     DateTime               @db.Timestamptz(3)
   finishedAt    DateTime               @db.Timestamptz(3)
 

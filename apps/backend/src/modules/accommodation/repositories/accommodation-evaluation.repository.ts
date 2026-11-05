@@ -20,6 +20,8 @@ export type TermData = {
     manualValue: ManualValue | null;
   }[];
   storedOrder: string[] | null;
+  /** The term's input version now (spec v4 §5); 0 before its first change. */
+  inputVersion: number;
 };
 
 export type RunStatus = 'solved' | 'infeasible' | 'timeout' | 'failed';
@@ -36,11 +38,13 @@ export type AccommodationRunModel = {
   /** The proposal; null for a failed run. */
   result: unknown;
   error: string | null;
+  /** The term's input version the run read; it is current while equal. */
+  inputVersion: number;
   startedAt: Date;
   finishedAt: Date;
 };
 
-const runSelect = {
+export const runSelect = {
   id: true,
   eventId: true,
   termId: true,
@@ -50,11 +54,12 @@ const runSelect = {
   input: true,
   result: true,
   error: true,
+  inputVersion: true,
   startedAt: true,
   finishedAt: true,
 } satisfies Prisma.AccommodationRunSelect;
 
-const toRun = (
+export const toRun = (
   row: Prisma.AccommodationRunGetPayload<{ select: typeof runSelect }>,
 ): AccommodationRunModel => ({
   ...row,
@@ -78,6 +83,7 @@ export class AccommodationEvaluationRepository {
       where: { id: termId, eventId },
       select: {
         accommodationOrder: { select: { registrationIds: true } },
+        accommodationState: { select: { inputVersion: true } },
         event: {
           select: {
             accommodationRules: {
@@ -143,14 +149,17 @@ export class AccommodationEvaluationRepository {
         manualValue: registration.accommodationManualValue,
       })),
       storedOrder: term.accommodationOrder?.registrationIds ?? null,
+      inputVersion: term.accommodationState?.inputVersion ?? 0,
     };
   }
 
+  /** `id` is the one a claimed evaluation was given; generated otherwise. */
   async createRun(
-    run: Omit<AccommodationRunModel, 'id'>,
+    run: Omit<AccommodationRunModel, 'id'> & { id?: string },
   ): Promise<AccommodationRunModel> {
     const row = await this.prisma.accommodationRun.create({
       data: {
+        id: run.id,
         eventId: run.eventId,
         termId: run.termId,
         status: run.status,
@@ -159,6 +168,7 @@ export class AccommodationEvaluationRepository {
         input: asJson(run.input),
         result: run.result === null ? Prisma.DbNull : asJson(run.result),
         error: run.error,
+        inputVersion: run.inputVersion,
         startedAt: run.startedAt,
         finishedAt: run.finishedAt,
       },

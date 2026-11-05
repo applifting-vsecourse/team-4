@@ -1,21 +1,34 @@
 import { PrismaModule } from '@/core/prisma/prisma.module';
+import { AuthModule } from '@/shared/auth/auth.module';
 import { Module } from '@nestjs/common';
+import { TermEvaluationController } from './controllers/term-evaluation.controller';
 import { AccommodationEvaluationRepository } from './repositories/accommodation-evaluation.repository';
+import { EvaluationQueueRepository } from './repositories/evaluation-queue.repository';
+import { TermEvaluationRepository } from './repositories/term-evaluation.repository';
 import { AccommodationEvaluationService } from './services/accommodation-evaluation.service';
+import { EvaluationWorker } from './services/evaluation-worker.service';
 import {
   HardAttributeAnswers,
-  NoHardAttributeAnswers,
+  RegistrationHardAttributeAnswers,
 } from './services/hard-attribute-answers';
+import { TermEvaluationService } from './services/term-evaluation.service';
 
-// Accommodation evaluation (S3-T4). No endpoint yet: F13-1 calls the service
-// when it creates a proposal for the organizer.
+// Accommodation evaluation (S3-T4, S3-01): the term evaluation of the
+// organizer and the worker that runs the due evaluations.
 @Module({
-  imports: [PrismaModule],
+  imports: [AuthModule, PrismaModule],
+  controllers: [TermEvaluationController],
   providers: [
     AccommodationEvaluationService,
     AccommodationEvaluationRepository,
-    { provide: HardAttributeAnswers, useClass: NoHardAttributeAnswers },
+    EvaluationQueueRepository,
+    EvaluationWorker,
+    TermEvaluationRepository,
+    TermEvaluationService,
+    {
+      provide: HardAttributeAnswers,
+      useClass: RegistrationHardAttributeAnswers,
+    },
   ],
-  exports: [AccommodationEvaluationService],
 })
 export class AccommodationModule {}

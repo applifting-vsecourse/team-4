@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import { termInputsChanged } from '@/modules/accommodation/repositories/term-inputs';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import { GenderAnswer } from '@/modules/registrations/domain/gender';
@@ -158,6 +159,16 @@ export class EventRegistrationsRepository {
           where: { id: registrationId },
           data: { ...answer, version: { increment: 1 } },
         });
+        // The answer is an input of every term of the registration.
+        const terms = await tx.registrationTerm.findMany({
+          where: { registrationId },
+          select: { termId: true },
+        });
+        await termInputsChanged(
+          tx,
+          scope.eventId,
+          terms.map((term) => term.termId),
+        );
       }
       return 'updated';
     });

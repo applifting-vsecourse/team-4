@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import { termInputsChanged } from '@/modules/accommodation/repositories/term-inputs';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import {
   normalizeEmail,
@@ -204,6 +205,7 @@ export class RegistrationsRepository {
           decidedAt,
         })),
       });
+      await termInputsChanged(tx, event.id, input.termIds);
 
       await tx.emailDelivery.create({
         data: {
