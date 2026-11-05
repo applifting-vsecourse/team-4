@@ -196,10 +196,17 @@ export class RegistrationsRepository {
           phone: input.phone,
           gender: input.gender ?? null,
           genderOther: input.genderOther ?? null,
-          bankAccountPrefix: event.bankAccountPrefix,
-          bankAccountNumber: event.bankAccountNumber,
-          bankCode: event.bankCode,
-          paymentReminderDays: event.paymentReminderDays,
+          // All or none, as the table requires (S3-C04).
+          bankAccountPrefix: hasPaymentSettings
+            ? event.bankAccountPrefix
+            : null,
+          bankAccountNumber: hasPaymentSettings
+            ? event.bankAccountNumber
+            : null,
+          bankCode: hasPaymentSettings ? event.bankCode : null,
+          paymentReminderDays: hasPaymentSettings
+            ? event.paymentReminderDays
+            : null,
         },
         select: { id: true },
       });
