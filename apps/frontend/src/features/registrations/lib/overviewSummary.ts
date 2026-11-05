@@ -24,9 +24,13 @@ export type OverviewSummary = {
 // Derives the event overview from the event's registrations. Amounts come
 // from the server per registration; this only adds them up.
 export function summarizeEvent(
-  registrations: RegistrationSummary[],
+  allRegistrations: RegistrationSummary[],
   terms: OverviewTerm[],
 ): OverviewSummary {
+  // A registration whose terms were all released no longer counts as a person.
+  const registrations = allRegistrations.filter((registration) =>
+    registration.terms.some((entry) => entry.status !== "cancelled"),
+  )
   const occupancy = terms.map((term) => {
     const states = registrations.flatMap((registration) =>
       registration.terms.filter((entry) => entry.termId === term.id).map((entry) => entry.status),
