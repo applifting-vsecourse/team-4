@@ -24,7 +24,7 @@ Context: [T1 issue #74](https://github.com/applifting-vsecourse/team-4/issues/74
 | R3  | Event name, description, location, terms and prices are locked from the first opening onward.                                                                                                                 | S2-04, S2-06      |
 | R4  | Rooms belong to one event and have a unique label. Availability, base beds and extra beds are set per room and term. Capacity of a term = Σ (base beds + extra beds) of rooms available in it.                | S2-05             |
 | R5  | Room edits must not drop any term's capacity below its confirmed count.                                                                                                                                       | S2-05             |
-| R6  | A registration is always saved. Each selected term is independently _confirmed_ (consumes a bed) or _waitlisted_ (consumes nothing). There is **no aggregate status that hides a mixed result**.              | S2-08, T1         |
+| R6  | A registration is always saved. Each term starts _pending_ (S3-01), then is independently _confirmed_ (a bed) or _waitlisted_ (none). There is **no aggregate status that hides a mixed result**.             | S2-08, T1         |
 | R7  | Concurrent submissions never confirm more people than the capacity.                                                                                                                                           | S2-08, F53        |
 | R8  | One registration per e-mail per event. Retrying a lost request creates no duplicate.                                                                                                                          | S2-08             |
 | R9  | Each registration has a unique VS, one amount due (Σ confirmed term prices) and one reminder date (confirmation + N days). It keeps the bank account and reminder-day settings in force when it was received. | S2-09             |
@@ -180,6 +180,7 @@ Capacity is **derived**, never stored:
 capacity(term)  = Σ (baseBeds + extraBeds)  for rows in room_term_availability(term) with isAvailable
 confirmed(term) = count(registration_term WHERE termId = term AND status = 'confirmed')
 free(term)      = capacity − confirmed
+pending(term)   = count(registration_term WHERE termId = term AND status = 'pending')
 waitlisted(term)= count(registration_term WHERE termId = term AND status = 'waitlisted')
 ```
 
@@ -191,12 +192,11 @@ affected term rows:
 SELECT id FROM event_term WHERE id = ANY($termIds) ORDER BY id FOR UPDATE;
 ```
 
-- **Registration submit (S2-08):** lock the selected terms (sorted by id, which
-  prevents deadlocks). Then, per term, compute capacity and confirmed, and insert
-  `registration_term` with `confirmed` if `confirmed < capacity`, else `waitlisted`.
-  Concurrent submits for the same term queue on the lock, so the second one sees the
-  first one's committed confirmation and becomes waitlisted (≤ 1 confirmation for the
-  last bed). Submits on different terms do not block each other.
+- **Registration submit (S2-08, S3-01):** lock the selected terms (sorted by id,
+  which prevents deadlocks) and insert each `registration_term` as `pending`. The
+  capacity decides nothing on submit: the organizer confirms or waitlists from the
+  term evaluation (spec v4 §3), so a full or bed-less term is saved the same way. A
+  participant's move (§3.13) also lands in `pending`.
 - **Room edit/delete/availability change (S2-05):** lock **all terms of the event**
   (sorted by id), not just the terms the room touches. Recompute, and reject if any
   `capacity_after < confirmed`.
@@ -317,7 +317,7 @@ hundreds of registrations, do not justify stored totals.
 - Without a term filter: `EXISTS (registration_term WHERE status = :s)` matches if
   any term has that status.
 - Default sort `receivedAt ASC`, supported by index `(eventId, receivedAt)`.
-- The filter offers `confirmed` and `waitlisted` only; a `cancelled` term is history, not a participation.
+- The filter offers `pending`, `confirmed` and `waitlisted`; a `cancelled` term is history, not a participation.
 
 ### 3.11 E-mail log (R13)
 
@@ -373,10 +373,10 @@ cancel single terms or the whole registration.
   (`amountDue` sums `confirmed`) and is left out of the selected price. A registration whose
   terms are all `cancelled` is a cancelled registration; it is derived, not stored. A term
   released earlier may be moved back to: the row is reused at the term's current price.
-- **Move.** The source row becomes `cancelled`, the target row is created (or reused) with the
-  status decided by the target's capacity (§3.6). A move whose target has no free bed ends on
-  the waitlist and gives up a confirmed place, so it needs the participant's explicit consent
-  (`acceptWaitlist`). Without it nothing is executed and no request is filed.
+- **Move.** The source row becomes `cancelled`, the target row is created (or reused) as
+  `pending`: the organizer decides it like a new registration (S3-01). Moving from a confirmed
+  term gives up that place, so it needs the participant's explicit consent (`acceptRelease`,
+  else 409 `release_consent_required`). Without it nothing is executed and no request is filed.
 - **Approval.** `event.changeApprovalDays` (F35-1a) is the threshold in calendar days before a
   term's start (Europe/Prague). One affected term inside it is enough. Affected terms: all
   active terms for a data change, the old and the new term for a move, the cancelled terms for
@@ -397,17 +397,14 @@ cancel single terms or the whole registration.
   (`proposal.baseVersion`); approving it after the registration changed is refused the same
   way (409 `registration_stale`, `isStale` on the request) and it can only be rejected.
 - **Execution** (direct change and approval) runs in one transaction: lock the registration,
-  lock the affected `event_term` rows in id order (the serialization point of §3.6), re-read
-  the capacity, then write. If the result of a move differs from what was confirmed (the
-  target filled up), the original participation is kept, nothing is written and the
-  participant must confirm the waitlist (409 `waitlist_consent_required`). For a pending
-  request the participant's consent is recorded on the request; until then approving is
-  refused and the organizer sees that the participant must agree again.
+  lock the affected `event_term` rows in id order (the serialization point of §3.6), then
+  write. The consent given on submit stays valid on approval, because approving an unchanged
+  registration (same `version`) meets the same confirmed places.
 - **Idempotent decisions.** Approving an approved (or rejecting a rejected) request returns it
   without doing anything again; the opposite decision is 409 `change_already_decided`.
 - **Money.** No cancellation fee or refund is computed. Payments stay as recorded; a lower
-  amount due shows as an overpayment (negative balance). If a change makes something owed
-  for the first time, `paymentReminderAt` is set once, as in §3.9.
+  amount due shows as an overpayment (negative balance). A change never confirms a term, so it
+  never makes something owed for the first time.
 
 ### 3.14 Accommodation evaluation (S3-T3, S3-T4)
 
@@ -472,20 +469,20 @@ current data; a run only proposes and never changes a participation, a debt or a
 
 ### Registration and RegistrationTerm
 
-| Field                                     | Type                                  | Notes                                                                                              |
-| ----------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `organizationId`, `eventId`               | uuid                                  | Composite FK to `event`.                                                                           |
-| `participantAccountId`                    | uuid                                  | `UNIQUE (eventId, participantAccountId)`.                                                          |
-| `submissionKey`                           | uuid unique                           | Idempotency.                                                                                       |
-| `variableSymbol`                          | varchar(10) unique                    | Sequence default.                                                                                  |
-| `firstName`, `lastName`, `email`, `phone` | text                                  | Snapshot as submitted. Phone in E.164.                                                             |
-| `receivedAt`                              | timestamptz default `now()`           | Server time. Ordering key. Also the confirmation moment in Sprint 2.                               |
-| `paymentReminderAt`                       | timestamptz?                          | See §3.9.                                                                                          |
-| `bankAccount*`, `paymentReminderDays`     | snapshot                              | Copied from the event.                                                                             |
-| `registration_term.status`                | enum `confirmed/waitlisted/cancelled` | Per term. No aggregate status on `registration`. `cancelled`: released by the participant (§3.13). |
-| `registration_term.priceMinor`            | int                                   | Price snapshot.                                                                                    |
-| `registration_term.decidedAt`             | timestamptz                           | When the status was set.                                                                           |
-| `registration.version`                    | int default 0                         | Bumped by every executed change; guards stale proposals (§3.13).                                   |
+| Field                                     | Type                                  | Notes                                                                                           |
+| ----------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `organizationId`, `eventId`               | uuid                                  | Composite FK to `event`.                                                                        |
+| `participantAccountId`                    | uuid                                  | `UNIQUE (eventId, participantAccountId)`.                                                       |
+| `submissionKey`                           | uuid unique                           | Idempotency.                                                                                    |
+| `variableSymbol`                          | varchar(10) unique                    | Sequence default.                                                                               |
+| `firstName`, `lastName`, `email`, `phone` | text                                  | Snapshot as submitted. Phone in E.164.                                                          |
+| `receivedAt`                              | timestamptz default `now()`           | Server time. Ordering key. Also the confirmation moment in Sprint 2.                            |
+| `paymentReminderAt`                       | timestamptz?                          | See §3.9.                                                                                       |
+| `bankAccount*`, `paymentReminderDays`     | snapshot                              | Copied from the event.                                                                          |
+| `registration_term.status`                | enum `pending/confirmed/waitlisted/…` | Per term, no aggregate. `pending`: awaits the organizer (S3-01). `cancelled`: released (§3.13). |
+| `registration_term.priceMinor`            | int                                   | Price snapshot.                                                                                 |
+| `registration_term.decidedAt`             | timestamptz                           | When the status was set.                                                                        |
+| `registration.version`                    | int default 0                         | Bumped by every executed change; guards stale proposals (§3.13).                                |
 
 ### RegistrationChange
 
@@ -540,9 +537,8 @@ current data; a run only proposes and never changes a participation, a debt or a
    4. Insert `registration` with the snapshot of event payment settings. A unique
       violation on `(eventId, participantAccountId)` returns the "already registered"
       response.
-   5. Per term, compute capacity and confirmed, then insert `registration_term`
-      (`confirmed` / `waitlisted`, price snapshot).
-   6. If Σ confirmed price > 0, set `paymentReminderAt`.
+   5. Insert each `registration_term` as `pending` (price snapshot). Nothing is due
+      yet, so `paymentReminderAt` stays `NULL` until a confirmation (S3-01).
 3. After commit: create a magic link, insert `email_delivery(pending)`, send through
    Resend, and update the status. Return the saved result read back from the database,
    never an optimistic one.
@@ -762,8 +758,10 @@ model ParticipantSession {
 // ─── Registrations ──────────────────────────────────────────────────────────
 
 enum ParticipationStatus {
+  pending
   confirmed
   waitlisted
+  cancelled
 
   @@map("participation_status")
 }

@@ -8,7 +8,7 @@ import {
   type OpenEvent,
   type TermSpec,
 } from "./support/api"
-import { closeDb, createMagicLink } from "./support/db"
+import { closeDb, createMagicLink, decideTerms } from "./support/db"
 
 // Changing an own registration (F35-2a): a move outside the organizer's
 // approval threshold is made at once; a change touching a term inside it
@@ -37,6 +37,7 @@ async function setUp(browser: Browser, organizerPage: Page) {
     jana,
     event.termIds.slice(0, 2),
   )
+  await decideTerms(registration.id, "confirmed")
 
   const context = await browser.newContext()
   const participant = await context.newPage()

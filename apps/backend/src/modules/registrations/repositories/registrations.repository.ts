@@ -2,17 +2,10 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import {
-  amountDueMinor,
-  decideParticipation,
   normalizeEmail,
-  paymentReminderAt,
   RegistrationInput,
   RegistrationResultModel,
 } from '@/modules/registrations/domain/registration';
-import {
-  termsWithBeds,
-  toTermCapacity,
-} from '@/modules/rooms/repositories/rooms.repository';
 import { Injectable } from '@nestjs/common';
 
 const resultSelect = {
@@ -121,14 +114,15 @@ export class RegistrationsRepository {
   }
 
   /**
-   * Saves the registration, the decision for each term and the queued
-   * confirmation e-mail in one transaction (data-model.md §3.6, §3.7).
+   * Saves the registration, each term waiting for the organizer's decision,
+   * and the queued confirmation e-mail in one transaction (data-model.md §3.6,
+   * §3.7, S3-01). Capacity does not decide anything here, so a full or
+   * bed-less term is saved the same way, and nothing is due yet.
    *
    * The event row is share-locked, so it cannot leave `open` meanwhile; the
    * selected terms are then locked in id order, the serialization point shared
-   * with room changes. A concurrent submit for the same term waits here and
-   * sees this one's confirmation. A second registration of the e-mail, or a
-   * concurrent one with the same key, fails on a unique index and rolls back.
+   * with room changes. A second registration of the e-mail, or a concurrent
+   * one with the same key, fails on a unique index and rolls back.
    */
   async submit(
     publicId: string,
@@ -163,8 +157,7 @@ export class RegistrationsRepository {
 
       const terms = await tx.eventTerm.findMany({
         where: { eventId: event.id, id: { in: input.termIds } },
-        orderBy: termsWithBeds.orderBy,
-        select: { ...termsWithBeds.select, priceMinor: true },
+        select: { id: true, priceMinor: true },
       });
 
       // ON CONFLICT DO NOTHING: a concurrent first registration of the same
@@ -201,27 +194,16 @@ export class RegistrationsRepository {
       });
 
       const decidedAt = new Date();
-      const decided = terms.map((term) => ({
-        registrationId: registration.id,
-        termId: term.id,
-        eventId: event.id,
-        status: decideParticipation(toTermCapacity(term)),
-        priceMinor: term.priceMinor,
-        decidedAt,
-      }));
-      await tx.registrationTerm.createMany({ data: decided });
-      // Set once, from the confirmation moment (S2-16); nothing is due otherwise.
-      if (amountDueMinor(decided) > 0) {
-        await tx.registration.update({
-          where: { id: registration.id },
-          data: {
-            paymentReminderAt: paymentReminderAt(
-              decidedAt,
-              event.paymentReminderDays,
-            ),
-          },
-        });
-      }
+      await tx.registrationTerm.createMany({
+        data: terms.map((term) => ({
+          registrationId: registration.id,
+          termId: term.id,
+          eventId: event.id,
+          status: 'pending' as const,
+          priceMinor: term.priceMinor,
+          decidedAt,
+        })),
+      });
 
       await tx.emailDelivery.create({
         data: {

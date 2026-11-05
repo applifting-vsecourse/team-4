@@ -1,7 +1,7 @@
 import { expect, test, type Browser } from "@playwright/test"
 
 import { API_URL, newParticipant, register, setUpEvent } from "./support/api"
-import { closeDb, createMagicLink, paymentToken } from "./support/db"
+import { closeDb, createMagicLink, decideTerms, paymentToken } from "./support/db"
 import { definition } from "./support/ui"
 
 // F21-1: a participant pays part, then the rest, through the QR link; the
@@ -20,6 +20,7 @@ test("a participant pays through the QR link in two parts", async ({ browser, pa
   const event = await setUpEvent(organizer, { terms, rooms })
   const jana = newParticipant("Jana")
   const registration = await register(organizer, event.publicId, jana, event.termIds)
+  await decideTerms(registration.id, "confirmed")
 
   // Own detail shows the QR and the link while a debt remains.
   await page.goto(`/my-registrations/verify?token=${await createMagicLink(jana.email)}`)
@@ -85,23 +86,35 @@ test("a participant pays through the QR link in two parts", async ({ browser, pa
   await organizerContext.close()
 })
 
-test("the result of a new registration offers the QR link right away", async ({
+test("a new registration offers the QR link only once a term is confirmed", async ({
   browser,
   page,
 }) => {
   const organizerContext = await browser.newContext()
   const event = await setUpEvent(organizerContext.request, { terms, rooms })
   await organizerContext.close()
+  const email = `marie-${Date.now()}@example.test`
 
   await page.goto(`/e/${event.publicId}/registration`)
   await page.getByRole("checkbox", { name: /Turnus/ }).check()
   await page.getByLabel("Jméno").fill("Marie")
   await page.getByLabel("Příjmení").fill("Nováková")
-  await page.getByLabel("E-mail").fill(`marie-${Date.now()}@example.test`)
+  await page.getByLabel("E-mail").fill(email)
   await page.getByLabel("Telefon").fill("+420 777 123 456")
   await page.getByRole("button", { name: "Odeslat přihlášku" }).click()
 
+  // The term waits for the organizer (S3-01): nothing to pay yet, no QR.
   await expect(page.getByRole("heading", { name: "Přihláška je uložená" })).toBeVisible()
+  await expect(page.getByText("Čeká na rozhodnutí organizátora")).toBeVisible()
+  await expect(page.getByRole("img", { name: "QR kód s odkazem na platbu" })).toHaveCount(0)
+
+  await page.goto(`/my-registrations/verify?token=${await createMagicLink(email)}`)
+  await page.getByRole("link", { name: `Detail přihlášky ${event.name}` }).click()
+  await expect(page).toHaveURL(/\/my-registrations\/[0-9a-f-]{36}$/)
+  await expect(page.getByRole("img", { name: "QR kód s odkazem na platbu" })).toHaveCount(0)
+  const registrationId = new URL(page.url()).pathname.split("/").pop()!
+  await decideTerms(registrationId, "confirmed")
+  await page.reload()
   await expect(page.getByRole("img", { name: "QR kód s odkazem na platbu" })).toBeVisible()
   const link = (await page.getByText(/\/platba\/[0-9a-f]{64}$/).textContent())!.trim()
 
@@ -139,6 +152,7 @@ async function openPayment(browser: Browser) {
     newParticipant("Eva"),
     event.termIds,
   )
+  await decideTerms(registration.id, "confirmed")
   const path = `/platba/${await paymentToken(registration.id)}`
   const paid = async () => {
     const response = await organizer.get(
