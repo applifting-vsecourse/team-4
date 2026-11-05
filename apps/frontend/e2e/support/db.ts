@@ -66,6 +66,8 @@ export async function paymentToken(registrationId: string): Promise<string> {
  * 2) until the UI offers it: a registration's terms (all of them by default)
  * become `status`. A confirmation starts the payment reminder the way the
  * backend does once something is owed, and bumps the registration version.
+ * The reminder is approximate: the session time zone, not Prague wall-clock
+ * time across a DST change; no test depends on its exact hour.
  */
 export async function decideTerms(
   registrationId: string,
