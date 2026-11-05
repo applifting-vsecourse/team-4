@@ -44,6 +44,6 @@ export const Manual: Story = { args: { mode: "manual" } }
 export const SaveFailed: Story = {
   args: {
     mode: "manual",
-    saveError: "Režim se nepodařilo uložit. Platí dál automatický přepočet.",
+    saveError: "Platí dál automatický přepočet.",
   },
 }

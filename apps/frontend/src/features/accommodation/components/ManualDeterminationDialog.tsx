@@ -1,6 +1,3 @@
-import { CircleAlert } from "lucide-react"
-
-import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,13 +13,14 @@ import {
   DeterminationFields,
   type DeterminationFieldsProps,
 } from "@/features/accommodation/components/DeterminationFields"
+import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
 
 export type ManualDeterminationDialogProps = DeterminationFieldsProps & {
   isOpen: boolean
   person: string
   /** Replacing an earlier determination. */
   isChange?: boolean
-  /** The save failed, already worded; the determination is unchanged. */
+  /** The save failed: what happens now, already worded; the determination is unchanged. */
   saveError?: string
 }
 
@@ -48,10 +46,10 @@ export function ManualDeterminationDialog({
         <DeterminationFields {...fields} />
 
         {saveError ? (
-          <Alert variant="destructive">
-            <CircleAlert />
-            <AlertTitle>{saveError}</AlertTitle>
-          </Alert>
+          <ErrorAlert
+            title="Určení se nepodařilo uložit"
+            detail={saveError}
+          />
         ) : null}
 
         <DialogFooter>

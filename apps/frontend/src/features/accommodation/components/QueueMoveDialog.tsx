@@ -1,6 +1,5 @@
-import { CircleAlert, Loader2, RefreshCw } from "lucide-react"
+import { Loader2, RefreshCw } from "lucide-react"
 
-import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+
+import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
 
 export type QueueMoveTarget = { id: string; label: string }
 
@@ -192,17 +193,17 @@ export function QueueMoveDialog({
         ) : null}
 
         {step === "stale" ? (
-          <Alert variant="destructive">
-            <CircleAlert />
-            <AlertTitle>Fronta se mezitím změnila, pořadí nebylo uloženo</AlertTitle>
-          </Alert>
+          <ErrorAlert
+            title="Pořadí nebylo uloženo"
+            detail="Fronta se mezitím změnila. Načtěte ji znovu a přesun zopakujte."
+          />
         ) : null}
 
         {step === "failed" ? (
-          <Alert variant="destructive">
-            <CircleAlert />
-            <AlertTitle>Změnu pořadí se nepodařilo uložit. Pořadí zůstává původní.</AlertTitle>
-          </Alert>
+          <ErrorAlert
+            title="Změnu pořadí se nepodařilo uložit"
+            detail="Pořadí zůstává původní."
+          />
         ) : null}
 
         <DialogFooter>

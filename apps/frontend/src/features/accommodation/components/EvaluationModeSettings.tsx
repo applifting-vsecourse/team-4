@@ -1,17 +1,16 @@
-import { CircleAlert } from "lucide-react"
-
-import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+
+import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
 
 export type EvaluationMode = "automatic" | "manual"
 
 export type EvaluationModeSettingsProps = {
   /** The saved mode; the form starts on it. */
   mode: EvaluationMode
-  /** A failed save, already worded; the saved mode stays. */
+  /** A failed save: which mode still applies, already worded. */
   saveError?: string
 }
 
@@ -33,38 +32,37 @@ export function EvaluationModeSettings({ mode, saveError }: EvaluationModeSettin
       </h2>
       <Card>
         <CardContent>
-          <RadioGroup
-            defaultValue={mode}
-            aria-label="Aktualizace návrhu vyhodnocení"
-          >
-            <Field orientation="horizontal">
-              <RadioGroupItem
-                id="mode-automatic"
-                value="automatic"
-              />
-              <FieldLabel htmlFor="mode-automatic">
-                Přepočítat návrh automaticky po každé změně
-              </FieldLabel>
-            </Field>
-            <Field orientation="horizontal">
-              <RadioGroupItem
-                id="mode-manual"
-                value="manual"
-              />
-              <FieldLabel htmlFor="mode-manual">
-                Přepočítat návrh jen tlačítkem Přepočítat
-              </FieldLabel>
-            </Field>
-          </RadioGroup>
-          {saveError ? (
-            <Alert
-              variant="destructive"
-              className="mt-4"
+          <div className="space-y-4">
+            <RadioGroup
+              defaultValue={mode}
+              aria-label="Aktualizace návrhu vyhodnocení"
             >
-              <CircleAlert />
-              <AlertTitle>{saveError}</AlertTitle>
-            </Alert>
-          ) : null}
+              <Field orientation="horizontal">
+                <RadioGroupItem
+                  id="mode-automatic"
+                  value="automatic"
+                />
+                <FieldLabel htmlFor="mode-automatic">
+                  Přepočítat návrh automaticky po každé změně
+                </FieldLabel>
+              </Field>
+              <Field orientation="horizontal">
+                <RadioGroupItem
+                  id="mode-manual"
+                  value="manual"
+                />
+                <FieldLabel htmlFor="mode-manual">
+                  Přepočítat návrh jen tlačítkem Přepočítat
+                </FieldLabel>
+              </Field>
+            </RadioGroup>
+            {saveError ? (
+              <ErrorAlert
+                title="Režim se nepodařilo uložit"
+                detail={saveError}
+              />
+            ) : null}
+          </div>
         </CardContent>
         <CardFooter>
           <Button>Uložit</Button>

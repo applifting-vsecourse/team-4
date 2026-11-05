@@ -137,70 +137,83 @@ function DecisionMenu({ person }: { person: OrderPerson }) {
   )
 }
 
+function StateBadge({ state }: { state: ParticipationState }) {
+  return (
+    <Badge variant={state === "waitlisted" ? "warning" : "secondary"}>{STATE_LABEL[state]}</Badge>
+  )
+}
+
+// On a narrow card the state moves under the name instead of its own column, so
+// the row keeps its actions in view without scrolling sideways.
 function OrderTable({ people, attribute }: { people: OrderPerson[]; attribute: string | null }) {
   return (
-    <Card padding="none">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="text-right">Pořadí</TableHead>
-            <TableHead>Účastník</TableHead>
-            {attribute ? <TableHead>{attribute}</TableHead> : null}
-            <TableHead>Stav</TableHead>
-            <TableHead>Návrh</TableHead>
-            <TableHead>
-              <span className="sr-only">Akce</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {people.map((person) => (
-            <TableRow key={person.id}>
-              <TableCell className="text-right">{person.position}.</TableCell>
-              <TableCell>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span>{person.name}</span>
-                  {person.isMovedByHand ? <Badge variant="outline">Přesunuto ručně</Badge> : null}
-                </div>
-                <p className="text-muted-foreground">Přihlášeno {person.receivedAt}</p>
-              </TableCell>
-              {attribute ? (
-                <TableCell>
-                  <p>{person.answer}</p>
-                  {person.determinedAs ? (
-                    <p className="text-muted-foreground">Určeno: {person.determinedAs}</p>
-                  ) : null}
-                </TableCell>
-              ) : null}
-              <TableCell>
-                <Badge variant={person.state === "waitlisted" ? "warning" : "secondary"}>
-                  {STATE_LABEL[person.state]}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                {person.result ? (
-                  <div className="space-y-1">
-                    <Badge variant={RESULT_BADGE[person.result].variant}>
-                      {RESULT_BADGE[person.result].label}
-                    </Badge>
-                    {person.reason ? (
-                      <p className="text-muted-foreground">
-                        {reasonText(person.reason, attribute ?? "")}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : (
-                  "—"
-                )}
-              </TableCell>
-              <TableCell className="text-right">
-                <DecisionMenu person={person} />
-              </TableCell>
+    <div className="@container">
+      <Card padding="none">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-right">Pořadí</TableHead>
+              <TableHead>Účastník</TableHead>
+              {attribute ? <TableHead>{attribute}</TableHead> : null}
+              <TableHead className="hidden @2xl:table-cell">Stav</TableHead>
+              <TableHead>Návrh</TableHead>
+              <TableHead>
+                <span className="sr-only">Akce</span>
+              </TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Card>
+          </TableHeader>
+          <TableBody>
+            {people.map((person) => (
+              <TableRow key={person.id}>
+                <TableCell className="text-right">{person.position}.</TableCell>
+                <TableCell className="whitespace-normal">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span>{person.name}</span>
+                    {person.isMovedByHand ? <Badge variant="outline">Přesunuto ručně</Badge> : null}
+                  </div>
+                  <p className="text-muted-foreground">
+                    Přihlášeno <span className="whitespace-nowrap">{person.receivedAt}</span>
+                  </p>
+                  <div className="mt-1 @2xl:hidden">
+                    <StateBadge state={person.state} />
+                  </div>
+                </TableCell>
+                {attribute ? (
+                  <TableCell className="whitespace-normal">
+                    <p>{person.answer}</p>
+                    {person.determinedAs ? (
+                      <p className="text-muted-foreground">Určeno: {person.determinedAs}</p>
+                    ) : null}
+                  </TableCell>
+                ) : null}
+                <TableCell className="hidden @2xl:table-cell">
+                  <StateBadge state={person.state} />
+                </TableCell>
+                <TableCell className="whitespace-normal">
+                  {person.result ? (
+                    <div className="space-y-1">
+                      <Badge variant={RESULT_BADGE[person.result].variant}>
+                        {RESULT_BADGE[person.result].label}
+                      </Badge>
+                      {person.reason ? (
+                        <p className="text-muted-foreground">
+                          {reasonText(person.reason, attribute ?? "")}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <DecisionMenu person={person} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </div>
   )
 }
 
@@ -210,7 +223,8 @@ function StatusAlert({ status, conflict }: Pick<TermEvaluationProps, "status" | 
       return (
         <Alert>
           <CircleAlert />
-          <AlertTitle>Podklady se od výpočtu změnily, návrh nelze hromadně potvrdit</AlertTitle>
+          <AlertTitle>Podklady se od výpočtu změnily</AlertTitle>
+          <AlertDescription>Návrh nelze hromadně potvrdit, dokud se nepřepočítá.</AlertDescription>
         </Alert>
       )
     case "failed":

@@ -257,7 +257,7 @@ export const DetermineFailed: Story = {
         values={["Žena", "Muž"]}
         value="Muž"
         reason="Telefonická domluva s rodiči."
-        saveError="Určení se nepodařilo uložit. Zkuste to prosím znovu."
+        saveError="Původní určení platí dál. Zkuste to prosím znovu."
       />
     ),
   },

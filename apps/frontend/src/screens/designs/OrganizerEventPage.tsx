@@ -109,7 +109,7 @@ export function OrganizerEventPage({
           </SidebarGroup>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <section className="mx-auto w-full max-w-5xl space-y-8 px-4 py-8 md:py-12">
           <PageHeader
             breadcrumb={

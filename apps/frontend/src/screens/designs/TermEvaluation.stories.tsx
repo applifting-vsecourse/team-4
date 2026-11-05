@@ -320,6 +320,19 @@ type Story = StoryObj<typeof meta>
 /** Current proposal: status, capacity, queues, the whole term order with reasons, and the history. */
 export const CurrentProposal: Story = { args: { children: evaluation() } }
 
+/** The current proposal on a narrower desktop: the summary stacks and the order still fits with its actions. */
+export const NarrowDesktop: Story = {
+  args: { children: evaluation() },
+  parameters: {
+    viewport: {
+      options: {
+        narrowDesktop: { name: "Narrow desktop", styles: { width: "1024px", height: "768px" } },
+      },
+    },
+  },
+  globals: { viewport: { value: "narrowDesktop", isRotated: false } },
+}
+
 /** The order filtered to one queue (fronta Žena): the detail of F16-1 / F39-1 with term positions. */
 export const QueueDetail: Story = { args: { children: evaluation({ selectedQueue: "zena" }) } }
 
@@ -567,7 +580,7 @@ export const BulkConfirmStale: Story = {
   args: {
     children: bulk(
       "stale",
-      "Návrh je neaktuální: mezitím přibyla nová přihláška. Nikdo nebyl potvrzen.",
+      "Mezitím přibyla nová přihláška. Načtěte nový návrh a zkontrolujte, koho potvrdíte.",
     ),
   },
 }
@@ -640,7 +653,7 @@ export const DecisionRejected: Story = {
         decision="confirm"
         person="Lucie Sedláčková"
         term="1. turnus, 4.–11. 7. 2027"
-        rejectedReason={`Účast nebyla potvrzena. ${reasonText("A", ATTRIBUTE)}`}
+        rejectedReason={reasonText("A", ATTRIBUTE)}
       />,
     ),
   },

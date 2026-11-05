@@ -1,6 +1,5 @@
-import { CircleAlert, Loader2, RefreshCw } from "lucide-react"
+import { Loader2, RefreshCw } from "lucide-react"
 
-import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -11,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+
+import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
 
 /**
  * review: before the one explicit confirmation.
@@ -74,17 +75,17 @@ export function BulkConfirmationDialog({
         )}
 
         {isStale ? (
-          <Alert variant="destructive">
-            <CircleAlert />
-            <AlertTitle>{staleReason}</AlertTitle>
-          </Alert>
+          <ErrorAlert
+            title="Návrh je neaktuální, nikdo nebyl potvrzen"
+            detail={staleReason}
+          />
         ) : null}
 
         {state === "failed" ? (
-          <Alert variant="destructive">
-            <CircleAlert />
-            <AlertTitle>Potvrzení se nepodařilo uložit.</AlertTitle>
-          </Alert>
+          <ErrorAlert
+            title="Potvrzení se nepodařilo uložit"
+            detail="Stavy účastí ani platby se nezměnily."
+          />
         ) : null}
 
         <DialogFooter>

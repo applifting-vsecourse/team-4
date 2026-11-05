@@ -42,7 +42,7 @@ export function TermQueues({ queues, manualCount }: TermQueuesProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Fronta</TableHead>
-            <TableHead className="text-right">Čekají na rozhodnutí</TableHead>
+            <TableHead className="text-right whitespace-normal">Čekají na rozhodnutí</TableHead>
             <TableHead className="text-right">Náhradníci</TableHead>
             <TableHead className="text-right">Vhodní</TableHead>
             <TableHead className="text-right">Neubytovatelní</TableHead>

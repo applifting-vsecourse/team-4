@@ -58,86 +58,90 @@ function BedUse({ label, used, total }: { label: string; used: number; total: nu
 export function TermCapacitySummary({ term }: { term: TermCapacity }) {
   const capacity = term.baseBeds + term.extraBeds
 
+  // The columns follow the card's own width, not the viewport: beside the
+  // sidebar a wide viewport still leaves a narrow card.
   return (
-    <div className="grid gap-6 md:grid-cols-3">
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium">Účast</h3>
-        <dl className="grid grid-cols-3 gap-3 md:grid-cols-1">
-          <Stat
-            label="Potvrzení"
-            value={term.confirmed}
-          />
-          <Stat
-            label="Čekají na rozhodnutí"
-            value={term.pending}
-          />
-          <Stat
-            label="Náhradníci"
-            value={term.waitlisted}
-          />
-        </dl>
-      </div>
-
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium">Kapacita</h3>
-        {term.hasRooms ? (
-          <dl className="grid grid-cols-3 gap-3 md:grid-cols-1">
+    <div className="@container">
+      <div className="grid gap-6 @3xl:grid-cols-3">
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium">Účast</h3>
+          <dl className="grid grid-cols-3 gap-3 @3xl:grid-cols-1">
             <Stat
-              label="Celkem"
-              value={capacity}
+              label="Potvrzení"
+              value={term.confirmed}
             />
             <Stat
-              label="Lůžka"
-              value={term.baseBeds}
+              label="Čekají na rozhodnutí"
+              value={term.pending}
             />
             <Stat
-              label="Přistýlky"
-              value={term.extraBeds}
+              label="Náhradníci"
+              value={term.waitlisted}
             />
           </dl>
-        ) : (
-          <Alert>
-            <AlertTitle>Ubytovací kapacita není evidovaná</AlertTitle>
-          </Alert>
-        )}
-      </div>
+        </div>
 
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium">Podle návrhu</h3>
-        {term.proposal ? (
-          <>
-            <dl className="grid grid-cols-3 gap-3">
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium">Kapacita</h3>
+          {term.hasRooms ? (
+            <dl className="grid grid-cols-3 gap-3 @3xl:grid-cols-1">
               <Stat
-                label="Vhodní"
-                value={term.proposal.suitable}
+                label="Celkem"
+                value={capacity}
               />
               <Stat
-                label="Neubytovatelní"
-                value={term.proposal.unsuitable}
+                label="Lůžka"
+                value={term.baseBeds}
               />
               <Stat
-                label="Ruční určení"
-                value={term.proposal.manual}
+                label="Přistýlky"
+                value={term.extraBeds}
               />
             </dl>
-            {capacity > 0 ? (
-              <div className="space-y-3">
-                <BedUse
-                  label="Obsazená lůžka"
-                  used={term.proposal.baseUsed}
-                  total={term.baseBeds}
+          ) : (
+            <Alert>
+              <AlertTitle>Ubytovací kapacita není evidovaná</AlertTitle>
+            </Alert>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium">Podle návrhu</h3>
+          {term.proposal ? (
+            <>
+              <dl className="grid grid-cols-3 gap-3 @3xl:grid-cols-1">
+                <Stat
+                  label="Vhodní"
+                  value={term.proposal.suitable}
                 />
-                <BedUse
-                  label="Obsazené přistýlky"
-                  used={term.proposal.extraUsed}
-                  total={term.extraBeds}
+                <Stat
+                  label="Neubytovatelní"
+                  value={term.proposal.unsuitable}
                 />
-              </div>
-            ) : null}
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground">Bez platného návrhu</p>
-        )}
+                <Stat
+                  label="Ruční určení"
+                  value={term.proposal.manual}
+                />
+              </dl>
+              {capacity > 0 ? (
+                <div className="space-y-3">
+                  <BedUse
+                    label="Obsazená lůžka"
+                    used={term.proposal.baseUsed}
+                    total={term.baseBeds}
+                  />
+                  <BedUse
+                    label="Obsazené přistýlky"
+                    used={term.proposal.extraUsed}
+                    total={term.extraBeds}
+                  />
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Bez platného návrhu</p>
+          )}
+        </div>
       </div>
     </div>
   )

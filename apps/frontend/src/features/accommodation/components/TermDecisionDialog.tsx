@@ -1,6 +1,3 @@
-import { CircleAlert } from "lucide-react"
-
-import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,6 +13,7 @@ import {
   DeterminationFields,
   type DeterminationFieldsProps,
 } from "@/features/accommodation/components/DeterminationFields"
+import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
 
 export type TermDecision = "confirm" | "waitlist"
 
@@ -37,6 +35,11 @@ export type TermDecisionDialogProps = {
 const TITLE: Record<TermDecision, string> = {
   confirm: "Potvrdit účast",
   waitlist: "Zařadit mezi náhradníky",
+}
+
+const REJECTED: Record<TermDecision, string> = {
+  confirm: "Účast nebyla potvrzena",
+  waitlist: "Zařazení mezi náhradníky nebylo uloženo",
 }
 
 // Správa akce → Přihlášky → detail přihlášky, or a row of Vyhodnocení (F14-1):
@@ -62,10 +65,10 @@ export function TermDecisionDialog({
         {determination && !rejectedReason ? <DeterminationFields {...determination} /> : null}
 
         {rejectedReason ? (
-          <Alert variant="destructive">
-            <CircleAlert />
-            <AlertTitle>{rejectedReason}</AlertTitle>
-          </Alert>
+          <ErrorAlert
+            title={REJECTED[decision]}
+            detail={rejectedReason}
+          />
         ) : null}
 
         <DialogFooter>
