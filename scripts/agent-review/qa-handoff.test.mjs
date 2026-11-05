@@ -51,7 +51,12 @@ async function scenario(options) {
     user: { login: author },
     head: { sha },
     state: 'open',
-    base: { ref: options.stacked ? 'feature/prerequisite' : 'main' },
+    base: {
+      ref:
+        options.stacked || options.stackedPrs?.includes(12 + i)
+          ? 'feature/prerequisite'
+          : 'main',
+    },
     draft: options.draft ?? false,
     changed_files: 1,
     additions: options.binaryOnly ? 0 : 1,
@@ -328,6 +333,10 @@ async function scenario(options) {
       }
       data = {
         ...pr,
+        base:
+          options.retargetDuringReview && number === 12 && count >= 3
+            ? { ref: 'feature/other' }
+            : pr?.base,
         head: {
           sha: options.pushDuringReview && count >= 3 ? 'b'.repeat(40) : sha,
         },
@@ -339,6 +348,8 @@ async function scenario(options) {
     process.exitCode = 0;
     await import(`./scripts/agent-review/run.mjs?qa-test=${i}`);
     calls.push('exit:' + (process.exitCode ?? 0));
+    if (i === 0 && options.unstackAfterFirst)
+      for (const pr of prs) pr.base = { ref: 'main' };
     if (i === 0 && options.replaceAfterFirst) {
       for (const pr of prs) {
         const old = comments
@@ -660,6 +671,66 @@ test('stacked PR waits without review, QA handoff or runner failure', () => {
   assert.deepEqual(r.handoffs, [0]);
   assert.deepEqual(r.requested, { 12: [] });
   assert.equal(r.status, 'Ready for Code Review');
+  assert.ok(r.calls.includes('exit:0'));
+});
+
+for (const stackedPr of [12, 13]) {
+  test(`stacked PR #${stackedPr} does not starve its main-target prerequisite`, () => {
+    const mainPr = stackedPr === 12 ? 13 : 12;
+    const r = run({
+      authors: ['developer', 'developer'],
+      stackedPrs: [stackedPr],
+      freshReview: true,
+      binaryOnly: true,
+      runs: 2,
+    });
+    assert.equal(r.status, 'Ready for Code Review');
+    assert.deepEqual(r.handoffs, stackedPr === 12 ? [0, 1] : [1, 0]);
+    assert.deepEqual(r.requested[stackedPr], []);
+    assert.deepEqual(r.requested[mainPr], ['MatejKrones']);
+    assert.ok(r.prComments[mainPr].some((c) => c.includes('result=pass')));
+    assert.ok(!r.prComments[stackedPr].some((c) => c.includes('result=pass')));
+    assert.equal(r.calls.filter((c) => c === `request:${mainPr}`).length, 1);
+    assert.ok(!r.calls.includes('status:Ready for Testing'));
+    assert.equal(r.calls.filter((c) => c === 'exit:0').length, 2);
+  });
+}
+
+test('retargeting a prerequisite during review never hands it to QA', () => {
+  const r = run({
+    authors: ['developer', 'developer'],
+    stackedPrs: [13],
+    retargetDuringReview: true,
+  });
+  assert.deepEqual(r.handoffs, [0, 0]);
+  assert.deepEqual(r.requested, { 12: [], 13: [] });
+  assert.equal(r.status, 'Ready for Code Review');
+  assert.ok(r.calls.includes('exit:0'));
+});
+
+test('retargeting the dependent to main resumes the full issue handoff', () => {
+  const r = run({
+    authors: ['developer', 'developer'],
+    stackedPrs: [13],
+    unstackAfterFirst: true,
+    runs: 2,
+  });
+  assert.deepEqual(r.handoffs, [1, 1]);
+  assert.deepEqual(r.requested, { 12: ['MatejKrones'], 13: ['MatejKrones'] });
+  assert.equal(r.status, 'Ready for Testing');
+  assert.equal(r.calls.filter((c) => c === 'exit:0').length, 2);
+});
+
+test('stacked dependent keeps a failed prerequisite out of QA', () => {
+  const r = run({
+    authors: ['developer', 'developer'],
+    stackedPrs: [13],
+    verdictByPr: { 12: 'findings' },
+    existingHandoff: true,
+  });
+  assert.equal(r.status, 'Ready for Code Review');
+  assert.ok(!r.calls.includes('request:12'));
+  assert.ok(!r.calls.includes('handoff:12'));
   assert.ok(r.calls.includes('exit:0'));
 });
 

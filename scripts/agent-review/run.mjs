@@ -479,11 +479,18 @@ async function processIssue(board, item) {
 
   async function snapshots() {
     const all = [];
+    const stacked = [];
     for (const number of prNumbers) {
       const pr = await api(
         cfg.githubToken,
         `/repos/${cfg.repo}/pulls/${number}`,
       );
+      if (pr.state !== 'open')
+        throw new Error(`PR #${number} is no longer open`);
+      if (pr.base.ref !== 'main') {
+        stacked.push(pr);
+        continue;
+      }
       const reviews = [];
       for (let page = 1; ; page++) {
         const batch = await api(
@@ -537,21 +544,18 @@ async function processIssue(board, item) {
       entry.pr.requirements = scope.approval;
       entry.pr.requirementsVersion = scope.version;
     }
-    return all;
+    return { eligible: all, stacked };
   }
-  // Stacked PRs are an expected waiting state, not a runner failure.
-  for (const number of prNumbers) {
-    const pr = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${number}`);
-    if (pr.state === 'open' && pr.base.ref !== 'main') {
-      console.log(
-        `  -> waiting: PR #${number} targets ${pr.base.ref}; retarget to main after its prerequisite merges`,
-      );
-      if (item.status?.name === STATUS_TESTING)
-        await moveStatus(board, item, STATUS_REVIEW);
-      return;
-    }
+  const initialSnapshot = await snapshots();
+  const initial = initialSnapshot.eligible;
+  for (const pr of initialSnapshot.stacked)
+    console.log(
+      `  -> waiting: PR #${pr.number} targets ${pr.base.ref}; retarget to main after its prerequisite merges`,
+    );
+  if (initialSnapshot.stacked.length && item.status?.name === STATUS_TESTING) {
+    if (!(await moveStatus(board, item, STATUS_REVIEW))) return;
+    item = { ...item, status: { name: STATUS_REVIEW } };
   }
-  const initial = await snapshots();
   if (!initial.length) {
     console.log('  -> no linked Standard/High PRs need review or QA');
     return;
@@ -640,7 +644,9 @@ async function processIssue(board, item) {
 
   // Re-read every head and review after Copilot. Revocation or a push must
   // return the issue to requirements review and must never hand code to QA.
-  const current = await snapshots();
+  const currentSnapshot = await snapshots();
+  const current = currentSnapshot.eligible;
+  const stacked = currentSnapshot.stacked;
   const rolesByPr = new Map(
     current.map(({ pr }) => [pr.number, reviewersFor(pr.user.login)]),
   );
@@ -669,7 +675,10 @@ async function processIssue(board, item) {
           )?.id,
     )
   ) {
-    const next = stillApproved.review ? STATUS_REVIEW : 'In Progress';
+    const next =
+      stillApproved.review || (!current.length && stacked.length)
+        ? STATUS_REVIEW
+        : 'In Progress';
     await moveStatus(board, item, next);
     console.log(`  -> ${next}: scope or code changed during review`);
     return;
@@ -691,7 +700,10 @@ async function processIssue(board, item) {
   );
   let moved = false;
   const previews = current.filter(({ pr }) => isStorybookPreview(pr));
-  const previewOnly = previews.length > 0 && previews.length === current.length;
+  const previewOnly =
+    stacked.length === 0 &&
+    previews.length > 0 &&
+    previews.length === current.length;
   const implementationResults = results.filter(
     (result) =>
       !isStorybookPreview(current.find(({ pr }) => pr.number === result.pr).pr),
@@ -738,7 +750,11 @@ async function processIssue(board, item) {
       );
     }
   } else if (handoffReady) {
-    moved = await moveStatus(board, item, STATUS_TESTING);
+    moved = await moveStatus(
+      board,
+      item,
+      stacked.length ? STATUS_REVIEW : STATUS_TESTING,
+    );
     if (moved) {
       for (const r of results) {
         const snapshot = current.find(({ pr }) => pr.number === r.pr);
@@ -790,6 +806,18 @@ async function processIssue(board, item) {
     }
   } else if (item.status.name === STATUS_TESTING) {
     await moveStatus(board, item, STATUS_REVIEW);
+  }
+
+  if (stacked.length) {
+    const waitingFor = stacked.map((pr) => `#${pr.number}`).join(', ');
+    const state = `stacked-awaiting|${waitingFor}|${resultsKey(results) || 'no-pr'}`;
+    const marker = issueMarker({ issue: issue.number, state });
+    if (!hasBotComment(await listComments(issue.number), marker))
+      await postComment(
+        issue.number,
+        `${marker}\nPRs targeting main were processed independently. Stacked PRs ${waitingFor} still await their prerequisites and retargeting to main. The issue remains in Ready for Code Review; eligible prerequisite PRs can receive their own QA handoff.`,
+      );
+    return;
   }
 
   const outcome = handoffReady ? 'pass' : decision.outcome;
