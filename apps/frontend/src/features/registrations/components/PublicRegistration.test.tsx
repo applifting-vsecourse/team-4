@@ -218,11 +218,11 @@ describe("usability (S4-C03)", () => {
     post.mockReturnValue(respondWith(RESULT))
     renderForm()
     const country = screen.getByRole("combobox", { name: "Země a předvolba" })
-    expect(country).toHaveTextContent("CZ +420")
+    expect(country).toHaveTextContent("🇨🇿 +420")
 
     await user.click(country)
     await user.click(await screen.findByRole("option", { name: /Slovensko/ }))
-    expect(country).toHaveTextContent("SK +421")
+    expect(country).toHaveTextContent("🇸🇰 +421")
 
     await user.click(screen.getByLabelText(/1\. turnus/))
     await fillContact("905 123 456")
@@ -236,7 +236,19 @@ describe("usability (S4-C03)", () => {
     const phone = screen.getByLabelText(/^Telefon/)
     await user.type(phone, "+421905")
     expect(phone).toHaveValue("+421905")
-    expect(screen.getByRole("combobox", { name: "Země a předvolba" })).toHaveTextContent("SK +421")
+    expect(screen.getByRole("combobox", { name: "Země a předvolba" })).toHaveTextContent("🇸🇰 +421")
+  })
+
+  it("keeps the digits of a number typed with its prefix when the country is changed", async () => {
+    renderForm()
+    const phone = screen.getByLabelText(/^Telefon/)
+    await user.type(phone, "+421 905 123 456")
+
+    await user.click(screen.getByRole("combobox", { name: "Země a předvolba" }))
+    await user.click(await screen.findByRole("option", { name: /Česko/ }))
+
+    expect(phone).toHaveValue("905123456")
+    expect(screen.getByRole("combobox", { name: "Země a předvolba" })).toHaveTextContent("+420")
   })
 
   it("marks required fields and explains the mark", () => {

@@ -9,6 +9,11 @@ export const DEFAULT_COUNTRY: CountryCode = "CZ"
 
 const names = new Intl.DisplayNames(["cs"], { type: "region" })
 
+/** The flag emoji of a country: its two letters as regional indicator symbols. */
+export function flagOf(code: CountryCode) {
+  return String.fromCodePoint(...[...code].map((letter) => 0x1f1a5 + letter.charCodeAt(0)))
+}
+
 export type PhoneCountry = { code: CountryCode; name: string; callingCode: string }
 
 // Czechia and Slovakia first, the rest alphabetically in Czech.
@@ -44,4 +49,10 @@ export function withPrefix(national: string, country: CountryCode) {
   if (trimmed === "") return ""
   if (trimmed.startsWith("+")) return trimmed
   return `+${getCountryCallingCode(country)} ${trimmed}`
+}
+
+/** The national digits of a "+prefix number" as typed, or the digits after the "+" when unreadable. */
+export function digitsWithoutPrefix(text: string) {
+  const parsed = parsePhoneNumberFromString(text.trim())
+  return parsed ? parsed.nationalNumber : text.trim().replace(/^\+\d{0,3}\s*/, "")
 }

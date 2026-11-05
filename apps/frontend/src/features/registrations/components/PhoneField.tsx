@@ -13,6 +13,8 @@ import {
 import {
   countryOf,
   DEFAULT_COUNTRY,
+  digitsWithoutPrefix,
+  flagOf,
   nationalPart,
   PHONE_COUNTRIES,
   withPrefix,
@@ -36,7 +38,8 @@ export function PhoneField({ value, onChange, ...rest }: PhoneFieldProps) {
 
   const changeCountry = (next: string) => {
     const code = next as CountryCode
-    const national = text.trim().startsWith("+") ? "" : text
+    // A number typed with its own prefix keeps its digits under the new country.
+    const national = text.trim().startsWith("+") ? digitsWithoutPrefix(text) : text
     setCountry(code)
     setText(national)
     onChange(withPrefix(national, code))
@@ -60,7 +63,7 @@ export function PhoneField({ value, onChange, ...rest }: PhoneFieldProps) {
           className="w-36 shrink-0"
         >
           <SelectValue>
-            {country} +{PHONE_COUNTRIES.find((c) => c.code === country)?.callingCode}
+            {flagOf(country)} +{PHONE_COUNTRIES.find((c) => c.code === country)?.callingCode}
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
@@ -69,7 +72,7 @@ export function PhoneField({ value, onChange, ...rest }: PhoneFieldProps) {
               key={c.code}
               value={c.code}
             >
-              {c.name} (+{c.callingCode})
+              {flagOf(c.code)} {c.name} (+{c.callingCode})
             </SelectItem>
           ))}
         </SelectContent>

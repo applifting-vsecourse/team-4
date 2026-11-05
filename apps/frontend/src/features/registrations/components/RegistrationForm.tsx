@@ -204,7 +204,7 @@ export function RegistrationForm({
                         <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
                           <span className="min-w-0 break-words">
                             {term.label}
-                            <span className="mt-0.5 block font-normal text-muted-foreground">
+                            <span className="mt-2 block font-normal text-muted-foreground">
                               {formatCalendarRange(term.startDate, term.endDate)}
                             </span>
                           </span>
