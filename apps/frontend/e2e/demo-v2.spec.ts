@@ -269,7 +269,15 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
 
   await scene(page, "Akce bez termínu napoví další krok", ["S2-17"], async () => {
     await expect(page.getByText("Tato akce zatím nemá žádný termín.")).toBeVisible()
-    await page.getByRole("link", { name: "Přidat termín" }).click()
+    await page.getByRole("button", { name: "Přidat termín" }).click()
+    const dialog = page.getByRole("dialog", { name: "Nový termín" })
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole("button", { name: "Zrušit" }).click()
+    await page
+      .getByRole("link", { name: "Nastavení", exact: true })
+      .filter({ visible: true })
+      .first()
+      .click()
     await expect(page.getByRole("heading", { name: "Termíny a ceny" })).toBeVisible()
     await expect(page.getByText("Zatím žádné termíny")).toBeVisible()
   })
