@@ -4,6 +4,7 @@ import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import { GenderAnswer } from '@/modules/registrations/domain/gender';
 import {
+  ManagedRegistrationDetailModel,
   ManagedRegistrationModel,
   RegistrationFilter,
 } from '@/modules/registrations/domain/managed-registration';
@@ -27,8 +28,6 @@ const registrationSelect = {
   genderOther: true,
   variableSymbol: true,
   paymentReminderAt: true,
-  version: true,
-  ...needsSelect,
   terms: {
     orderBy: [{ term: { startDate: 'asc' } }, { termId: 'asc' }],
     select: {
@@ -44,36 +43,54 @@ const registrationSelect = {
   },
 } satisfies Prisma.RegistrationSelect;
 
+/** The list leaves out what only the detail shows (F63). */
+const detailSelect = {
+  ...registrationSelect,
+  version: true,
+  ...needsSelect,
+} satisfies Prisma.RegistrationSelect;
+
+const registrationOf = (
+  row: Prisma.RegistrationGetPayload<{ select: typeof registrationSelect }>,
+): ConstructorParameters<typeof ManagedRegistrationModel> => [
+  row.id,
+  row.receivedAt,
+  row.firstName,
+  row.lastName,
+  row.email,
+  row.phone,
+  row.terms.map((term) => ({
+    termId: term.termId,
+    label: term.term.label,
+    startDate: fromDate(term.term.startDate),
+    endDate: fromDate(term.term.endDate),
+    priceMinor: term.priceMinor,
+    status: term.status,
+  })),
+  row.variableSymbol,
+  row.paymentReminderAt,
+  row.payments.map((payment) => ({
+    id: payment.id,
+    receivedOn: fromDate(payment.receivedOn),
+    amountMinor: payment.amountMinor,
+    source: payment.source,
+  })),
+  row.gender,
+  row.genderOther,
+];
+
 const toModel = (
   row: Prisma.RegistrationGetPayload<{ select: typeof registrationSelect }>,
 ): ManagedRegistrationModel =>
-  new ManagedRegistrationModel(
-    row.id,
-    row.receivedAt,
-    row.firstName,
-    row.lastName,
-    row.email,
-    row.phone,
-    row.terms.map((term) => ({
-      termId: term.termId,
-      label: term.term.label,
-      startDate: fromDate(term.term.startDate),
-      endDate: fromDate(term.term.endDate),
-      priceMinor: term.priceMinor,
-      status: term.status,
-    })),
-    row.variableSymbol,
-    row.paymentReminderAt,
-    row.payments.map((payment) => ({
-      id: payment.id,
-      receivedOn: fromDate(payment.receivedOn),
-      amountMinor: payment.amountMinor,
-      source: payment.source,
-    })),
+  new ManagedRegistrationModel(...registrationOf(row));
+
+const toDetail = (
+  row: Prisma.RegistrationGetPayload<{ select: typeof detailSelect }>,
+): ManagedRegistrationDetailModel =>
+  new ManagedRegistrationDetailModel(
+    registrationOf(row),
     needsOf(row),
     row.version,
-    row.gender,
-    row.genderOther,
   );
 
 /** Registrations of the scope's event only, of an organization of the caller (§3.2). */
@@ -84,7 +101,7 @@ const inScope = (scope: EventScope): Prisma.RegistrationWhereInput => ({
 });
 
 export type NeedsCorrection =
-  | { kind: 'corrected'; registration: ManagedRegistrationModel }
+  | { kind: 'corrected'; registration: ManagedRegistrationDetailModel }
   | { kind: 'not_found' }
   /** The registration changed after the organizer loaded it. */
   | { kind: 'stale' }
@@ -135,12 +152,12 @@ export class EventRegistrationsRepository {
   async findOne(
     scope: EventScope,
     registrationId: string,
-  ): Promise<ManagedRegistrationModel | null> {
+  ): Promise<ManagedRegistrationDetailModel | null> {
     const row = await this.prisma.registration.findFirst({
       where: { id: registrationId, ...inScope(scope) },
-      select: registrationSelect,
+      select: detailSelect,
     });
-    return row ? toModel(row) : null;
+    return row ? toDetail(row) : null;
   }
 
   /**
@@ -166,7 +183,7 @@ export class EventRegistrationsRepository {
         WHERE "id" = ${registrationId}::uuid FOR UPDATE`;
       const current = await tx.registration.findUniqueOrThrow({
         where: { id: registrationId },
-        select: registrationSelect,
+        select: detailSelect,
       });
       if (current.version !== expectedVersion) return { kind: 'stale' };
       // A waiting request was proposed on the current needs; decide it first.
@@ -175,14 +192,14 @@ export class EventRegistrationsRepository {
       });
       if (pending > 0) return { kind: 'change_pending' };
       if (sameNeeds(needsOf(current), needs)) {
-        return { kind: 'corrected', registration: toModel(current) };
+        return { kind: 'corrected', registration: toDetail(current) };
       }
       const updated = await tx.registration.update({
         where: { id: registrationId },
         data: { ...normalizeNeeds(needs), version: { increment: 1 } },
-        select: registrationSelect,
+        select: detailSelect,
       });
-      return { kind: 'corrected', registration: toModel(updated) };
+      return { kind: 'corrected', registration: toDetail(updated) };
     });
   }
 
