@@ -117,7 +117,12 @@ export class CorrectNeedsDto {
   @Min(0)
   expectedVersion!: number;
 
-  @ApiProperty({ type: RegistrationNeedsDto })
+  @ApiProperty({
+    type: RegistrationNeedsDto,
+    description:
+      'Replaces the transport, diet and health as a whole; every field is ' +
+      'required (else 400).',
+  })
   @ValidateNested()
   @Type(() => RegistrationNeedsDto)
   needs!: RegistrationNeedsDto;

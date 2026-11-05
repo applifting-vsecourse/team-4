@@ -155,7 +155,7 @@ export class RegistrationInputDto {
     type: RegistrationNeedsDto,
     description:
       'Transport, diet and health (F63), once for the whole registration. ' +
-      'Left out, nothing is provided.',
+      'Left out, nothing is provided. Sent, every field is required (else 400).',
   })
   @IsOptional()
   @ValidateNested()
