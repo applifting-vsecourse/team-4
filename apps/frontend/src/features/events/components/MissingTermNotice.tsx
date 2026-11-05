@@ -1,11 +1,10 @@
-import { Link } from "@tanstack/react-router"
 import { CalendarPlus, Lock } from "lucide-react"
 
-import { ROUTES } from "@/app/routes"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 
 import { type EventDetail } from "@/features/events/api/eventSchemas"
+import { TermDialog } from "@/features/events/components/TermDialog"
 
 type MissingTermNoticeProps = {
   organizationId: string
@@ -25,19 +24,18 @@ export function MissingTermNotice({ organizationId, event }: MissingTermNoticePr
         {event.isLocked ? (
           <p>Od otevření přihlašování jsou termíny zamčené, nový termín už nelze přidat.</p>
         ) : (
-          <Button
-            asChild
-            size="sm"
-            className="mt-2"
-          >
-            <Link
-              to={ROUTES.eventSettings}
-              params={{ organizationId, eventId: event.id }}
-              hash="terms-heading"
-            >
-              Přidat termín
-            </Link>
-          </Button>
+          <TermDialog
+            organizationId={organizationId}
+            eventId={event.id}
+            trigger={
+              <Button
+                size="sm"
+                className="mt-2"
+              >
+                Přidat termín
+              </Button>
+            }
+          />
         )}
       </AlertDescription>
     </Alert>
