@@ -59,11 +59,13 @@ const toResult = (
       status: term.status,
     })),
     row.variableSymbol,
-    {
-      prefix: row.bankAccountPrefix,
-      number: row.bankAccountNumber,
-      bankCode: row.bankCode,
-    },
+    row.bankAccountNumber !== null && row.bankCode !== null
+      ? {
+          prefix: row.bankAccountPrefix,
+          number: row.bankAccountNumber,
+          bankCode: row.bankCode,
+        }
+      : null,
     row.paymentReminderAt,
     { name: row.event.name, location: row.event.location },
     row.paymentToken,
@@ -143,14 +145,10 @@ export class RegistrationsRepository {
         WHERE "publicId" = ${publicId} AND "status" = 'open'
         FOR SHARE`;
       if (!event) return { kind: 'event_unavailable' };
-      // Opening requires them (S2-06) and S2-09 keeps them valid afterwards.
-      if (
-        event.bankAccountNumber === null ||
-        event.bankCode === null ||
-        event.paymentReminderDays === null
-      ) {
-        throw new Error(`Open event ${event.id} has no payment settings`);
-      }
+      const hasPaymentSettings =
+        event.bankAccountNumber !== null &&
+        event.bankCode !== null &&
+        event.paymentReminderDays !== null;
 
       const locked = await tx.$queryRaw<{ id: string }[]>`
         SELECT "id" FROM "event_term"
@@ -166,6 +164,12 @@ export class RegistrationsRepository {
         orderBy: termsWithBeds.orderBy,
         select: { ...termsWithBeds.select, priceMinor: true },
       });
+
+      // Opening requires settings for any paid term (S2-06, S3-C04) and S2-09
+      // keeps them valid; only an all-free event may have none.
+      if (!hasPaymentSettings && terms.some((term) => term.priceMinor > 0)) {
+        throw new Error(`Open event ${event.id} has no payment settings`);
+      }
 
       // ON CONFLICT DO NOTHING: a concurrent first registration of the same
       // e-mail elsewhere cannot fail this one.
@@ -211,7 +215,7 @@ export class RegistrationsRepository {
       }));
       await tx.registrationTerm.createMany({ data: decided });
       // Set once, from the confirmation moment (S2-16); nothing is due otherwise.
-      if (amountDueMinor(decided) > 0) {
+      if (amountDueMinor(decided) > 0 && event.paymentReminderDays !== null) {
         await tx.registration.update({
           where: { id: registration.id },
           data: {

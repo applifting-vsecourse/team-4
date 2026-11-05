@@ -26,7 +26,8 @@ export class ParticipantRegistrationModel {
     /** By term start. */
     public readonly terms: RegistrationTermResult[],
     public readonly variableSymbol: string,
-    public readonly account: BankAccount,
+    /** Null for a registration to a free event (S3-C04). */
+    public readonly account: BankAccount | null,
     /** As stored by S2-16; null while nothing is due. */
     private readonly storedReminderAt: Date | null,
     /** By the day received, then as recorded. */
@@ -93,7 +94,9 @@ export class ParticipantRegistrationModel {
    * nothing asks the participant to pay.
    */
   get paymentInstructions(): PaymentInstructions | null {
-    if (this.balanceMinor <= 0 || !this.storedReminderAt) return null;
+    if (this.balanceMinor <= 0 || !this.storedReminderAt || !this.account) {
+      return null;
+    }
     return {
       amountMinor: this.balanceMinor,
       variableSymbol: this.variableSymbol,

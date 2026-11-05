@@ -53,11 +53,13 @@ const toModel = (
       status: term.status,
     })),
     row.variableSymbol,
-    {
-      prefix: row.bankAccountPrefix,
-      number: row.bankAccountNumber,
-      bankCode: row.bankCode,
-    },
+    row.bankAccountNumber !== null && row.bankCode !== null
+      ? {
+          prefix: row.bankAccountPrefix,
+          number: row.bankAccountNumber,
+          bankCode: row.bankCode,
+        }
+      : null,
     row.paymentReminderAt,
     row.payments.map((payment) => ({
       id: payment.id,

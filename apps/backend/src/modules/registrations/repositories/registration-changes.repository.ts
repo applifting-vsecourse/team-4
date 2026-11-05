@@ -626,8 +626,11 @@ export class RegistrationChangesRepository {
       }
     }
     // Set once, from the first moment something is owed (S2-16).
+    const reminderDays = snapshot.paymentReminderDays;
     const startsOwing =
-      plan.summary.proposed.dueMinor > 0 && snapshot.paymentReminderAt === null;
+      plan.summary.proposed.dueMinor > 0 &&
+      snapshot.paymentReminderAt === null &&
+      reminderDays !== null;
     await tx.registration.update({
       where: { id: snapshot.id },
       data: {
@@ -635,10 +638,7 @@ export class RegistrationChangesRepository {
         version: { increment: 1 },
         ...(startsOwing
           ? {
-              paymentReminderAt: paymentReminderAt(
-                now,
-                snapshot.paymentReminderDays,
-              ),
+              paymentReminderAt: paymentReminderAt(now, reminderDays),
             }
           : {}),
       },

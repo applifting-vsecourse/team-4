@@ -33,6 +33,13 @@ const CONDITIONS: Condition[] = [
   },
 ]
 
+// Every term costs 0 Kč: no bank account or reminder is needed (S3-C04).
+const FREE_PAYMENT_CONDITION: Condition = {
+  blocker: "paymentSettings",
+  label: "Platební údaje nejsou potřeba, všechny termíny jsou zdarma",
+  fixIn: "payments",
+}
+
 type RegistrationSectionProps = {
   organizationId: string
   event: EventDetail
@@ -50,6 +57,7 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
 
   const link = publicRegistrationUrl(event.publicId)
   const isDraft = event.status === "draft"
+  const isFree = event.terms.length > 0 && event.terms.every((term) => term.priceMinor === 0)
   const canOpen = isDraft && event.openingBlockers.length === 0
 
   const handleOpen = async () => {
@@ -140,7 +148,11 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
                   {CONDITIONS.map((condition) => (
                     <ConditionRow
                       key={condition.blocker}
-                      condition={condition}
+                      condition={
+                        condition.blocker === "paymentSettings" && isFree
+                          ? FREE_PAYMENT_CONDITION
+                          : condition
+                      }
                       isMissing={event.openingBlockers.includes(condition.blocker)}
                       organizationId={organizationId}
                       eventId={event.id}

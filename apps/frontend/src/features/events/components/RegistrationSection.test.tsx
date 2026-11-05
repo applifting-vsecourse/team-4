@@ -104,6 +104,22 @@ describe("RegistrationSection", () => {
     ).toBeInTheDocument()
   })
 
+  it("says no payment settings are needed when every term is free", () => {
+    const term = {
+      id: "11111111-1111-4111-8111-111111111111",
+      label: "Turnus",
+      startDate: "2027-07-01",
+      endDate: "2027-07-07",
+      priceMinor: 0,
+      capacity: 0,
+      programmeItemCount: 0,
+    }
+    renderPage({ ...READY, terms: [term] })
+
+    expect(screen.getByText(/Platební údaje nejsou potřeba/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Otevřít přihlašování" })).toBeEnabled()
+  })
+
   it("shows the full public link already in a draft", () => {
     renderPage({ ...READY, openingBlockers: ["terms"] })
 

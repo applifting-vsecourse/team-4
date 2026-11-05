@@ -161,7 +161,8 @@ export class RegistrationResultModel {
     /** By term start. */
     public readonly terms: RegistrationTermResult[],
     public readonly variableSymbol: string,
-    public readonly account: BankAccount,
+    /** Null for a registration to a free event (S3-C04). */
+    public readonly account: BankAccount | null,
     public readonly reminderAt: Date | null,
     public readonly event: EventSummary,
     private readonly paymentToken: string,
@@ -179,7 +180,9 @@ export class RegistrationResultModel {
 
   /** Null at zero obligation: no reminder date and no request to pay. */
   get paymentInstructions(): PaymentInstructions | null {
-    if (this.amountDueMinor <= 0 || !this.reminderAt) return null;
+    if (this.amountDueMinor <= 0 || !this.reminderAt || !this.account) {
+      return null;
+    }
     return {
       amountMinor: this.amountDueMinor,
       variableSymbol: this.variableSymbol,

@@ -34,6 +34,7 @@ export function PaymentSettingsSection({ organizationId, event }: PaymentSetting
   const update = useUpdatePaymentSettings(organizationId, event.id)
   const refreshEvent = useRefreshEvent(organizationId, event.id)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const isFree = event.terms.length > 0 && event.terms.every((term) => term.priceMinor === 0)
   const [fieldError, setFieldError] = useState<PaymentFieldError | null>(null)
 
   const handleSubmit = async (settings: PaymentSettings) => {
@@ -67,10 +68,21 @@ export function PaymentSettingsSection({ organizationId, event }: PaymentSetting
       <Card>
         <CardContent className="space-y-4">
           {event.paymentSettings === null ? (
-            <Alert>
-              <TriangleAlert />
-              <AlertTitle>Bez platebního nastavení nelze otevřít přihlašování</AlertTitle>
-            </Alert>
+            isFree ? (
+              <Alert>
+                <Info />
+                <AlertTitle>Bezplatná akce nepotřebuje platební nastavení</AlertTitle>
+                <AlertDescription>
+                  Všechny termíny stojí 0 Kč, přihlašování lze otevřít bez bankovního účtu. Jakmile
+                  bude některý termín zpoplatněn, bude nastavení potřeba.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert>
+                <TriangleAlert />
+                <AlertTitle>Bez platebního nastavení nelze otevřít přihlašování</AlertTitle>
+              </Alert>
+            )
           ) : null}
           <PaymentSettingsForm
             initialValues={toFormValues(event.paymentSettings)}

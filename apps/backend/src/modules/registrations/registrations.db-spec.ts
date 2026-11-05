@@ -251,6 +251,37 @@ describe('saving a registration', () => {
     expect(await confirmedIn(f.termIds[0])).toBe(1);
   });
 
+  it('saves a registration to a free event without payment settings and asks for no payment (S3-C04)', async () => {
+    const f = await eventWith({ terms: [{ ...T1, priceMinor: 0 }] });
+    await prisma.event.update({
+      where: { id: f.event.id },
+      data: {
+        bankAccountNumber: null,
+        bankCode: null,
+        paymentReminderDays: null,
+      },
+    });
+
+    const result = await submit(f.publicId, form(f.termIds));
+
+    expect(result.status).toBe(201);
+    expect(result.body).toMatchObject({
+      selectedPriceMinor: 0,
+      amountDueMinor: 0,
+      paymentInstructions: null,
+      paymentLinkToken: null,
+    });
+    const stored = await prisma.registration.findFirstOrThrow({
+      where: { eventId: f.event.id },
+    });
+    expect(stored).toMatchObject({
+      bankAccountNumber: null,
+      bankCode: null,
+      paymentReminderDays: null,
+      paymentReminderAt: null,
+    });
+  });
+
   it('confirms a selection of one term only in that term', async () => {
     const f = await eventWith({
       rooms: [{ baseBeds: 1, termIndexes: [0, 1] }],
