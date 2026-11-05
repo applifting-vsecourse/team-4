@@ -149,8 +149,11 @@ checkbox and `Evidence dokončení` updates do not. Implementation commits prese
 unchanged scope approval but require fresh code review and QA.
 
 `MatejKrones` approves QA after the testing handoff; on Matej's PRs, David performs
-QA. Request QA only after independent review passes and the current commit enters
-Ready for Testing, except for approved Storybook design-preview PRs. Low PRs
+QA. Request QA only after independent review passes and the current commit receives
+a bot-authored QA handoff, except for approved Storybook design-preview PRs. The
+issue enters Ready for Testing when all linked PRs are ready; an eligible
+prerequisite PR targeting main can receive its own handoff while stacked
+dependents keep the overall issue in Ready for Code Review. Low PRs
 receive no automated QA request. CODEOWNERS routes
 David enforcement-path requests; code-owner approval is disabled. GitHub's
 blanket approval count is zero after severity installation; Delivery stages
