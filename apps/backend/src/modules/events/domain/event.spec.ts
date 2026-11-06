@@ -5,6 +5,7 @@ const ready = {
   description: 'Popis',
   location: 'Podlesí',
   termCount: 1,
+  paidTermCount: 1,
   paymentSettings: {
     bankAccountPrefix: '19',
     bankAccountNumber: '2000145399',
@@ -25,6 +26,7 @@ describe('findOpeningBlockers', () => {
         description: '',
         location: ' ',
         termCount: 0,
+        paidTermCount: 0,
         paymentSettings: null,
       }),
     ).toEqual(['name', 'description', 'location', 'terms', 'paymentSettings']);
@@ -49,5 +51,25 @@ describe('findOpeningBlockers', () => {
         },
       }),
     ).toEqual(['paymentSettings']);
+  });
+
+  describe('free event (S3-C04)', () => {
+    const free = { ...ready, paidTermCount: 0, paymentSettings: null };
+
+    it('needs no payment settings when every term costs 0 Kč', () => {
+      expect(findOpeningBlockers(free)).toEqual([]);
+    });
+
+    it('needs them again once one term is paid', () => {
+      expect(findOpeningBlockers({ ...free, paidTermCount: 1 })).toEqual([
+        'paymentSettings',
+      ]);
+    });
+
+    it('never exempts an event without terms', () => {
+      expect(
+        findOpeningBlockers({ ...free, termCount: 0, paidTermCount: 0 }),
+      ).toEqual(['terms', 'paymentSettings']);
+    });
   });
 });

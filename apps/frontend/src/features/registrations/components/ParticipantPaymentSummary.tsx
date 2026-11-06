@@ -78,7 +78,11 @@ export function ParticipantPaymentSummary({
       </dl>
 
       {hasObligation ? null : (
-        <p className="text-sm text-muted-foreground">Nyní nemáte platební povinnost.</p>
+        <p className="text-sm text-muted-foreground">
+          {selectedPriceMinor === 0
+            ? "Účast je zdarma, nic neplatíte."
+            : "Nyní nemáte platební povinnost."}
+        </p>
       )}
 
       {instructions ? (

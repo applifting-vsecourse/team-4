@@ -1,28 +1,32 @@
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import type { ReactNode } from "react"
 
+import { Badge } from "@/components/ui/badge"
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+import { type RegistrationNeeds } from "@/features/registrations/api/registrationSchemas"
 import {
   DIET_LABELS,
+  NO_DIET_RESTRICTION,
+  NOT_PROVIDED,
   TRANSPORT_LABELS,
-  type RegistrationNeedsValues,
-} from "@/features/registrations/components/RegistrationNeedsFields"
+} from "@/features/registrations/lib/registrationNeeds"
 
 export type RegistrationNeedsSummaryProps = {
-  values: RegistrationNeedsValues
+  values: RegistrationNeeds
+  /** E.g. the organizer's "Upravit". */
+  action?: ReactNode
 }
-
-const NOT_PROVIDED = "Neuvedeno"
 
 // Detail přihlášky, participant and organizer (F63): the stored transport,
 // diet and health data. Empty values read "Neuvedeno", never "Bez omezení".
-// Design only: every value is passed in.
-export function RegistrationNeedsSummary({ values }: RegistrationNeedsSummaryProps) {
+export function RegistrationNeedsSummary({ values, action }: RegistrationNeedsSummaryProps) {
   const hasDiet = values.hasNoDietRestriction || values.diet.length > 0 || values.dietNote !== ""
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Doprava, strava a zdraví</CardTitle>
+        {action ? <CardAction>{action}</CardAction> : null}
       </CardHeader>
       <CardContent>
         <dl className="space-y-4 text-sm">
@@ -50,7 +54,7 @@ export function RegistrationNeedsSummary({ values }: RegistrationNeedsSummaryPro
                     <ul className="flex flex-wrap gap-2">
                       {values.hasNoDietRestriction ? (
                         <li>
-                          <Badge variant="secondary">Bez omezení</Badge>
+                          <Badge variant="secondary">{NO_DIET_RESTRICTION}</Badge>
                         </li>
                       ) : null}
                       {values.diet.map((choice) => (

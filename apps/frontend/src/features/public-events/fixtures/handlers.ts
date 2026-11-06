@@ -19,15 +19,19 @@ const CATALOG_LIST_URL = `${env.VITE_API_URL}/public/catalog/events`
 
 const NOT_AVAILABLE = { statusCode: 404, message: "Záznam není dostupný" }
 
+const catalogListOf = (count: number) => [
+  http.get(CATALOG_LIST_URL, () => HttpResponse.json(CATALOG_LIST.slice(0, count))),
+  http.get(`${CATALOG_LIST_URL}/:publicId/photos/:photoId`, async () => {
+    const image = await (await fetch(letniTaborImage)).arrayBuffer()
+    return new HttpResponse(image, { headers: { "Content-Type": "image/jpeg" } })
+  }),
+]
+
 export const publicEventHandlers = {
   /** The public catalog (F54-2a) and the photos of its cards. */
-  catalogList: () => [
-    http.get(CATALOG_LIST_URL, () => HttpResponse.json(CATALOG_LIST)),
-    http.get(`${CATALOG_LIST_URL}/:publicId/photos/:photoId`, async () => {
-      const image = await (await fetch(letniTaborImage)).arrayBuffer()
-      return new HttpResponse(image, { headers: { "Content-Type": "image/jpeg" } })
-    }),
-  ],
+  catalogList: () => catalogListOf(CATALOG_LIST.length),
+  /** Only the first `count` events of the catalog, for the landing preview. */
+  catalogListOf,
   catalogListEmpty: () => [http.get(CATALOG_LIST_URL, () => HttpResponse.json([]))],
   catalogListFailed: () => [
     http.get(CATALOG_LIST_URL, () => HttpResponse.json({ statusCode: 500 }, { status: 500 })),

@@ -273,6 +273,7 @@ describe('EventsService', () => {
       description: 'B',
       location: 'C',
       termCount: 1,
+      paidTermCount: 1,
       paymentSettings: {
         bankAccountPrefix: '19',
         bankAccountNumber: '2000145399',
@@ -291,6 +292,7 @@ describe('EventsService', () => {
       event.openingInput.mockResolvedValue({
         ...ready,
         termCount: 0,
+        paidTermCount: 0,
         paymentSettings: null,
       });
       await expect(service.openRegistration(scope)).rejects.toMatchObject({

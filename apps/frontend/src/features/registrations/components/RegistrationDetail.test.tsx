@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
 import { type RegistrationDetail as Detail } from "@/features/registrations/api/eventRegistrationSchemas"
+import { NO_NEEDS } from "@/features/registrations/api/registrationSchemas"
 import { RegistrationDetail } from "@/features/registrations/components/RegistrationDetail"
 
 const T1 = "0190c0de-0000-7000-8000-000000000001"
@@ -38,6 +39,8 @@ const MIXED: Detail = {
   paidMinor: 190_000,
   balanceMinor: 600_000,
   paymentState: "partial",
+  needs: NO_NEEDS,
+  version: 0,
   gender: null,
   genderOther: null,
   requiresManualAccommodation: true,

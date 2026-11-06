@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
+  NO_NEEDS,
   type RegistrationResult,
   type SelectableTerm,
 } from "@/features/registrations/api/registrationSchemas"
@@ -408,6 +409,40 @@ describe("submitting", () => {
       "href",
       "/my-registrations",
     )
+  })
+
+  it("sends transport, diet and health once for the whole registration", async () => {
+    post.mockReturnValue(respondWith(RESULT))
+    renderForm()
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await user.click(screen.getByLabelText(/2\. turnus/))
+    await fillContact()
+    await user.click(screen.getByRole("radio", { name: "Společná doprava" }))
+    await user.click(screen.getByRole("checkbox", { name: "Bezlaktózová" }))
+    await user.click(screen.getByRole("checkbox", { name: "Vegetariánská" }))
+    await user.type(screen.getByLabelText("Zdravotní omezení"), " Astma ")
+
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+    expect(sentBody().needs).toEqual({
+      ...NO_NEEDS,
+      transport: "shared",
+      diet: ["vegetarian", "lactose_free"],
+      health: "Astma",
+    })
+  })
+
+  it("sends needs left empty as not provided, never as “Bez omezení”", async () => {
+    post.mockReturnValue(respondWith(RESULT))
+    renderForm()
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await fillContact()
+
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+    expect(sentBody().needs).toEqual(NO_NEEDS)
   })
 
   it("shows a new registration waiting for the organizer in every term, with nothing owed (S3-01)", async () => {
