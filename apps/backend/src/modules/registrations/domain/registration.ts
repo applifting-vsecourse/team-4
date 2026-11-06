@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto';
 import { Gender } from '@/modules/registrations/domain/gender';
+import {
+  NO_NEEDS,
+  normalizeNeeds,
+  RegistrationNeeds,
+} from '@/modules/registrations/domain/registration-needs';
 import { TermCapacity } from '@/modules/rooms/domain/room';
 
 /**
@@ -19,6 +24,8 @@ export type RegistrationInput = {
   email: string;
   phone: string;
   termIds: string[];
+  /** Optional (F63); left out, nothing is provided. */
+  needs?: RegistrationNeeds;
   /** Voluntary (F64); left out or null is "not answered". */
   gender?: Gender | null;
   /** The own words for `other` only; left out or null is none. */
@@ -43,6 +50,7 @@ export const submissionHash = (input: RegistrationInput): string =>
         normalizeEmail(input.email),
         input.phone,
         [...input.termIds].sort(),
+        normalizeNeeds(input.needs ?? NO_NEEDS),
         ...(input.gender ? [input.gender] : []),
         ...(input.genderOther ? [input.genderOther] : []),
       ]),
