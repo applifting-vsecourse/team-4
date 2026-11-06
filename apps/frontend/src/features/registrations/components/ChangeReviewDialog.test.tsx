@@ -214,6 +214,44 @@ describe("ChangeReviewDialog", () => {
     expect(body.json.moves[0]?.acceptRelease).toBe(true)
   })
 
+  it("asks for consent again when the refreshed review gives up another place (S3-01)", async () => {
+    const T1 = id(101)
+    const releasing = preview({
+      moves: [
+        { fromTermId: T2, toTermId: T3, resultStatus: "pending", requiresReleaseConsent: true },
+      ],
+    })
+    const both = preview({
+      moves: [
+        { fromTermId: T1, toTermId: T3, resultStatus: "pending", requiresReleaseConsent: true },
+        { fromTermId: T2, toTermId: T3, resultStatus: "pending", requiresReleaseConsent: true },
+      ],
+      summary: {
+        ...releasing.summary,
+        terms: [
+          { ...releasing.summary.terms[0]!, termId: T1, label: "Turnus 1" },
+          ...releasing.summary.terms,
+        ],
+      },
+    })
+    post.mockImplementation((path: string) =>
+      path.endsWith("/preview")
+        ? answer(releasing)
+        : refuse(409, { code: "release_consent_required", preview: both }),
+    )
+    renderReview()
+
+    await userEvent.click(await screen.findByRole("checkbox", { name: /Souhlasím/ }))
+    await userEvent.click(screen.getByRole("button", { name: "Potvrdit změnu" }))
+
+    expect(
+      await screen.findByText(/Přesunem přijdete o potvrzené místo v termínu Turnus 1, Turnus 2/),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("checkbox", { name: /Souhlasím/ })).not.toBeChecked()
+    expect(screen.getByRole("button", { name: "Potvrdit změnu" })).toBeDisabled()
+    expect(onDone).not.toHaveBeenCalled()
+  })
+
   it("lets the participant go back when the review cannot be loaded", async () => {
     post.mockImplementation(() => refuse(500, {}))
     renderReview()

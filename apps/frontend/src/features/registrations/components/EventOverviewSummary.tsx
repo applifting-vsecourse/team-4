@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router"
 import { ROUTES } from "@/app/routes"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatBeds } from "@/lib/beds"
@@ -90,20 +90,23 @@ export function EventOverviewSummary({
               <p className="text-muted-foreground">
                 Počet přihlášených osob. Náhradníků na termínech: {summary.waitlistedTotal}.
               </p>
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-              >
-                <Link
-                  to={ROUTES.eventRegistrations}
-                  params={params}
-                >
-                  Zobrazit přihlášky
-                </Link>
-              </Button>
             </div>
           </CardContent>
+          <CardFooter className="mt-auto">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              <Link
+                to={ROUTES.eventRegistrations}
+                params={params}
+              >
+                Zobrazit přihlášky
+              </Link>
+            </Button>
+          </CardFooter>
         </Card>
 
         <Card>
@@ -135,20 +138,23 @@ export function EventOverviewSummary({
                   </li>
                 ))}
               </ul>
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-              >
-                <Link
-                  to={ROUTES.eventRooms}
-                  params={params}
-                >
-                  Zobrazit ubytování
-                </Link>
-              </Button>
             </div>
           </CardContent>
+          <CardFooter className="mt-auto">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              <Link
+                to={ROUTES.eventRooms}
+                params={params}
+              >
+                Zobrazit ubytování
+              </Link>
+            </Button>
+          </CardFooter>
         </Card>
 
         <Card>
@@ -175,21 +181,24 @@ export function EventOverviewSummary({
                   <dd>{summary.unpaidCount}</dd>
                 </div>
               </dl>
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-              >
-                <Link
-                  to={ROUTES.eventRegistrations}
-                  params={params}
-                  search={{ payment: "unpaid" }}
-                >
-                  Zobrazit nezaplacené
-                </Link>
-              </Button>
             </div>
           </CardContent>
+          <CardFooter className="mt-auto">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              <Link
+                to={ROUTES.eventRegistrations}
+                params={params}
+                search={{ payment: "unpaid" }}
+              >
+                Zobrazit nezaplacené
+              </Link>
+            </Button>
+          </CardFooter>
         </Card>
       </div>
     </section>
