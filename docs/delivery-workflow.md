@@ -132,10 +132,10 @@ QA; a previously tested commit cannot approve a replacement commit. A new commit
 after QA returns the issue to Code Review without requiring another PM approval
 if the issue scope is unchanged.
 
-Stacked PRs targeting a feature branch wait until their prerequisite merges and
-are then retargeted to main. They do not prevent linked PRs already targeting
-main from receiving independent review and their own current-commit QA handoff.
-While stacked PRs remain, the overall issue stays in Ready for Code Review.
+Stacked PRs are described in [Stacked PRs](#stacked-prs). A PR that targets a
+feature branch outside a plain stack still waits for its prerequisite and is
+then retargeted to main; it does not prevent linked PRs targeting main from
+receiving independent review and their own current-commit QA handoff.
 All existing requirements, CI, technical approval and QA gates still apply.
 
 Review each PR against its declared slice, using the linked issue for context. The PR title and `What`/`Why` sections define what that PR claims to deliver. `Refs #N` means partial work, so omitted criteria from the broader issue are not blockers unless the PR claims to implement them or its changes concretely break them. `Closes #N` claims the full issue is complete. A design preview may intentionally use fixtures and inert controls when its description says persistence and backend integration come later; review whether the preview itself is correct and whether it causes concrete regressions. Flag unclear or conflicting scope as a note for clarification rather than silently imposing the full issue scope on every linked PR.
@@ -158,6 +158,83 @@ separate approval and listed in coverage; binary-only PRs still need CI and QA.
 When David covers both requirements and QA, he approves the issue scope first
 and the tested current commit afterward. His scope approval survives later
 implementation commits even when GitHub dismisses the old native PR review.
+
+## Stacked PRs
+
+A stack is a linear chain of open PRs in one repository where each PR targets the
+branch of the PR below it and the bottom PR targets `main`. The workflow judges a
+stack as one change: each slice is reviewed on its own, QA happens once on the
+tip, and the whole stack merges with one command. Two PRs on one base, a cycle or
+a fork-based PR are not stacks; they keep the per-PR behaviour above, so a PR
+whose base is not main and not part of a plain stack waits for its prerequisite.
+
+All PRs of a stack have one author, so one QA owner covers it, and are linked to
+the same issue: the bot builds a stack from the PRs linked to an issue. A stack
+which the issue cannot see completely (a PR stacked on its tip is linked to
+another issue) or whose tip is Low severity (a Low PR gets no QA, so it cannot
+cover the PRs below) is not handed to QA; the bot says why on the issue. PRs by
+different authors are not a stack and are judged one by one. Build a stack by
+creating each branch from the one below it. Keep it in sync by merging the
+parent branch into the child, bottom to top, whenever a lower PR changes.
+Never rebase or squash a stacked branch: that rewrites the commits QA
+tested.
+
+- **Sync.** Every PR must contain the head of the PR below it. Otherwise the
+  `Delivery stages` status fails with "Stack out of sync" and names the merge to
+  make, and no review is spent on it.
+- **Code review.** Every PR is reviewed against its own base, so each review sees
+  only its slice. The Copilot size limit applies per slice.
+- **Carrying a review over.** Merging the parent into a stacked PR changes its
+  head but not its own change. The bot fingerprints the PR's diff against its
+  base: per file the path, mode and rename lines and every hunk line (added,
+  removed and context) exactly as written. Line numbers, the function name after
+  `@@` and the blob ids of text files are left out, because merging the parent
+  moves those. When the fingerprint equals that of an earlier bot-authored pass,
+  and the new head contains the reviewed commit, the bot records a "carried
+  over" pass for the new commit instead of reviewing again. The earlier pass is
+  trusted only back to the first requirements record made under the same
+  approval. Any edit to the PR's own change, moving a line, a changed context
+  line (for instance when the parent edited the lines around the PR's hunk), a
+  whitespace or mode change, or a pass on a commit that is not in the new head's
+  history is reviewed normally. A manual Copilot waiver is never carried over.
+- **QA handoff.** When every PR in the stack has passed requirements and review,
+  each PR gets a handoff record and the issue moves to Ready for Testing. Only the
+  tip asks the QA owner for a review, and its handoff lists the stack. The tip
+  contains every lower PR, so testing it tests the whole change.
+- **QA approval.** Approve the tip commit after the handoff. A lower PR takes that
+  approval as its own while its head is contained in the tip commit and every link
+  above it is in sync. It still needs its own requirements, review and handoff
+  records, and QA must come after all of them. A new commit anywhere in the stack
+  that the tip does not contain, or on the tip itself, needs a new approval.
+- **Severity and technical review** are judged per PR as before.
+- **Merging.** Comment `/merge-stack` on any PR of the stack. Only `darebakdavca`,
+  `rmnskb` and `MatejKrones` can use it. The command is read back from the API,
+  as `/copilot-waive` is, so an edited or deleted comment is not a command.
+  The bot refuses, merging nothing and replying with the reasons, unless every
+  PR's `Delivery stages` status and `verify` CI run are green, no PR is a draft
+  and the stack is in sync. It then merges bottom to top with merge commits, guarded by each head
+  SHA, retargets the next PR to `main` and waits for its fresh `Delivery stages`
+  result (up to ten minutes) before merging it; a result which is replaced
+  while it settles is judged again. Merge commits keep the QA-tested
+  commits in `main`'s history, so the heads above do not change. Branch
+  protection (CI and `Delivery stages`) still decides what can merge. The bot
+  replies once with the result; after an interruption, comment again and it
+  continues from the next open PR, provided the stack still contains the
+  merged PR's head (a reused branch name is not enough). `/merge-stack check` replies with the plan
+  and changes nothing. Commands run one stack at a time.
+  A lone PR is not a stack: use the merge button. If GitHub already retargeted
+  the next PR (branch deleted on merge), the bot still waits for its fresh
+  `Delivery stages` result before merging it. Only the three people above can
+  start a run at all: the workflow ignores everyone else's comments. GitHub keeps
+  only one queued run per concurrency group, so if a second command is queued
+  while one runs and a third arrives, the second is dropped without a reply:
+  comment again once the first has finished.
+  Merges and retargets are made with the `PROJECT_AUTOMATION_TOKEN` secret, so its
+  owner must be allowed to merge to `main` and the token needs Contents and Pull
+  requests read/write in addition to Projects. A merge made with the workflow
+  token would trigger no deploy, release or re-evaluation after the retarget.
+  Without the secret, `/merge-stack` replies that it is not configured and
+  `check` still works.
 
 ## Manual Copilot waiver
 
@@ -239,9 +316,8 @@ PR events process their linked issues; issue events process that issue and its
 linked PRs. Scheduled and manual runs reconcile all active work (manual issue
 filters still apply). Agent review reconciles delivery in a final step, even
 when review fails, using the same event scope; dry runs never publish verdicts.
-Stacked PRs wait for their prerequisite and retargeting to `main`; they do not
-fail unrelated reviews or receive QA handoffs. A retarget during evaluation
-invalidates its result.
+A retarget during evaluation invalidates its result. See
+[Stacked PRs](#stacked-prs) for how stacks are judged.
 
 Advancing `main` does not require updating PR branches or invalidate existing
 review/QA evidence. Changing the PR head still requires fresh code review and
@@ -289,8 +365,8 @@ evidence for the same head and unchanged policy/scope.
 
 ## Configuration and validation
 
-`PROJECT_AUTOMATION_TOKEN` is needed for the board; `COPILOT_GITHUB_TOKEN` is needed
-for agent review. The stage checker reads issue scope evidence with its normal
+`PROJECT_AUTOMATION_TOKEN` is needed for the board and for `/merge-stack`;
+`COPILOT_GITHUB_TOKEN` is needed for agent review. The stage checker reads issue scope evidence with its normal
 GITHUB_TOKEN. Neither workflow executes PR code with its write token. API,
 coverage and model failures must not produce a pass.
 
