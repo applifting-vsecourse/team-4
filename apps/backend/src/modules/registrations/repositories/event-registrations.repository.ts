@@ -92,7 +92,8 @@ const registrationOf = (
     hardAttribute: row.event.accommodationRules?.hardAttribute
       ? {
           attribute: row.event.accommodationRules.hardAttribute,
-          nonDeterminingValues: row.event.accommodationRules.nonDeterminingValues,
+          nonDeterminingValues:
+            row.event.accommodationRules.nonDeterminingValues,
         }
       : null,
     manualValue: row.accommodationManualValue,
