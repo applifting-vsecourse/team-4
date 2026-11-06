@@ -628,19 +628,25 @@ export class RegistrationChangesRepository {
     // Set once, from the first moment something is owed (S2-16).
     const reminderDays = snapshot.paymentReminderDays;
     const startsOwing =
-      plan.summary.proposed.dueMinor > 0 &&
-      snapshot.paymentReminderAt === null &&
-      reminderDays !== null;
+      plan.summary.proposed.dueMinor > 0 && snapshot.paymentReminderAt === null;
+    let reminderAt: Date | null = null;
+    // A registration of an all-free event has no payment snapshot, and its
+    // terms are locked from the first opening (S3-C04). Rather than accept a
+    // debt nobody can be reminded of or pay, roll the change back.
+    if (startsOwing) {
+      if (reminderDays === null) {
+        throw new Error(
+          `Registration ${snapshot.id} would owe money without payment settings`,
+        );
+      }
+      reminderAt = paymentReminderAt(now, reminderDays);
+    }
     await tx.registration.update({
       where: { id: snapshot.id },
       data: {
         ...changedFields(plan.summary),
         version: { increment: 1 },
-        ...(startsOwing
-          ? {
-              paymentReminderAt: paymentReminderAt(now, reminderDays),
-            }
-          : {}),
+        ...(reminderAt ? { paymentReminderAt: reminderAt } : {}),
       },
     });
   }
