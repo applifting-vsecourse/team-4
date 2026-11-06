@@ -15,6 +15,10 @@ import {
   InvalidChangeError,
   planChange,
 } from '@/modules/registrations/domain/registration-change';
+import {
+  needsOf,
+  needsSelect,
+} from '@/modules/registrations/domain/registration-needs';
 import { Injectable } from '@nestjs/common';
 
 type Db = Prisma.TransactionClient;
@@ -98,6 +102,7 @@ const snapshotSelect = {
   lastName: true,
   email: true,
   phone: true,
+  ...needsSelect,
   gender: true,
   genderOther: true,
   event: { select: { changeApprovalDays: true } },
@@ -143,6 +148,7 @@ const subjectOf = (row: Snapshot): ChangeSubject => ({
   firstName: row.firstName,
   lastName: row.lastName,
   phone: row.phone,
+  needs: needsOf(row),
   gender: row.gender,
   genderOther: row.genderOther,
   paidMinor: row.payments.reduce((sum, p) => sum + p.amountMinor, 0),
@@ -172,6 +178,8 @@ const toModel = (
     decidedAt: row.decidedAt,
     summary: {
       values: summary.values,
+      // Summaries stored before F63 have no needs.
+      needs: summary.needs ?? null,
       terms: summary.terms,
       original: summary.original,
       proposed: summary.proposed,

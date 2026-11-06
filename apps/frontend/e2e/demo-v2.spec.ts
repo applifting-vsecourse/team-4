@@ -89,7 +89,7 @@ async function expectNoSidewaysScroll(page: Page) {
 
 test.afterAll(closeDb)
 
-test("demo V2: Sprint 2 from the landing page to the participant's own view", async ({
+test("demo V2: Sprint 2 from the landing page to the participant's own view @demo", async ({
   page,
   browser,
 }) => {

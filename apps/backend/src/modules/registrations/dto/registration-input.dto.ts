@@ -3,9 +3,10 @@ import {
   GENDER_OTHER_MAX_LENGTH,
   GENDERS,
 } from '@/modules/registrations/domain/gender';
+import { RegistrationNeedsDto } from '@/modules/registrations/dto/registration-needs.dto';
 import { applyDecorators } from '@nestjs/common';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayNotEmpty,
@@ -21,6 +22,7 @@ import {
   MaxLength,
   ValidateBy,
   ValidateIf,
+  ValidateNested,
   ValidationArguments,
 } from 'class-validator';
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
@@ -148,6 +150,17 @@ export class RegistrationInputDto {
   @ArrayUnique({ message: 'Termín je vybraný víckrát.' })
   @IsUUID('all', { each: true, message: 'Neplatný termín.' })
   termIds!: string[];
+
+  @ApiPropertyOptional({
+    type: RegistrationNeedsDto,
+    description:
+      'Transport, diet and health (F63), once for the whole registration. ' +
+      'Left out, nothing is provided. Sent, every field is required (else 400).',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RegistrationNeedsDto)
+  needs?: RegistrationNeedsDto;
 
   @ApiPropertyOptional({
     enum: GENDERS,
