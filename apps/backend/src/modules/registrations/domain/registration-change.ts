@@ -5,6 +5,11 @@ import {
   ParticipationStatus,
   RegistrationTermResult,
 } from '@/modules/registrations/domain/registration';
+import {
+  normalizeNeeds,
+  RegistrationNeeds,
+  sameNeeds,
+} from '@/modules/registrations/domain/registration-needs';
 import { TermCapacity } from '@/modules/rooms/domain/room';
 
 /** Contact fields a participant may change; the e-mail is the identity (F35-2a). */
@@ -34,6 +39,8 @@ export type ChangeProposal = {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  /** Transport, diet and health as a whole (F63); "" or empty clears a part. */
+  needs?: RegistrationNeeds;
   /** Null clears the answer back to "not answered" (F64). */
   gender?: Gender | null;
   /**
@@ -73,8 +80,16 @@ export type Money = {
   balanceMinor: number;
 };
 
+/** The needs before and after; they change as one block (F63). */
+export type NeedsChange = {
+  original: RegistrationNeeds;
+  proposed: RegistrationNeeds;
+};
+
 export type ChangeSummary = {
   values: ChangedValue[];
+  /** Null when the needs stay as they are. */
+  needs: NeedsChange | null;
   terms: PlannedTerm[];
   original: Money;
   proposed: Money;
@@ -122,6 +137,7 @@ export type ChangeSubject = {
   firstName: string;
   lastName: string;
   phone: string;
+  needs: RegistrationNeeds;
   gender: Gender | null;
   genderOther: string | null;
   terms: RegistrationTermResult[];
@@ -212,7 +228,13 @@ export const planChange = (
       proposed: genderOther,
     });
   }
-  if (values.length + cancelled.size + proposal.moves.length === 0) {
+  const needs: NeedsChange | null =
+    proposal.needs !== undefined && !sameNeeds(subject.needs, proposal.needs)
+      ? { original: subject.needs, proposed: normalizeNeeds(proposal.needs) }
+      : null;
+  // Names, phone, gender and needs belong to the whole registration.
+  const changesData = values.length > 0 || needs !== null;
+  if (!changesData && cancelled.size + proposal.moves.length === 0) {
     throw new InvalidChangeError('no_change');
   }
 
@@ -258,7 +280,7 @@ export const planChange = (
     planned.set(termId, row);
     return row;
   };
-  if (values.length > 0) for (const term of active) touch(term.termId);
+  if (changesData) for (const term of active) touch(term.termId);
   for (const termId of cancelled) touch(termId).proposed = 'cancelled';
   for (const move of moves) {
     touch(move.fromTermId).proposed = 'cancelled';
@@ -280,7 +302,7 @@ export const planChange = (
   }
 
   const affected = [
-    ...(values.length > 0 ? active : []),
+    ...(changesData ? active : []),
     ...[...cancelled].map((id) => own.get(id) as RegistrationTermResult),
     ...moves.flatMap((move) => [
       own.get(move.fromTermId) as RegistrationTermResult,
@@ -290,7 +312,7 @@ export const planChange = (
 
   const releasedAll = after.every((term) => term.status === 'cancelled');
   const kinds: ChangeKind[] = [];
-  if (values.length > 0) kinds.push('data');
+  if (changesData) kinds.push('data');
   if (moves.length > 0) kinds.push('move');
   if (cancelled.size > 0)
     kinds.push(releasedAll ? 'cancel_all' : 'cancel_terms');
@@ -301,6 +323,7 @@ export const planChange = (
     requiresApproval: requiresApproval(approvalDays, affected, now),
     summary: {
       values,
+      needs,
       terms: [...planned.values()].sort(
         (a, b) =>
           a.startDate.localeCompare(b.startDate) ||
@@ -312,12 +335,15 @@ export const planChange = (
   };
 };
 
-export type ChangedFields = Partial<Pick<ChangeSubject, ChangeableField>>;
+export type ChangedFields = Partial<Pick<ChangeSubject, ChangeableField>> &
+  Partial<RegistrationNeeds>;
 
-/** The names, phone and gender answer after the change; used when applying it. */
+/** The names, phone, gender answer and needs after the change; used when applying it. */
 export const changedFields = (
-  summary: Pick<ChangeSummary, 'values'>,
-): ChangedFields =>
-  Object.fromEntries(
+  summary: Pick<ChangeSummary, 'values' | 'needs'>,
+): ChangedFields => ({
+  ...(Object.fromEntries(
     summary.values.map((value) => [value.field, value.proposed]),
-  ) as ChangedFields;
+  ) as Partial<Pick<ChangeSubject, ChangeableField>>),
+  ...summary.needs?.proposed,
+});

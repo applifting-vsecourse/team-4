@@ -17,26 +17,32 @@ export function MissingTermNotice({ organizationId, event }: MissingTermNoticePr
   if (event.terms.length > 0) return null
 
   return (
-    <Alert className="mb-6">
+    <Alert className={event.isLocked ? "mb-6" : "mb-6 items-center [&>svg]:translate-y-0"}>
       {event.isLocked ? <Lock /> : <CalendarPlus />}
       <AlertDescription>
-        <p>Tato akce zatím nemá žádný termín.</p>
-        {event.isLocked ? (
-          <p>Od otevření přihlašování jsou termíny zamčené, nový termín už nelze přidat.</p>
-        ) : (
-          <TermDialog
-            organizationId={organizationId}
-            eventId={event.id}
-            trigger={
-              <Button
-                size="sm"
-                className="mt-2"
-              >
-                Přidat termín
-              </Button>
-            }
-          />
-        )}
+        <div
+          className={
+            event.isLocked ? "grid gap-1" : "flex w-full items-center justify-between gap-4"
+          }
+        >
+          <p>Tato akce zatím nemá žádný termín.</p>
+          {event.isLocked ? (
+            <p>Od otevření přihlašování jsou termíny zamčené, nový termín už nelze přidat.</p>
+          ) : (
+            <TermDialog
+              organizationId={organizationId}
+              eventId={event.id}
+              trigger={
+                <Button
+                  size="sm"
+                  className="shrink-0"
+                >
+                  Přidat termín
+                </Button>
+              }
+            />
+          )}
+        </div>
       </AlertDescription>
     </Alert>
   )
