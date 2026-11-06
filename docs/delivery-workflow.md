@@ -132,6 +132,12 @@ QA; a previously tested commit cannot approve a replacement commit. A new commit
 after QA returns the issue to Code Review without requiring another PM approval
 if the issue scope is unchanged.
 
+Stacked PRs targeting a feature branch wait until their prerequisite merges and
+are then retargeted to main. They do not prevent linked PRs already targeting
+main from receiving independent review and their own current-commit QA handoff.
+While stacked PRs remain, the overall issue stays in Ready for Code Review.
+All existing requirements, CI, technical approval and QA gates still apply.
+
 Review each PR against its declared slice, using the linked issue for context. The PR title and `What`/`Why` sections define what that PR claims to deliver. `Refs #N` means partial work, so omitted criteria from the broader issue are not blockers unless the PR claims to implement them or its changes concretely break them. `Closes #N` claims the full issue is complete. A design preview may intentionally use fixtures and inert controls when its description says persistence and backend integration come later; review whether the preview itself is correct and whether it causes concrete regressions. Flag unclear or conflicting scope as a note for clarification rather than silently imposing the full issue scope on every linked PR.
 
 Matej (`MatejKrones`) tests the exact commit in the testing handoff, then submits

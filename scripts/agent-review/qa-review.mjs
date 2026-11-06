@@ -55,7 +55,7 @@ export async function ensureQaReviewRequest({
     return 'dry-run';
   }
   // A failed handoff write must not turn into a premature request. The caller
-  // reaches here only after all linked PRs have passed the final scope/head check.
+  // reaches here only after eligible main-target PRs pass the final scope/head check.
   if (
     !comments.some(
       (c) =>
