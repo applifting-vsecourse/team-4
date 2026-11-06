@@ -124,7 +124,7 @@ export function IllustratedSections() {
               key={title}
               className="flex items-start gap-3"
             >
-              <span className="mt-0.5 rounded-md border-2 border-foreground bg-primary p-2 text-primary-foreground">
+              <span className="mt-0.5 rounded-md border-2 border-primary-foreground bg-primary p-2 text-primary-foreground">
                 <Icon
                   aria-hidden
                   className="size-5"

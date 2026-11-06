@@ -265,7 +265,7 @@ export function LandingPage({ catalogPreview }: { catalogPreview: ReactNode }) {
 
               <article
                 aria-labelledby="pro-ucastniky"
-                className="flex flex-col gap-7 rounded-xl border-2 border-foreground bg-card p-6 md:col-span-5 md:p-8"
+                className="flex flex-col gap-7 rounded-xl border-2 border-input bg-card p-6 md:col-span-5 md:p-8"
               >
                 <p className={cn(LABEL, "text-muted-foreground")}>Pro účastníky</p>
                 <h3

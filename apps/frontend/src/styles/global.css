@@ -164,7 +164,9 @@
   --warning: #fb923c;
   --warning-subtle: #431407;
   --border: oklch(0.4 0.03 60);
-  --input: oklch(0.955 0.035 95);
+  /* Ticket outlines are toned down in the dark: full paper would outshine the text. Still 3:1+
+     against every surface, so control boundaries stay visible. */
+  --input: oklch(0.58 0.03 75);
   --ring: oklch(0.72 0.16 40);
   --sidebar: var(--background);
   --sidebar-foreground: var(--foreground);
@@ -175,6 +177,15 @@
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
   --overlay: rgb(0 0 0 / 0.6);
+  /* Hard shadows stay darker than every surface, so they read as shadows, not a paper glow. */
+  --shadow-2xs: 1px 1px 0 0 oklch(0.08 0.02 60);
+  --shadow-xs: 1px 1px 0 0 oklch(0.08 0.02 60);
+  --shadow-sm: 2px 2px 0 0 oklch(0.08 0.02 60);
+  --shadow: 2px 2px 0 0 oklch(0.08 0.02 60);
+  --shadow-md: 3px 3px 0 0 oklch(0.08 0.02 60);
+  --shadow-lg: 4px 4px 0 0 oklch(0.08 0.02 60);
+  --shadow-xl: 6px 6px 0 0 oklch(0.08 0.02 60);
+  --shadow-2xl: 8px 8px 0 0 oklch(0.08 0.02 60);
 }
 
 /* Ticket stub shape (S3-T2). Unlayered on purpose: the ink outline and hard shadow belong to the
@@ -187,15 +198,19 @@
   [aria-invalid="true"]
 ) {
   border-width: 1.5px;
-  border-color: var(--foreground);
+  border-color: var(--input);
+}
+/* Lime takes the ink of its own text, so the outline matches the hard shadow in both themes. */
+[data-slot="button"][data-variant="default"]:not([aria-invalid="true"]) {
+  border-color: var(--primary-foreground);
 }
 [data-slot="card"],
 [data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]) {
-  box-shadow: 2px 2px 0 0 var(--foreground);
+  box-shadow: var(--shadow-sm);
 }
 [data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]):active {
   transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 0 var(--foreground);
+  box-shadow: var(--shadow-xs);
 }
 [data-slot="table-head"] {
   font-weight: 700;
