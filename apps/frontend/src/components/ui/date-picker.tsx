@@ -88,7 +88,7 @@ function DatePicker({
           modifiers={{ marked }}
           modifiersClassNames={{
             marked:
-              "[&>button]:bg-destructive-subtle [&>button]:text-destructive-subtle-foreground [&>button]:underline [&>button]:decoration-dotted",
+              "[&:not([data-selected=true])>button]:bg-destructive-subtle [&:not([data-selected=true])>button]:text-destructive-subtle-foreground [&>button]:underline [&>button]:decoration-dotted",
           }}
           onSelect={(date) => {
             onChange(date ? format(date, CALENDAR_DATE) : "")

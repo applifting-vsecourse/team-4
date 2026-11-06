@@ -63,29 +63,29 @@ export function ChangeApprovalSettings({
         aria-labelledby="change-approval-heading"
         className="space-y-4"
       >
-        <CollapsibleTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-auto w-full justify-between text-left whitespace-normal"
-          >
-            <span>
-              <h3
-                id="change-approval-heading"
-                className="text-base font-semibold"
-              >
+        <h3
+          id="change-approval-heading"
+          className="text-base font-semibold"
+        >
+          <CollapsibleTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-auto w-full justify-between text-left whitespace-normal"
+            >
+              <span>
                 Schvalování změn přihlášek
-              </h3>
-              <span className="block text-sm font-normal text-muted-foreground">
-                Od kolika dní před začátkem termínu schvalujete změny přihlášek.
+                <span className="block text-sm font-normal text-muted-foreground">
+                  Od kolika dní před začátkem termínu schvalujete změny přihlášek.
+                </span>
               </span>
-            </span>
-            <ChevronDown
-              aria-hidden
-              className={isOpen ? "rotate-180" : undefined}
-            />
-          </Button>
-        </CollapsibleTrigger>
+              <ChevronDown
+                aria-hidden
+                className={isOpen ? "rotate-180" : undefined}
+              />
+            </Button>
+          </CollapsibleTrigger>
+        </h3>
 
         <CollapsibleContent>
           <div className="space-y-4">

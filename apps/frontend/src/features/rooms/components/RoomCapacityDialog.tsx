@@ -278,7 +278,11 @@ function TermSettingFields({
               onFocus={(event) => event.target.select()}
               aria-invalid={term.bedsError ? true : undefined}
               onChange={(event) =>
-                onChange({ beds: event.target.value, bedsError: undefined, isBedsCustom: true })
+                onChange({
+                  beds: event.target.value,
+                  bedsError: undefined,
+                  isBedsCustom: event.target.value.trim() !== "",
+                })
               }
             />
             {term.bedsError ? <FieldError>{term.bedsError}</FieldError> : null}
