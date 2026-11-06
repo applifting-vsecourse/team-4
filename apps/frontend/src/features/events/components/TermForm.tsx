@@ -63,7 +63,8 @@ type TermFormProps = {
   onSubmit: (input: TermInput) => void | Promise<void>
 }
 
-const OCCUPIED_LEGEND = "Červeně: dny, které už patří jinému termínu."
+// Names every reason a day is marked, e.g. "Červeně: obsazené jiným termínem, před začátkem termínu".
+const legend = (reasons: (string | null)[]) => `Červeně: ${reasons.filter(Boolean).join(", ")}`
 
 // Adding and editing a term share this form. It has no capacity input:
 // capacity comes from rooms and beds (S2-05).
@@ -80,6 +81,9 @@ export function TermForm({
     defaultValues: initialValues,
   })
   const { setError } = form
+  const [startDate, endDate] = form.watch(["startDate", "endDate"])
+  const hasOccupied = (occupiedRanges?.length ?? 0) > 0
+  const taken = hasOccupied ? "obsazené jiným termínem" : null
 
   useEffect(() => {
     if (fieldError) {
@@ -141,7 +145,8 @@ export function TermForm({
                     disabled={field.disabled}
                     ref={field.ref}
                     markedRanges={occupiedRanges}
-                    markedLegend={OCCUPIED_LEGEND}
+                    markedAfter={endDate || undefined}
+                    markedLegend={legend([taken, endDate ? "po konci termínu" : null])}
                   />
                 </FormControl>
                 <FormMessage />
@@ -162,7 +167,8 @@ export function TermForm({
                     disabled={field.disabled}
                     ref={field.ref}
                     markedRanges={occupiedRanges}
-                    markedLegend={OCCUPIED_LEGEND}
+                    markedBefore={startDate || undefined}
+                    markedLegend={legend([taken, startDate ? "před začátkem termínu" : null])}
                   />
                 </FormControl>
                 <FormMessage />

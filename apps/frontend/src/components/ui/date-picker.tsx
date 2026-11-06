@@ -28,6 +28,10 @@ type DatePickerProps = Omit<React.ComponentProps<typeof Button>, "value" | "onCh
   placeholder?: string
   /** Days marked as taken (`yyyy-MM-dd`, both ends included); they stay selectable. */
   markedRanges?: { from: string; to: string }[]
+  /** Days before this date are marked too (`yyyy-MM-dd`), e.g. before a term's start. */
+  markedBefore?: string
+  /** Days after this date are marked too (`yyyy-MM-dd`), e.g. after a term's end. */
+  markedAfter?: string
   /** Explains the marked days under the calendar. */
   markedLegend?: string
 }
@@ -42,16 +46,24 @@ function DatePicker({
   placeholder = "Vyberte datum",
   markedRanges = [],
   markedLegend,
+  markedBefore,
+  markedAfter,
   className,
   ...props
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
   const selected = value ? toDate(value) : undefined
-  const marked = markedRanges.flatMap(({ from, to }) => {
-    const start = toDate(from)
-    const end = toDate(to)
-    return start && end ? [{ from: start, to: end }] : []
-  })
+  const before = markedBefore ? toDate(markedBefore) : undefined
+  const after = markedAfter ? toDate(markedAfter) : undefined
+  const marked = [
+    ...markedRanges.flatMap(({ from, to }) => {
+      const start = toDate(from)
+      const end = toDate(to)
+      return start && end ? [{ from: start, to: end }] : []
+    }),
+    ...(before ? [{ before }] : []),
+    ...(after ? [{ after }] : []),
+  ]
 
   return (
     <Popover
@@ -96,10 +108,10 @@ function DatePicker({
           }}
         />
         {marked.length > 0 && markedLegend ? (
-          <p className="flex items-center gap-2 border-t px-3 py-2 text-xs text-muted-foreground">
+          <p className="flex w-0 min-w-full items-start gap-2 border-t px-3 py-2 text-xs text-muted-foreground">
             <span
               aria-hidden
-              className="size-2.5 shrink-0 rounded-sm bg-destructive-subtle ring-1 ring-destructive-subtle-foreground"
+              className="mt-0.5 size-2.5 shrink-0 rounded-sm bg-destructive-subtle ring-1 ring-destructive-subtle-foreground"
             />
             {markedLegend}
           </p>
