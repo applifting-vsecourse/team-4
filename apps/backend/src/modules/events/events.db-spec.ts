@@ -720,6 +720,11 @@ describe('opening registration', () => {
     'refuses to open when %s is missing or invalid, checked by the server',
     async (blocker, change) => {
       const { ownerId, path, eventId } = await readyEvent();
+      // The readyEvent term is free, which needs no payment settings (S3-C04).
+      await prisma.eventTerm.updateMany({
+        where: { eventId },
+        data: { priceMinor: 100 },
+      });
       await prisma.event.update({ where: { id: eventId }, data: change });
 
       const refused = await call(ownerId, 'POST', `${path}/open-registration`);
@@ -731,6 +736,31 @@ describe('opening registration', () => {
       ).toBe('draft');
     },
   );
+
+  it('opens a free event without payment settings (S3-C04)', async () => {
+    const { ownerId, path } = await draftEvent();
+    await call(ownerId, 'POST', `${path}/terms`, { ...FIRST, priceMinor: 0 });
+    expect((await call(ownerId, 'GET', path)).body.openingBlockers).toEqual([]);
+
+    const opened = await call(ownerId, 'POST', `${path}/open-registration`);
+    expect(opened.status).toBe(200);
+    expect(opened.body.status).toBe('open');
+  });
+
+  it('requires payment settings once one term is paid (S3-C04)', async () => {
+    const { ownerId, path } = await draftEvent();
+    await call(ownerId, 'POST', `${path}/terms`, { ...FIRST, priceMinor: 0 });
+    await call(ownerId, 'POST', `${path}/terms`, {
+      label: '2. turnus',
+      startDate: '2027-08-01',
+      endDate: '2027-08-07',
+      priceMinor: 100,
+    });
+
+    const refused = await call(ownerId, 'POST', `${path}/open-registration`);
+    expect(refused.status).toBe(409);
+    expect(refused.body.blockers).toEqual(['paymentSettings']);
+  });
 
   it('opens an event without rooms and with a free term, and keeps it open', async () => {
     const { ownerId, path, eventId } = await readyEvent();
@@ -807,8 +837,13 @@ describe('opening registration', () => {
     [
       'its payment settings are cleared',
       'paymentSettings',
-      (tx: Prisma.TransactionClient, eventId: string): Promise<unknown> =>
-        tx.event.update({
+      async (tx: Prisma.TransactionClient, eventId: string) => {
+        // Settings only matter while a term is paid (S3-C04).
+        await tx.eventTerm.updateMany({
+          where: { eventId },
+          data: { priceMinor: 100 },
+        });
+        await tx.event.update({
           where: { id: eventId },
           data: {
             bankAccountPrefix: null,
@@ -816,7 +851,8 @@ describe('opening registration', () => {
             bankCode: null,
             paymentReminderDays: null,
           },
-        }),
+        });
+      },
     ],
   ])(
     'waits for a concurrent change and refuses when %s meanwhile',

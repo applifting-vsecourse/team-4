@@ -21,3 +21,11 @@ export function toCatalogEventItem(item: CatalogItem): CatalogEventItem {
     imageUrl: item.coverPhotoId ? catalogPhotoUrl(item.publicId, item.coverPhotoId) : null,
   }
 }
+
+/** How many catalog events the landing page previews. */
+export const CATALOG_PREVIEW_SIZE = 3
+
+/** The landing preview: the soonest events, as the API orders them. */
+export function toCatalogPreview(items: CatalogItem[]): CatalogEventItem[] {
+  return items.slice(0, CATALOG_PREVIEW_SIZE).map(toCatalogEventItem)
+}
