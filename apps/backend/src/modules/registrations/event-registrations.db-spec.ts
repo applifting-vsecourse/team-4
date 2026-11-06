@@ -9,6 +9,7 @@ import {
 import { EventRegistrationsController } from '@/modules/registrations/controllers/event-registrations.controller';
 import { EventRegistrationsRepository } from '@/modules/registrations/repositories/event-registrations.repository';
 import { EventRegistrationsService } from '@/modules/registrations/services/event-registrations.service';
+import { Mailbox, updateProviders } from '@/testing/confirmation-mail';
 import {
   CreatedEvent,
   createEvent,
@@ -18,6 +19,12 @@ import {
 } from '@/testing/factories';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+
+// react-email's renderer cannot load under jest (see `render-markup.ts`).
+jest.mock('@/core/email/render', () => ({
+  renderEmail: (_template: unknown, props: object): Promise<string> =>
+    Promise.resolve(JSON.stringify(props)),
+}));
 
 // S2-11 through the HTTP API against a real database: the list of one event's
 // registrations, its combined filters, the detail with payments and balance,
@@ -55,7 +62,11 @@ beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({
     imports: [PrismaModule],
     controllers: [EventRegistrationsController],
-    providers: [EventRegistrationsService, EventRegistrationsRepository],
+    providers: [
+      EventRegistrationsService,
+      EventRegistrationsRepository,
+      ...updateProviders(new Mailbox()),
+    ],
   }).compile();
   app = moduleRef.createNestApplication();
   await app.listen(0);

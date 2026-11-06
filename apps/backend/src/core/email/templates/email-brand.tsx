@@ -7,12 +7,19 @@ import { Column, Img, Row, Section, Text } from 'react-email';
  * origin of the e-mail's own link. The wordmark stays readable when images are
  * blocked, so the icon has an empty alt.
  */
-export const EmailBrand = ({ url }: { url: string }): React.JSX.Element => (
+export const EmailBrand = ({
+  url,
+  logoSrc,
+}: {
+  url: string;
+  /** An inline image (`cid:`) when the message carries the icon itself. */
+  logoSrc?: string;
+}): React.JSX.Element => (
   <Section>
     <Row>
       <Column width={36} className="align-middle">
         <Img
-          src={`${new URL(url).origin}/apple-touch-icon.png`}
+          src={logoSrc ?? `${new URL(url).origin}/apple-touch-icon.png`}
           width={28}
           height={28}
           alt=""

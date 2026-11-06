@@ -5,6 +5,7 @@ import { Registration } from '@/generated/prisma/client';
 import { QrPaymentsController } from '@/modules/registrations/controllers/qr-payments.controller';
 import { QrPaymentsRepository } from '@/modules/registrations/repositories/qr-payments.repository';
 import { QrPaymentsService } from '@/modules/registrations/services/qr-payments.service';
+import { Mailbox, updateProviders } from '@/testing/confirmation-mail';
 import {
   createEvent,
   createOrganization,
@@ -13,6 +14,12 @@ import {
 } from '@/testing/factories';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+
+// react-email's renderer cannot load under jest (see `render-markup.ts`).
+jest.mock('@/core/email/render', () => ({
+  renderEmail: (_template: unknown, props: object): Promise<string> =>
+    Promise.resolve(JSON.stringify(props)),
+}));
 
 // F21-1 through the HTTP API against a real database: the public payment
 // page, full and partial payment, repeats, concurrent payments and the token
@@ -26,7 +33,11 @@ beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({
     imports: [PrismaModule],
     controllers: [QrPaymentsController],
-    providers: [QrPaymentsService, QrPaymentsRepository],
+    providers: [
+      QrPaymentsService,
+      QrPaymentsRepository,
+      ...updateProviders(new Mailbox()),
+    ],
   }).compile();
   app = moduleRef.createNestApplication();
   await app.listen(0);

@@ -2,6 +2,7 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import { toDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import { PaymentInput } from '@/modules/registrations/domain/payment';
+import { queueParticipantUpdate } from '@/modules/registrations/repositories/participant-update-queue';
 import { Injectable } from '@nestjs/common';
 
 export type StoredPayment = {
@@ -41,22 +42,31 @@ export class PaymentsRepository {
     return found !== null;
   }
 
-  /** Throws a unique violation when the key is already used. */
+  /** Saves the payment and queues its e-mail; throws a unique violation when the key is used. */
   async create(
     scope: EventScope,
     registrationId: string,
     input: PaymentInput,
     recordedById: string,
   ): Promise<void> {
-    await this.prisma.payment.create({
-      data: {
-        organizationId: scope.organizationId,
+    await this.prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.create({
+        data: {
+          organizationId: scope.organizationId,
+          registrationId,
+          submissionKey: input.submissionKey,
+          amountMinor: input.amountMinor,
+          receivedOn: toDate(input.receivedOn),
+          recordedById,
+        },
+        select: { id: true },
+      });
+      await queueParticipantUpdate(tx, {
         registrationId,
-        submissionKey: input.submissionKey,
-        amountMinor: input.amountMinor,
-        receivedOn: toDate(input.receivedOn),
-        recordedById,
-      },
+        reason: 'paymentRecorded',
+        dedupKey: `payment:${payment.id}`,
+        paymentId: payment.id,
+      });
     });
   }
 }

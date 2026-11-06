@@ -59,6 +59,7 @@
     "libphonenumber-js": "^1.13.15",
     "nodemailer": "^9.0.5",
     "prisma": "^7.9.1",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-email": "^6.9.2",

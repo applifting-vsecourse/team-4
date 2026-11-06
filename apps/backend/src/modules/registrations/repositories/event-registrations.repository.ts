@@ -15,6 +15,7 @@ import {
   RegistrationNeeds,
   sameNeeds,
 } from '@/modules/registrations/domain/registration-needs';
+import { queueParticipantUpdate } from '@/modules/registrations/repositories/participant-update-queue';
 import { Injectable } from '@nestjs/common';
 
 const registrationSelect = {
@@ -199,6 +200,11 @@ export class EventRegistrationsRepository {
         data: { ...normalizeNeeds(needs), version: { increment: 1 } },
         select: detailSelect,
       });
+      await queueParticipantUpdate(tx, {
+        registrationId,
+        reason: 'organizerChange',
+        dedupKey: `organizer:${registrationId}:${updated.version}`,
+      });
       return { kind: 'corrected', registration: toDetail(updated) };
     });
   }
@@ -233,9 +239,15 @@ export class EventRegistrationsRepository {
         locked.gender !== answer.gender ||
         locked.genderOther !== answer.genderOther
       ) {
-        await tx.registration.update({
+        const updated = await tx.registration.update({
           where: { id: registrationId },
           data: { ...answer, version: { increment: 1 } },
+          select: { version: true },
+        });
+        await queueParticipantUpdate(tx, {
+          registrationId,
+          reason: 'organizerChange',
+          dedupKey: `organizer:${registrationId}:${updated.version}`,
         });
       }
       return 'updated';

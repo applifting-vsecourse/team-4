@@ -516,12 +516,16 @@ model Payment {
 enum EmailType {
   registration_confirmation
   participant_magic_link
+  // A saved change, decision or payment of a registration (F45-1).
+  participant_update
 
   @@map("email_type")
 }
 
 enum EmailDeliveryStatus {
   pending
+  // Claimed for sending; a message stuck here was lost mid-send and is not retried.
+  sending
   accepted
   failed
 
@@ -536,6 +540,11 @@ model EmailDelivery {
   registrationId       String?             @db.Uuid
   participantAccountId String?             @db.Uuid
   providerMessageId    String?             @db.VarChar(100)
+  // participant_update only: what the saved event looked like, written in the
+  // event's own transaction so the message never reflects a later state.
+  payload              Json?
+  // participant_update only: one saved event gives one message (unique).
+  dedupKey             String?             @unique @db.VarChar(120)
   errorMessage         String?             @db.VarChar(1000) // sanitized, never contains tokens
   createdAt            DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt            DateTime            @updatedAt @db.Timestamptz(3)

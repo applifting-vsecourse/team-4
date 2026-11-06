@@ -7,6 +7,7 @@ import { todayInPrague } from '@/modules/registrations/domain/payment';
 import { EventRegistrationsRepository } from '@/modules/registrations/repositories/event-registrations.repository';
 import { PaymentsRepository } from '@/modules/registrations/repositories/payments.repository';
 import { PaymentsService } from '@/modules/registrations/services/payments.service';
+import { Mailbox, updateProviders } from '@/testing/confirmation-mail';
 import {
   createEvent,
   createOrganization,
@@ -14,6 +15,12 @@ import {
 } from '@/testing/factories';
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+
+// react-email's renderer cannot load under jest (see `render-markup.ts`).
+jest.mock('@/core/email/render', () => ({
+  renderEmail: (_template: unknown, props: object): Promise<string> =>
+    Promise.resolve(JSON.stringify(props)),
+}));
 
 // S2-12 through the HTTP API against a real database: recording a payment,
 // the recomputed balance, validation, protection against repeats and access.
@@ -51,6 +58,7 @@ beforeAll(async () => {
       PaymentsService,
       PaymentsRepository,
       EventRegistrationsRepository,
+      ...updateProviders(new Mailbox()),
     ],
   }).compile();
   app = moduleRef.createNestApplication();

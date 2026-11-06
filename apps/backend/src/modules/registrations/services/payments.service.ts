@@ -7,6 +7,7 @@ import {
 } from '@/modules/registrations/domain/payment';
 import { EventRegistrationsRepository } from '@/modules/registrations/repositories/event-registrations.repository';
 import { PaymentsRepository } from '@/modules/registrations/repositories/payments.repository';
+import { ParticipantUpdateService } from '@/modules/registrations/services/participant-update.service';
 import { isUniqueViolation } from '@/modules/rooms/repositories/rooms.repository';
 import {
   BadRequestException,
@@ -45,6 +46,7 @@ export class PaymentsService {
   constructor(
     private readonly payments: PaymentsRepository,
     private readonly registrations: EventRegistrationsRepository,
+    private readonly updates: ParticipantUpdateService,
   ) {}
 
   /**
@@ -75,6 +77,9 @@ export class PaymentsService {
         created = false;
       }
     }
+
+    // The e-mail was queued with the payment; a repeat queues nothing new.
+    this.updates.dispatch(registrationId);
 
     // Read back from the database, never an optimistic result.
     const registration = await this.registrations.findOne(

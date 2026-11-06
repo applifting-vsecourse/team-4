@@ -5,6 +5,19 @@ export type SendResult = {
   messageId: string | null;
 };
 
+/** An image shown inside the message, referenced from the HTML as `cid:<cid>`. */
+export type InlineImage = {
+  cid: string;
+  filename: string;
+  contentType: string;
+  content: Buffer;
+};
+
 export interface EmailService {
-  sendEmail(to: string, subject: string, html: string): Promise<SendResult>;
+  sendEmail(
+    to: string,
+    subject: string,
+    html: string,
+    inlineImages?: InlineImage[],
+  ): Promise<SendResult>;
 }
