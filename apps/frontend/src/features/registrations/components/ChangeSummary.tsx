@@ -15,7 +15,7 @@ import { ParticipationBadge } from "@/features/registrations/components/Particip
 /** A term's participation before or after the change; "cancelled" once released. */
 export type TermState = "confirmed" | "waitlisted" | "cancelled"
 
-/** A personal or contact value the change replaces. */
+/** A personal or contact value, or a part of the needs (F63), the change replaces. */
 export type ChangedValue = { label: string; original: string; proposed: string }
 
 /** A term the change touches; null on the side where the term is not part of the registration. */
@@ -57,9 +57,13 @@ export function ChangeSummary({ values = [], terms = [], money = [] }: ChangeSum
               <TableCell>
                 <span className="text-muted-foreground">{value.label}</span>
               </TableCell>
-              <TableCell>{value.original}</TableCell>
               <TableCell>
-                <span className="font-medium">{value.proposed}</span>
+                <span className="block wrap-break-word whitespace-pre-line">{value.original}</span>
+              </TableCell>
+              <TableCell>
+                <span className="block font-medium wrap-break-word whitespace-pre-line">
+                  {value.proposed}
+                </span>
               </TableCell>
             </TableRow>
           ))}

@@ -26,11 +26,14 @@ import { toE164 } from "@/lib/phone"
 import {
   genderOtherSchema,
   genderSchema,
+  NO_NEEDS,
   type SelectableTerm,
 } from "@/features/registrations/api/registrationSchemas"
 import { GenderField } from "@/features/registrations/components/GenderField"
 import { PhoneField } from "@/features/registrations/components/PhoneField"
+import { RegistrationNeedsFields } from "@/features/registrations/components/RegistrationNeedsFields"
 import { type RegistrationSubmitError } from "@/features/registrations/lib/registrationErrors"
+import { registrationNeedsFormSchema } from "@/features/registrations/lib/registrationNeeds"
 
 const PHONE_MESSAGE = "Zadejte platné telefonní číslo pro vybranou zemi, např. 777 123 456."
 
@@ -61,6 +64,7 @@ const schema = z.object({
   gender: genderSchema.nullable(),
   /** Own words for "Jiná odpověď"; sent only beside it. */
   genderOther: genderOtherSchema,
+  needs: registrationNeedsFormSchema,
 })
 
 export type RegistrationFormValues = z.infer<typeof schema>
@@ -73,6 +77,7 @@ const EMPTY: RegistrationFormValues = {
   termIds: [],
   gender: null,
   genderOther: null,
+  needs: NO_NEEDS,
 }
 
 type RegistrationFormProps = {
@@ -86,7 +91,8 @@ type RegistrationFormProps = {
   onSubmit: (values: RegistrationFormValues) => void
 }
 
-// The fixed form of an adult participant (S2-07). Free beds,
+// The fixed form of an adult participant (S2-07), with the optional
+// transport, diet and health data for the whole registration (F63). Free beds,
 // occupancy and waitlisting are deliberately absent: the server decides each
 // term when saving (S2-08), and a full term can be selected like any other.
 export function RegistrationForm({
@@ -106,6 +112,7 @@ export function RegistrationForm({
   const selectedIds = useWatch({ control: form.control, name: "termIds" })
   const selected = terms.filter((term) => selectedIds.includes(term.id))
   const totalMinor = selected.reduce((sum, term) => sum + term.priceMinor, 0)
+  const needsErrors = form.formState.errors.needs
 
   const typed = useWatch({ control: form.control })
   useEffect(() => {
@@ -117,6 +124,8 @@ export function RegistrationForm({
       termIds: (typed.termIds ?? []).filter((id): id is string => typeof id === "string"),
       gender: typed.gender ?? null,
       genderOther: typed.genderOther ?? null,
+      // Complete, unlike the watched copy, which types every part as optional.
+      needs: form.getValues("needs"),
     })
   }, [typed, onValuesChange])
 
@@ -333,6 +342,26 @@ export function RegistrationForm({
             />
           )}
         />
+
+        <fieldset className="space-y-4">
+          <legend className="mb-4 text-h4">Doprava, strava a zdraví</legend>
+          <FormField
+            control={form.control}
+            name="needs"
+            render={({ field }) => (
+              <RegistrationNeedsFields
+                defaultValue={field.value}
+                onChange={field.onChange}
+                errors={{
+                  transportNote: needsErrors?.transportNote?.message,
+                  diet: needsErrors?.diet?.message,
+                  dietNote: needsErrors?.dietNote?.message,
+                  health: needsErrors?.health?.message,
+                }}
+              />
+            )}
+          />
+        </fieldset>
 
         {submitError ? <SubmitErrorAlert error={submitError} /> : null}
 

@@ -28,6 +28,7 @@ import { PaymentQrCard } from "@/features/registrations/components/PaymentQrCard
 import { RefreshButton } from "@/features/registrations/components/RefreshButton"
 import { RegistrationChangeActions } from "@/features/registrations/components/RegistrationChangeActions"
 import { RegistrationHistory } from "@/features/registrations/components/RegistrationHistory"
+import { RegistrationNeedsSummary } from "@/features/registrations/components/RegistrationNeedsSummary"
 import { RegistrationTermStates } from "@/features/registrations/components/RegistrationTermStates"
 import { SimulatedPaymentHistory } from "@/features/registrations/components/SimulatedPaymentHistory"
 import { useAcceptWaitlist } from "@/features/registrations/hooks/useRegistrationChange"
@@ -225,6 +226,7 @@ export function ParticipantRegistrationDetail({
             </CardContent>
           </Card>
 
+          <RegistrationNeedsSummary values={data.needs} />
           <AccommodationCard answer={data.contact} />
 
           {renderProgramme?.(data)}

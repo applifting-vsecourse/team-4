@@ -2,6 +2,7 @@ import {
   participantRegistrationSchema,
   type ParticipantRegistration,
 } from "@/features/registrations/api/participantRegistrationSchemas"
+import { NO_NEEDS } from "@/features/registrations/api/registrationSchemas"
 
 // Preview data for the participant's own registrations, parsed with the API
 // schema so it can't drift from the contract.
@@ -59,6 +60,14 @@ export const OWN_REGISTRATION: ParticipantRegistration = participantRegistration
     genderOther: null,
   },
   version: 0,
+  needs: {
+    transport: "shared",
+    transportNote: "Nastupujeme v Pardubicích u hlavního nádraží.",
+    hasNoDietRestriction: false,
+    diet: ["vegetarian", "lactose_free"],
+    dietNote: "Bez ořechů.",
+    health: "Astma, s sebou inhalátor.\nPři zátěži delší přestávky.",
+  },
   isCancelled: false,
   canChange: true,
 })
@@ -94,6 +103,7 @@ export const SETTLED_REGISTRATION: ParticipantRegistration = participantRegistra
     genderOther: null,
   },
   version: 0,
+  needs: NO_NEEDS,
   isCancelled: false,
   canChange: true,
 })

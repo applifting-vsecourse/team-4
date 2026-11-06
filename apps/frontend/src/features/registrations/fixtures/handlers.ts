@@ -1,7 +1,9 @@
 import { http, HttpResponse } from "msw"
+import { z } from "zod"
 
 import { env } from "@/config/env"
 
+import { registrationNeedsSchema } from "@/features/registrations/api/registrationSchemas"
 import {
   AVAILABLE_TERMS,
   OWN_REGISTRATIONS,
@@ -18,6 +20,11 @@ const EVENT_LIST = `${env.VITE_API_URL}/organizations/:organizationId/events/:ev
 const EVENT_CHANGES = `${env.VITE_API_URL}/organizations/:organizationId/events/:eventId`
 const OWN_LIST = `${env.VITE_API_URL}/participant/registrations`
 
+const registrationNeedsCorrectionSchema = z.object({
+  expectedVersion: z.number().int(),
+  needs: registrationNeedsSchema,
+})
+
 const notFound = () => HttpResponse.json({ message: "Not Found" }, { status: 404 })
 
 export const registrationHandlers = {
@@ -25,6 +32,12 @@ export const registrationHandlers = {
     http.get(EVENT_LIST, () => HttpResponse.json(makeRegistrationList())),
     http.get(`${EVENT_CHANGES}/change-requests`, () => HttpResponse.json({ changes: [] })),
     http.get(`${EVENT_LIST}/:registrationId/changes`, () => HttpResponse.json({ changes: [] })),
+    http.put(`${EVENT_LIST}/:registrationId/needs`, async ({ request }) => {
+      const { needs, expectedVersion } = registrationNeedsCorrectionSchema.parse(
+        await request.json(),
+      )
+      return HttpResponse.json(makeRegistrationDetail({ needs, version: expectedVersion + 1 }))
+    }),
     http.get(`${EVENT_LIST}/:registrationId`, () =>
       HttpResponse.json(
         makeRegistrationDetail({
