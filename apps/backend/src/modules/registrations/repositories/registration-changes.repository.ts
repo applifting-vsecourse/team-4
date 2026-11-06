@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import { answerChanged } from '@/modules/accommodation/repositories/determination-lapse';
 import { termInputsChanged } from '@/modules/accommodation/repositories/term-inputs';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
@@ -588,10 +589,12 @@ export class RegistrationChangesRepository {
       }
     }
     // A change never confirms a term (S3-01), so nothing new becomes due.
+    const fields = changedFields(plan.summary);
     await tx.registration.update({
       where: { id: snapshot.id },
-      data: { ...changedFields(plan.summary), version: { increment: 1 } },
+      data: { ...fields, version: { increment: 1 } },
     });
+    if (fields.gender !== undefined) await answerChanged(tx, snapshot.id);
     // The participation or the answer changed in every term it touched.
     await termInputsChanged(tx, snapshot.eventId, [
       ...new Set([

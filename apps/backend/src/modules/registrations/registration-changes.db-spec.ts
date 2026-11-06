@@ -803,6 +803,31 @@ describe('the gender answer', () => {
     expect(await version(registration)).toBe(2);
   });
 
+  it("cancels the organizer's determination of the accommodation (S3-01), keeping a name change from doing so", async () => {
+    const fixture = await setup(null);
+    const registration = await register(fixture, [1]);
+    const determined = (): Promise<number> =>
+      prisma.accommodationManualValue.count({
+        where: { registrationId: registration.id },
+      });
+    await prisma.accommodationManualValue.create({
+      data: {
+        registrationId: registration.id,
+        eventId: fixture.event.id,
+        value: 'female',
+        basedOnAnswer: null,
+        reason: 'Dohoda',
+        createdById: fixture.ownerId,
+      },
+    });
+
+    await submit(registration, { firstName: 'Nová' });
+    expect(await determined()).toBe(1);
+
+    await submit(registration, { gender: 'undisclosed' });
+    expect(await determined()).toBe(0);
+  });
+
   it('keeps the original answer until the organizer approves the change', async () => {
     const fixture = await setup(14);
     const registration = await register(fixture, [0, 1]);

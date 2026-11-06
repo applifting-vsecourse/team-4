@@ -1,4 +1,8 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import {
+  answerOf,
+  GENDER_ATTRIBUTE,
+} from '@/modules/accommodation/domain/determination';
 import { Injectable } from '@nestjs/common';
 
 /** Where participants' answers to the hard attribute come from. */
@@ -10,9 +14,6 @@ export abstract class HardAttributeAnswers {
     registrationIds: string[],
   ): Promise<Map<string, string | null>>;
 }
-
-/** The hard attribute answered by the F64 gender question (spec v4 §11). */
-export const GENDER_ATTRIBUTE = 'gender';
 
 /**
  * Answers stored on the registration. Only the gender question (F64) exists
@@ -36,6 +37,6 @@ export class RegistrationHardAttributeAnswers extends HardAttributeAnswers {
       where: { eventId, id: { in: registrationIds } },
       select: { id: true, gender: true },
     });
-    return new Map(rows.map((row) => [row.id, row.gender]));
+    return new Map(rows.map((row) => [row.id, answerOf(attribute, row)]));
   }
 }

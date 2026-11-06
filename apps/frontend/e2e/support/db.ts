@@ -113,3 +113,15 @@ export async function termIdOf(registrationId: string, label: string): Promise<s
   if (rows.length !== 1) throw new Error(`No term ${label} in registration ${registrationId}`)
   return rows[0]!.id
 }
+
+/**
+ * Stand-in for the accommodation rules (#17) until they can be edited: gender
+ * splits the rooms of the event, "Jiná odpověď" and "Nechci uvést" place nobody.
+ */
+export async function useGenderHardAttribute(eventId: string): Promise<void> {
+  await db().query(
+    `INSERT INTO accommodation_rules ("eventId", "hardAttribute", "nonDeterminingValues", "updatedAt")
+     VALUES ($1, 'gender', ARRAY['other', 'undisclosed'], now())`,
+    [eventId],
+  )
+}

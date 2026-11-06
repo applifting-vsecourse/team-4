@@ -1,7 +1,12 @@
 import {
-  Gender,
-  requiresManualAccommodation,
-} from '@/modules/registrations/domain/gender';
+  answerOf,
+  needsDetermination,
+} from '@/modules/accommodation/domain/determination';
+import {
+  HardAttribute,
+  ManualValue,
+} from '@/modules/accommodation/domain/effective-value';
+import { Gender } from '@/modules/registrations/domain/gender';
 import {
   amountDueMinor,
   ParticipationStatus,
@@ -57,6 +62,12 @@ export type RegistrationFilter = {
   payment?: PaymentState;
 };
 
+/** The event's hard attribute and the organizer's determination (S3-01). */
+export type AccommodationInputs = {
+  hardAttribute: HardAttribute | null;
+  manualValue: ManualValue | null;
+};
+
 /** A registration as its organizer sees it (S2-11), with the derived amounts. */
 export class ManagedRegistrationModel {
   constructor(
@@ -77,11 +88,20 @@ export class ManagedRegistrationModel {
     public readonly gender: Gender | null,
     /** The own words for `other`; null otherwise. */
     public readonly genderOther: string | null,
+    private readonly accommodation: AccommodationInputs,
   ) {}
 
-  /** The organizer decides the accommodation by hand (F64). */
+  /**
+   * The organizer decides the accommodation by hand (F64): only while a hard
+   * attribute applies and the participant has no effective value (S3-01).
+   */
   get requiresManualAccommodation(): boolean {
-    return requiresManualAccommodation(this.gender);
+    const hard = this.accommodation.hardAttribute;
+    return needsDetermination(
+      hard,
+      hard ? answerOf(hard.attribute, this) : null,
+      this.accommodation.manualValue,
+    );
   }
 
   get selectedPriceMinor(): number {

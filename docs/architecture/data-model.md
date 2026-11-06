@@ -440,9 +440,15 @@ current data; a run only proposes and never changes a participation, a debt or a
   change while it runs bumps the version, so the stored result is stale at once and the next
   evaluation waits until the running one is stored. One left running for 2 minutes is taken
   again.
-- **Writers.** Rules, determinations, orders and interventions are written by F14-1, F39-1
-  and the rules settings; until then they have no rows. Answers to the hard attribute come from
-  the registration: the F64 gender answer when the hard attribute is `gender`.
+- **Determination (S3-01).** The organizer determines a value only for an answer that does
+  not place the participant, with a reason, under the registration lock. The value is upserted
+  in `accommodation_manual_value`, an `accommodation_intervention` of kind `manual_value`
+  records the answer, the value before and after, and every term of the registration gets a
+  new input version. F64's "Ubytování je potřeba určit ručně" shows only while a hard
+  attribute applies and there is no effective value.
+- **Writers.** Rules, orders and position changes are written by F39-1 and the rules settings;
+  until then they have no rows. Answers to the hard attribute come from the registration: the
+  F64 gender answer when the hard attribute is `gender`.
 
 ## 4. Field reference
 

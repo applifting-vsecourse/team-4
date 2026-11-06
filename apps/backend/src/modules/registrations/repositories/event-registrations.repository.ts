@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import { answerChanged } from '@/modules/accommodation/repositories/determination-lapse';
 import { termInputsChanged } from '@/modules/accommodation/repositories/term-inputs';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
@@ -21,6 +22,15 @@ const registrationSelect = {
   genderOther: true,
   variableSymbol: true,
   paymentReminderAt: true,
+  // Whether the accommodation must be determined by hand (F64, S3-01).
+  event: {
+    select: {
+      accommodationRules: {
+        select: { hardAttribute: true, nonDeterminingValues: true },
+      },
+    },
+  },
+  accommodationManualValue: { select: { value: true, basedOnAnswer: true } },
   terms: {
     orderBy: [{ term: { startDate: 'asc' } }, { termId: 'asc' }],
     select: {
@@ -64,6 +74,16 @@ const toModel = (
     })),
     row.gender,
     row.genderOther,
+    {
+      hardAttribute: row.event.accommodationRules?.hardAttribute
+        ? {
+            attribute: row.event.accommodationRules.hardAttribute,
+            nonDeterminingValues:
+              row.event.accommodationRules.nonDeterminingValues,
+          }
+        : null,
+      manualValue: row.accommodationManualValue,
+    },
   );
 
 /** Registrations of the scope's event only, of an organization of the caller (§3.2). */
@@ -159,6 +179,9 @@ export class EventRegistrationsRepository {
           where: { id: registrationId },
           data: { ...answer, version: { increment: 1 } },
         });
+        if (locked.gender !== answer.gender) {
+          await answerChanged(tx, registrationId);
+        }
         // The answer is an input of every term of the registration.
         const terms = await tx.registrationTerm.findMany({
           where: { registrationId },

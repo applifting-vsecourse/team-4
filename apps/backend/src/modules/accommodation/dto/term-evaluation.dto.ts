@@ -1,3 +1,4 @@
+import { determiningValues } from '@/modules/accommodation/domain/determination';
 import {
   OrderedPerson,
   QueueView,
@@ -65,6 +66,12 @@ export class HardAttributeDto {
     description: 'Answers that do not determine a room; no answer never does.',
   })
   nonDeterminingValues!: string[];
+
+  @ApiProperty({
+    type: [String],
+    description: 'The values a room carries and the organizer may determine.',
+  })
+  determiningValues!: string[];
 }
 
 export class ProposalRunDto {
@@ -295,7 +302,10 @@ export class TermEvaluationDto {
     return {
       mode: evaluation.mode,
       term: evaluation.term,
-      hardAttribute: evaluation.hardAttribute,
+      hardAttribute: evaluation.hardAttribute && {
+        ...evaluation.hardAttribute,
+        determiningValues: determiningValues(evaluation.hardAttribute),
+      },
       hasRooms: evaluation.hasRooms,
       status: view.status,
       inputVersion: view.inputVersion,
@@ -540,6 +550,7 @@ export class RunEvidenceDto extends RunListItemDto {
         nonDeterminingValues: [
           ...input.rules.hardAttribute.nonDeterminingValues,
         ],
+        determiningValues: determiningValues(input.rules.hardAttribute),
       },
       rooms: input.rooms,
       confirmed: input.confirmed.map(person),
