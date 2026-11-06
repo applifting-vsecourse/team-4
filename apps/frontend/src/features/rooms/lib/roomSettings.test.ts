@@ -100,9 +100,9 @@ describe("toTermSettings", () => {
     const settings = toTermSettings([term("t1"), term("t2"), term("t3"), term("t4")], room)
     expect(settings.map((s) => [s.beds, s.extraBeds])).toEqual([
       ["4", "0"],
-      ["", ""],
+      ["", "0"],
       ["6", "2"],
-      ["", ""],
+      ["", "0"],
     ])
   })
 })

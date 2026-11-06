@@ -58,8 +58,12 @@ type TermFormProps = {
   errorMessage?: string | null
   /** Server-side rejection (overlap, dates) shown at its field. */
   fieldError?: TermFieldError | null
+  /** Days taken by the event's other terms, marked in the date pickers. */
+  occupiedRanges?: { from: string; to: string }[]
   onSubmit: (input: TermInput) => void | Promise<void>
 }
+
+const OCCUPIED_LEGEND = "Červeně: dny, které už patří jinému termínu."
 
 // Adding and editing a term share this form. It has no capacity input:
 // capacity comes from rooms and beds (S2-05).
@@ -68,6 +72,7 @@ export function TermForm({
   isLoading,
   errorMessage,
   fieldError,
+  occupiedRanges,
   onSubmit,
 }: TermFormProps) {
   const form = useForm<TermFormValues>({
@@ -135,6 +140,8 @@ export function TermForm({
                     onBlur={field.onBlur}
                     disabled={field.disabled}
                     ref={field.ref}
+                    markedRanges={occupiedRanges}
+                    markedLegend={OCCUPIED_LEGEND}
                   />
                 </FormControl>
                 <FormMessage />
@@ -154,6 +161,8 @@ export function TermForm({
                     onBlur={field.onBlur}
                     disabled={field.disabled}
                     ref={field.ref}
+                    markedRanges={occupiedRanges}
+                    markedLegend={OCCUPIED_LEGEND}
                   />
                 </FormControl>
                 <FormMessage />

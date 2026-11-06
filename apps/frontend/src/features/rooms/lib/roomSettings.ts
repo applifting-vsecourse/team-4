@@ -11,7 +11,7 @@ export function toTermSettings(terms: TermOccupancy[], room?: Room): RoomTermSet
   return terms.map((term) => {
     const saved = room?.terms.find((roomTerm) => roomTerm.termId === term.id)
     // A term the room was saved as unavailable in without any beds starts blank,
-    // so switching it on does not leave zeros to delete.
+    // so switching it on does not leave zeros to delete. Extra beds always start at 0.
     const isUnset = saved && !saved.isAvailable && saved.baseBeds === 0 && saved.extraBeds === 0
     return {
       termId: term.id,
@@ -19,7 +19,7 @@ export function toTermSettings(terms: TermOccupancy[], room?: Room): RoomTermSet
       dates: formatCalendarRange(term.startDate, term.endDate),
       isAvailable: saved?.isAvailable ?? true,
       beds: saved && !isUnset ? String(saved.baseBeds) : "",
-      extraBeds: saved && !isUnset ? String(saved.extraBeds) : "",
+      extraBeds: saved && !isUnset ? String(saved.extraBeds) : "0",
     }
   })
 }
