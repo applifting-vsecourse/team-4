@@ -1,11 +1,10 @@
-import { Link } from "@tanstack/react-router"
 import { CalendarPlus, Lock } from "lucide-react"
 
-import { ROUTES } from "@/app/routes"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 
 import { type EventDetail } from "@/features/events/api/eventSchemas"
+import { TermDialog } from "@/features/events/components/TermDialog"
 
 type MissingTermNoticeProps = {
   organizationId: string
@@ -18,27 +17,32 @@ export function MissingTermNotice({ organizationId, event }: MissingTermNoticePr
   if (event.terms.length > 0) return null
 
   return (
-    <Alert className="mb-6">
+    <Alert className={event.isLocked ? "mb-6" : "mb-6 items-center [&>svg]:translate-y-0"}>
       {event.isLocked ? <Lock /> : <CalendarPlus />}
       <AlertDescription>
-        <p>Tato akce zatím nemá žádný termín.</p>
-        {event.isLocked ? (
-          <p>Od otevření přihlašování jsou termíny zamčené, nový termín už nelze přidat.</p>
-        ) : (
-          <Button
-            asChild
-            size="sm"
-            className="mt-2"
-          >
-            <Link
-              to={ROUTES.eventSettings}
-              params={{ organizationId, eventId: event.id }}
-              hash="terms-heading"
-            >
-              Přidat termín
-            </Link>
-          </Button>
-        )}
+        <div
+          className={
+            event.isLocked ? "grid gap-1" : "flex w-full items-center justify-between gap-4"
+          }
+        >
+          <p>Tato akce zatím nemá žádný termín.</p>
+          {event.isLocked ? (
+            <p>Od otevření přihlašování jsou termíny zamčené, nový termín už nelze přidat.</p>
+          ) : (
+            <TermDialog
+              organizationId={organizationId}
+              eventId={event.id}
+              trigger={
+                <Button
+                  size="sm"
+                  className="shrink-0"
+                >
+                  Přidat termín
+                </Button>
+              }
+            />
+          )}
+        </div>
       </AlertDescription>
     </Alert>
   )

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+import { NO_NEEDS } from "@/features/registrations/api/registrationSchemas"
 import { clearDraft, readDraft, saveDraft } from "@/features/registrations/lib/registrationDraft"
 
 const DRAFT = {
@@ -10,6 +11,7 @@ const DRAFT = {
   termIds: ["t1", "t2"],
   gender: "other" as const,
   genderOther: "nebinární",
+  needs: { ...NO_NEEDS, transport: "shared" as const, diet: ["vegan" as const] },
 }
 
 afterEach(() => {

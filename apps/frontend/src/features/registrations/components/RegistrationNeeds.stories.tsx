@@ -12,37 +12,26 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-import {
-  RegistrationNeedsFields,
-  type RegistrationNeedsErrors,
-  type RegistrationNeedsValues,
-} from "@/features/registrations/components/RegistrationNeedsFields"
+import { NO_NEEDS, type RegistrationNeeds } from "@/features/registrations/api/registrationSchemas"
+import { RegistrationNeedsFields } from "@/features/registrations/components/RegistrationNeedsFields"
 import { RegistrationNeedsSummary } from "@/features/registrations/components/RegistrationNeedsSummary"
+import { type RegistrationNeedsErrors } from "@/features/registrations/lib/registrationNeeds"
 
 // F63 design preview: transport, diet and health data in a registration.
 // Static only: no router links, queries or API; every value below is hard-coded.
 
 const EVENT = "Víkendovky Modrá Hora – podzim 2026"
 
-const EMPTY: RegistrationNeedsValues = {
-  transport: null,
-  transportNote: "",
-  hasNoDietRestriction: false,
-  diet: [],
-  dietNote: "",
-  health: "",
-}
-
-const FILLED: RegistrationNeedsValues = {
+const FILLED: RegistrationNeeds = {
   transport: "shared",
   transportNote: "Nastupovali bychom v Pardubicích u hlavního nádraží.",
   hasNoDietRestriction: false,
-  diet: ["vegetarian", "lactoseFree"],
+  diet: ["vegetarian", "lactose_free"],
   dietNote: "Bez ořechů, syn je alergik.",
   health: "Astma, nosí s sebou inhalátor.\nPři zátěži potřebuje delší přestávky.",
 }
 
-const TOO_LONG: RegistrationNeedsValues = {
+const TOO_LONG: RegistrationNeeds = {
   ...FILLED,
   transportNote: "Nastupovali bychom v Pardubicích u hlavního nádraží a rádi bychom jeli spolu.",
   health: "Dlouhý text zdravotních omezení, který překračuje povolenou délku pole.",
@@ -127,7 +116,7 @@ const TERMS = [
 // terms, price, contact data and submit, with the F63 section added before
 // the submit. Static copy of PublicEventView and RegistrationForm, which stay
 // untouched until implementation.
-function FirstRegistrationPage({ values }: { values: RegistrationNeedsValues }) {
+function FirstRegistrationPage({ values }: { values: RegistrationNeeds }) {
   return (
     <PublicFrame>
       <article>
@@ -245,7 +234,7 @@ function FirstRegistrationPage({ values }: { values: RegistrationNeedsValues }) 
 
             <fieldset className="space-y-4">
               <legend className="mb-4 text-h4">Doprava, strava a zdraví</legend>
-              <RegistrationNeedsFields values={values} />
+              <RegistrationNeedsFields defaultValue={values} />
             </fieldset>
 
             <Button
@@ -265,7 +254,7 @@ function FirstRegistrationPage({ values }: { values: RegistrationNeedsValues }) 
 // Přihláška na akci, static: only the optional F63 section, save and cancel.
 // Contact data are not edited here.
 type RegistrationPageProps = {
-  values: RegistrationNeedsValues
+  values: RegistrationNeeds
   errors?: RegistrationNeedsErrors
   /** Saving failed: the error and a retry, all entered values kept. */
   errorMessage?: string
@@ -287,7 +276,7 @@ function RegistrationPage({ values, errors, errorMessage }: RegistrationPageProp
             </CardHeader>
             <CardContent>
               <RegistrationNeedsFields
-                values={values}
+                defaultValue={values}
                 errors={errors}
               />
             </CardContent>
@@ -363,5 +352,5 @@ export const SummaryFilled: Story = {
 /** Detail card without the values, e.g. an older registration: every part reads "Neuvedeno". */
 export const SummaryNotProvided: Story = {
   parameters: { layout: "padded" },
-  render: () => <RegistrationNeedsSummary values={EMPTY} />,
+  render: () => <RegistrationNeedsSummary values={NO_NEEDS} />,
 }

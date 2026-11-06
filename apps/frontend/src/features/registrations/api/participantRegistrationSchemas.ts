@@ -6,6 +6,7 @@ import {
   participationStatusSchema,
   paymentInstructionsSchema,
   receivedPaymentSchema,
+  registrationNeedsSchema,
 } from "@/features/registrations/api/registrationSchemas"
 
 // The signed-in participant's own registrations (S2-14). Amounts are derived
@@ -48,6 +49,8 @@ export const participantRegistrationSchema = z.object({
   }),
   /** Sent back as `expectedVersion` when changing the registration. */
   version: z.number().int(),
+  /** Transport, diet and health (F63). */
+  needs: registrationNeedsSchema,
   /** Every term released. */
   isCancelled: z.boolean(),
   /** Editing and cancelling are offered: not cancelled, no request waiting. */

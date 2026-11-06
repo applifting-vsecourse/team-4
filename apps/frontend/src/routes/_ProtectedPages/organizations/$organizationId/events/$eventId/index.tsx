@@ -1,8 +1,10 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, useRouter, type ErrorComponentProps } from "@tanstack/react-router"
+import { Plus } from "lucide-react"
 
 import { PageHeader } from "@/components/PageHeader"
 import { Seo } from "@/components/Seo"
+import { Button } from "@/components/ui/button"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
@@ -11,8 +13,10 @@ import { EventLoadError } from "@/features/events/components/EventLoadError"
 import { EventNavigation } from "@/features/events/components/EventNavigation"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { MissingTermNotice } from "@/features/events/components/MissingTermNotice"
+import { TermDialog } from "@/features/events/components/TermDialog"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
+import { EventOverviewSummary } from "@/features/registrations/components/EventOverviewSummary"
 
 // Management of one event: its details, terms (S2-04), rooms (S2-05) and payments (S2-09).
 export const Route = createFileRoute(
@@ -47,15 +51,38 @@ function EventPage() {
         title={event.name}
         badge={<EventStatusBadge status={event.status} />}
         description={event.location}
+        actions={
+          !event.isLocked && event.terms.length > 0 ? (
+            <TermDialog
+              organizationId={organizationId}
+              eventId={eventId}
+              trigger={
+                <Button variant="outline">
+                  <Plus />
+                  Přidat termín
+                </Button>
+              }
+            />
+          ) : null
+        }
       />
-      <MissingTermNotice
-        organizationId={organizationId}
-        event={event}
-      />
-      <EventNavigation
-        organizationId={organizationId}
-        eventId={eventId}
-      />
+      <div className="space-y-8">
+        <MissingTermNotice
+          organizationId={organizationId}
+          event={event}
+        />
+        {event.terms.length > 0 ? (
+          <EventOverviewSummary
+            organizationId={organizationId}
+            eventId={eventId}
+            terms={event.terms}
+          />
+        ) : null}
+        <EventNavigation
+          organizationId={organizationId}
+          eventId={eventId}
+        />
+      </div>
     </section>
   )
 }

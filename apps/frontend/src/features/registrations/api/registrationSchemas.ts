@@ -48,6 +48,37 @@ export type ReceivedPayment = z.infer<typeof receivedPaymentSchema>
 
 export type PaymentInstructions = z.infer<typeof paymentInstructionsSchema>
 
+export const transportChoiceSchema = z.enum(["own", "shared"])
+export const dietChoiceSchema = z.enum(["vegetarian", "vegan", "gluten_free", "lactose_free"])
+
+export type TransportChoice = z.infer<typeof transportChoiceSchema>
+export type DietChoice = z.infer<typeof dietChoiceSchema>
+
+/**
+ * Transport, diet and health (F63), once for the whole registration. Empty
+ * text and no choice mean "not provided", never an explicit "Bez omezení".
+ */
+export const registrationNeedsSchema = z.object({
+  transport: transportChoiceSchema.nullable(),
+  transportNote: z.string(),
+  /** Explicit "Bez omezení"; never together with a diet choice. */
+  hasNoDietRestriction: z.boolean(),
+  diet: z.array(dietChoiceSchema),
+  dietNote: z.string(),
+  health: z.string(),
+})
+
+export type RegistrationNeeds = z.infer<typeof registrationNeedsSchema>
+
+export const NO_NEEDS: RegistrationNeeds = {
+  transport: null,
+  transportNote: "",
+  hasNoDietRestriction: false,
+  diet: [],
+  dietNote: "",
+  health: "",
+}
+
 // The stored outcome of the registration just submitted (S2-08). Nothing of
 // other registrations, and no capacity.
 export const registrationResultSchema = z.object({
@@ -97,6 +128,7 @@ export type RegistrationInput = {
   email: string
   phone: string
   termIds: string[]
+  needs: RegistrationNeeds
   /** Voluntary; null is "not answered". */
   gender: Gender | null
   /** Own words for `other` only; null when none. */

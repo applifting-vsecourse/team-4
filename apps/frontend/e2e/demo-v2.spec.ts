@@ -89,7 +89,7 @@ async function expectNoSidewaysScroll(page: Page) {
 
 test.afterAll(closeDb)
 
-test("demo V2: Sprint 2 from the landing page to the participant's own view", async ({
+test("demo V2: Sprint 2 from the landing page to the participant's own view @demo", async ({
   page,
   browser,
 }) => {
@@ -269,7 +269,15 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
 
   await scene(page, "Akce bez termínu napoví další krok", ["S2-17"], async () => {
     await expect(page.getByText("Tato akce zatím nemá žádný termín.")).toBeVisible()
-    await page.getByRole("link", { name: "Přidat termín" }).click()
+    await page.getByRole("button", { name: "Přidat termín" }).click()
+    const dialog = page.getByRole("dialog", { name: "Nový termín" })
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole("button", { name: "Zrušit" }).click()
+    await page
+      .getByRole("link", { name: "Nastavení", exact: true })
+      .filter({ visible: true })
+      .first()
+      .click()
     await expect(page.getByRole("heading", { name: "Termíny a ceny" })).toBeVisible()
     await expect(page.getByText("Zatím žádné termíny")).toBeVisible()
   })
@@ -502,15 +510,15 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
 
   await scene(
     visitor,
-    "Telefon vyžaduje mezinárodní předvolbu, mezery nevadí",
+    "Telefon musí být platný pro vybranou zemi, mezery nevadí",
     ["S2-07"],
     async () => {
       await termBox("Sobota").check()
       await termBox("Neděle").check()
-      await fillContact(jana, "777123456")
+      await fillContact(jana, "123")
       await submit()
       await expect(
-        visitor.getByText("Zadejte telefon s mezinárodní předvolbou, např. +420 777 123 456."),
+        visitor.getByText("Zadejte platné telefonní číslo pro vybranou zemi, např. 777 123 456."),
       ).toBeVisible()
       await expect(termBox("Neděle")).toBeChecked()
       await type(visitor.getByLabel("Telefon"), "+420 777 123 456")
