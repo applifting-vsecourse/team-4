@@ -36,6 +36,7 @@ export type UpdatePayment = {
   receivedMinor: number;
   /** Confirmed terms − payments: positive a debt, negative an overpayment. */
   balanceMinor: number;
+  /** Null for a free event; a debt always has it. */
   bank: {
     prefix: string | null;
     number: string;
@@ -43,7 +44,7 @@ export type UpdatePayment = {
     variableSymbol: string;
     /** Set once, from the first moment something was owed. */
     reminderAt: string | null;
-  };
+  } | null;
   /** Opens the payment page the QR code encodes; only while a debt remains. */
   paymentToken: string;
 };

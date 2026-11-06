@@ -262,7 +262,7 @@ const Payments = ({
           O naložení s přeplatkem se domluvte s organizátorem.
         </Text>
       ) : null}
-      {kind === 'debt' ? (
+      {kind === 'debt' && bank ? (
         <Section className="bg-gray-100 rounded-md p-4 mt-4">
           <Text className="text-base font-semibold text-gray-900 m-0 mb-2">
             Platební údaje

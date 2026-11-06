@@ -5,6 +5,7 @@ import {
   ParticipantUpdatePayload,
   ParticipantUpdateReason,
   UpdateChange,
+  UpdatePayment,
   UpdateTerm,
 } from '@/modules/registrations/domain/participant-update';
 import { normalizeEmail } from '@/modules/registrations/domain/registration';
@@ -147,6 +148,24 @@ export const queueParticipantUpdate = async (
   }
 
   const contactEmail = row.event.contactEmail;
+  // Free events have no account. Owing money without one is a defect: the
+  // event rolls back instead of sending a message without payment details.
+  const balanceMinor = dueMinor - receivedMinor;
+  let bank: UpdatePayment['bank'] = null;
+  if (row.bankAccountNumber !== null && row.bankCode !== null) {
+    bank = {
+      prefix: row.bankAccountPrefix,
+      number: row.bankAccountNumber,
+      bankCode: row.bankCode,
+      variableSymbol: row.variableSymbol,
+      reminderAt: row.paymentReminderAt?.toISOString() ?? null,
+    };
+  } else if (balanceMinor > 0) {
+    throw new Error(
+      `Registration ${input.registrationId} owes money but has no bank account`,
+    );
+  }
+
   const payload: ParticipantUpdatePayload = {
     reason: input.reason,
     eventName: row.event.name,
@@ -161,14 +180,8 @@ export const queueParticipantUpdate = async (
     payment: {
       recorded,
       receivedMinor,
-      balanceMinor: dueMinor - receivedMinor,
-      bank: {
-        prefix: row.bankAccountPrefix,
-        number: row.bankAccountNumber,
-        bankCode: row.bankCode,
-        variableSymbol: row.variableSymbol,
-        reminderAt: row.paymentReminderAt?.toISOString() ?? null,
-      },
+      balanceMinor,
+      bank,
       paymentToken: row.paymentToken,
     },
     hasMagicLink:
