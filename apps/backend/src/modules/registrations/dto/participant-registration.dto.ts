@@ -6,6 +6,7 @@ import {
 import { ParticipantRegistrationModel } from '@/modules/registrations/domain/participant-registration';
 import { EventTermInfo } from '@/modules/registrations/domain/registration-change';
 import { ReceivedPaymentDto } from '@/modules/registrations/dto/managed-registration.dto';
+import { RegistrationNeedsDto } from '@/modules/registrations/dto/registration-needs.dto';
 import {
   EventSummaryDto,
   PaymentInstructionsDto,
@@ -126,6 +127,9 @@ export class ParticipantRegistrationDto {
   })
   version!: number;
 
+  @ApiProperty({ type: RegistrationNeedsDto })
+  needs!: RegistrationNeedsDto;
+
   @ApiProperty({ description: 'Every term released (F35-2a).' })
   isCancelled!: boolean;
 
@@ -157,6 +161,7 @@ export class ParticipantRegistrationDto {
       payments: model.payments.map(ReceivedPaymentDto.from),
       contact: { ...model.contact },
       version: model.version,
+      needs: RegistrationNeedsDto.from(model.needs),
       isCancelled: model.isCancelled,
       canChange: model.canChange,
     };

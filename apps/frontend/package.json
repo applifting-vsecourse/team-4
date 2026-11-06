@@ -19,6 +19,7 @@
     "test:stories": "vitest run --project storybook",
     "pretest:stories": "playwright install chromium",
     "test:e2e": "playwright test",
+    "test:e2e:ci": "playwright test --grep-invert @demo",
     "test:e2e:ui": "playwright test --ui",
     "demo": "DEMO=1 playwright test e2e/money-path.spec.ts",
     "demo:autoplay": "DEMO=1 DEMO_PAUSE=0 DEMO_SLOWMO=700 playwright test e2e/money-path.spec.ts",

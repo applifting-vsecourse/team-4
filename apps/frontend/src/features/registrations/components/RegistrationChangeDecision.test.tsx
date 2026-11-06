@@ -107,6 +107,7 @@ describe("RegistrationChangeDecision", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Schválit" }))
 
     expect(await screen.findByText(/Žádost lze jen zamítnout/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Schválit" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "Zamítnout" })).toBeEnabled()
   })
 
