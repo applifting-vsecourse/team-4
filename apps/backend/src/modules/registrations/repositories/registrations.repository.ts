@@ -53,11 +53,13 @@ const toResult = (
       status: term.status,
     })),
     row.variableSymbol,
-    {
-      prefix: row.bankAccountPrefix,
-      number: row.bankAccountNumber,
-      bankCode: row.bankCode,
-    },
+    row.bankAccountNumber !== null && row.bankCode !== null
+      ? {
+          prefix: row.bankAccountPrefix,
+          number: row.bankAccountNumber,
+          bankCode: row.bankCode,
+        }
+      : null,
     row.paymentReminderAt,
     { name: row.event.name, location: row.event.location },
     row.paymentToken,
@@ -138,14 +140,10 @@ export class RegistrationsRepository {
         WHERE "publicId" = ${publicId} AND "status" = 'open'
         FOR SHARE`;
       if (!event) return { kind: 'event_unavailable' };
-      // Opening requires them (S2-06) and S2-09 keeps them valid afterwards.
-      if (
-        event.bankAccountNumber === null ||
-        event.bankCode === null ||
-        event.paymentReminderDays === null
-      ) {
-        throw new Error(`Open event ${event.id} has no payment settings`);
-      }
+      const hasPaymentSettings =
+        event.bankAccountNumber !== null &&
+        event.bankCode !== null &&
+        event.paymentReminderDays !== null;
 
       const locked = await tx.$queryRaw<{ id: string }[]>`
         SELECT "id" FROM "event_term"
@@ -160,6 +158,12 @@ export class RegistrationsRepository {
         where: { eventId: event.id, id: { in: input.termIds } },
         select: { id: true, priceMinor: true },
       });
+
+      // Opening requires settings for any paid term (S2-06, S3-C04) and S2-09
+      // keeps them valid; only an all-free event may have none.
+      if (!hasPaymentSettings && terms.some((term) => term.priceMinor > 0)) {
+        throw new Error(`Open event ${event.id} has no payment settings`);
+      }
 
       // ON CONFLICT DO NOTHING: a concurrent first registration of the same
       // e-mail elsewhere cannot fail this one.
@@ -187,10 +191,17 @@ export class RegistrationsRepository {
           ...(input.needs ? normalizeNeeds(input.needs) : {}),
           gender: input.gender ?? null,
           genderOther: input.genderOther ?? null,
-          bankAccountPrefix: event.bankAccountPrefix,
-          bankAccountNumber: event.bankAccountNumber,
-          bankCode: event.bankCode,
-          paymentReminderDays: event.paymentReminderDays,
+          // All or none, as the table requires (S3-C04).
+          bankAccountPrefix: hasPaymentSettings
+            ? event.bankAccountPrefix
+            : null,
+          bankAccountNumber: hasPaymentSettings
+            ? event.bankAccountNumber
+            : null,
+          bankCode: hasPaymentSettings ? event.bankCode : null,
+          paymentReminderDays: hasPaymentSettings
+            ? event.paymentReminderDays
+            : null,
         },
         select: { id: true },
       });

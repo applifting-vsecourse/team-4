@@ -29,3 +29,6 @@ yarn-error.log*
 /test-results
 /playwright-report
 /blob-report
+
+# TanStack Router generator scratch files
+/.tanstack

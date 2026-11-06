@@ -29,61 +29,79 @@ export function EventCatalogList({ events }: { events: CatalogEventItem[] }) {
           key={event.publicId}
           className="flex"
         >
-          <Card
-            padding="none"
-            className="relative flex-1"
-          >
-            <EventImage imageUrl={event.imageUrl} />
-            <div className="flex flex-1 flex-col gap-3 px-6 pb-6">
-              <div className="flex flex-col gap-1">
-                <h2 className="text-h4 break-words">
-                  {/* The link covers the whole card, so the image is clickable too. */}
-                  <Link
-                    to={ROUTES.publicEvent}
-                    params={{ publicId: event.publicId }}
-                    className="underline-offset-4 outline-none after:absolute after:inset-0 hover:underline focus-visible:underline"
-                  >
-                    {event.name}
-                  </Link>
-                </h2>
-                <p className="text-sm text-muted-foreground">{event.organizationName}</p>
-              </div>
-              <p className="flex items-center gap-1.5 text-sm">
-                <MapPin
-                  aria-hidden
-                  className="size-4 shrink-0 text-muted-foreground"
-                />
-                <span className="min-w-0 break-words">{event.location}</span>
-              </p>
-              {event.terms.length > 0 ? (
-                <div className="flex items-start gap-1.5 text-sm">
-                  <CalendarDays
-                    aria-hidden
-                    className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                  />
-                  {/* One term per line, so several terms stay easy to tell apart. */}
-                  <ul className="min-w-0 flex-1">
-                    {event.terms.map((term) => (
-                      <li
-                        key={term}
-                        className="break-words"
-                      >
-                        {term}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
-              {event.ageGroup ? (
-                <div className="mt-auto pt-1">
-                  <Badge variant="secondary">{event.ageGroup}</Badge>
-                </div>
-              ) : null}
-            </div>
-          </Card>
+          <EventCatalogCard event={event} />
         </li>
       ))}
     </ul>
+  )
+}
+
+/**
+ * One catalog card, linking to the public detail. Also used by the catalog
+ * preview on the landing page, where it sits under a section heading (`h3`).
+ */
+export function EventCatalogCard({
+  event,
+  headingLevel = "h2",
+}: {
+  event: CatalogEventItem
+  headingLevel?: "h2" | "h3"
+}) {
+  const Heading = headingLevel
+
+  return (
+    <Card
+      padding="none"
+      className="relative flex-1"
+    >
+      <EventImage imageUrl={event.imageUrl} />
+      <div className="flex flex-1 flex-col gap-3 px-6 pb-6">
+        <div className="flex flex-col gap-1">
+          <Heading className="text-h4 break-words">
+            {/* The link covers the whole card, so the image is clickable too. */}
+            <Link
+              to={ROUTES.publicEvent}
+              params={{ publicId: event.publicId }}
+              className="underline-offset-4 outline-none after:absolute after:inset-0 hover:underline focus-visible:underline"
+            >
+              {event.name}
+            </Link>
+          </Heading>
+          <p className="text-sm text-muted-foreground">{event.organizationName}</p>
+        </div>
+        <p className="flex items-center gap-1.5 text-sm">
+          <MapPin
+            aria-hidden
+            className="size-4 shrink-0 text-muted-foreground"
+          />
+          <span className="min-w-0 break-words">{event.location}</span>
+        </p>
+        {event.terms.length > 0 ? (
+          <div className="flex items-start gap-1.5 text-sm">
+            <CalendarDays
+              aria-hidden
+              className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+            />
+            {/* One term per line, so several terms stay easy to tell apart. */}
+            <ul className="min-w-0 flex-1">
+              {event.terms.map((term) => (
+                <li
+                  key={term}
+                  className="break-words"
+                >
+                  {term}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {event.ageGroup ? (
+          <div className="mt-auto pt-1">
+            <Badge variant="secondary">{event.ageGroup}</Badge>
+          </div>
+        ) : null}
+      </div>
+    </Card>
   )
 }
 

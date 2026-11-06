@@ -1,6 +1,10 @@
 import { z } from "zod"
 
-import { genderOtherSchema, genderSchema } from "@/features/registrations/api/registrationSchemas"
+import {
+  genderOtherSchema,
+  genderSchema,
+  registrationNeedsSchema,
+} from "@/features/registrations/api/registrationSchemas"
 
 // What a visitor typed into the registration form, kept for the browser tab
 // (F55): leaving for the event detail and coming back keeps the values.
@@ -15,6 +19,7 @@ const draftSchema = z.object({
   termIds: z.array(z.string()),
   gender: genderSchema.nullable(),
   genderOther: genderOtherSchema,
+  needs: registrationNeedsSchema,
 })
 
 export type RegistrationDraft = z.infer<typeof draftSchema>

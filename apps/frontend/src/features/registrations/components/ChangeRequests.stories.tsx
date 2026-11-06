@@ -41,6 +41,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { type RegistrationDetail as Detail } from "@/features/registrations/api/eventRegistrationSchemas"
+import { NO_NEEDS } from "@/features/registrations/api/registrationSchemas"
 import {
   ChangeRequestCard,
   type ChangeRequestCardProps,
@@ -121,6 +122,8 @@ const BASE: Omit<Detail, "terms"> = {
   paymentState: "paid",
   reminderAt: null,
   variableSymbol: "2026110412",
+  needs: NO_NEEDS,
+  version: 0,
   gender: "female",
   genderOther: null,
   requiresManualAccommodation: false,
