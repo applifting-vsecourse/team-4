@@ -1,4 +1,4 @@
-@import "@fontsource-variable/space-grotesk";
+@import "@fontsource-variable/bricolage-grotesque";
 @import "@fontsource-variable/geist-mono";
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
@@ -83,35 +83,36 @@
 }
 
 :root {
-  --font-sans: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
-  /* Colours: light theme */
-  --background: #f9fafb;
-  --foreground: #111827;
-  --card: #ffffff;
-  --card-foreground: #111827;
-  --popover: #ffffff;
-  --popover-foreground: #111827;
-  --primary: #bef264;
-  --primary-foreground: #111827;
-  --secondary: #f3f4f6;
-  --secondary-foreground: #111827;
-  --muted: #f3f4f6;
-  --muted-foreground: #6b7280;
-  --accent: #f3f4f6;
-  --accent-foreground: #111827;
-  --destructive: #dc2626;
+  /* Colours: light theme. "Ticket stub" (S3-T2): warm paper, ink outlines, lime action. */
+  --background: oklch(0.955 0.035 95);
+  /* Ink at 0.17 keeps the kit's 60 % ink text (inactive tabs) at AA on `muted`. */
+  --foreground: oklch(0.17 0.03 60);
+  --card: oklch(0.99 0.018 95);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.87 0.21 125);
+  --primary-foreground: var(--foreground);
+  --secondary: oklch(0.91 0.04 95);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.91 0.04 95);
+  --muted-foreground: oklch(0.42 0.04 60);
+  --accent: oklch(0.91 0.04 95);
+  --accent-foreground: var(--foreground);
+  --destructive: #b91c1c;
   --destructive-foreground: #ffffff;
   --destructive-subtle: #fef2f2;
   --destructive-subtle-foreground: #b91c1c;
-  --success: #15803d;
+  --success: #166534;
   --success-subtle: #f0fdf4;
   --warning: #c2410c;
   --warning-subtle: #fff7ed;
-  --border: #e5e7eb;
-  --input: #e5e7eb;
-  --ring: #2563eb;
+  --border: oklch(0.78 0.04 85);
+  --input: var(--foreground);
+  --ring: oklch(0.55 0.2 30);
   --chart-1: #3b82f6;
   --chart-2: #bef264;
   --chart-3: #4ade80;
@@ -119,39 +120,41 @@
   --chart-5: #6b7280;
   --sidebar: var(--background);
   --sidebar-foreground: var(--foreground);
-  --sidebar-primary: #e5e7eb;
+  --sidebar-primary: oklch(0.87 0.05 90);
   --sidebar-primary-foreground: var(--foreground);
   --sidebar-accent: var(--accent);
   --sidebar-accent-foreground: var(--accent-foreground);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
   --overlay: rgb(0 0 0 / 0.5);
-  --radius: 0.625rem;
-  --shadow-2xs: 0px 2px 10px 0px hsl(0 0% 0% / 0.05);
-  --shadow-xs: 0px 2px 10px 0px hsl(0 0% 0% / 0.05);
-  --shadow-sm: 0px 2px 10px 0px hsl(0 0% 0% / 0.1), 0px 1px 2px -1px hsl(0 0% 0% / 0.1);
-  --shadow: 0px 2px 10px 0px hsl(0 0% 0% / 0.1), 0px 1px 2px -1px hsl(0 0% 0% / 0.1);
-  --shadow-md: 0px 2px 10px 0px hsl(0 0% 0% / 0.1), 0px 2px 4px -1px hsl(0 0% 0% / 0.1);
-  --shadow-lg: 0px 2px 10px 0px hsl(0 0% 0% / 0.1), 0px 4px 6px -1px hsl(0 0% 0% / 0.1);
-  --shadow-xl: 0px 2px 10px 0px hsl(0 0% 0% / 0.1), 0px 8px 10px -1px hsl(0 0% 0% / 0.1);
-  --shadow-2xl: 0px 2px 10px 0px hsl(0 0% 0% / 0.25);
+  --radius: 0.5rem;
+  /* Small hard shadows in ink instead of soft blur. */
+  --shadow-2xs: 1px 1px 0 0 var(--foreground);
+  --shadow-xs: 1px 1px 0 0 var(--foreground);
+  --shadow-sm: 2px 2px 0 0 var(--foreground);
+  --shadow: 2px 2px 0 0 var(--foreground);
+  --shadow-md: 3px 3px 0 0 var(--foreground);
+  --shadow-lg: 4px 4px 0 0 var(--foreground);
+  --shadow-xl: 6px 6px 0 0 var(--foreground);
+  --shadow-2xl: 8px 8px 0 0 var(--foreground);
 }
 
 .dark {
-  --background: #030712;
-  --foreground: #f9fafb;
-  --card: #111827;
-  --card-foreground: #f9fafb;
-  --popover: #1f2937;
-  --popover-foreground: #f9fafb;
-  --primary: #bef264;
-  --primary-foreground: #111827;
-  --secondary: #1f2937;
-  --secondary-foreground: #f9fafb;
-  --muted: #1f2937;
-  --muted-foreground: #9ca3af;
-  --accent: #374151;
-  --accent-foreground: #f9fafb;
+  /* Same ticket in the dark: warm ink surfaces, paper text and outlines. */
+  --background: oklch(0.19 0.025 60);
+  --foreground: oklch(0.955 0.035 95);
+  --card: oklch(0.225 0.028 60);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.27 0.03 60);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.87 0.21 125);
+  --primary-foreground: oklch(0.17 0.03 60);
+  --secondary: oklch(0.28 0.03 60);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.28 0.03 60);
+  --muted-foreground: oklch(0.78 0.035 85);
+  --accent: oklch(0.33 0.035 60);
+  --accent-foreground: var(--foreground);
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --destructive-subtle: #450a0a;
@@ -160,18 +163,62 @@
   --success-subtle: #052e16;
   --warning: #fb923c;
   --warning-subtle: #431407;
-  --border: #1f2937;
-  --input: #374151;
-  --ring: #60a5fa;
-  --sidebar: #030712;
-  --sidebar-foreground: #f9fafb;
-  --sidebar-primary: #374151;
-  --sidebar-primary-foreground: #f9fafb;
-  --sidebar-accent: #1f2937;
-  --sidebar-accent-foreground: #f9fafb;
-  --sidebar-border: #1f2937;
-  --sidebar-ring: #60a5fa;
-  --overlay: rgb(0 0 0 / 0.5);
+  --border: oklch(0.4 0.03 60);
+  /* Ticket outlines are toned down in the dark: full paper would outshine the text. Still 3:1+
+     against every surface, so control boundaries stay visible. */
+  --input: oklch(0.58 0.03 75);
+  --ring: oklch(0.72 0.16 40);
+  --sidebar: var(--background);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: oklch(0.33 0.035 60);
+  --sidebar-primary-foreground: var(--foreground);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --overlay: rgb(0 0 0 / 0.6);
+  /* Hard shadows stay darker than every surface, so they read as shadows, not a paper glow. */
+  --shadow-2xs: 1px 1px 0 0 oklch(0.08 0.02 60);
+  --shadow-xs: 1px 1px 0 0 oklch(0.08 0.02 60);
+  --shadow-sm: 2px 2px 0 0 oklch(0.08 0.02 60);
+  --shadow: 2px 2px 0 0 oklch(0.08 0.02 60);
+  --shadow-md: 3px 3px 0 0 oklch(0.08 0.02 60);
+  --shadow-lg: 4px 4px 0 0 oklch(0.08 0.02 60);
+  --shadow-xl: 6px 6px 0 0 oklch(0.08 0.02 60);
+  --shadow-2xl: 8px 8px 0 0 oklch(0.08 0.02 60);
+}
+
+/* Ticket stub shape (S3-T2). Unlayered on purpose: the ink outline and hard shadow belong to the
+   component itself and must win over the kit's neutral border utilities. Focus and invalid
+   states keep their own colours. Badges keep their default 1px border. */
+[data-slot="card"],
+[data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]),
+:is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]):not(
+  :focus-visible,
+  [aria-invalid="true"]
+) {
+  border-width: 1.5px;
+  border-color: var(--input);
+}
+/* Lime takes the ink of its own text, so the outline matches the hard shadow in both themes. */
+[data-slot="button"][data-variant="default"]:not([aria-invalid="true"]) {
+  border-color: var(--primary-foreground);
+}
+[data-slot="card"],
+[data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]) {
+  box-shadow: var(--shadow-sm);
+}
+[data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]):active {
+  transform: translate(1px, 1px);
+  box-shadow: var(--shadow-xs);
+}
+[data-slot="table-head"] {
+  font-weight: 700;
+  color: var(--foreground);
+}
+:is(h1, h2, h3, [data-slot="card-title"]) {
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 @layer base {

@@ -411,11 +411,12 @@ model Registration {
   dietNote             String           @default("") @db.VarChar(500)
   health               String           @default("") @db.VarChar(2000)
 
-  // snapshot of event payment settings at receipt
+  // snapshot of event payment settings at receipt; all null for an event
+  // whose terms were all free when it opened (CHECK in the migration)
   bankAccountPrefix   String? @db.VarChar(6)
-  bankAccountNumber   String  @db.VarChar(10)
-  bankCode            String  @db.Char(4)
-  paymentReminderDays Int
+  bankAccountNumber   String? @db.VarChar(10)
+  bankCode            String? @db.Char(4)
+  paymentReminderDays Int?
 
   organization               Organization                @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   event                      Event                       @relation(fields: [eventId, organizationId], references: [id, organizationId], onDelete: Restrict)
