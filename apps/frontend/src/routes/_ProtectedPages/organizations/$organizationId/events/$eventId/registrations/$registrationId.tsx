@@ -1,4 +1,4 @@
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, Link, useRouter, type ErrorComponentProps } from "@tanstack/react-router"
 import { z } from "zod"
 
@@ -10,10 +10,17 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { HTTPError } from "@/lib/api-client"
 
+import { evaluationKeys } from "@/features/accommodation/api/evaluationQueryOptions"
+import { RegistrationDeterminationPanel } from "@/features/accommodation/components/RegistrationDeterminationPanel"
+import { RegistrationEvaluationHistory } from "@/features/accommodation/components/RegistrationEvaluationHistory"
+import { RegistrationTermDecisions } from "@/features/accommodation/components/RegistrationTermDecisions"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
-import { eventRegistrationQueryOptions } from "@/features/registrations/api/eventRegistrationQueryOptions"
+import {
+  eventRegistrationKeys,
+  eventRegistrationQueryOptions,
+} from "@/features/registrations/api/eventRegistrationQueryOptions"
 import { OrganizerAccommodationCard } from "@/features/registrations/components/OrganizerAccommodationCard"
 import { RecordPaymentDialog } from "@/features/registrations/components/RecordPaymentDialog"
 import { RegistrationChangeDecision } from "@/features/registrations/components/RegistrationChangeDecision"
@@ -44,6 +51,7 @@ export const Route = createFileRoute(
 function RegistrationPage() {
   const { organizationId, eventId, registrationId } = Route.useParams()
   const { fromTerm, fromQueue } = Route.useSearch()
+  const queryClient = useQueryClient()
   const { data: organization } = useSuspenseQuery(organizationQueryOptions(organizationId))
   const { data: event } = useSuspenseQuery(eventQueryOptions(organizationId, eventId))
   const registration = useSuspenseQuery(
@@ -102,6 +110,38 @@ function RegistrationPage() {
             organizationId={organizationId}
             eventId={eventId}
             registration={registration.data}
+            // The answer is an input of the evaluation: its proposals turn stale.
+            onAnswerSaved={() =>
+              void queryClient.invalidateQueries({
+                queryKey: evaluationKeys.event(organizationId, eventId),
+              })
+            }
+            determination={
+              <RegistrationDeterminationPanel
+                organizationId={organizationId}
+                eventId={eventId}
+                registrationId={registrationId}
+                person={name}
+                // The F64 notice follows the determination.
+                invalidate={eventRegistrationKeys.detail(organizationId, eventId, registrationId)}
+              />
+            }
+          />
+        }
+        terms={
+          <RegistrationTermDecisions
+            organizationId={organizationId}
+            eventId={eventId}
+            registrationId={registrationId}
+            terms={registration.data.terms}
+          />
+        }
+        history={
+          <RegistrationEvaluationHistory
+            organizationId={organizationId}
+            eventId={eventId}
+            registrationId={registrationId}
+            person={name}
           />
         }
       />

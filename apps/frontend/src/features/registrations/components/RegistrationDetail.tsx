@@ -28,6 +28,10 @@ type RegistrationDetailProps = {
   onRefresh: () => unknown
   /** The gender answer and its correction (F64), under the contacts. */
   accommodation?: ReactNode
+  /** Replaces the list of terms, e.g. with each term's proposal (S3-01). */
+  terms?: ReactNode
+  /** Below the terms, e.g. the history of the evaluation (S3-01). */
+  history?: ReactNode
 }
 
 // The organizer's view of one registration (S2-11): contacts,
@@ -40,6 +44,8 @@ export function RegistrationDetail({
   hasRefreshFailed,
   onRefresh,
   accommodation,
+  terms,
+  history,
 }: RegistrationDetailProps) {
   const updated = formatPragueDateTime(new Date(updatedAt).toISOString())
 
@@ -100,30 +106,33 @@ export function RegistrationDetail({
 
           {accommodation}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Termíny</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="divide-y divide-border text-sm">
-                {registration.terms.map((term) => (
-                  <li
-                    key={term.termId}
-                    className="flex flex-wrap items-center justify-between gap-2 py-3"
-                  >
-                    <div>
-                      <p className="font-medium">{term.label}</p>
-                      <p className="text-muted-foreground">
-                        {formatCalendarRange(term.startDate, term.endDate)} ·{" "}
-                        {formatCzk(term.priceMinor)}
-                      </p>
-                    </div>
-                    <ParticipationBadge status={term.status} />
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+          {terms ?? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Termíny</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="divide-y divide-border text-sm">
+                  {registration.terms.map((term) => (
+                    <li
+                      key={term.termId}
+                      className="flex flex-wrap items-center justify-between gap-2 py-3"
+                    >
+                      <div>
+                        <p className="font-medium">{term.label}</p>
+                        <p className="text-muted-foreground">
+                          {formatCalendarRange(term.startDate, term.endDate)} ·{" "}
+                          {formatCzk(term.priceMinor)}
+                        </p>
+                      </div>
+                      <ParticipationBadge status={term.status} />
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+          {history}
         </div>
 
         <div className="space-y-6">

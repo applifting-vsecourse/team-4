@@ -17,6 +17,10 @@ export type DeterminationFieldsProps = {
   reason?: string
   valueError?: string
   reasonError?: string
+  /** With them the fields are controlled; without, they only show `value` and `reason`. */
+  onValueChange?: (value: string) => void
+  onReasonChange?: (reason: string) => void
+  isDisabled?: boolean
 }
 
 // The organizer's determination of the effective value (spec v4 §4): which
@@ -29,6 +33,9 @@ export function DeterminationFields({
   reason = "",
   valueError,
   reasonError,
+  onValueChange,
+  onReasonChange,
+  isDisabled = false,
 }: DeterminationFieldsProps) {
   return (
     <div className="space-y-4">
@@ -39,7 +46,10 @@ export function DeterminationFields({
 
       <Field data-invalid={valueError ? true : undefined}>
         <FieldLabel htmlFor="determination-value">Ubytovat jako</FieldLabel>
-        <Select defaultValue={value}>
+        <Select
+          {...(onValueChange ? { value: value ?? "", onValueChange } : { defaultValue: value })}
+          disabled={isDisabled}
+        >
           <SelectTrigger
             id="determination-value"
             aria-invalid={valueError ? true : undefined}
@@ -64,7 +74,10 @@ export function DeterminationFields({
         <FieldLabel htmlFor="determination-reason">Důvod</FieldLabel>
         <Textarea
           id="determination-reason"
-          defaultValue={reason}
+          {...(onReasonChange
+            ? { value: reason, onChange: (event) => onReasonChange(event.target.value) }
+            : { defaultValue: reason })}
+          disabled={isDisabled}
           aria-invalid={reasonError ? true : undefined}
         />
         {reasonError ? <FieldError>{reasonError}</FieldError> : null}

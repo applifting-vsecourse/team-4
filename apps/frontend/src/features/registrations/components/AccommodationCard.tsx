@@ -14,6 +14,8 @@ type AccommodationCardProps = {
   action?: ReactNode
   /** Replaces the stored answer while it is being edited. */
   children?: ReactNode
+  /** Below the answer, e.g. the organizer's determination of the accommodation (S3-01). */
+  extra?: ReactNode
 }
 
 // F64, Detail přihlášky (participant and organizer): the stored gender answer
@@ -24,6 +26,7 @@ export function AccommodationCard({
   isManualAccommodation = false,
   action,
   children,
+  extra,
 }: AccommodationCardProps) {
   return (
     <Card>
@@ -47,6 +50,7 @@ export function AccommodationCard({
               ) : null}
             </dl>
           )}
+          {extra}
           {isManualAccommodation ? (
             <Alert>
               <AlertTitle>Ubytování je potřeba určit ručně</AlertTitle>

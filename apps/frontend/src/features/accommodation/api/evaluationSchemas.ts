@@ -169,3 +169,34 @@ export const runEvidenceSchema = runListItemSchema.extend({
 })
 
 export type RunEvidence = z.infer<typeof runEvidenceSchema>
+
+/** The accommodation of one registration in the organizer's detail (spec v4 §4). */
+export const registrationAccommodationSchema = z.object({
+  hardAttribute: hardAttributeSchema.nullable(),
+  answer: z.string().nullable(),
+  determination: z
+    .object({
+      value: z.string(),
+      basedOnAnswer: z.string().nullable(),
+      reason: z.string(),
+      createdAt: z.string(),
+      createdBy: z.object({ id: z.string(), name: z.string() }),
+      isValid: z.boolean(),
+    })
+    .nullable(),
+  effectiveValue: z.string().nullable(),
+  needsDetermination: z.boolean(),
+  history: z.array(
+    z.object({
+      id: z.string().uuid(),
+      createdAt: z.string(),
+      actor: z.object({ id: z.string(), name: z.string() }),
+      reason: z.string(),
+      answer: z.string().nullable(),
+      previousValue: z.string().nullable(),
+      value: z.string(),
+    }),
+  ),
+})
+
+export type RegistrationAccommodation = z.infer<typeof registrationAccommodationSchema>

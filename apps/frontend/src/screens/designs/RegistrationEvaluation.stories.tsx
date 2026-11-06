@@ -173,7 +173,11 @@ function Detail({ name, email, answer, determination, terms, history, overlay }:
             ) : null}
           </dl>
         </AccommodationCard>
-        <TermDecisions terms={terms} />
+        <TermDecisions
+          terms={terms}
+          onConfirm={() => undefined}
+          onWaitlist={() => undefined}
+        />
         {history}
       </div>
       {overlay}

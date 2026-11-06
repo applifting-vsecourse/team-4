@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { TermEvaluationSection } from "@/features/accommodation/components/TermEvaluationSection"
 import {
@@ -11,7 +11,7 @@ import {
   makeTermEvaluation,
 } from "@/features/accommodation/fixtures/evaluation"
 
-const { get, post, FakeHTTPError } = vi.hoisted(() => {
+const { get, post, put, FakeHTTPError } = vi.hoisted(() => {
   class FakeHTTPError extends Error {
     constructor(
       public response: { status: number },
@@ -20,10 +20,11 @@ const { get, post, FakeHTTPError } = vi.hoisted(() => {
       super("HTTP error")
     }
   }
-  return { get: vi.fn(), post: vi.fn(), FakeHTTPError }
+  return { get: vi.fn(), post: vi.fn(), put: vi.fn(), FakeHTTPError }
 })
 
-vi.mock("@/lib/api-client", () => ({ api: { get, post }, HTTPError: FakeHTTPError }))
+vi.mock("@/lib/api-client", () => ({ api: { get, post, put }, HTTPError: FakeHTTPError }))
+vi.mock("sonner", () => ({ toast: { success: vi.fn() } }))
 
 const answer = (value: unknown) => ({ json: () => Promise.resolve(value) })
 const refuse = (status: number, data: unknown) => ({
@@ -61,9 +62,19 @@ function renderSection(queue = "all") {
   )
 }
 
+// Radix Select needs pointer capture and scrolling, which jsdom lacks.
+beforeAll(() => {
+  Object.assign(Element.prototype, {
+    hasPointerCapture: () => false,
+    releasePointerCapture: () => undefined,
+    scrollIntoView: () => undefined,
+  })
+})
+
 beforeEach(() => {
   get.mockReset()
   post.mockReset()
+  put.mockReset()
   onSelect.mockReset()
 })
 
@@ -81,11 +92,13 @@ describe("TermEvaluationSection", () => {
     )
     expect(within(order).getAllByText("Vhodný")).toHaveLength(3)
     expect(within(order).getByText("Ruční určení")).toBeInTheDocument()
-    // Confirming and moving come with later slices.
+    // Confirming and moving come with later slices; only who needs a
+    // determination has an action.
     expect(
       screen.queryByRole("button", { name: /Potvrdit všechny vhodné/ }),
     ).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /^Akce:/ })).not.toBeInTheDocument()
+    expect(within(order).getAllByRole("button", { name: /^Akce:/ })).toHaveLength(1)
+    expect(within(order).getByRole("button", { name: "Akce: Alex Šimek" })).toBeInTheDocument()
   })
 
   it("recalculates on request and reads as running meanwhile", async () => {
@@ -161,5 +174,70 @@ describe("TermEvaluationSection", () => {
       "data-state",
       "active",
     )
+  })
+
+  it("determines the accommodation of a person from the order, with a reason", async () => {
+    serve()
+    put.mockReturnValue(
+      answer({
+        hardAttribute: makeTermEvaluation().hardAttribute,
+        answer: "undisclosed",
+        determination: null,
+        effectiveValue: "male",
+        needsDetermination: false,
+        history: [],
+      }),
+    )
+    renderSection()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Akce: Alex Šimek" }))
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Určit ubytování" }))
+    const dialog = await screen.findByRole("dialog", { name: "Určit ubytování" })
+    expect(within(dialog).getByText("Nechci uvést")).toBeInTheDocument()
+
+    // Nothing is sent without a value and a reason.
+    await userEvent.click(within(dialog).getByRole("button", { name: "Uložit určení" }))
+    expect(await within(dialog).findByText("Vyberte hodnotu.")).toBeInTheDocument()
+    expect(within(dialog).getByText("Uveďte důvod.")).toBeInTheDocument()
+    expect(put).not.toHaveBeenCalled()
+
+    await userEvent.click(within(dialog).getByRole("combobox"))
+    await userEvent.click(await screen.findByRole("option", { name: "Muž" }))
+    await userEvent.type(within(dialog).getByLabelText("Důvod"), "Domluva s rodiči")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Uložit určení" }))
+
+    await waitFor(() =>
+      expect(put).toHaveBeenCalledWith(
+        "organizations/org/events/event/registrations/0190c0de-0000-7000-8000-000000000603/accommodation/determination",
+        { json: { value: "male", reason: "Domluva s rodiči", answer: "undisclosed" } },
+      ),
+    )
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Určit ubytování" })).not.toBeInTheDocument(),
+    )
+  })
+
+  it("keeps the dialog and the entries when the determination is refused", async () => {
+    serve()
+    put.mockReturnValue(
+      refuse(409, {
+        code: "answer_changed",
+        message: "Účastník mezitím změnil odpověď. Načtěte ji znovu.",
+      }),
+    )
+    renderSection()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Akce: Alex Šimek" }))
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Určit ubytování" }))
+    const dialog = await screen.findByRole("dialog", { name: "Určit ubytování" })
+    await userEvent.click(within(dialog).getByRole("combobox"))
+    await userEvent.click(await screen.findByRole("option", { name: "Žena" }))
+    await userEvent.type(within(dialog).getByLabelText("Důvod"), "Dohoda")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Uložit určení" }))
+
+    expect(
+      await within(dialog).findByText("Účastník mezitím změnil odpověď. Načtěte ji znovu."),
+    ).toBeInTheDocument()
+    expect(within(dialog).getByLabelText("Důvod")).toHaveValue("Dohoda")
   })
 })

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { Loader2 } from "lucide-react"
 
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -19,6 +19,10 @@ type OrganizerAccommodationCardProps = {
     RegistrationDetail,
     "id" | "gender" | "genderOther" | "requiresManualAccommodation"
   >
+  /** Below the answer while it is not edited: the determination (S3-01), from another feature. */
+  determination?: ReactNode
+  /** A saved answer changes the term evaluation of another feature (S3-01). */
+  onAnswerSaved?: () => void
 }
 
 /** A refused or failed save; the stored answer stays and nothing reads as success. */
@@ -35,6 +39,8 @@ export function OrganizerAccommodationCard({
   organizationId,
   eventId,
   registration,
+  determination,
+  onAnswerSaved,
 }: OrganizerAccommodationCardProps) {
   const update = useUpdateGender(organizationId, eventId, registration.id)
   const stored: GenderAnswer = {
@@ -54,6 +60,7 @@ export function OrganizerAccommodationCard({
     <AccommodationCard
       answer={stored}
       isManualAccommodation={registration.requiresManualAccommodation}
+      extra={isEditing ? undefined : determination}
       action={
         isEditing ? null : (
           <Button
@@ -73,7 +80,12 @@ export function OrganizerAccommodationCard({
           className="space-y-4"
           onSubmit={(event) => {
             event.preventDefault()
-            update.mutate(draft, { onSuccess: () => setIsEditing(false) })
+            update.mutate(draft, {
+              onSuccess: () => {
+                setIsEditing(false)
+                onAnswerSaved?.()
+              },
+            })
           }}
         >
           <GenderField

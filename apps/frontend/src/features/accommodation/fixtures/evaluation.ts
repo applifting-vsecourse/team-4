@@ -1,7 +1,9 @@
 import {
+  registrationAccommodationSchema,
   runEvidenceSchema,
   runListSchema,
   termEvaluationSchema,
+  type RegistrationAccommodation,
   type RunEvidence,
   type RunListItem,
   type TermEvaluationData,
@@ -163,5 +165,37 @@ export function makeRunEvidence(): RunEvidence {
       reason: person.reason,
     })),
     error: null,
+  })
+}
+
+/** A registration answered "Nechci uvést", determined as Žena for every term. */
+export function makeRegistrationAccommodation(
+  overrides: Partial<RegistrationAccommodation> = {},
+): RegistrationAccommodation {
+  return registrationAccommodationSchema.parse({
+    hardAttribute: makeTermEvaluation().hardAttribute,
+    answer: "undisclosed",
+    determination: {
+      value: "female",
+      basedOnAnswer: "undisclosed",
+      reason: "Domluva s rodiči, chce bydlet s kamarádkami z oddílu.",
+      createdAt: "2027-03-10T13:31:00.000Z",
+      createdBy: OWNER,
+      isValid: true,
+    },
+    effectiveValue: "female",
+    needsDetermination: false,
+    history: [
+      {
+        id: uuid(901),
+        createdAt: "2027-03-10T13:31:00.000Z",
+        actor: OWNER,
+        reason: "Domluva s rodiči, chce bydlet s kamarádkami z oddílu.",
+        answer: "undisclosed",
+        previousValue: null,
+        value: "female",
+      },
+    ],
+    ...overrides,
   })
 }

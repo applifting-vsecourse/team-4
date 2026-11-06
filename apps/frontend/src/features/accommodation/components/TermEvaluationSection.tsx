@@ -12,6 +12,10 @@ import {
   termEvaluationQueryOptions,
   termRunsQueryOptions,
 } from "@/features/accommodation/api/evaluationQueryOptions"
+import {
+  DeterminationDialog,
+  type DeterminationTarget,
+} from "@/features/accommodation/components/DeterminationDialog"
 import { EvaluationHistory } from "@/features/accommodation/components/EvaluationHistory"
 import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
 import { RunEvidenceSheet } from "@/features/accommodation/components/RunEvidenceSheet"
@@ -49,10 +53,11 @@ export type TermEvaluationSectionProps = {
 const RECALCULATE_FAILED = "Zkuste to prosím znovu."
 
 // Přihlášky → Vyhodnocení (S3-01): the proposal of the selected term, its
-// queues and order, the history of its runs with their evidence. Reading
-// never evaluates; "Přepočítat" queues a run and the term is read again
-// until it is stored. Confirming, waitlisting and moving come with later
-// slices, so they are not offered.
+// queues and order, the history of its runs with their evidence, and the
+// determination of the accommodation of whoever needs one. Reading never
+// evaluates; "Přepočítat" queues a run and the term is read again until it is
+// stored. Confirming, waitlisting and moving come with later slices, so they
+// are not offered.
 export function TermEvaluationSection({
   organizationId,
   eventId,
@@ -81,6 +86,7 @@ export function TermEvaluationSection({
   }, [queryClient, organizationId, eventId, termId, settled])
   const recalculate = useRecalculate(organizationId, eventId, termId)
   const [openRunId, setOpenRunId] = useState<string | null>(null)
+  const [determining, setDetermining] = useState<DeterminationTarget | null>(null)
   const evidence = useQuery({
     ...runEvidenceQueryOptions(organizationId, eventId, openRunId ?? ""),
     enabled: openRunId !== null,
@@ -171,6 +177,22 @@ export function TermEvaluationSection({
         recalculateError={recalculateError}
         renderName={renderName}
         selectedQueue={shownQueue}
+        decisions={
+          data.hardAttribute
+            ? {
+                onDetermine: (person) => {
+                  const entry = data.order.find((e) => e.registrationId === person.id)
+                  if (!entry) return
+                  setDetermining({
+                    registrationId: entry.registrationId,
+                    person: person.name,
+                    answer: entry.answer,
+                    current: entry.determinedValue,
+                  })
+                },
+              }
+            : undefined
+        }
       >
         <EvaluationHistory
           title="Historie termínu"
@@ -188,6 +210,15 @@ export function TermEvaluationSection({
           />
         ) : null}
       </TermEvaluation>
+      {determining && data.hardAttribute ? (
+        <DeterminationDialog
+          organizationId={organizationId}
+          eventId={eventId}
+          hardAttribute={data.hardAttribute}
+          target={determining}
+          onClose={() => setDetermining(null)}
+        />
+      ) : null}
       {evidence.data ? (
         <RunEvidenceSheet
           isOpen={openRunId !== null}

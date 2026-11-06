@@ -691,7 +691,12 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view", as
     await dialog.getByRole("button", { name: "Uložit platbu" }).click()
     await expect(dialog).toBeHidden()
   }
-  const payments = page.getByRole("listitem").filter({ hasText: /Kč$/ })
+  // The terms list ends its items with a price too; only received payments count.
+  const payments = page
+    .getByText("Přijaté platby", { exact: true })
+    .locator("xpath=ancestor::*[@data-slot='card'][1]")
+    .getByRole("listitem")
+    .filter({ hasText: /Kč$/ })
 
   await scene(
     page,

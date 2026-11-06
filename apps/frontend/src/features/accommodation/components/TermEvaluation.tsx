@@ -134,7 +134,8 @@ function persons(count: number) {
 }
 
 function DecisionMenu({ person, decisions }: { person: OrderPerson; decisions: PersonDecisions }) {
-  const canDetermine = person.result === "manual" || person.determinedAs !== undefined
+  const canDetermine =
+    person.result === "manual" || person.queueId === null || person.determinedAs !== undefined
   const canDecide =
     decisions.onConfirm !== undefined ||
     (person.state === "pending" && decisions.onWaitlist !== undefined)

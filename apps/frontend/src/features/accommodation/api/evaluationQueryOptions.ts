@@ -4,6 +4,7 @@ import { api } from "@/lib/api-client"
 
 import {
   evaluationModeResponseSchema,
+  registrationAccommodationSchema,
   runEvidenceSchema,
   runListSchema,
   termEvaluationSchema,
@@ -22,6 +23,8 @@ export const evaluationKeys = {
     [...evaluationKeys.event(organizationId, eventId), "runs", termId] as const,
   run: (organizationId: string, eventId: string, runId: string) =>
     [...evaluationKeys.event(organizationId, eventId), "run", runId] as const,
+  registration: (organizationId: string, eventId: string, registrationId: string) =>
+    [...evaluationKeys.event(organizationId, eventId), "registration", registrationId] as const,
 }
 
 export const accommodationPath = (organizationId: string, eventId: string) =>
@@ -76,5 +79,23 @@ export const runEvidenceQueryOptions = (organizationId: string, eventId: string,
     queryFn: async () =>
       runEvidenceSchema.parse(
         await api.get(`${accommodationPath(organizationId, eventId)}/runs/${runId}`).json(),
+      ),
+  })
+
+/** The answer, the determination and its history of one registration. */
+export const registrationAccommodationQueryOptions = (
+  organizationId: string,
+  eventId: string,
+  registrationId: string,
+) =>
+  queryOptions({
+    queryKey: evaluationKeys.registration(organizationId, eventId, registrationId),
+    queryFn: async () =>
+      registrationAccommodationSchema.parse(
+        await api
+          .get(
+            `organizations/${organizationId}/events/${eventId}/registrations/${registrationId}/accommodation`,
+          )
+          .json(),
       ),
   })
