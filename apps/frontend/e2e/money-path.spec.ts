@@ -48,6 +48,8 @@ test("an organizer opens an event, participants register and payments settle the
       .getByRole("navigation", { name: "Části akce" })
       .getByRole("link", { name: "Nastavení" })
       .click()
+    // The overview has its own "Přidat termín"; wait until the settings page replaced it.
+    await expect(page.getByRole("heading", { name: "Termíny a ceny" })).toBeVisible()
     await page.getByRole("button", { name: "Přidat termín" }).click()
     const dialog = page.getByRole("dialog", { name: "Nový termín" })
     await type(dialog.getByLabel("Označení"), "1. turnus")

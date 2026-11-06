@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, type FormEvent } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CalendarX, Loader2 } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
@@ -23,10 +23,16 @@ import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 import { toE164 } from "@/lib/phone"
 
-import { type SelectableTerm } from "@/features/registrations/api/registrationSchemas"
+import {
+  genderOtherSchema,
+  genderSchema,
+  type SelectableTerm,
+} from "@/features/registrations/api/registrationSchemas"
+import { GenderField } from "@/features/registrations/components/GenderField"
+import { PhoneField } from "@/features/registrations/components/PhoneField"
 import { type RegistrationSubmitError } from "@/features/registrations/lib/registrationErrors"
 
-const PHONE_MESSAGE = "Zadejte telefon s mezinárodní předvolbou, např. +420 777 123 456."
+const PHONE_MESSAGE = "Zadejte platné telefonní číslo pro vybranou zemi, např. 777 123 456."
 
 const schema = z.object({
   firstName: z
@@ -51,6 +57,10 @@ const schema = z.object({
     .min(1, "Vyplňte telefon.")
     .refine((value) => toE164(value) !== null, PHONE_MESSAGE),
   termIds: z.array(z.string()).min(1, "Vyberte alespoň jeden termín."),
+  /** Voluntary (F64); null is "not answered". */
+  gender: genderSchema.nullable(),
+  /** Own words for "Jiná odpověď"; sent only beside it. */
+  genderOther: genderOtherSchema,
 })
 
 export type RegistrationFormValues = z.infer<typeof schema>
@@ -61,6 +71,8 @@ const EMPTY: RegistrationFormValues = {
   email: "",
   phone: "",
   termIds: [],
+  gender: null,
+  genderOther: null,
 }
 
 type RegistrationFormProps = {
@@ -87,6 +99,7 @@ export function RegistrationForm({
 }: RegistrationFormProps) {
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(schema),
+    shouldFocusError: false,
     defaultValues: initialValues ?? EMPTY,
   })
   const { setError } = form
@@ -102,6 +115,8 @@ export function RegistrationForm({
       email: typed.email ?? "",
       phone: typed.phone ?? "",
       termIds: (typed.termIds ?? []).filter((id): id is string => typeof id === "string"),
+      gender: typed.gender ?? null,
+      genderOther: typed.genderOther ?? null,
     })
   }, [typed, onValuesChange])
 
@@ -110,6 +125,19 @@ export function RegistrationForm({
       setError("termIds", { type: "server", message: submitError.message })
     }
   }, [submitError, setError])
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    const formElement = event.currentTarget
+    return form.handleSubmit(onSubmit, () => {
+      // The first invalid field in page order, whatever kind of control it is.
+      // Wait for the errors to be rendered into the fields.
+      requestAnimationFrame(() => {
+        const field = formElement.querySelector<HTMLElement>('[aria-invalid="true"]')
+        field?.focus({ preventScroll: true })
+        field?.scrollIntoView({ block: "center", behavior: "smooth" })
+      })
+    })(event)
+  }
 
   if (terms.length === 0) {
     return (
@@ -120,7 +148,10 @@ export function RegistrationForm({
               <CalendarX />
             </EmptyMedia>
             <EmptyTitle>Akce nemá termíny k výběru</EmptyTitle>
-            <EmptyDescription>Bez termínu nelze přihlášku odeslat.</EmptyDescription>
+            <EmptyDescription>
+              Pořadatel zatím nevypsal žádný termín, a proto se na akci nelze přihlásit. Zkuste to
+              později.
+            </EmptyDescription>
           </EmptyHeader>
         </Empty>
       </div>
@@ -132,16 +163,21 @@ export function RegistrationForm({
       <form
         noValidate
         aria-label="Přihláška na akci"
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-7"
+        onSubmit={submit}
+        className="space-y-8"
       >
+        <p className="text-sm text-muted-foreground">
+          Pole označená hvězdičkou <RequiredMark /> je nutné vyplnit.
+        </p>
         <FormField
           control={form.control}
           name="termIds"
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <FormItem>
-              <fieldset className="space-y-2">
-                <legend className="mb-2 text-h4">Termíny</legend>
+              <fieldset className="space-y-3">
+                <legend className="mb-3 text-h4">
+                  Termíny <RequiredMark />
+                </legend>
                 {terms.map((term) => {
                   const id = `registration-term-${term.id}`
                   return (
@@ -151,6 +187,7 @@ export function RegistrationForm({
                     >
                       <Checkbox
                         id={id}
+                        aria-invalid={fieldState.error ? true : undefined}
                         checked={field.value.includes(term.id)}
                         onCheckedChange={(checked) =>
                           field.onChange(
@@ -167,7 +204,7 @@ export function RegistrationForm({
                         <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
                           <span className="min-w-0 break-words">
                             {term.label}
-                            <span className="mt-0.5 block font-normal text-muted-foreground">
+                            <span className="mt-2 block font-normal text-muted-foreground">
                               {formatCalendarRange(term.startDate, term.endDate)}
                             </span>
                           </span>
@@ -203,18 +240,21 @@ export function RegistrationForm({
           </p>
         </div>
 
-        <fieldset className="space-y-4">
-          <legend className="mb-4 text-h4">Kontaktní údaje</legend>
-          <div className="grid gap-4 sm:grid-cols-2">
+        <fieldset className="space-y-5">
+          <legend className="mb-5 text-h4">Kontaktní údaje</legend>
+          <div className="grid gap-5 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="firstName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Jméno</FormLabel>
+                  <FormLabel>
+                    Jméno <RequiredMark />
+                  </FormLabel>
                   <FormControl>
                     <Input
                       autoComplete="given-name"
+                      aria-required
                       {...field}
                     />
                   </FormControl>
@@ -227,10 +267,13 @@ export function RegistrationForm({
               name="lastName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Příjmení</FormLabel>
+                  <FormLabel>
+                    Příjmení <RequiredMark />
+                  </FormLabel>
                   <FormControl>
                     <Input
                       autoComplete="family-name"
+                      aria-required
                       {...field}
                     />
                   </FormControl>
@@ -244,10 +287,13 @@ export function RegistrationForm({
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>E-mail</FormLabel>
+                <FormLabel>
+                  E-mail <RequiredMark />
+                </FormLabel>
                 <FormControl>
                   <Input
                     type="email"
+                    aria-required
                     autoComplete="email"
                     {...field}
                   />
@@ -261,21 +307,32 @@ export function RegistrationForm({
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Telefon</FormLabel>
+                <FormLabel>
+                  Telefon <RequiredMark />
+                </FormLabel>
                 <FormControl>
-                  <Input
-                    type="tel"
-                    autoComplete="tel"
-                    inputMode="tel"
-                    placeholder="+420 777 123 456"
-                    {...field}
-                  />
+                  <PhoneField {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </fieldset>
+
+        <FormField
+          control={form.control}
+          name="gender"
+          render={({ field }) => (
+            <GenderField
+              id="registration-gender"
+              value={{ gender: field.value, genderOther: typed.genderOther ?? null }}
+              onChange={(answer) => {
+                field.onChange(answer.gender)
+                form.setValue("genderOther", answer.genderOther)
+              }}
+            />
+          )}
+        />
 
         {submitError ? <SubmitErrorAlert error={submitError} /> : null}
 
@@ -290,6 +347,18 @@ export function RegistrationForm({
         </Button>
       </form>
     </Form>
+  )
+}
+
+// Visual marker of a required field; the form explains it at the top.
+function RequiredMark() {
+  return (
+    <span
+      aria-hidden="true"
+      className="text-destructive"
+    >
+      *
+    </span>
   )
 }
 

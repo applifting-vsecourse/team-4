@@ -1,4 +1,6 @@
+import { Gender, GENDERS } from '@/modules/registrations/domain/gender';
 import {
+  ManagedRegistrationDetailModel,
   ManagedRegistrationModel,
   PAYMENT_SOURCES,
   PAYMENT_STATES,
@@ -7,6 +9,7 @@ import {
   ReceivedPayment,
   RegistrationList,
 } from '@/modules/registrations/domain/managed-registration';
+import { RegistrationNeedsDto } from '@/modules/registrations/dto/registration-needs.dto';
 import { RegistrationTermResultDto } from '@/modules/registrations/dto/registration-result.dto';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -137,7 +140,37 @@ export class RegistrationDetailDto extends RegistrationSummaryDto {
   })
   payments!: ReceivedPaymentDto[];
 
-  static from(model: ManagedRegistrationModel): RegistrationDetailDto {
+  @ApiProperty({ type: RegistrationNeedsDto })
+  needs!: RegistrationNeedsDto;
+
+  @ApiProperty({
+    description: 'Send back as `expectedVersion` when correcting the needs.',
+  })
+  version!: number;
+
+  @ApiProperty({
+    enum: GENDERS,
+    nullable: true,
+    description:
+      "The participant's voluntary answer for accommodation; null when not answered.",
+  })
+  gender!: Gender | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'The own words for `gender: other`; null when none.',
+  })
+  genderOther!: string | null;
+
+  @ApiProperty({
+    description:
+      'The organizer decides the accommodation by hand: for `other`, ' +
+      '`undisclosed` and no answer.',
+  })
+  requiresManualAccommodation!: boolean;
+
+  static from(model: ManagedRegistrationDetailModel): RegistrationDetailDto {
     const hasObligation = model.amountDueMinor > 0;
     return {
       ...RegistrationSummaryDto.from(model),
@@ -145,6 +178,11 @@ export class RegistrationDetailDto extends RegistrationSummaryDto {
       reminderAt: model.reminderAt?.toISOString() ?? null,
       variableSymbol: hasObligation ? model.variableSymbol : null,
       payments: model.payments.map(ReceivedPaymentDto.from),
+      needs: RegistrationNeedsDto.from(model.needs),
+      version: model.version,
+      gender: model.gender,
+      genderOther: model.genderOther,
+      requiresManualAccommodation: model.requiresManualAccommodation,
     };
   }
 }

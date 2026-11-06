@@ -1,9 +1,14 @@
 import {
+  Gender,
+  requiresManualAccommodation,
+} from '@/modules/registrations/domain/gender';
+import {
   amountDueMinor,
   ParticipationStatus,
   RegistrationTermResult,
   selectedPriceMinor,
 } from '@/modules/registrations/domain/registration';
+import { RegistrationNeeds } from '@/modules/registrations/domain/registration-needs';
 
 /** How a whole registration stands with its payments (data-model.md §3.9). */
 export type PaymentState = 'none' | 'unpaid' | 'partial' | 'paid' | 'overpaid';
@@ -69,7 +74,16 @@ export class ManagedRegistrationModel {
     private readonly storedReminderAt: Date | null,
     /** By the day received, then as recorded. */
     public readonly payments: ReceivedPayment[],
+    /** Voluntary answer for accommodation (F64); null when not answered. */
+    public readonly gender: Gender | null,
+    /** The own words for `other`; null otherwise. */
+    public readonly genderOther: string | null,
   ) {}
+
+  /** The organizer decides the accommodation by hand (F64). */
+  get requiresManualAccommodation(): boolean {
+    return requiresManualAccommodation(this.gender);
+  }
 
   get selectedPriceMinor(): number {
     return selectedPriceMinor(this.terms);
@@ -96,6 +110,19 @@ export class ManagedRegistrationModel {
   /** At most one per registration, and none without an obligation. */
   get reminderAt(): Date | null {
     return this.amountDueMinor > 0 ? this.storedReminderAt : null;
+  }
+}
+
+/** One registration opened by its organizer: also what only the detail shows. */
+export class ManagedRegistrationDetailModel extends ManagedRegistrationModel {
+  constructor(
+    registration: ConstructorParameters<typeof ManagedRegistrationModel>,
+    /** Transport, diet and health (F63). */
+    public readonly needs: RegistrationNeeds,
+    /** Bumped by every executed change (F35-2a) and organizer correction. */
+    public readonly version: number,
+  ) {
+    super(...registration);
   }
 }
 

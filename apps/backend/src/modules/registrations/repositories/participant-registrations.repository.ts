@@ -2,6 +2,10 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { ParticipantRegistrationModel } from '@/modules/registrations/domain/participant-registration';
+import {
+  needsOf,
+  needsSelect,
+} from '@/modules/registrations/domain/registration-needs';
 import { Injectable } from '@nestjs/common';
 
 const registrationSelect = {
@@ -11,7 +15,10 @@ const registrationSelect = {
   lastName: true,
   email: true,
   phone: true,
+  gender: true,
+  genderOther: true,
   version: true,
+  ...needsSelect,
   changes: { where: { status: 'pending' }, select: { id: true } },
   variableSymbol: true,
   bankAccountPrefix: true,
@@ -69,9 +76,12 @@ const toModel = (
       lastName: row.lastName,
       email: row.email,
       phone: row.phone,
+      gender: row.gender,
+      genderOther: row.genderOther,
     },
     row.version,
     row.changes.length > 0,
+    needsOf(row),
   );
 
 /** Every read is bound to the verified account; there is no other filter. */

@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
-import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import {
   Table,
@@ -33,16 +32,23 @@ export function EventsTable({ organizationId, events }: EventsTableProps) {
             <TableHead>Období</TableHead>
             <TableHead>Termíny</TableHead>
             <TableHead>Stav</TableHead>
-            <TableHead>
-              <span className="sr-only">Otevřít</span>
-            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {events.map((event) => (
-            <TableRow key={event.id}>
+            <TableRow
+              key={event.id}
+              className="relative cursor-pointer"
+            >
               <TableCell className="max-w-72 py-3">
-                <span className="block truncate font-medium">{event.name}</span>
+                {/* The link stretches over the whole row, so any part of it opens the event. */}
+                <Link
+                  to={ROUTES.event}
+                  params={{ organizationId, eventId: event.id }}
+                  className="block truncate font-medium after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
+                >
+                  {event.name}
+                </Link>
                 <span className="block truncate text-xs text-muted-foreground">
                   {event.description}
                 </span>
@@ -56,21 +62,6 @@ export function EventsTable({ organizationId, events }: EventsTableProps) {
               <TableCell>{event.termCount}</TableCell>
               <TableCell>
                 <EventStatusBadge status={event.status} />
-              </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="sm"
-                >
-                  <Link
-                    to={ROUTES.event}
-                    params={{ organizationId, eventId: event.id }}
-                    aria-label={`Otevřít akci ${event.name}`}
-                  >
-                    Otevřít
-                  </Link>
-                </Button>
               </TableCell>
             </TableRow>
           ))}

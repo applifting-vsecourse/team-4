@@ -13,6 +13,7 @@ import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { eventRegistrationQueryOptions } from "@/features/registrations/api/eventRegistrationQueryOptions"
+import { OrganizerAccommodationCard } from "@/features/registrations/components/OrganizerAccommodationCard"
 import { RecordPaymentDialog } from "@/features/registrations/components/RecordPaymentDialog"
 import { RegistrationChangeDecision } from "@/features/registrations/components/RegistrationChangeDecision"
 import { RegistrationDetail } from "@/features/registrations/components/RegistrationDetail"
@@ -86,6 +87,13 @@ function RegistrationPage() {
         isRefreshing={registration.isFetching}
         hasRefreshFailed={registration.isRefetchError}
         onRefresh={() => registration.refetch()}
+        accommodation={
+          <OrganizerAccommodationCard
+            organizationId={organizationId}
+            eventId={eventId}
+            registration={registration.data}
+          />
+        }
       />
     </section>
   )

@@ -1,5 +1,6 @@
 import { ParticipantRegistrationModel } from '@/modules/registrations/domain/participant-registration';
 import { ParticipationStatus } from '@/modules/registrations/domain/registration';
+import { NO_NEEDS } from '@/modules/registrations/domain/registration-needs';
 
 const REMINDER = new Date('2027-06-28T08:00:00Z');
 
@@ -35,9 +36,12 @@ const registration = (
       lastName: 'Nováková',
       email: 'jana@example.com',
       phone: '+420777123456',
+      gender: null,
+      genderOther: null,
     },
     0,
     false,
+    NO_NEEDS,
   );
 
 describe('ParticipantRegistrationModel', () => {

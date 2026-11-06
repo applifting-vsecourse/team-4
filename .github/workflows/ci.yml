@@ -96,9 +96,9 @@ jobs:
           -e MINIO_ROOT_USER=akcio -e MINIO_ROOT_PASSWORD=akcio-secret
           bitnamilegacy/minio:2025.7.23
 
-      # The money path end to end; Playwright starts the backend and frontend.
+      # Keep the end-to-end regression suite here; @demo walkthroughs remain runnable locally.
       - name: End-to-end tests
-        run: pnpm frontend test:e2e
+        run: pnpm frontend test:e2e:ci
 
       - name: Upload Playwright report
         if: always()

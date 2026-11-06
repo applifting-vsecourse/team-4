@@ -1,3 +1,4 @@
+import { Gender, GENDERS } from '@/modules/registrations/domain/gender';
 import {
   PAYMENT_STATES,
   PaymentState,
@@ -5,6 +6,7 @@ import {
 import { ParticipantRegistrationModel } from '@/modules/registrations/domain/participant-registration';
 import { EventTermInfo } from '@/modules/registrations/domain/registration-change';
 import { ReceivedPaymentDto } from '@/modules/registrations/dto/managed-registration.dto';
+import { RegistrationNeedsDto } from '@/modules/registrations/dto/registration-needs.dto';
 import {
   EventSummaryDto,
   PaymentInstructionsDto,
@@ -24,6 +26,20 @@ export class ParticipantContactDto {
 
   @ApiProperty({ description: 'E.164.' })
   phone!: string;
+
+  @ApiProperty({
+    enum: GENDERS,
+    nullable: true,
+    description: 'Voluntary answer for accommodation; null when not answered.',
+  })
+  gender!: Gender | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'The own words for `gender: other`; null when none.',
+  })
+  genderOther!: string | null;
 }
 
 export class AvailableTermDto {
@@ -116,6 +132,9 @@ export class ParticipantRegistrationDto {
   })
   version!: number;
 
+  @ApiProperty({ type: RegistrationNeedsDto })
+  needs!: RegistrationNeedsDto;
+
   @ApiProperty({ description: 'Every term released (F35-2a).' })
   isCancelled!: boolean;
 
@@ -147,6 +166,7 @@ export class ParticipantRegistrationDto {
       payments: model.payments.map(ReceivedPaymentDto.from),
       contact: { ...model.contact },
       version: model.version,
+      needs: RegistrationNeedsDto.from(model.needs),
       isCancelled: model.isCancelled,
       canChange: model.canChange,
     };

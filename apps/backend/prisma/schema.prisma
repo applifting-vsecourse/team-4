@@ -71,16 +71,19 @@ model Verification {
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean
-  image         String?   @db.Text
-  createdAt     DateTime
-  updatedAt     DateTime
-  sessions      Session[]
-  accounts      Account[]
-  role          UserRole  @default(user)
+  id                         String                      @id
+  name                       String
+  email                      String
+  emailVerified              Boolean
+  image                      String?                     @db.Text
+  createdAt                  DateTime
+  updatedAt                  DateTime
+  sessions                   Session[]
+  accounts                   Account[]
+  role                       UserRole                    @default(user)
+  accommodationManualValues  AccommodationManualValue[]
+  accommodationInterventions AccommodationIntervention[]
+  accommodationRuns          AccommodationRun[]
 
   username        String? @db.VarChar(50)
   displayUsername String? @db.VarChar(50)
@@ -167,7 +170,7 @@ model Event {
   bankCode            String? @db.Char(4)
   paymentReminderDays Int?
   // Days before a term's start from which registration changes need approval (F35-1a); null = never.
-  changeApprovalDays Int?
+  changeApprovalDays  Int?
 
   // Public presentation on the catalog detail (F55). Never the account's own contact.
   conditions   String  @default("") @db.Text
@@ -178,14 +181,17 @@ model Event {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
-  organization       Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  terms              EventTerm[]
-  rooms              Room[]
-  roomAvailabilities RoomTermAvailability[]
-  registrations      Registration[]
-  registrationTerms  RegistrationTerm[]
-  programmeItems     ProgrammeItem[]
-  photos             EventPhoto[]
+  organization               Organization                @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  terms                      EventTerm[]
+  rooms                      Room[]
+  roomAvailabilities         RoomTermAvailability[]
+  registrations              Registration[]
+  registrationTerms          RegistrationTerm[]
+  accommodationRules         AccommodationRules?
+  accommodationRuns          AccommodationRun[]
+  accommodationInterventions AccommodationIntervention[]
+  programmeItems             ProgrammeItem[]
+  photos                     EventPhoto[]
 
   @@unique([id, organizationId])
   @@index([organizationId, createdAt])
@@ -218,10 +224,13 @@ model EventTerm {
   createdAt  DateTime @default(now()) @db.Timestamptz(3)
   updatedAt  DateTime @updatedAt @db.Timestamptz(3)
 
-  event              Event                  @relation(fields: [eventId], references: [id], onDelete: Restrict)
-  roomAvailabilities RoomTermAvailability[]
-  registrationTerms  RegistrationTerm[]
-  programmeItems     ProgrammeItem[]
+  event                      Event                       @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  roomAvailabilities         RoomTermAvailability[]
+  registrationTerms          RegistrationTerm[]
+  accommodationOrder         AccommodationTermOrder?
+  accommodationRuns          AccommodationRun[]
+  accommodationInterventions AccommodationIntervention[]
+  programmeItems             ProgrammeItem[]
 
   @@unique([id, eventId])
   @@index([eventId, startDate])
@@ -330,6 +339,22 @@ model ParticipantSession {
 
 // ─── Registrations ──────────────────────────────────────────────────────────
 
+enum TransportChoice {
+  own
+  shared
+
+  @@map("transport_choice")
+}
+
+enum DietChoice {
+  vegetarian
+  vegan
+  gluten_free
+  lactose_free
+
+  @@map("diet_choice")
+}
+
 enum ParticipationStatus {
   confirmed
   waitlisted
@@ -337,6 +362,17 @@ enum ParticipationStatus {
   cancelled
 
   @@map("participation_status")
+}
+
+// The participant's own answer (F64); `other`, `undisclosed` and no answer
+// leave the accommodation to the organizer.
+enum Gender {
+  female
+  male
+  other
+  undisclosed
+
+  @@map("gender")
 }
 
 model Registration {
@@ -350,15 +386,30 @@ model Registration {
   // Unguessable capability of the QR payment link (F21-1): it allows paying this registration and nothing else.
   paymentToken         String @unique @default(dbgenerated("replace((gen_random_uuid())::text || (gen_random_uuid())::text, '-', '')")) @db.VarChar(64)
 
-  firstName String @db.VarChar(100)
-  lastName  String @db.VarChar(100)
-  email     String @db.VarChar(320) // as submitted
-  phone     String @db.VarChar(16) // E.164
+  firstName   String  @db.VarChar(100)
+  lastName    String  @db.VarChar(100)
+  email       String  @db.VarChar(320) // as submitted
+  phone       String  @db.VarChar(16) // E.164
+  // Voluntary answer for accommodation (F64), per registration, never the
+  // account identity. Null is "not answered", distinct from `undisclosed`.
+  gender      Gender?
+  // The participant's own words for `other`; null for every other answer
+  // (CHECK in the migration).
+  genderOther String? @db.VarChar(100)
 
   receivedAt        DateTime  @default(now()) @db.Timestamptz(3)
   paymentReminderAt DateTime? @db.Timestamptz(3)
   // Bumped by every executed change (F35-2a); a proposal made on an older one is stale.
   version           Int       @default(0)
+
+  // Optional needs for the whole registration (F63); empty text is "not provided".
+  transport            TransportChoice?
+  transportNote        String           @default("") @db.VarChar(500)
+  // Explicit "Bez omezení"; never stored together with a diet choice.
+  hasNoDietRestriction Boolean          @default(false)
+  diet                 DietChoice[]     @default([])
+  dietNote             String           @default("") @db.VarChar(500)
+  health               String           @default("") @db.VarChar(2000)
 
   // snapshot of event payment settings at receipt
   bankAccountPrefix   String? @db.VarChar(6)
@@ -366,13 +417,15 @@ model Registration {
   bankCode            String  @db.Char(4)
   paymentReminderDays Int
 
-  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  event              Event              @relation(fields: [eventId, organizationId], references: [id, organizationId], onDelete: Restrict)
-  participantAccount ParticipantAccount @relation(fields: [participantAccountId], references: [id], onDelete: Restrict)
-  terms              RegistrationTerm[]
-  payments           Payment[]
-  emails             EmailDelivery[]
-  changes            RegistrationChange[]
+  organization               Organization                @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  event                      Event                       @relation(fields: [eventId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  participantAccount         ParticipantAccount          @relation(fields: [participantAccountId], references: [id], onDelete: Restrict)
+  terms                      RegistrationTerm[]
+  payments                   Payment[]
+  emails                     EmailDelivery[]
+  changes                    RegistrationChange[]
+  accommodationManualValue   AccommodationManualValue?
+  accommodationInterventions AccommodationIntervention[]
 
   @@unique([eventId, participantAccountId])
   @@unique([id, eventId])
@@ -440,15 +493,15 @@ enum PaymentSource {
 }
 
 model Payment {
-  id             String   @id @default(uuid(7)) @db.Uuid
-  organizationId String   @db.Uuid
-  registrationId String   @db.Uuid
-  submissionKey  String   @unique @db.Uuid
+  id             String        @id @default(uuid(7)) @db.Uuid
+  organizationId String        @db.Uuid
+  registrationId String        @db.Uuid
+  submissionKey  String        @unique @db.Uuid
   amountMinor    Int
-  receivedOn     DateTime @db.Date
+  receivedOn     DateTime      @db.Date
   source         PaymentSource @default(organizer)
   recordedById   String? // set for organizer entries only, null for a QR link payment
-  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   registration Registration @relation(fields: [registrationId, organizationId], references: [id, organizationId], onDelete: Restrict)
@@ -493,4 +546,120 @@ model EmailDelivery {
   @@index([registrationId])
   @@index([status, createdAt])
   @@map("email_delivery")
+}
+
+// ─── Accommodation evaluation (S3-T3 spec v4 §9, S3-T4) ─────────────────────
+
+// Pravidla ubytování of an event (§2). No row: no hard attribute, no soft rules.
+model AccommodationRules {
+  eventId              String   @id @db.Uuid
+  // The categorical question that splits rooms; null when none does.
+  hardAttribute        String?  @db.VarChar(64)
+  // Answers of the hard attribute that do not determine a room.
+  nonDeterminingValues String[] @default([]) @db.VarChar(100)
+  // Ranked soft attributes, most important first (phase 2).
+  softAttributes       String[] @default([]) @db.VarChar(64)
+  updatedAt            DateTime @updatedAt @db.Timestamptz(3)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  @@map("accommodation_rules")
+}
+
+// The organizer's determination of the effective value (§4), for every term
+// of the registration. Valid only while the answer equals `basedOnAnswer`.
+model AccommodationManualValue {
+  registrationId String   @id @db.Uuid
+  eventId        String   @db.Uuid
+  value          String   @db.VarChar(100)
+  basedOnAnswer  String?  @db.VarChar(100)
+  reason         String   @db.VarChar(500)
+  createdById    String
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  registration Registration @relation(fields: [registrationId, eventId], references: [id, eventId], onDelete: Restrict)
+  createdBy    User         @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([registrationId, eventId])
+  @@index([eventId])
+  @@map("accommodation_manual_value")
+}
+
+// A manually changed order of a term (§6, F39-1). No row: order by receipt.
+model AccommodationTermOrder {
+  termId          String   @id @db.Uuid
+  eventId         String   @db.Uuid
+  registrationIds String[] @db.Uuid
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
+
+  term EventTerm @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Cascade)
+
+  @@unique([termId, eventId])
+  @@map("accommodation_term_order")
+}
+
+enum AccommodationInterventionKind {
+  position
+  manual_value
+
+  @@map("accommodation_intervention_kind")
+}
+
+// Immutable record of a manual intervention (§6, F39-1): who, when, whom,
+// before and after, and why.
+model AccommodationIntervention {
+  id             String                        @id @default(uuid(7)) @db.Uuid
+  eventId        String                        @db.Uuid
+  // The term of a position change; null for a determination (all terms).
+  termId         String?                       @db.Uuid
+  registrationId String                        @db.Uuid
+  kind           AccommodationInterventionKind
+  actorId        String
+  reason         String                        @db.VarChar(500)
+  before         Json
+  after          Json
+  createdAt      DateTime                      @default(now()) @db.Timestamptz(3)
+
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  // The term of a position change belongs to the same event.
+  term         EventTerm?   @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Restrict)
+  registration Registration @relation(fields: [registrationId, eventId], references: [id, eventId], onDelete: Restrict)
+  actor        User         @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([eventId, createdAt])
+  @@map("accommodation_intervention")
+}
+
+enum AccommodationRunStatus {
+  solved
+  infeasible
+  timeout
+  failed
+
+  @@map("accommodation_run_status")
+}
+
+// Immutable evaluation of one term (§5, §9): the snapshot of its inputs, the
+// order used, and the proposal. A confirmation will point to the run it used.
+model AccommodationRun {
+  id            String                 @id @default(uuid(7)) @db.Uuid
+  eventId       String                 @db.Uuid
+  termId        String                 @db.Uuid
+  status        AccommodationRunStatus
+  // Null when the system started it.
+  triggeredById String?
+  solverVersion String                 @db.VarChar(64)
+  input         Json
+  // The proposal; null for a failed run.
+  result        Json?
+  error         String?                @db.Text
+  startedAt     DateTime               @db.Timestamptz(3)
+  finishedAt    DateTime               @db.Timestamptz(3)
+
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  term        EventTerm @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Restrict)
+  triggeredBy User?     @relation(fields: [triggeredById], references: [id], onDelete: Restrict)
+
+  @@index([termId, startedAt])
+  @@map("accommodation_run")
 }

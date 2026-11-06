@@ -28,13 +28,14 @@ const participant = {
   email: process.env.DEMO_PARTICIPANT_EMAIL ?? `jana-${run}@example.test`,
 }
 const eventName = "Víkend první pomoci pro vedoucí"
+const sprintReviewTitle = "Sprint Review: organizátor na desktopu, účastnice na mobilu @demo"
 const isRemote = Boolean(
   process.env.E2E_BASE_URL && new URL(process.env.E2E_BASE_URL).hostname !== "localhost",
 )
 
 test.afterAll(closeDb)
 
-test("Sprint Review: organizátor na desktopu, účastnice na mobilu", async ({ page, browser }) => {
+test(sprintReviewTitle, async ({ page, browser }) => {
   test.setTimeout(isDemo ? 0 : 300_000)
   page.context().setDefaultTimeout(15_000)
   page.context().setDefaultNavigationTimeout(30_000)
@@ -121,7 +122,6 @@ test("Sprint Review: organizátor na desktopu, účastnice na mobilu", async ({ 
           "Praktický víkend první pomoci v přírodě pro vedoucí oddílů.",
         )
         await page.getByRole("button", { name: "Vytvořit akci" }).click()
-        await page.getByRole("link", { name: "Přidat termín" }).click()
         for (const [label, date, price] of [
           ["Sobota", "2026-11-07", "1000"],
           ["Neděle", "2026-11-08", "1500"],
@@ -148,6 +148,7 @@ test("Sprint Review: organizátor na desktopu, účastnice na mobilu", async ({ 
           if (label === "Neděle") await withQuickDemoPace(page, createTerm)
           else await createTerm()
         }
+        await nav("Nastavení").click()
       },
     )
 

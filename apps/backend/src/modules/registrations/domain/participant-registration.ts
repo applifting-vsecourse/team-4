@@ -1,3 +1,4 @@
+import { Gender } from '@/modules/registrations/domain/gender';
 import {
   PaymentState,
   paymentState,
@@ -11,6 +12,7 @@ import {
   RegistrationTermResult,
   selectedPriceMinor,
 } from '@/modules/registrations/domain/registration';
+import { RegistrationNeeds } from '@/modules/registrations/domain/registration-needs';
 
 /**
  * A registration as its own participant reads it (S2-14): the event, every
@@ -37,11 +39,17 @@ export class ParticipantRegistrationModel {
       lastName: string;
       email: string;
       phone: string;
+      /** Voluntary answer for accommodation (F64); null when not answered. */
+      gender: Gender | null;
+      /** The own words for `other`; null otherwise. */
+      genderOther: string | null;
     },
     /** Bumped by every executed change (F35-2a). */
     public readonly version: number,
     /** A change waits for the organizer's decision. */
     public readonly hasPendingChange: boolean,
+    /** Transport, diet and health (F63). */
+    public readonly needs: RegistrationNeeds,
   ) {}
 
   /** Every term released. */
