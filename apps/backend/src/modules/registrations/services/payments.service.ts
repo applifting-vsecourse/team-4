@@ -1,5 +1,5 @@
 import { EventScope } from '@/modules/events/repositories/events.repository';
-import { ManagedRegistrationModel } from '@/modules/registrations/domain/managed-registration';
+import { ManagedRegistrationDetailModel } from '@/modules/registrations/domain/managed-registration';
 import {
   isFutureDate,
   isSamePayment,
@@ -37,7 +37,7 @@ const keyReused = (): ConflictException =>
 export type RecordResult = {
   /** False when this repeats a payment that was already saved. */
   created: boolean;
-  registration: ManagedRegistrationModel;
+  registration: ManagedRegistrationDetailModel;
 };
 
 @Injectable()

@@ -1,5 +1,6 @@
 import { ParticipantRegistrationModel } from '@/modules/registrations/domain/participant-registration';
 import { ParticipationStatus } from '@/modules/registrations/domain/registration';
+import { NO_NEEDS } from '@/modules/registrations/domain/registration-needs';
 
 const REMINDER = new Date('2027-06-28T08:00:00Z');
 
@@ -40,6 +41,7 @@ const registration = (
     },
     0,
     false,
+    NO_NEEDS,
   );
 
 describe('ParticipantRegistrationModel', () => {

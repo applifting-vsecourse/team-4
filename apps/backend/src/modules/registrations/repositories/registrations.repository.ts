@@ -9,6 +9,7 @@ import {
   RegistrationInput,
   RegistrationResultModel,
 } from '@/modules/registrations/domain/registration';
+import { normalizeNeeds } from '@/modules/registrations/domain/registration-needs';
 import {
   termsWithBeds,
   toTermCapacity,
@@ -190,6 +191,7 @@ export class RegistrationsRepository {
           lastName: input.lastName,
           email: input.email,
           phone: input.phone,
+          ...(input.needs ? normalizeNeeds(input.needs) : {}),
           gender: input.gender ?? null,
           genderOther: input.genderOther ?? null,
           bankAccountPrefix: event.bankAccountPrefix,
