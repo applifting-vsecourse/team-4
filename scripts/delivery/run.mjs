@@ -3,8 +3,11 @@ import { eventScope } from '../automation/events.mjs';
 import {
   evaluate,
   isStorybookPreview,
+  latestReview,
+  reviewersFor,
   technicalReviewRequired,
 } from './lib.mjs';
+import { buildStacks, inSync, outOfSync, outOfSyncNote } from './stack.mjs';
 import { issueRequirements, scopeHash } from './requirements.mjs';
 import { copilotWaiver } from './copilot-waiver.mjs';
 import { referencedIssueNumbers } from '../automation/issue-links.mjs';
@@ -101,6 +104,63 @@ async function reconcileChecks(pr, conclusion, summary) {
   }
 }
 
+// Find the stack around a PR with targeted lookups (the PR below it, the PRs
+// on top of it), so a PR event never scans every open PR.
+async function stackOf(pr) {
+  const owner = repo.split('/')[0];
+  const nodes = new Map([[pr.number, pr]]);
+  const open = (query) => list(`/repos/${repo}/pulls?state=open&${query}`);
+  const others = (found, from) =>
+    found.filter((p) => p.number !== from.number && !nodes.has(p.number));
+  let below = pr;
+  while (below.base.ref !== 'main') {
+    const [parent] = others(
+      await open(`head=${encodeURIComponent(`${owner}:${below.base.ref}`)}`),
+      below,
+    );
+    if (!parent) break;
+    nodes.set(parent.number, parent);
+    below = parent;
+  }
+  const queue = [pr];
+  while (queue.length) {
+    const from = queue.shift();
+    for (const child of others(
+      await open(`base=${encodeURIComponent(from.head.ref)}`),
+      from,
+    )) {
+      nodes.set(child.number, child);
+      queue.push(child);
+    }
+  }
+  const { stacks } = buildStacks([...nodes.values()]);
+  return stacks.find((st) => st.prs.some((p) => p.number === pr.number));
+}
+// Whether `bottom` still targets the branch of a PR which has already merged
+// and contains that PR's head; a reused branch name proves nothing.
+const baseMerged = async (bottom) =>
+  (
+    await Promise.all(
+      (
+        await list(
+          `/repos/${repo}/pulls?state=closed&head=${encodeURIComponent(`${repo.split('/')[0]}:${bottom.base.ref}`)}`,
+        )
+      )
+        .filter((p) => p.merged_at)
+        .map(async (p) =>
+          inSync(
+            (
+              await api(
+                `/repos/${repo}/compare/${p.head.sha}...${bottom.head.sha}`,
+              )
+            ).status,
+          ),
+        ),
+    )
+  ).some(Boolean);
+const compareStatus = async (base, head) =>
+  (await api(`/repos/${repo}/compare/${base}...${head}`)).status;
+
 const scope = await eventScope();
 const onlyIssue = process.env.ONLY_ISSUE
   ? Number(process.env.ONLY_ISSUE)
@@ -137,13 +197,61 @@ for (let pr of candidates) {
         continue;
     }
     await publish('pending', 'Checking requirements, agent review and QA');
-    if (pr.base.ref !== 'main') {
+    // A stack is judged as one unit: QA of the tip commit covers every PR the
+    // tip contains. Anything that is not a plain chain onto main keeps waiting.
+    const stack = await stackOf(pr);
+    const stacked = stack && stack.prs.length > 1;
+    // After the PR below has merged, the rest of a stack still targets its
+    // branch until `/merge-stack` retargets it: that is a stack waiting its turn,
+    // not a PR with a missing prerequisite.
+    const bottomBase = stack?.bottom.base.ref;
+    const resuming =
+      stacked && bottomBase !== 'main' && (await baseMerged(stack.bottom));
+    if (
+      pr.base.ref !== 'main' &&
+      (!stack || (bottomBase !== 'main' && !resuming))
+    ) {
       await publish(
         'failure',
         `Waiting for prerequisite: targets ${pr.base.ref}; retarget to main.`,
       );
       console.log(`#${pr.number}: waiting for prerequisite (${pr.base.ref})`);
       continue;
+    }
+    let qaFrom;
+    if (stacked) {
+      const index = stack.prs.findIndex((p) => p.number === pr.number);
+      // This PR must contain its parent, and the tip must contain this PR.
+      const behind = (await outOfSync(stack, compareStatus)).filter(
+        (link) => stack.prs.indexOf(link.pr) >= index,
+      );
+      if (behind.length) {
+        const note = outOfSyncNote(behind[0]);
+        await publish('failure', note);
+        console.log(`#${pr.number}: ${note}`);
+        continue;
+      }
+      const tip = stack.tip;
+      // A Low tip gets no QA, so it could never cover the PRs below it.
+      if (severityFor(tip) === 'low' && severityFor(pr) !== 'low') {
+        const note = `Stack tip #${tip.number} is Low severity and gets no QA, so it cannot cover #${pr.number}; put a Standard or High PR on top of the stack.`;
+        await publish('failure', note);
+        console.log(`#${pr.number}: ${note}`);
+        continue;
+      }
+      if (tip.number !== pr.number) {
+        const tipReviews = await list(
+          `/repos/${repo}/pulls/${tip.number}/reviews`,
+        );
+        // The QA owner is whoever the bot asked on the tip, not on this PR.
+        const owner = reviewersFor(tip.user.login).qa;
+        qaFrom = {
+          review: latestReview(tipReviews, owner),
+          sha: tip.head.sha,
+          number: tip.number,
+          owner,
+        };
+      }
     }
     const files = await list(`/repos/${repo}/pulls/${pr.number}/files`);
     if (files.length !== pr.changed_files)
@@ -177,7 +285,7 @@ for (let pr of candidates) {
       issue.requirements = scope.approval;
       issue.requirementsVersion = scope.version;
     }
-    const result = evaluate({ pr, issues, reviews, comments });
+    const result = evaluate({ pr, issues, reviews, comments, qaFrom });
     // Never report a pass on a head which moved while reading evidence.
     const current = await api(`/repos/${repo}/pulls/${pr.number}`);
     current.technicalReviewRequired = technicalReviewRequired(
@@ -196,14 +304,22 @@ for (let pr of candidates) {
       current.technicalReviewRequired !== pr.technicalReviewRequired
     )
       throw new Error('PR changed during evaluation');
+    if (
+      qaFrom &&
+      (await api(`/repos/${repo}/pulls/${qaFrom.number}`)).head.sha !==
+        qaFrom.sha
+    )
+      throw new Error('Stack tip changed during evaluation');
     const summary = result.pass
       ? severityFor(pr) === 'low'
         ? 'Low severity: issue linkage, requirements, code review and QA are not required; CI remains required.'
         : isStorybookPreview(pr)
           ? 'Storybook design preview: CI, independent review and current PM approval passed; separate QA is skipped.'
-          : copilotWaiver({ pr, comments })
-            ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
-            : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; agent review passed before QA approved this commit.`
+          : qaFrom
+            ? `Requirements and agent review passed; QA approved stack tip #${qaFrom.number}, which contains this PR.`
+            : copilotWaiver({ pr, comments })
+              ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
+              : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; agent review passed before QA approved this commit.`
       : result.reasons.join(' ');
     for (const issue of issues) {
       if (
