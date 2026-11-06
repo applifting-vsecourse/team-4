@@ -60,6 +60,8 @@ export type RegistrationChangeDialogProps = {
 // original and proposed registration before the participant confirms it.
 // Either the change goes through directly or a request goes to the organizer.
 // Design only: every value is passed in; the consent checkbox is the only state.
+// The consent belongs to the release it was given for: when the server's
+// preview changes the places given up, it has to be given again.
 export function RegistrationChangeDialog({
   isOpen,
   isCancellation = false,
@@ -75,7 +77,9 @@ export function RegistrationChangeDialog({
   onConfirm,
   onReload,
 }: RegistrationChangeDialogProps) {
-  const [isReleaseConsentGiven, setIsReleaseConsentGiven] = useState(release?.isGiven ?? false)
+  const releaseKey = release ? `${release.lostTerm}→${release.targetTerm}` : ""
+  const [consent, setConsent] = useState({ key: releaseKey, isGiven: release?.isGiven ?? false })
+  const isReleaseConsentGiven = consent.key === releaseKey && consent.isGiven
   const isRequest = isApprovalRequired || isApprovalNewlyRequired
   const confirmLabel = isRequest
     ? "Odeslat žádost o schválení"
@@ -143,7 +147,7 @@ export function RegistrationChangeDialog({
             <ReleaseNotice
               {...release}
               isGiven={isReleaseConsentGiven}
-              onGivenChange={setIsReleaseConsentGiven}
+              onGivenChange={(isGiven) => setConsent({ key: releaseKey, isGiven })}
             />
           ) : null}
         </div>

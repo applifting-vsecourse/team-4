@@ -40,6 +40,8 @@ export function RegistrationChangeDecision({
   // Only the newest one is decided here; an older decided one is history.
   const shown = request && request.id === changes[0]?.id ? request : undefined
   const failure = decide.isError ? readApiError(decide.error) : null
+  // A legacy move without the participant's consent can never be approved.
+  const isConsentMissing = failure?.code === "release_consent_required"
 
   return (
     <div className="space-y-6">
@@ -85,7 +87,7 @@ export function RegistrationChangeDecision({
                 <AlertDescription>
                   {failure.code === "change_already_decided"
                     ? "O žádosti už bylo rozhodnuto jinak. Načtěte stránku znovu."
-                    : failure.code === "release_consent_required"
+                    : isConsentMissing
                       ? "Účastník nesouhlasil se ztrátou potvrzeného místa. Žádost lze jen zamítnout."
                       : failure.code === "change_invalid"
                         ? (failure.message ?? DECISION_FAILED)
@@ -106,7 +108,7 @@ export function RegistrationChangeDecision({
                   Zamítnout
                 </Button>
                 <Button
-                  disabled={decide.isPending || shown.isStale}
+                  disabled={decide.isPending || shown.isStale || isConsentMissing}
                   onClick={() => decide.mutate({ changeId: shown.id, decision: "approve" })}
                 >
                   <Check />
