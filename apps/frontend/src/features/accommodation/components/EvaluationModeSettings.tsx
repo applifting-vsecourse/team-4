@@ -1,3 +1,6 @@
+import { useState } from "react"
+import { Loader2 } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Field, FieldLabel } from "@/components/ui/field"
@@ -12,13 +15,22 @@ export type EvaluationModeSettingsProps = {
   mode: EvaluationMode
   /** A failed save: which mode still applies, already worded. */
   saveError?: string
+  onSave?: (mode: EvaluationMode) => void
+  isSaving?: boolean
 }
 
 // Správa akce → Nastavení → Automatizace (F13-1; spec v4 §5): whether the
 // proposal of a term is recalculated on its own after a change of inputs, or
 // only from "Přepočítat". Neither mode confirms anybody. Design only: every
 // value is passed in.
-export function EvaluationModeSettings({ mode, saveError }: EvaluationModeSettingsProps) {
+export function EvaluationModeSettings({
+  mode,
+  saveError,
+  onSave,
+  isSaving = false,
+}: EvaluationModeSettingsProps) {
+  const [selected, setSelected] = useState<EvaluationMode>(mode)
+
   return (
     <section
       aria-labelledby="automation-heading"
@@ -34,7 +46,8 @@ export function EvaluationModeSettings({ mode, saveError }: EvaluationModeSettin
         <CardContent>
           <div className="space-y-4">
             <RadioGroup
-              defaultValue={mode}
+              value={selected}
+              onValueChange={(value) => setSelected(value as EvaluationMode)}
               aria-label="Aktualizace návrhu vyhodnocení"
             >
               <Field orientation="horizontal">
@@ -65,7 +78,13 @@ export function EvaluationModeSettings({ mode, saveError }: EvaluationModeSettin
           </div>
         </CardContent>
         <CardFooter>
-          <Button>Uložit</Button>
+          <Button
+            disabled={isSaving}
+            onClick={() => onSave?.(selected)}
+          >
+            {isSaving ? <Loader2 className="animate-spin" /> : null}
+            Uložit
+          </Button>
         </CardFooter>
       </Card>
     </section>

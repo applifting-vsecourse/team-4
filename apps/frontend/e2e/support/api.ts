@@ -148,12 +148,14 @@ export async function register(
   publicId: string,
   participant: Participant,
   termIds: string[],
+  answers: { gender?: "female" | "male" | "other" | "undisclosed" } = {},
 ): Promise<{ id: string }> {
   return post(request, `/public/events/${publicId}/registrations`, {
     submissionKey: randomUUID(),
     ...participant,
     phone: "+420 777 123 456",
     termIds,
+    ...answers,
   })
 }
 

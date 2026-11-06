@@ -188,6 +188,7 @@ const ALEX: DetailProps = {
   terms: TERMS,
   history: (
     <EvaluationHistory
+      onOpenRun={() => undefined}
       title="Historie vyhodnocení"
       entries={HISTORY}
     />
@@ -206,6 +207,7 @@ const BARBORA: DetailProps = {
   terms: DETERMINED_TERMS,
   history: (
     <EvaluationHistory
+      onOpenRun={() => undefined}
       title="Historie vyhodnocení"
       entries={DETERMINED_HISTORY}
     />
@@ -283,6 +285,7 @@ export const HistoryEmpty: Story = {
   args: {
     history: (
       <EvaluationHistory
+        onOpenRun={() => undefined}
         title="Historie vyhodnocení"
         entries={[]}
       />
@@ -295,6 +298,7 @@ export const HistoryLoadFailed: Story = {
   args: {
     history: (
       <EvaluationHistory
+        onOpenRun={() => undefined}
         title="Historie vyhodnocení"
         entries={[]}
         isLoadFailed

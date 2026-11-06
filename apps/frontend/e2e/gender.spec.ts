@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 
 import { newParticipant, register, setUpEvent, type TermSpec } from "./support/api"
-import { closeDb, createMagicLink, useGenderHardAttribute } from "./support/db"
+import { closeDb, createMagicLink, setGenderHardAttribute } from "./support/db"
 import { definition } from "./support/ui"
 
 // The voluntary gender answer for accommodation (F64): chosen in the public
@@ -23,7 +23,7 @@ test("the answer from the form is shown to both sides, changed and corrected", a
   browser,
 }) => {
   const event = await setUpEvent(page.request, { terms, rooms })
-  await useGenderHardAttribute(event.eventId)
+  await setGenderHardAttribute(event.eventId)
   const jana = newParticipant("Jana")
 
   const context = await browser.newContext()
@@ -130,7 +130,7 @@ test("an older registration without an answer reads Neuvedeno, decided by hand",
   page,
 }) => {
   const event = await setUpEvent(page.request, { terms, rooms })
-  await useGenderHardAttribute(event.eventId)
+  await setGenderHardAttribute(event.eventId)
   const registration = await register(
     page.request,
     event.publicId,

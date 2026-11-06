@@ -272,15 +272,26 @@ function Screen({ children }: { children: ReactNode }) {
   )
 }
 
+/** The whole design: the decisions of the later slices are offered too. */
+const ALL_DECISIONS: TermEvaluationProps["decisions"] = {
+  onConfirm: () => undefined,
+  onWaitlist: () => undefined,
+  onDetermine: () => undefined,
+  onMove: () => undefined,
+}
+
 function evaluation(props: Partial<TermEvaluationProps> = {}, overlay?: ReactNode): ReactNode {
   return (
     <>
       <TermEvaluation
         {...BASE}
+        onConfirmAll={() => undefined}
+        decisions={ALL_DECISIONS}
         {...props}
       >
         {props.children ?? (
           <EvaluationHistory
+            onOpenRun={() => undefined}
             title="Historie termínu"
             entries={HISTORY}
           />
@@ -393,6 +404,7 @@ export const NeverEvaluated: Story = {
       people: WITHOUT_RESULT,
       children: (
         <EvaluationHistory
+          onOpenRun={() => undefined}
           title="Historie termínu"
           entries={[]}
         />
@@ -447,6 +459,7 @@ export const CountBeforeOrder: Story = {
       people: COUNT_FIRST,
       children: (
         <EvaluationHistory
+          onOpenRun={() => undefined}
           title="Historie termínu"
           entries={[]}
         />
@@ -503,6 +516,7 @@ export const NoCapacity: Story = {
       ],
       children: (
         <EvaluationHistory
+          onOpenRun={() => undefined}
           title="Historie termínu"
           entries={[]}
         />
@@ -560,6 +574,7 @@ export const HistoryLoadFailed: Story = {
     children: evaluation({
       children: (
         <EvaluationHistory
+          onOpenRun={() => undefined}
           title="Historie termínu"
           entries={[]}
           isLoadFailed

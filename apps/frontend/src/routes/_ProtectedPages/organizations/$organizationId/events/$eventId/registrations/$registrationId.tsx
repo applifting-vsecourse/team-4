@@ -1,5 +1,6 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, Link, useRouter, type ErrorComponentProps } from "@tanstack/react-router"
+import { z } from "zod"
 
 import { ROUTES } from "@/app/routes"
 import { PageHeader } from "@/components/PageHeader"
@@ -23,6 +24,11 @@ import { RegistrationDetail } from "@/features/registrations/components/Registra
 export const Route = createFileRoute(
   "/_ProtectedPages/organizations/$organizationId/events/$eventId/registrations/$registrationId",
 )({
+  // Opened from Vyhodnocení (S3-01): the way back returns to the same term and queue.
+  validateSearch: z.object({
+    fromTerm: z.string().uuid().optional().catch(undefined),
+    fromQueue: z.string().max(100).optional().catch(undefined),
+  }),
   loader: ({ context, params }) =>
     Promise.all([
       context.queryClient.ensureQueryData(organizationQueryOptions(params.organizationId)),
@@ -37,6 +43,7 @@ export const Route = createFileRoute(
 
 function RegistrationPage() {
   const { organizationId, eventId, registrationId } = Route.useParams()
+  const { fromTerm, fromQueue } = Route.useSearch()
   const { data: organization } = useSuspenseQuery(organizationQueryOptions(organizationId))
   const { data: event } = useSuspenseQuery(eventQueryOptions(organizationId, eventId))
   const registration = useSuspenseQuery(
@@ -57,6 +64,9 @@ function RegistrationPage() {
               <Link
                 to={ROUTES.eventRegistrations}
                 params={{ organizationId, eventId }}
+                search={
+                  fromTerm ? { view: "evaluation", evaluationTerm: fromTerm, queue: fromQueue } : {}
+                }
               >
                 Přihlášky
               </Link>
