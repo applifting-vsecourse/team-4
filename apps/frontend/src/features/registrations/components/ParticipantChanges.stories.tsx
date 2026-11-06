@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
+import { NO_NEEDS } from "@/features/registrations/api/registrationSchemas"
 import {
   ChangeRequestCard,
   type ChangeRequestCardProps,
@@ -329,6 +330,7 @@ function EditPage({ children }: { children?: ReactNode }) {
         <RegistrationChangeForm
           contact={CONTACT}
           terms={EDIT_TERMS}
+          needs={NO_NEEDS}
         />
       </section>
       {children}

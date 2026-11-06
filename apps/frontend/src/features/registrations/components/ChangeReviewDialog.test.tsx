@@ -36,6 +36,7 @@ const preview = (overrides: Partial<ChangePreview> = {}): ChangePreview => ({
   moves: [{ fromTermId: T2, toTermId: T3, resultStatus: "pending", requiresReleaseConsent: false }],
   summary: {
     values: [],
+    needs: null,
     terms: [
       {
         termId: T2,

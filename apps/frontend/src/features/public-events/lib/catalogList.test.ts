@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { toCatalogEventItem } from "@/features/public-events/lib/catalogList"
+import { toCatalogEventItem, toCatalogPreview } from "@/features/public-events/lib/catalogList"
 
 const uuid = (n: number) => `0190c0de-0000-7000-8000-${String(n).padStart(12, "0")}`
 
@@ -36,5 +36,23 @@ describe("toCatalogEventItem", () => {
     expect(toCatalogEventItem({ ...item, coverPhotoId: uuid(9) }).imageUrl).toMatch(
       new RegExp(`/public/catalog/events/abc123/photos/${uuid(9)}$`),
     )
+  })
+})
+
+describe("toCatalogPreview", () => {
+  const events = (count: number) =>
+    Array.from({ length: count }, (_, index) => ({ ...item, publicId: `event-${index}` }))
+
+  it("keeps up to three events in the API order", () => {
+    expect(toCatalogPreview(events(0))).toEqual([])
+    expect(toCatalogPreview(events(2)).map((event) => event.publicId)).toEqual([
+      "event-0",
+      "event-1",
+    ])
+    expect(toCatalogPreview(events(5)).map((event) => event.publicId)).toEqual([
+      "event-0",
+      "event-1",
+      "event-2",
+    ])
   })
 })

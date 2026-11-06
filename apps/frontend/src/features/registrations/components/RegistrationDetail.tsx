@@ -26,6 +26,8 @@ type RegistrationDetailProps = {
   /** The last refresh failed; `registration` is still from the one before. */
   hasRefreshFailed: boolean
   onRefresh: () => unknown
+  /** Transport, diet and health with the organizer's correction (F63). */
+  needs?: ReactNode
   /** The gender answer and its correction (F64), under the contacts. */
   accommodation?: ReactNode
   /** Replaces the list of terms, e.g. with each term's proposal (S3-01). */
@@ -43,6 +45,7 @@ export function RegistrationDetail({
   isRefreshing,
   hasRefreshFailed,
   onRefresh,
+  needs,
   accommodation,
   terms,
   history,
@@ -133,6 +136,8 @@ export function RegistrationDetail({
             </Card>
           )}
           {history}
+
+          {needs}
         </div>
 
         <div className="space-y-6">

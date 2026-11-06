@@ -22,6 +22,7 @@ import {
   eventRegistrationQueryOptions,
 } from "@/features/registrations/api/eventRegistrationQueryOptions"
 import { OrganizerAccommodationCard } from "@/features/registrations/components/OrganizerAccommodationCard"
+import { OrganizerNeedsSection } from "@/features/registrations/components/OrganizerNeedsSection"
 import { RecordPaymentDialog } from "@/features/registrations/components/RecordPaymentDialog"
 import { RegistrationChangeDecision } from "@/features/registrations/components/RegistrationChangeDecision"
 import { RegistrationDetail } from "@/features/registrations/components/RegistrationDetail"
@@ -142,6 +143,14 @@ function RegistrationPage() {
             eventId={eventId}
             registrationId={registrationId}
             person={name}
+          />
+        }
+        needs={
+          <OrganizerNeedsSection
+            organizationId={organizationId}
+            eventId={eventId}
+            registration={registration.data}
+            onReload={() => registration.refetch()}
           />
         }
       />
