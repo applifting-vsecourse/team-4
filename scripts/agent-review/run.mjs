@@ -10,6 +10,7 @@ import {
 // Testing" only when all of them pass for their current commit.
 // Projects v2 emits no workflow event on column moves, hence the polling.
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import {
@@ -17,6 +18,7 @@ import {
   STATUS_REVIEW,
   STATUS_TESTING,
   decideIssue,
+  findCarryOver,
   findPriorResults,
   formatIssueNote,
   formatPrComment,
@@ -37,6 +39,12 @@ import {
   technicalReviewRequired,
 } from '../delivery/lib.mjs';
 
+import {
+  buildStacks,
+  inSync,
+  outOfSyncNote,
+  sliceFingerprint,
+} from '../delivery/stack.mjs';
 import { ciEvidence } from './ci-evidence.mjs';
 import { planReview, executeReview } from './batches.mjs';
 import { ensureQaReviewRequest } from './qa-review.mjs';
@@ -318,7 +326,7 @@ async function readRules() {
   return rules;
 }
 
-async function reviewPr({ pr, issue, prCount, rules, requirements }) {
+async function reviewPr({ pr, issue, prCount, rules, requirements, stack }) {
   const meta = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${pr}`);
   const sha = meta.head.sha;
   const currentReviews = [];
@@ -344,7 +352,7 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
   meta.requirementsVersion = preflight.version;
   if (
     meta.state !== 'open' ||
-    meta.base.ref !== 'main' ||
+    (meta.base.ref !== 'main' && !stack) ||
     sha !== requirements.sha ||
     severityFor(meta) !== requirements.severity ||
     requirementsApproval(meta, currentReviews)?.id !== requirements.reviewId
@@ -355,6 +363,28 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
       status: 'stale',
       reason: 'Requirements or code changed before review',
     };
+  }
+  // A stacked PR is reviewed as its own slice, which only means something once
+  // its branch contains the PR below it.
+  const stackIndex = stack
+    ? stack.prs.findIndex((member) => member.number === pr)
+    : -1;
+  if (stackIndex > 0) {
+    const parent = await api(
+      cfg.githubToken,
+      `/repos/${cfg.repo}/pulls/${stack.prs[stackIndex - 1].number}`,
+    );
+    const { status } = await api(
+      cfg.githubToken,
+      `/repos/${cfg.repo}/compare/${parent.head.sha}...${sha}`,
+    );
+    if (!inSync(status))
+      return {
+        pr,
+        sha,
+        status: 'error',
+        reason: outOfSyncNote({ pr: meta, parent }),
+      };
   }
   const waiver = copilotWaiver({ pr: meta, comments });
   if (waiver) {
@@ -375,15 +405,12 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
     return { pr, sha, status: 'waived', waiver, url: waiver.url };
   }
   const scopeMarker = `<!-- agent-review-scope issue=${issue.number} -->`;
-  const prior = findPriorResults({
-    comments: comments.filter(
-      (c) =>
-        (c.body ?? '').startsWith(scopeMarker + '\n') &&
-        Date.parse(c.created_at) >= Date.parse(requirements.created_at),
-    ),
-    pr,
-    sha,
-  });
+  const scopedComments = comments.filter(
+    (c) =>
+      (c.body ?? '').startsWith(scopeMarker + '\n') &&
+      Date.parse(c.created_at) >= Date.parse(requirements.created_at),
+  );
+  const prior = findPriorResults({ comments: scopedComments, pr, sha });
 
   if (!cfg.force && prior.final) {
     return { pr, sha, status: prior.final.result, url: prior.final.url };
@@ -401,6 +428,66 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
   const diff = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${pr}`, {
     accept: 'application/vnd.github.diff',
   });
+  // The requirements record is recreated for every commit, so an earlier pass
+  // is only trusted back to the first record made under this same approval.
+  const approvalRecords = comments
+    .filter(
+      (c) =>
+        c.user?.login === 'github-actions[bot]' &&
+        (c.body ?? '').startsWith(`<!-- requirements-ready pr=${pr} sha=`) &&
+        (c.body ?? '')
+          .split('\n')[0]
+          .endsWith(
+            ` issue=${issue.number} review=${requirements.reviewId} -->`,
+          ),
+    )
+    .map((c) => c.created_at)
+    .sort();
+  const carryFloor = approvalRecords[0] ?? requirements.created_at;
+  // Merging the parent branch into a stacked PR changes its head but not its
+  // own change: carry an earlier pass over instead of reviewing it again.
+  const slice = stack ? sliceFingerprint(diff) : undefined;
+  const carry =
+    !cfg.force && slice
+      ? findCarryOver({
+          comments: comments.filter(
+            (c) =>
+              (c.body ?? '').startsWith(scopeMarker + '\n') &&
+              Date.parse(c.created_at) >= Date.parse(carryFloor),
+          ),
+          pr,
+          slice,
+        })
+      : null;
+  if (carry && carry.sha !== sha) {
+    let carried = false;
+    try {
+      const { status } = await api(
+        cfg.githubToken,
+        `/repos/${cfg.repo}/compare/${carry.sha}...${sha}`,
+      );
+      carried = inSync(status);
+    } catch {
+      // The earlier commit is gone (force push): review normally.
+    }
+    if (carried) {
+      const comment = await postComment(
+        pr,
+        scopeMarker +
+          '\n' +
+          formatPrComment({
+            sha,
+            result: 'pass',
+            attempt: 1,
+            pr,
+            issue: issue.number,
+            slice,
+            carriedFrom: carry.sha,
+          }),
+      );
+      return { pr, sha, status: 'pass', url: comment.html_url };
+    }
+  }
   const context = {
     issue,
     pullRequest: { title: meta.title, body: meta.body },
@@ -455,6 +542,7 @@ async function reviewPr({ pr, issue, prCount, rules, requirements }) {
         binaryOnly: outcome.binaryOnly,
         pr,
         issue: issue.number,
+        slice,
       }),
   );
   return { pr, sha, url: comment.html_url, ...outcome };
@@ -480,6 +568,7 @@ async function processIssue(board, item) {
   async function snapshots() {
     const all = [];
     const stacked = [];
+    const fetched = [];
     for (const number of prNumbers) {
       const pr = await api(
         cfg.githubToken,
@@ -487,7 +576,55 @@ async function processIssue(board, item) {
       );
       if (pr.state !== 'open')
         throw new Error(`PR #${number} is no longer open`);
-      if (pr.base.ref !== 'main') {
+      fetched.push(pr);
+    }
+    // A plain chain of linked PRs onto main is reviewed and tested as one stack.
+    // Anything else that does not target main keeps waiting for its prerequisite.
+    // The delivery check judges the whole chain of open PRs, so a stack this
+    // issue cannot see completely would be handed to QA differently by the two
+    // and never pass: such a stack waits, with a note saying why.
+    const stackByPr = new Map();
+    const blocked = new Map();
+    for (const stack of buildStacks(fetched).stacks) {
+      if (stack.bottom.base.ref !== 'main') continue;
+      const above = (
+        await api(
+          cfg.githubToken,
+          `/repos/${cfg.repo}/pulls?state=open&base=${encodeURIComponent(stack.tip.head.ref)}&per_page=100`,
+        )
+      ).filter((p) => !prNumbers.includes(p.number));
+      const lows = stack.prs.filter((p) => severityFor(p) === 'low');
+      const reason = above.length
+        ? `${above.map((p) => `#${p.number}`).join(', ')} is stacked on #${stack.tip.number} but not linked to this issue; link every PR of a stack to the same issue.`
+        : stack.prs.length > 1 &&
+            severityFor(stack.tip) === 'low' &&
+            lows.length < stack.prs.length
+          ? `The stack tip #${stack.tip.number} is Low severity and gets no QA, so it cannot cover the PRs below it; put a Standard or High PR on top.`
+          : null;
+      for (const member of stack.prs) {
+        if (reason) blocked.set(member.number, reason);
+        else if (stack.prs.length > 1) stackByPr.set(member.number, stack);
+      }
+    }
+    for (const reason of new Set(blocked.values())) {
+      const members = [...blocked]
+        .filter(([, r]) => r === reason)
+        .map(([n]) => n);
+      const marker = issueMarker({
+        issue: issue.number,
+        state: `stack-blocked|${members.join(',')}|${createHash('sha256').update(reason).digest('hex').slice(0, 12)}`,
+      });
+      console.log(`  -> waiting: ${reason}`);
+      if (!hasBotComment(await listComments(issue.number), marker))
+        await postComment(
+          issue.number,
+          `${marker}\nStack of ${members.map((n) => `#${n}`).join(', ')} is not handed to QA: ${reason}`,
+        );
+    }
+    for (const pr of fetched) {
+      const number = pr.number;
+      pr.stack = stackByPr.get(number);
+      if (blocked.has(number) || (pr.base.ref !== 'main' && !pr.stack)) {
         stacked.push(pr);
         continue;
       }
@@ -512,7 +649,7 @@ async function processIssue(board, item) {
           requiredByHistory: true,
           dryRun: cfg.dryRun,
         });
-      if (pr.state !== 'open' || pr.base.ref !== 'main')
+      if (pr.state !== 'open' || (pr.base.ref !== 'main' && !pr.stack))
         throw new Error(`PR #${number} is not open against main`);
       if (severityFor(pr) !== 'low')
         all.push({ pr, reviews, comments: await listComments(number) });
@@ -630,6 +767,7 @@ async function processIssue(board, item) {
         prCount: reviewPrNumbers.length,
         rules,
         requirements: requirementRecords.get(pr),
+        stack: initial.find((snapshot) => snapshot.pr.number === pr).pr.stack,
       }),
     );
   }
@@ -664,7 +802,7 @@ async function processIssue(board, item) {
           initial.find((s) => s.pr.number === pr.number).pr
             .technicalReviewRequired ||
         pr.state !== 'open' ||
-        pr.base.ref !== 'main' ||
+        (pr.base.ref !== 'main' && !pr.stack) ||
         requirementsApproval(
           pr,
           current.find((s) => s.pr.number === pr.number).reviews,
@@ -771,11 +909,20 @@ async function processIssue(board, item) {
                 Date.parse(requirementRecords.get(r.pr).created_at),
           )
         ) {
+          // One QA pass per stack: the tip contains every lower PR, so only the
+          // tip asks for it. Lower PRs get the record the delivery check needs.
+          const stack = snapshot.pr.stack;
+          const tip = stack?.tip;
+          const covered = tip && tip.number !== r.pr;
           await postComment(
             r.pr,
-            `${marker}\nReady for QA · issue #${issue.number} · \`${r.sha}\`.\n${r.status === 'waived' ? `Copilot waived ([reason](${r.waiver.url})). ` : ''}@${rolesByPr.get(r.pr).qa}: test this commit, then approve.`,
+            covered
+              ? `${marker}\nReady for QA via stack tip #${tip.number} · issue #${issue.number} · \`${r.sha}\`. No separate QA pass: testing and approving the tip covers this PR.`
+              : `${marker}\nReady for QA · issue #${issue.number} · \`${r.sha}\`.\n${r.status === 'waived' ? `Copilot waived ([reason](${r.waiver.url})). ` : ''}${stack ? `Stack: ${stack.prs.map((member) => `#${member.number}`).join(' ← ')}. ` : ''}@${rolesByPr.get(r.pr).qa}: test this commit${stack ? ' (it contains the whole stack)' : ''}, then approve.`,
           );
         }
+        if (snapshot.pr.stack && snapshot.pr.stack.tip.number !== r.pr)
+          continue;
         await ensureQaReviewRequest({
           api: (path, options) => api(cfg.githubToken, path, options),
           repo: cfg.repo,
@@ -787,6 +934,7 @@ async function processIssue(board, item) {
           },
           dryRun: cfg.dryRun,
           waiver: r.waiver,
+          stacked: Boolean(snapshot.pr.stack),
         });
       }
     }
