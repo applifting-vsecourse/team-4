@@ -72,12 +72,12 @@ test(sprintReviewTitle, async ({ page, browser }) => {
     await step(page, "Úvod · Landing page akc.io — S2-01", async () => {
       await page
         .getByRole("heading", {
-          name: "Přihlášky, ubytování a platby pro vaše akce na jednom místě",
+          name: "Akce bez chaosu",
           level: 1,
         })
         .waitFor({ state: "visible" })
       await scrollPage(page)
-      const entries = page.getByRole("region", { name: "Kudy dál" })
+      const entries = page.getByRole("navigation", { name: "Vstup do aplikace" })
       await expect(entries.getByRole("link", { name: "Moje přihlášky", exact: true })).toBeVisible()
       await expect(entries.getByRole("link", { name: "Organizátor", exact: true })).toBeVisible()
       // End this step on the landing page, with both entry points in view.
@@ -86,7 +86,7 @@ test(sprintReviewTitle, async ({ page, browser }) => {
     })
     await step(page, "1/9 · Alena zakládá organizaci — S2-02", async () => {
       await page
-        .getByRole("region", { name: "Kudy dál" })
+        .getByRole("navigation", { name: "Vstup do aplikace" })
         .getByRole("link", { name: "Organizátor", exact: true })
         .click()
       await withQuickDemoPace(page, async () => {
@@ -248,13 +248,13 @@ test(sprintReviewTitle, async ({ page, browser }) => {
       await mobile.goto("/")
       await mobile
         .getByRole("heading", {
-          name: "Přihlášky, ubytování a platby pro vaše akce na jednom místě",
+          name: "Akce bez chaosu",
           level: 1,
         })
         .waitFor({ state: "visible" })
       await mobileFits()
       await mobile
-        .getByRole("region", { name: "Kudy dál" })
+        .getByRole("article", { name: "Najdete akci, přihlásíte se a víte, na čem jste." })
         .getByRole("link", { name: "Moje přihlášky", exact: true })
         .click()
       if (isRemote) {

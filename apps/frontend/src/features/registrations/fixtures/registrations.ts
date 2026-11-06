@@ -6,6 +6,7 @@ import {
   type RegistrationList,
   type RegistrationSummary,
 } from "@/features/registrations/api/eventRegistrationSchemas"
+import { NO_NEEDS } from "@/features/registrations/api/registrationSchemas"
 
 // Preview and test data for registrations. Every factory parses its result
 // with the API schema, so a fixture that no longer matches the contract fails
@@ -110,6 +111,8 @@ export function makeRegistrationDetail(
     reminderAt: "2027-03-16T09:15:00.000Z",
     variableSymbol: "2700001",
     payments: [],
+    needs: NO_NEEDS,
+    version: 0,
     gender: "female",
     genderOther: null,
     requiresManualAccommodation: false,
