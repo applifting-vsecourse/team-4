@@ -96,10 +96,10 @@ function DatePicker({
           }}
         />
         {marked.length > 0 && markedLegend ? (
-          <p className="border-t px-3 py-2 text-xs text-muted-foreground">
+          <p className="flex items-center gap-2 border-t px-3 py-2 text-xs text-muted-foreground">
             <span
               aria-hidden
-              className="mr-2 inline-block size-2.5 rounded-sm bg-destructive-subtle align-middle ring-1 ring-destructive-subtle-foreground"
+              className="size-2.5 shrink-0 rounded-sm bg-destructive-subtle ring-1 ring-destructive-subtle-foreground"
             />
             {markedLegend}
           </p>
