@@ -25,12 +25,16 @@ export type OpeningBlocker =
 
 export type OpeningInput = EventInput & {
   termCount: number;
+  /** Terms that cost more than 0 Kč; payment settings are only needed for these. */
+  paidTermCount: number;
   paymentSettings: PaymentSettings | null;
 };
 
 /**
  * The opening preconditions (data-model.md §3.3). Rooms and free capacity are
- * deliberately not among them, and a term at 0 Kč counts as a term. The saved
+ * deliberately not among them, and a term at 0 Kč counts as a term. An event
+ * whose terms all cost 0 Kč needs no payment settings (S3-C04); one paid term
+ * brings the full requirement back, and without terms nothing is exempt. The saved
  * account was checked when it was saved; it is checked again here, so a row
  * written any other way cannot open registration.
  */
@@ -41,13 +45,15 @@ export const findOpeningBlockers = (input: OpeningInput): OpeningBlocker[] => {
   if (input.location.trim() === '') blockers.push('location');
   if (input.termCount < 1) blockers.push('terms');
   const payment = input.paymentSettings;
+  const needsPayment = input.termCount < 1 || input.paidTermCount > 0;
   if (
-    !payment ||
-    payment.paymentReminderDays < 1 ||
-    findInvalidAccountField(
-      payment.bankAccountPrefix,
-      payment.bankAccountNumber,
-    )
+    needsPayment &&
+    (!payment ||
+      payment.paymentReminderDays < 1 ||
+      findInvalidAccountField(
+        payment.bankAccountPrefix,
+        payment.bankAccountNumber,
+      ))
   ) {
     blockers.push('paymentSettings');
   }
@@ -112,6 +118,7 @@ export class EventDetailModel {
       description: this.description,
       location: this.location,
       termCount: this.terms.length,
+      paidTermCount: this.terms.filter((term) => term.priceMinor > 0).length,
       paymentSettings: this.paymentSettings,
     });
   }

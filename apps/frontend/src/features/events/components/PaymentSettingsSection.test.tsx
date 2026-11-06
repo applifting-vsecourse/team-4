@@ -77,6 +77,24 @@ describe("PaymentSettingsSection", () => {
     })
   })
 
+  it("says a free event needs no payment settings", () => {
+    const term = {
+      id: "11111111-1111-4111-8111-111111111111",
+      label: "Turnus",
+      startDate: "2027-07-01",
+      endDate: "2027-07-07",
+      priceMinor: 0,
+      capacity: 0,
+      programmeItemCount: 0,
+    }
+    renderPage({ ...EVENT, terms: [term] })
+
+    expect(screen.getByText("Bezplatná akce nepotřebuje platební nastavení")).toBeVisible()
+    expect(
+      screen.queryByText("Bez platebního nastavení nelze otevřít přihlašování"),
+    ).not.toBeInTheDocument()
+  })
+
   it("shows the missing-settings notice and then the saved values after a save", async () => {
     renderPage(EVENT)
     expect(screen.getByText("Bez platebního nastavení nelze otevřít přihlašování")).toBeVisible()

@@ -71,11 +71,15 @@ export class LockedEvent {
         _count: { select: { terms: true } },
       },
     });
+    const paidTermCount = await this.tx.eventTerm.count({
+      where: { eventId: this.eventId, priceMinor: { gt: 0 } },
+    });
     return {
       name: event.name,
       description: event.description,
       location: event.location,
       termCount: event._count.terms,
+      paidTermCount,
       paymentSettings: toPaymentSettings(event),
     };
   }

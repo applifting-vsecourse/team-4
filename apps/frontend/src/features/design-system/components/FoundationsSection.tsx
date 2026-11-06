@@ -64,7 +64,7 @@ export function FoundationsSection() {
       <ShowcaseSection
         id="typography"
         title="Typografie"
-        description="Space Grotesk pro text, Geist Mono pro kód a čísla v tabulkách."
+        description="Bricolage Grotesque pro text, Geist Mono pro kód a čísla v tabulkách."
       >
         <div className="space-y-4">
           {TYPE_STYLES.map((style) => (

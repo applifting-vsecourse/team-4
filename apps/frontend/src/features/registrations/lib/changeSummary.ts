@@ -6,8 +6,16 @@ import {
   type ChangeSummaryData,
   type RegistrationChange,
 } from "@/features/registrations/api/registrationChangeSchemas"
-import { type ChangeSummaryProps } from "@/features/registrations/components/ChangeSummary"
+import {
+  type ChangedValue,
+  type ChangeSummaryProps,
+} from "@/features/registrations/components/ChangeSummary"
 import { genderText } from "@/features/registrations/lib/gender"
+import {
+  formatDiet,
+  formatHealth,
+  formatTransport,
+} from "@/features/registrations/lib/registrationNeeds"
 
 const FIELD_LABELS = {
   firstName: "Jméno",
@@ -30,15 +38,34 @@ const balanceText = (balanceMinor: number) => {
   return "Vyrovnáno"
 }
 
+const NEEDS_PARTS = [
+  { label: "Doprava", format: formatTransport },
+  { label: "Strava", format: formatDiet },
+  { label: "Zdravotní omezení", format: formatHealth },
+]
+
+/** A row per part of transport, diet and health that changes (F63). */
+const needsRows = (needs: ChangeSummaryData["needs"]): ChangedValue[] =>
+  needs
+    ? NEEDS_PARTS.map(({ label, format }) => ({
+        label,
+        original: format(needs.original),
+        proposed: format(needs.proposed),
+      })).filter((row) => row.original !== row.proposed)
+    : []
+
 /** The server's summary as the comparison tables show it. */
 export function toSummaryProps(summary: ChangeSummaryData): ChangeSummaryProps {
   const { original, proposed } = summary
   return {
-    values: summary.values.map((value) => ({
-      label: FIELD_LABELS[value.field],
-      original: valueText(value, "original"),
-      proposed: valueText(value, "proposed"),
-    })),
+    values: [
+      ...summary.values.map((value) => ({
+        label: FIELD_LABELS[value.field],
+        original: valueText(value, "original"),
+        proposed: valueText(value, "proposed"),
+      })),
+      ...needsRows(summary.needs),
+    ],
     terms: summary.terms.map((term) => ({
       id: term.termId,
       label: term.label,

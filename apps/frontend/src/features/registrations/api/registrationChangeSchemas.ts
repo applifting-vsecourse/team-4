@@ -4,7 +4,9 @@ import {
   genderOtherSchema,
   genderSchema,
   participationStatusSchema,
+  registrationNeedsSchema,
   type Gender,
+  type RegistrationNeeds,
 } from "@/features/registrations/api/registrationSchemas"
 
 // Participant changes of an own registration and the organizer's approval
@@ -60,6 +62,10 @@ export const changeSummarySchema = z.object({
       }),
     ]),
   ),
+  /** Transport, diet and health (F63); null when they stay. */
+  needs: z
+    .object({ original: registrationNeedsSchema, proposed: registrationNeedsSchema })
+    .nullable(),
   terms: z.array(plannedTermSchema),
   original: moneySchema,
   proposed: moneySchema,
@@ -117,6 +123,8 @@ export type ChangeProposal = {
   firstName?: string
   lastName?: string
   phone?: string
+  /** Transport, diet and health as a whole (F63). */
+  needs?: RegistrationNeeds
   /** Null clears the answer back to "not answered". */
   gender?: Gender | null
   /** Own words for `other`; null removes them. */
