@@ -194,9 +194,11 @@
 
 /* Ticket stub shape (S3-T2). Unlayered on purpose: the ink outline and hard shadow belong to the
    component itself and must win over the kit's neutral border utilities. Focus and invalid
-   states keep their own colours. Badges keep their default 1px border. */
+   states keep their own colours. Badges keep their default 1px border.
+   A button is matched by its variant and size, not by data-slot: as a trigger (`DialogTrigger
+   asChild` and the like) its data-slot becomes the trigger's, and it would lose the shape. */
 [data-slot="card"],
-[data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]),
+[data-variant][data-size]:not([data-variant="ghost"]):not([data-variant="link"]),
 :is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]):not(
   :focus-visible,
   [aria-invalid="true"]
@@ -210,14 +212,26 @@
   border-color: var(--border);
 }
 /* Lime takes the ink of its own text, so the outline matches the hard shadow in both themes. */
-[data-slot="button"][data-variant="default"]:not([aria-invalid="true"]) {
+[data-variant="default"][data-size]:not([aria-invalid="true"]) {
   border-color: var(--primary-foreground);
 }
 [data-slot="card"],
-[data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]) {
+[data-variant][data-size]:not([data-variant="ghost"]):not([data-variant="link"]) {
   box-shadow: var(--shadow-sm);
 }
-[data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]):active {
+/* In light mode form fields take the card surface, so they stand out from the paper page the way
+   the filled fields of the dark theme do. On a card they keep its surface. */
+:root:not(.dark)
+  :is(
+    [data-slot="input"],
+    [data-slot="textarea"],
+    [data-slot="select-trigger"],
+    [data-slot="radio-group-item"],
+    [data-slot="checkbox"]:not([data-state="checked"])
+  ) {
+  background-color: var(--card);
+}
+[data-variant][data-size]:not([data-variant="ghost"]):not([data-variant="link"]):active {
   transform: translate(1px, 1px);
   box-shadow: var(--shadow-xs);
 }

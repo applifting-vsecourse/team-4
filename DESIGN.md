@@ -94,7 +94,8 @@ Filled in by shadcn convention: `popover-foreground`, `accent-foreground`, `dest
 
 The ticket-stub shape is part of the components, set once in `global.css`; pages don't recreate it:
 
-- `Card`, filled and outline `Button`s, `Input`, `Textarea` and `Select` triggers have a 1.5 px `foreground` outline (focus and invalid states keep their own colour). Badges keep their 1 px border.
+- `Card`, filled and outline `Button`s, `Input`, `Textarea` and `Select` triggers have a 1.5 px `foreground` outline (focus and invalid states keep their own colour). Badges keep their 1 px border. A button keeps the shape as a trigger too (`DialogTrigger asChild` and the like): the rules match its variant and size, not its `data-slot`.
+- In light mode form fields (`Input`, `Textarea`, `Select` triggers, radios and unchecked checkboxes) take the `card` surface, so they stand out from the paper page as the filled fields of the dark theme do.
 - Cards and those buttons cast a small hard shadow (`2px 2px 0` in `foreground`); a pressed button shifts by 1 px. The `shadow-*` tokens are hard offset shadows in `foreground`, too. In dark mode there are no shadows: the `shadow-*` tokens are empty and depth comes from lighter surfaces and outlines. Ghost and link buttons have neither outline nor shadow.
 - A panel inverted with `bg-foreground`/`text-background` in light mode adds `dark:bg-card dark:text-card-foreground dark:border-border`, so it stays a dark card in dark mode instead of turning into a light block.
 - `h1`–`h3` and card titles are weight 800 with -0.03 em tracking.

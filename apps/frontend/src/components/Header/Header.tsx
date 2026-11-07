@@ -18,46 +18,46 @@ type HeaderProps = {
 
 /**
  * The one header of every page outside the organization's administration
- * (BUG 279): the same entries in the same places on every page. The entries
- * follow the logo and the theme closes the row, so an account action in
- * between never moves them.
+ * (BUG 279): the same entries in the same places on every page. The logo is
+ * on the left; the entries and the theme sit on the right, followed by the
+ * page's account action, if any, at the very end.
  */
 export function Header({ account }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background">
-      <div className="mx-auto flex w-full max-w-280 items-center gap-3 px-4 py-4 md:px-8">
+      <div className="mx-auto flex w-full max-w-280 items-center justify-between gap-3 px-4 py-4 md:px-8">
         <HeaderLogo />
-        <nav
-          aria-label="Vstup do aplikace"
-          className="hidden items-center gap-2 md:flex"
-        >
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
+        <div className="flex items-center gap-2">
+          <nav
+            aria-label="Vstup do aplikace"
+            className="hidden items-center gap-2 md:flex"
           >
-            <Link to={ROUTES.catalog}>Katalog akcí</Link>
-          </Button>
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-          >
-            <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
-          </Button>
-          <Button
-            asChild
-            size="sm"
-          >
-            {/* Login offers organizer signup too; a signed-in organizer goes on to the organizations. */}
-            <Link to={ROUTES.login}>Organizátor</Link>
-          </Button>
-        </nav>
-        <div className="ml-auto flex items-center gap-2">
-          {account}
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+            >
+              <Link to={ROUTES.catalog}>Katalog akcí</Link>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+            >
+              <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
+            </Button>
+            <Button
+              asChild
+              size="sm"
+            >
+              {/* Login offers organizer signup too; a signed-in organizer goes on to the organizations. */}
+              <Link to={ROUTES.login}>Organizátor</Link>
+            </Button>
+          </nav>
           <div className="hidden md:block">
             <ThemeSwitcher />
           </div>
+          {account}
           <MobileMenu />
         </div>
       </div>

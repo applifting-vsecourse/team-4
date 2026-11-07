@@ -171,11 +171,16 @@ test("every page outside the organization's administration has the same header",
     expect.soft(await headerEntries(page), path).toEqual(expect.arrayContaining(landing))
   }
 
-  // A signed-in organizer's own menu joins the same entries without moving them.
+  // A signed-in organizer's own menu closes the row after the same entries.
   await signUpOrganizer(page.request)
   await page.goto("/organizations")
-  await expect(page.getByRole("button", { name: "Uživatelské menu" })).toBeVisible()
-  expect(await headerEntries(page), "/organizations").toEqual(expect.arrayContaining(landing))
+  const menu = page.getByRole("button", { name: "Uživatelské menu" })
+  await expect(menu).toBeVisible()
+  const organizer = await headerEntries(page)
+  expect(organizer.map((entry) => entry.name)).toEqual(
+    expect.arrayContaining(landing.map((entry) => entry.name)),
+  )
+  expect(organizer.at(-1)?.name).toBe("Uživatelské menu")
 
   await unpublish(request, event)
 })
