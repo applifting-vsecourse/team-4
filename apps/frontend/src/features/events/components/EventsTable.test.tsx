@@ -68,8 +68,11 @@ describe("EventsTable", () => {
         within(row).getByRole("link", { name: event.name }),
       ])
     }
-    for (const hidden of document.querySelectorAll("tbody a[aria-hidden='true']")) {
-      expect(hidden).toHaveAttribute("tabindex", "-1")
+    // The four remaining cells of every row carry a hidden, unfocusable overlay link.
+    const hidden = document.querySelectorAll("tbody a[aria-hidden='true']")
+    expect(hidden).toHaveLength(EVENT_SUMMARIES.length * 4)
+    for (const link of hidden) {
+      expect(link).toHaveAttribute("tabindex", "-1")
     }
   })
 })
