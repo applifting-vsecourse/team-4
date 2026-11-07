@@ -285,3 +285,37 @@ test('Bogdan can approve High requirements', () => {
   f.reviews[0].user.login = 'rmnskb';
   assert.equal(evaluate(f).pass, true);
 });
+test('a stacked PR takes its QA from the stack tip commit', () => {
+  const tip = 'c'.repeat(40);
+  const f = fixture();
+  // QA approved the tip, not this PR's own head, after this PR's handoff.
+  f.reviews = [review(PM, 1), review(QA, 4, 'APPROVED', tip)];
+  assert.equal(evaluate(f).pass, false);
+  const qaFrom = {
+    review: f.reviews[1],
+    sha: tip,
+    number: 20,
+  };
+  assert.equal(evaluate({ ...f, qaFrom }).pass, true);
+});
+test('tip QA does not count before the handoff, or for another commit', () => {
+  const tip = 'c'.repeat(40);
+  const f = fixture();
+  const early = review(QA, 2, 'APPROVED', tip);
+  assert.equal(
+    evaluate({ ...f, qaFrom: { review: early, sha: tip, number: 20 } }).pass,
+    false,
+  );
+  const stale = review(QA, 4, 'APPROVED', 'd'.repeat(40));
+  const result = evaluate({
+    ...f,
+    qaFrom: { review: stale, sha: tip, number: 20 },
+  });
+  assert.equal(result.pass, false);
+  assert.match(result.reasons.join(' '), /stack tip #20/);
+  assert.equal(
+    evaluate({ ...f, qaFrom: { review: undefined, sha: tip, number: 20 } })
+      .pass,
+    false,
+  );
+});

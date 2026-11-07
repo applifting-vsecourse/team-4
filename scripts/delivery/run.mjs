@@ -3,8 +3,16 @@ import { eventScope } from '../automation/events.mjs';
 import {
   evaluate,
   isStorybookPreview,
+  latestReview,
+  reviewersFor,
   technicalReviewRequired,
 } from './lib.mjs';
+import {
+  buildStacks,
+  outOfSync,
+  outOfSyncNote,
+  resumableBase,
+} from './stack.mjs';
 import { issueRequirements, scopeHash } from './requirements.mjs';
 import { copilotWaiver } from './copilot-waiver.mjs';
 import { referencedIssueNumbers } from '../automation/issue-links.mjs';
@@ -52,15 +60,17 @@ async function issuesFor(pr) {
   const linked = response.data.repository.pullRequest.closingIssuesReferences;
   if (linked.pageInfo.hasNextPage) throw new Error('Too many linked issues');
   const references = await Promise.all(
-    referencedIssueNumbers(pr.body).map(async (number) => {
-      const issue = await api(`/repos/${repo}/issues/${number}`);
-      if (issue.pull_request)
-        throw new Error(`#${number} refers to a pull request, not an issue`);
-      return {
-        number: issue.number,
-        repository: { nameWithOwner: repo },
-      };
-    }),
+    referencedIssueNumbers(pr.body, { stacked: pr.base.ref !== 'main' }).map(
+      async (number) => {
+        const issue = await api(`/repos/${repo}/issues/${number}`);
+        if (issue.pull_request)
+          throw new Error(`#${number} refers to a pull request, not an issue`);
+        return {
+          number: issue.number,
+          repository: { nameWithOwner: repo },
+        };
+      },
+    ),
   );
   const issues = [
     ...new Map(
@@ -101,18 +111,65 @@ async function reconcileChecks(pr, conclusion, summary) {
   }
 }
 
+// Find the stack around a PR with targeted lookups (the PR below it, the PRs
+// on top of it), so a PR event never scans every open PR.
+async function stackNeighborhood(pr) {
+  const owner = repo.split('/')[0];
+  const nodes = new Map([[pr.number, pr]]);
+  const open = (query) => list(`/repos/${repo}/pulls?state=open&${query}`);
+  const others = (found, from) =>
+    found.filter((p) => p.number !== from.number && !nodes.has(p.number));
+  let below = pr;
+  while (below.base.ref !== 'main') {
+    const [parent] = others(
+      await open(`head=${encodeURIComponent(`${owner}:${below.base.ref}`)}`),
+      below,
+    );
+    if (!parent) break;
+    nodes.set(parent.number, parent);
+    below = parent;
+  }
+  const queue = [...nodes.values()];
+  while (queue.length) {
+    const from = queue.shift();
+    for (const child of others(
+      await open(`base=${encodeURIComponent(from.head.ref)}`),
+      from,
+    )) {
+      nodes.set(child.number, child);
+      queue.push(child);
+    }
+  }
+  return [...nodes.values()];
+}
+const compareStatus = async (base, head) =>
+  (await api(`/repos/${repo}/compare/${base}...${head}`)).status;
+const baseMerged = (bottom) =>
+  resumableBase({ list, compare: compareStatus, repo, bottom });
+
 const scope = await eventScope();
 const onlyIssue = process.env.ONLY_ISSUE
   ? Number(process.env.ONLY_ISSUE)
   : null;
-const candidates =
+const eventPrs =
   scope.type === 'prs'
-    ? await Promise.all(
-        scope.numbers.map((number) => api(`/repos/${repo}/pulls/${number}`)),
-      )
+    ? scope.numbers
     : scope.type === 'pr'
-      ? [await api(`/repos/${repo}/pulls/${scope.number}`)]
-      : await list(`/repos/${repo}/pulls?state=open`);
+      ? [scope.number]
+      : null;
+const neighborhoods = eventPrs
+  ? await Promise.all(
+      eventPrs.map(async (number) =>
+        stackNeighborhood(await api(`/repos/${repo}/pulls/${number}`)),
+      ),
+    )
+  : [await list(`/repos/${repo}/pulls?state=open`)];
+const candidates = [
+  ...new Map(neighborhoods.flat().map((pr) => [pr.number, pr])).values(),
+];
+const stackByPr = new Map();
+for (const stack of buildStacks(candidates).stacks)
+  for (const pr of stack.prs) stackByPr.set(pr.number, stack);
 for (let pr of candidates) {
   if (pr.state !== 'open') continue;
   // Commit statuses do not become synthetic jobs in an unrelated Actions suite.
@@ -137,13 +194,61 @@ for (let pr of candidates) {
         continue;
     }
     await publish('pending', 'Checking requirements, agent review and QA');
-    if (pr.base.ref !== 'main') {
+    // A stack is judged as one unit: QA of the tip commit covers every PR the
+    // tip contains. Anything that is not a plain chain onto main keeps waiting.
+    const stack = stackByPr.get(pr.number);
+    const stacked = stack && stack.prs.length > 1;
+    // After the PR below has merged, the rest of a stack still targets its
+    // branch until `/merge-stack` retargets it: that is a stack waiting its turn,
+    // not a PR with a missing prerequisite.
+    const bottomBase = stack?.bottom.base.ref;
+    const resuming =
+      stack && bottomBase !== 'main' && (await baseMerged(stack.bottom));
+    if (
+      pr.base.ref !== 'main' &&
+      (!stack || (bottomBase !== 'main' && !resuming))
+    ) {
       await publish(
         'failure',
         `Waiting for prerequisite: targets ${pr.base.ref}; retarget to main.`,
       );
       console.log(`#${pr.number}: waiting for prerequisite (${pr.base.ref})`);
       continue;
+    }
+    let qaFrom;
+    if (stacked) {
+      const index = stack.prs.findIndex((p) => p.number === pr.number);
+      // This PR must contain its parent, and the tip must contain this PR.
+      const behind = (await outOfSync(stack, compareStatus)).filter(
+        (link) => stack.prs.indexOf(link.pr) >= index,
+      );
+      if (behind.length) {
+        const note = outOfSyncNote(behind[0]);
+        await publish('failure', note);
+        console.log(`#${pr.number}: ${note}`);
+        continue;
+      }
+      const tip = stack.tip;
+      // A Low tip gets no QA, so it could never cover the PRs below it.
+      if (severityFor(tip) === 'low' && severityFor(pr) !== 'low') {
+        const note = `Stack tip #${tip.number} is Low severity and gets no QA, so it cannot cover #${pr.number}; put a Standard or High PR on top of the stack.`;
+        await publish('failure', note);
+        console.log(`#${pr.number}: ${note}`);
+        continue;
+      }
+      if (tip.number !== pr.number) {
+        const tipReviews = await list(
+          `/repos/${repo}/pulls/${tip.number}/reviews`,
+        );
+        // The QA owner is whoever the bot asked on the tip, not on this PR.
+        const owner = reviewersFor(tip.user.login).qa;
+        qaFrom = {
+          review: latestReview(tipReviews, owner),
+          sha: tip.head.sha,
+          number: tip.number,
+          owner,
+        };
+      }
     }
     const files = await list(`/repos/${repo}/pulls/${pr.number}/files`);
     if (files.length !== pr.changed_files)
@@ -177,7 +282,7 @@ for (let pr of candidates) {
       issue.requirements = scope.approval;
       issue.requirementsVersion = scope.version;
     }
-    const result = evaluate({ pr, issues, reviews, comments });
+    const result = evaluate({ pr, issues, reviews, comments, qaFrom });
     // Never report a pass on a head which moved while reading evidence.
     const current = await api(`/repos/${repo}/pulls/${pr.number}`);
     current.technicalReviewRequired = technicalReviewRequired(
@@ -196,14 +301,22 @@ for (let pr of candidates) {
       current.technicalReviewRequired !== pr.technicalReviewRequired
     )
       throw new Error('PR changed during evaluation');
+    if (
+      qaFrom &&
+      (await api(`/repos/${repo}/pulls/${qaFrom.number}`)).head.sha !==
+        qaFrom.sha
+    )
+      throw new Error('Stack tip changed during evaluation');
     const summary = result.pass
       ? severityFor(pr) === 'low'
         ? 'Low severity: issue linkage, requirements, code review and QA are not required; CI remains required.'
         : isStorybookPreview(pr)
           ? 'Storybook design preview: CI, independent review and current PM approval passed; separate QA is skipped.'
-          : copilotWaiver({ pr, comments })
-            ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
-            : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; agent review passed before QA approved this commit.`
+          : qaFrom
+            ? `Requirements and agent review passed; QA approved stack tip #${qaFrom.number}, which contains this PR.`
+            : copilotWaiver({ pr, comments })
+              ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
+              : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; agent review passed before QA approved this commit.`
       : result.reasons.join(' ');
     for (const issue of issues) {
       if (

@@ -124,7 +124,10 @@ export function readyMarker(pr, sha, issue) {
   return `<!-- delivery-ready pr=${pr} sha=${sha} issue=${issue} -->`;
 }
 
-export function evaluate({ pr, issues, reviews, comments }) {
+// `qaFrom` ({ review, sha, number }) lets a stacked PR take its QA from the
+// stack tip: the tip contains this PR, so one approval of the tip commit covers
+// the whole stack. Everything else is still judged on this PR's own head.
+export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
   const reasons = [];
   let severity;
   try {
@@ -145,7 +148,8 @@ export function evaluate({ pr, issues, reviews, comments }) {
   const technicalApproval = needsTechnicalReview
     ? technicalReviewApproval(pr, reviews)
     : null;
-  const qa = latestReview(reviews, roles.qa);
+  const qa = qaFrom ? qaFrom.review : latestReview(reviews, roles.qa);
+  const qaSha = qaFrom?.sha ?? sha;
   const storybookPreview = isStorybookPreview(pr);
   const previewApproval = storybookPreview
     ? storybookPreviewApproval(pr, reviews)
@@ -158,8 +162,12 @@ export function evaluate({ pr, issues, reviews, comments }) {
     reasons.push(
       `Technical review approval by @${TECHNICAL_REVIEWER} is missing for this commit.`,
     );
-  if (!storybookPreview && !approved(qa, sha))
-    reasons.push(`QA approval by ${roles.qa} is missing for this commit.`);
+  if (!storybookPreview && !approved(qa, qaSha))
+    reasons.push(
+      qaFrom
+        ? `QA approval by ${qaFrom.owner ?? roles.qa} is missing for the stack tip #${qaFrom.number}.`
+        : `QA approval by ${roles.qa} is missing for this commit.`,
+    );
   if (storybookPreview && !previewApproval)
     reasons.push(
       `Storybook preview needs current-commit approval by ${REQUIREMENTS_APPROVERS.join(' or ')}.`,
@@ -237,7 +245,7 @@ export function evaluate({ pr, issues, reviews, comments }) {
     }
     if (
       !storybookPreview &&
-      approved(qa, sha) &&
+      approved(qa, qaSha) &&
       (waiver || verdict) &&
       Date.parse(qa.submitted_at) <=
         Date.parse(waiver?.at ?? verdict.created_at)
@@ -258,7 +266,7 @@ export function evaluate({ pr, issues, reviews, comments }) {
           ? `Issue #${issue.number} has not entered code review after current requirements approval.`
           : `Issue #${issue.number} has not passed requirements and agent review into Ready for Testing.`,
       );
-    } else if (!storybookPreview && requirement && pm && approved(qa, sha)) {
+    } else if (!storybookPreview && requirement && pm && approved(qa, qaSha)) {
       if (
         Date.parse(qa.submitted_at) <= Date.parse(ready.created_at) ||
         (!pm.exempt &&

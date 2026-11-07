@@ -9,8 +9,8 @@ function addByNumber(map, item) {
   });
 }
 
-/** Explicit non-closing issue links in a PR body, excluding quoted examples. */
-export function referencedIssueNumbers(body = '') {
+/** Explicit issue references, with a fallback for closing keywords on stacked PRs. */
+export function referencedIssueNumbers(body = '', { stacked = false } = {}) {
   const prose = (body ?? '')
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/```[\s\S]*?```/g, '')
@@ -27,6 +27,11 @@ export function referencedIssueNumbers(body = '') {
     for (const reference of match[2].matchAll(/#(\d+)/g))
       numbers.add(Number(reference[1]));
   }
+  if (stacked)
+    for (const match of prose.matchAll(
+      /\b(?:clos(?:e|es|ed)|fix(?:es|ed)?|resolv(?:e|es|ed)):?[ \t]+#(\d+)\b/gi,
+    ))
+      numbers.add(Number(match[1]));
   return [...numbers];
 }
 
@@ -46,7 +51,9 @@ export function pullRequestsLinkedToIssue(issue) {
       target.number !== issue.number ||
       (issue.repository?.nameWithOwner &&
         target.repository?.nameWithOwner !== issue.repository.nameWithOwner) ||
-      !referencedIssueNumbers(source.body).includes(issue.number)
+      !referencedIssueNumbers(source.body, {
+        stacked: Boolean(source.baseRefName && source.baseRefName !== 'main'),
+      }).includes(issue.number)
     )
       continue;
     addByNumber(prs, source);
