@@ -65,6 +65,8 @@ test('the stack merge workflow never runs PR code and merges with its own token'
   );
   assert.match(stackMerge, /contents: read/);
   assert.doesNotMatch(stackMerge, /contents: write/);
+  // The reply is a comment on a PR: the workflow token needs pull-requests write.
+  assert.match(stackMerge, /^\s*pull-requests: write\s*$/m);
   assert.match(stackMerge, /cancel-in-progress: false/);
   // The comment body must never be interpolated into a shell command.
   assert.doesNotMatch(stackMerge, /run:.*\$\{\{\s*github\.event/);
