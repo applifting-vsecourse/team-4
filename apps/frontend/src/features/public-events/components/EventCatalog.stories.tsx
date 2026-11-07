@@ -3,7 +3,6 @@ import type { Meta, StoryObj } from "@storybook/react-vite"
 import { fn } from "storybook/test"
 
 import { Header } from "@/components/Header/Header"
-import { Button } from "@/components/ui/button"
 
 import {
   ALL_OPTIONS,
@@ -81,7 +80,7 @@ const FILTERED: CatalogEventItem[] = EVENTS.filter((event) => event.publicId ===
 function CatalogPage({ children, filters }: { children: ReactNode; filters: ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
-      <Header userMenu={<Button size="sm">Přihlásit se</Button>} />
+      <Header />
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8">
         <h1 className="text-h2">Katalog akcí</h1>
         {filters}

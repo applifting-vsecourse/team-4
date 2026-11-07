@@ -243,6 +243,15 @@
   :where(button, input, textarea, select):disabled {
     cursor: not-allowed;
   }
+  /* A page scrollbar that comes or goes must not move the centred layout. */
+  html {
+    scrollbar-gutter: stable;
+  }
+  /* The gutter already keeps the scrollbar's place while an overlay locks the
+     scroll; the lock's own margin for it would move the page a second time. */
+  html body[data-scroll-locked] {
+    margin-right: 0 !important;
+  }
   body {
     @apply bg-background text-foreground antialiased;
   }

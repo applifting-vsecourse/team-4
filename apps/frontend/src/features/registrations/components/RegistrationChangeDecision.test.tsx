@@ -146,14 +146,33 @@ describe("RegistrationChangeDecision", () => {
     expect(screen.getByRole("button", { name: "Schválit" })).toBeEnabled()
   })
 
-  it("keeps a rejected request visible without decision buttons", async () => {
+  it.each(["approved", "rejected"])(
+    "shows a %s request only in the history, not as an open request",
+    async (status) => {
+      get.mockReturnValue(
+        answer({ changes: [change({ status, decidedAt: "2026-10-31T08:12:00.000Z" })] }),
+      )
+      renderDecision()
+
+      expect(await screen.findByText("Historie změn")).toBeInTheDocument()
+      expect(screen.queryByText("Žádost o změnu")).not.toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: "Schválit" })).not.toBeInTheDocument()
+    },
+  )
+
+  it("shows the waiting request above the history of an older decided one", async () => {
     get.mockReturnValue(
-      answer({ changes: [change({ status: "rejected", decidedAt: "2026-10-31T08:12:00.000Z" })] }),
+      answer({
+        changes: [
+          change({ id: id(901) }),
+          change({ status: "rejected", decidedAt: "2026-10-29T08:12:00.000Z" }),
+        ],
+      }),
     )
     renderDecision()
 
-    expect((await screen.findAllByText("Zamítnuto")).length).toBeGreaterThan(0)
-    expect(screen.queryByRole("button", { name: "Schválit" })).not.toBeInTheDocument()
+    expect(await screen.findByText("Žádost o změnu")).toBeInTheDocument()
+    expect(screen.getByText("Čeká na schválení")).toBeInTheDocument()
   })
 
   it("shows nothing about changes for a registration without any", async () => {

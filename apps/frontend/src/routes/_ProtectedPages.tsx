@@ -40,7 +40,7 @@ function Layout() {
   return (
     <>
       <Seo />
-      <Header userMenu={<HeaderMenu />} />
+      <Header account={<HeaderMenu />} />
       <main className="min-h-svh">
         <Outlet />
       </main>

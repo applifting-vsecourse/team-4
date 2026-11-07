@@ -81,7 +81,7 @@ const EVENT: PublicEventDetailProps = {
 function PublicPage({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
-      <Header userMenu={<Button size="sm">Přihlásit se</Button>} />
+      <Header />
       <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8">
         <Button
           asChild
@@ -173,7 +173,7 @@ export const LoadFailed: Story = {
 function OrganizerPage({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
-      <Header userMenu={<Button size="sm">Odhlásit se</Button>} />
+      <Header account={<Button size="sm">Odhlásit se</Button>} />
       <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8">
         <h1 className="text-h2">Nastavení akce</h1>
         {children}
