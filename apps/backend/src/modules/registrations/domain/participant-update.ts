@@ -112,7 +112,9 @@ const FIELD_LABELS: Record<string, string> = {
 
 const transportText = (needs: RegistrationNeeds): string =>
   [
-    needs.transport ? TRANSPORT_LABELS[needs.transport] : '',
+    needs.transport
+      ? (TRANSPORT_LABELS[needs.transport] ?? needs.transport)
+      : '',
     needs.transportNote,
   ]
     .filter(Boolean)
@@ -122,7 +124,7 @@ const dietText = (needs: RegistrationNeeds): string =>
   [
     needs.hasNoDietRestriction
       ? 'Bez omezení'
-      : needs.diet.map((choice) => DIET_LABELS[choice]).join(', '),
+      : needs.diet.map((choice) => DIET_LABELS[choice] ?? choice).join(', '),
     needs.dietNote,
   ]
     .filter(Boolean)
@@ -151,7 +153,7 @@ export const changedValues = (
       };
     }
     return {
-      label: FIELD_LABELS[value.field],
+      label: FIELD_LABELS[value.field] ?? value.field,
       original: text(value.original),
       proposed: text(value.proposed),
     };

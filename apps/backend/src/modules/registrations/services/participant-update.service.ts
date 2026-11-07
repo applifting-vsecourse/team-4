@@ -60,9 +60,17 @@ export class ParticipantUpdateService {
   private async send(claimed: ClaimedUpdate): Promise<void> {
     const { update } = claimed;
     const secrets: string[] = [];
+    let delivered: string | null | undefined;
     try {
+      // A delivery without them cannot be sent as the message promises.
+      if (!claimed.paymentToken) {
+        throw new Error('The delivery has no registration to link to');
+      }
       let url = `${this.config.frontendUrl}/my-registrations`;
       if (update.hasMagicLink) {
+        if (!claimed.accountId) {
+          throw new Error('The delivery has no account to sign in');
+        }
         url = await this.access.issueConfirmationLink(claimed.accountId);
         secrets.push(url, new URL(url).searchParams.get('token') ?? '');
       }
@@ -89,10 +97,7 @@ export class ParticipantUpdateService {
         images,
       );
       if (!sent.sent) throw new Error('E-mail was not handed to the provider');
-      await this.repository.mark(claimed.deliveryId, {
-        status: 'accepted',
-        providerMessageId: sent.messageId,
-      });
+      delivered = sent.messageId;
     } catch (error) {
       const reason = this.sanitize(error, secrets);
       this.logger.error(
@@ -101,7 +106,20 @@ export class ParticipantUpdateService {
       await this.repository
         .mark(claimed.deliveryId, { status: 'failed', error: reason })
         .catch(() => undefined);
+      return;
     }
+    // The provider took the message: a failure to record it is not a failed
+    // send, so it is only logged and the row is never marked failed for it.
+    await this.repository
+      .mark(claimed.deliveryId, {
+        status: 'accepted',
+        providerMessageId: delivered ?? null,
+      })
+      .catch((error: unknown) =>
+        this.logger.error(
+          `Update e-mail ${claimed.deliveryId} was sent but not recorded: ${String(error)}`,
+        ),
+      );
   }
 
   /** Never keeps a link or token, which may sit in a provider error. */
