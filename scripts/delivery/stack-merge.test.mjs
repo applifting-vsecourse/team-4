@@ -297,3 +297,63 @@ test('a lone PR on main is still not a stack', async () => {
   );
   assert.deepEqual(calls, []);
 });
+
+test('a delivery result which is only pending for a moment is waited for, not refused', async () => {
+  // The /merge-stack comment itself re-runs the delivery check for the stack.
+  const { api, calls } = repo({ pendingReads: { 2: 3 } });
+  const waits = [];
+  const c = clock();
+  const { merged } = await mergeStack({
+    ...base,
+    api,
+    number: 1,
+    now: c.now,
+    wait: async (ms) => {
+      waits.push(ms);
+      await c.wait(ms);
+    },
+  });
+  assert.deepEqual(merged, [1, 2, 3]);
+  assert.ok(waits.length >= 3, `waited ${waits.length} times`);
+  assert.equal(calls.filter(([kind]) => kind === 'merge').length, 3);
+});
+
+test('a check waits through pending results too, and writes nothing', async () => {
+  const { api, calls } = repo({ pendingReads: { 1: 2, 3: 2 } });
+  const result = await mergeStack({
+    ...base,
+    api,
+    number: 1,
+    dryRun: true,
+    ...clock(),
+  });
+  assert.equal(result.dryRun, true);
+  assert.deepEqual(calls, []);
+});
+
+test('a result which stays pending is refused after the limit', async () => {
+  const { api, calls } = repo({ pendingReads: { 2: 100000 } });
+  await assert.rejects(
+    mergeStack({
+      ...base,
+      api,
+      number: 1,
+      pendingTimeoutMs: 60_000,
+      ...clock(),
+    }),
+    /#2: Delivery stages is pending/,
+  );
+  assert.deepEqual(calls, []);
+});
+
+test('what a pending result settles to still decides', async () => {
+  const { api, calls } = repo({
+    status: { 2: 'failure' },
+    pendingReads: { 2: 2 },
+  });
+  await assert.rejects(
+    mergeStack({ ...base, api, number: 1, ...clock() }),
+    /#2: Delivery stages is failure/,
+  );
+  assert.deepEqual(calls, []);
+});

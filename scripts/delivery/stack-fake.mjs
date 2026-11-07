@@ -14,6 +14,7 @@ export function repo({
   afterRetarget = 'success',
   ci = {},
   autoRetarget = false,
+  pendingReads = {},
 } = {}) {
   let pending = null;
   let nextStatusId = 100;
@@ -61,6 +62,20 @@ export function repo({
           });
           pending = null;
         }
+      }
+      // The delivery check marks a PR pending for a few reads, then settles.
+      const owner = prs.find((p) => p.head.sha === m[1]);
+      if (owner && pendingReads[owner.number] > 0) {
+        pendingReads[owner.number]--;
+        return {
+          statuses: [
+            {
+              ...statuses.get(m[1]),
+              state: 'pending',
+              description: 'Checking requirements, agent review and QA',
+            },
+          ],
+        };
       }
       return { statuses: [statuses.get(m[1])].filter(Boolean) };
     }

@@ -55,6 +55,7 @@ export async function mergeStack({
   wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   now = () => Date.now(),
   timeoutMs = 10 * 60 * 1000,
+  pendingTimeoutMs = 5 * 60 * 1000,
   log = console.log,
 }) {
   // A stack missing a member would look like a shorter, valid stack, so every
@@ -90,19 +91,40 @@ export async function mergeStack({
       `#${number} is not part of a stack; merge it with the merge button.`,
     );
 
-  const statuses = new Map();
-  const ci = new Map();
-  for (const pr of stack.prs) {
-    const combined = await api(`/repos/${repo}/commits/${pr.head.sha}/status`);
-    statuses.set(
-      pr.number,
-      combined.statuses.find((s) => s.context === STATUS),
+  // The command comment itself re-runs the delivery check for the whole stack,
+  // which marks each PR `pending` for a moment. That is not a refusal: wait for
+  // the results to settle, up to a limit, and judge what they settle to.
+  const read = async () => {
+    const statuses = new Map();
+    const ci = new Map();
+    for (const pr of stack.prs) {
+      const combined = await api(
+        `/repos/${repo}/commits/${pr.head.sha}/status`,
+      );
+      statuses.set(
+        pr.number,
+        combined.statuses.find((s) => s.context === STATUS),
+      );
+      const { check_runs: runs } = await api(
+        `/repos/${repo}/commits/${pr.head.sha}/check-runs?check_name=${CI}&filter=latest`,
+      );
+      const run = runs.find((r) => r.name === CI);
+      ci.set(pr.number, run ? (run.conclusion ?? run.status) : undefined);
+    }
+    return { statuses, ci };
+  };
+  const settling = now();
+  let { statuses, ci } = await read();
+  for (;;) {
+    const pending = stack.prs.filter(
+      (pr) => statuses.get(pr.number)?.state === 'pending',
     );
-    const { check_runs: runs } = await api(
-      `/repos/${repo}/commits/${pr.head.sha}/check-runs?check_name=${CI}&filter=latest`,
+    if (!pending.length || now() - settling > pendingTimeoutMs) break;
+    log(
+      `Waiting for ${STATUS} on ${pending.map((pr) => `#${pr.number}`).join(', ')}…`,
     );
-    const run = runs.find((r) => r.name === CI);
-    ci.set(pr.number, run ? (run.conclusion ?? run.status) : undefined);
+    await wait(10_000);
+    ({ statuses, ci } = await read());
   }
   const reasons = preflight(stack, statuses, ci);
   for (const link of await outOfSync(
