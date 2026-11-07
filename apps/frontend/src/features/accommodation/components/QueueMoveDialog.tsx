@@ -55,6 +55,19 @@ export type QueueMoveDialogProps = {
   reasonError?: string
   originalOrder?: QueueMoveEntry[]
   newOrder?: QueueMoveEntry[]
+  /** Why the write failed, already worded; the design's text without it. */
+  failedDetail?: string
+  onOpenChange?: (isOpen: boolean) => void
+  /** With these the fields follow the values passed in. */
+  onPlacementChange?: (placement: "before" | "after") => void
+  onTargetChange?: (targetId: string) => void
+  onReasonChange?: (reason: string) => void
+  /** Form: checks the entry and shows the review. */
+  onContinue?: () => void
+  /** Review or failed: saves the move. */
+  onSave?: () => void
+  /** Stale: loads the current queue for a new confirmation. */
+  onReload?: () => void
 }
 
 function OrderList({
@@ -86,8 +99,8 @@ function OrderList({
 // Správa akce → Přihlášky → Vyhodnocení → fronta → Změnit pořadí (F39-1; spec
 // v4 §6): place an unconfirmed person right before or after another one of
 // the same queue, with a reason, then review the original and the new order.
-// The move changes priority only; it confirms nobody. Design only: every
-// value is passed in.
+// The move changes priority only; it confirms nobody. Every value is passed
+// in; with the handlers the fields are controlled.
 export function QueueMoveDialog({
   isOpen,
   step,
@@ -102,12 +115,24 @@ export function QueueMoveDialog({
   reasonError,
   originalOrder = [],
   newOrder = [],
+  failedDetail = "Pořadí zůstává původní.",
+  onOpenChange,
+  onPlacementChange,
+  onTargetChange,
+  onReasonChange,
+  onContinue,
+  onSave,
+  onReload,
 }: QueueMoveDialogProps) {
   const isForm = step === "form"
   const isSaving = step === "saving"
 
   return (
-    <Dialog open={isOpen}>
+    <Dialog
+      open={isOpen}
+      // A save in progress finishes before the dialog can close.
+      onOpenChange={(isOpening) => (isSaving ? undefined : onOpenChange?.(isOpening))}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Změnit pořadí: {personName}</DialogTitle>
@@ -117,7 +142,13 @@ export function QueueMoveDialog({
         {isForm ? (
           <div className="space-y-6">
             <RadioGroup
-              defaultValue={placement}
+              {...(onPlacementChange
+                ? {
+                    value: placement,
+                    onValueChange: (value: string) =>
+                      onPlacementChange(value === "after" ? "after" : "before"),
+                  }
+                : { defaultValue: placement })}
               aria-label="Umístění"
             >
               <div className="flex items-center gap-2">
@@ -138,7 +169,11 @@ export function QueueMoveDialog({
 
             <Field data-invalid={targetError ? true : undefined}>
               <FieldLabel htmlFor="move-target">Osoba</FieldLabel>
-              <Select defaultValue={targetId}>
+              <Select
+                {...(onTargetChange
+                  ? { value: targetId ?? "", onValueChange: onTargetChange }
+                  : { defaultValue: targetId })}
+              >
                 <SelectTrigger
                   id="move-target"
                   aria-invalid={targetError ? true : undefined}
@@ -163,7 +198,9 @@ export function QueueMoveDialog({
               <FieldLabel htmlFor="move-reason">Důvod</FieldLabel>
               <Textarea
                 id="move-reason"
-                defaultValue={reason}
+                {...(onReasonChange
+                  ? { value: reason, onChange: (event) => onReasonChange(event.target.value) }
+                  : { defaultValue: reason })}
                 aria-invalid={reasonError ? true : undefined}
               />
               {reasonError ? <FieldError>{reasonError}</FieldError> : null}
@@ -202,7 +239,7 @@ export function QueueMoveDialog({
         {step === "failed" ? (
           <ErrorAlert
             title="Změnu pořadí se nepodařilo uložit"
-            detail="Pořadí zůstává původní."
+            detail={failedDetail}
           />
         ) : null}
 
@@ -215,15 +252,18 @@ export function QueueMoveDialog({
               {step === "stale" ? "Zavřít" : "Zrušit"}
             </Button>
           </DialogClose>
-          {isForm ? <Button>Pokračovat</Button> : null}
+          {isForm ? <Button onClick={onContinue}>Pokračovat</Button> : null}
           {step === "review" || step === "failed" || isSaving ? (
-            <Button disabled={isSaving}>
+            <Button
+              disabled={isSaving}
+              onClick={onSave}
+            >
               {isSaving ? <Loader2 className="animate-spin" /> : null}
               {isSaving ? "Ukládám…" : "Uložit pořadí"}
             </Button>
           ) : null}
           {step === "stale" ? (
-            <Button>
+            <Button onClick={onReload}>
               <RefreshCw />
               Načíst aktuální frontu
             </Button>
