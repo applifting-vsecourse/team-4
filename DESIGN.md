@@ -95,7 +95,8 @@ Filled in by shadcn convention: `popover-foreground`, `accent-foreground`, `dest
 The ticket-stub shape is part of the components, set once in `global.css`; pages don't recreate it:
 
 - `Card`, filled and outline `Button`s, `Input`, `Textarea` and `Select` triggers have a 1.5 px `foreground` outline (focus and invalid states keep their own colour). Badges keep their 1 px border.
-- Cards and those buttons cast a small hard shadow (`2px 2px 0` in `foreground`); a pressed button shifts by 1 px. The `shadow-*` tokens are hard offset shadows in `foreground`, too.
+- Cards and those buttons cast a small hard shadow (`2px 2px 0` in the outline colour: `foreground` in light, the toned-down `input` in dark, so it stays visible on dark surfaces); a pressed button shifts by 1 px. Ghost and link buttons have neither outline nor shadow. The `shadow-*` tokens are hard offset shadows in the same colour.
+- A panel that should stay dark in both themes takes the `dark` class and `bg-card`, instead of inverting `bg-foreground`/`text-background`; its buttons and shadows then match the dark theme.
 - `h1`–`h3` and card titles are weight 800 with -0.03 em tracking.
 
 ### Contrast rules (checked against WCAG 2.2 AA)

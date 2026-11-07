@@ -177,15 +177,17 @@
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
   --overlay: rgb(0 0 0 / 0.6);
-  /* Hard shadows stay darker than every surface, so they read as shadows, not a paper glow. */
-  --shadow-2xs: 1px 1px 0 0 oklch(0.08 0.02 60);
-  --shadow-xs: 1px 1px 0 0 oklch(0.08 0.02 60);
-  --shadow-sm: 2px 2px 0 0 oklch(0.08 0.02 60);
-  --shadow: 2px 2px 0 0 oklch(0.08 0.02 60);
-  --shadow-md: 3px 3px 0 0 oklch(0.08 0.02 60);
-  --shadow-lg: 4px 4px 0 0 oklch(0.08 0.02 60);
-  --shadow-xl: 6px 6px 0 0 oklch(0.08 0.02 60);
-  --shadow-2xl: 8px 8px 0 0 oklch(0.08 0.02 60);
+  /* Hard shadows take the outline colour, as in the light theme. A near-black shadow vanished on
+     the dark surfaces, so buttons looked shadowless; the toned-down outline stays visible on every
+     surface without the glow of full paper. */
+  --shadow-2xs: 1px 1px 0 0 var(--input);
+  --shadow-xs: 1px 1px 0 0 var(--input);
+  --shadow-sm: 2px 2px 0 0 var(--input);
+  --shadow: 2px 2px 0 0 var(--input);
+  --shadow-md: 3px 3px 0 0 var(--input);
+  --shadow-lg: 4px 4px 0 0 var(--input);
+  --shadow-xl: 6px 6px 0 0 var(--input);
+  --shadow-2xl: 8px 8px 0 0 var(--input);
 }
 
 /* Ticket stub shape (S3-T2). Unlayered on purpose: the ink outline and hard shadow belong to the
