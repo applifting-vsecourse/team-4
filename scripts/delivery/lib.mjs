@@ -43,9 +43,16 @@ export function technicalReviewRequired(pr, timeline = []) {
   );
 }
 
+// The technical reviewer's own PR needs no technical approval: GitHub doesn't
+// let him approve it, and the change already has his technical sign-off. The
+// other gates (Copilot review, requirements, QA) still apply.
 export function technicalReviewApproval(pr, reviews) {
   if (pr.user.login.toLowerCase() === TECHNICAL_REVIEWER.toLowerCase())
-    return null;
+    return {
+      id: 'technical-reviewer-author',
+      exempt: true,
+      commit_id: pr.head.sha,
+    };
   const review = latestReview(reviews, TECHNICAL_REVIEWER);
   return approved(review, pr.head.sha) ? review : null;
 }
