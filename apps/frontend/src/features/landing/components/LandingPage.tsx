@@ -222,6 +222,7 @@ export function LandingPage({ catalogPreview }: { catalogPreview: ReactNode }) {
                     <Link to={ROUTES.signup}>Založit účet</Link>
                   </Button>
                 </div>
+                <AudienceLink to={ROUTES.forOrganizers}>Více pro organizátory</AudienceLink>
               </article>
 
               <article
@@ -257,6 +258,7 @@ export function LandingPage({ catalogPreview }: { catalogPreview: ReactNode }) {
                     <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
                   </Button>
                 </div>
+                <AudienceLink to={ROUTES.forParticipants}>Více pro účastníky</AudienceLink>
               </article>
             </div>
           </div>
@@ -390,6 +392,28 @@ export function LandingPage({ catalogPreview }: { catalogPreview: ReactNode }) {
         </div>
       </footer>
     </div>
+  )
+}
+
+// A text link, set apart from the entry buttons; it takes the panel's text colour (F58/F59).
+function AudienceLink({
+  to,
+  children,
+}: {
+  to: typeof ROUTES.forOrganizers | typeof ROUTES.forParticipants
+  children: ReactNode
+}) {
+  return (
+    <Link
+      to={to}
+      className="inline-flex items-center gap-2 self-start rounded-sm font-semibold underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      {children}
+      <ArrowRight
+        aria-hidden
+        className="size-4"
+      />
+    </Link>
   )
 }
 

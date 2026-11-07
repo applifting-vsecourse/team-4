@@ -123,9 +123,12 @@ export type PersonDecisions = {
   onDetermine?: (person: OrderPerson) => void
   /** F39-1. */
   onMove?: (person: OrderPerson) => void
+  /** Whether the person can be placed next to someone of the queue; all can without it. */
+  canMove?: (person: OrderPerson) => boolean
 }
 
-const hasDecisions = (decisions: PersonDecisions): boolean => Object.values(decisions).some(Boolean)
+const hasDecisions = ({ onConfirm, onWaitlist, onDetermine, onMove }: PersonDecisions): boolean =>
+  [onConfirm, onWaitlist, onDetermine, onMove].some(Boolean)
 
 function persons(count: number) {
   if (count === 1) return "1 osoba"
@@ -140,7 +143,8 @@ function DecisionMenu({ person, decisions }: { person: OrderPerson; decisions: P
     decisions.onConfirm !== undefined ||
     (person.state === "pending" && decisions.onWaitlist !== undefined)
   const determine = canDetermine ? decisions.onDetermine : undefined
-  const move = person.queueId ? decisions.onMove : undefined
+  const move =
+    person.queueId && (decisions.canMove?.(person) ?? true) ? decisions.onMove : undefined
   if (!canDecide && !determine && !move) return null
 
   return (

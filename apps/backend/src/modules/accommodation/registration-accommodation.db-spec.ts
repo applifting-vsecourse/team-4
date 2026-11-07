@@ -4,6 +4,7 @@ import { Registration } from '@/generated/prisma/client';
 import { RegistrationAccommodationController } from '@/modules/accommodation/controllers/registration-accommodation.controller';
 import { TermEvaluationController } from '@/modules/accommodation/controllers/term-evaluation.controller';
 import { EvaluationQueueRepository } from '@/modules/accommodation/repositories/evaluation-queue.repository';
+import { OrderMovesRepository } from '@/modules/accommodation/repositories/order-moves.repository';
 import { RegistrationAccommodationRepository } from '@/modules/accommodation/repositories/registration-accommodation.repository';
 import { TermDecisionRepository } from '@/modules/accommodation/repositories/term-decision.repository';
 import { TermEvaluationRepository } from '@/modules/accommodation/repositories/term-evaluation.repository';
@@ -65,6 +66,7 @@ beforeAll(async () => {
     providers: [
       RegistrationAccommodationService,
       RegistrationAccommodationRepository,
+      OrderMovesRepository,
       TermDecisionRepository,
       EventRegistrationsRepository,
       TermEvaluationService,
@@ -227,6 +229,7 @@ describe('reading the accommodation of a registration', () => {
         effectiveValue: null,
         needsDetermination: true,
         history: [],
+        moves: [],
         decisions: [],
       },
     });

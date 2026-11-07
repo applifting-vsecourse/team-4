@@ -1,3 +1,4 @@
+import { brandLogo } from '@/core/email/brand-logo';
 import { EmailService } from '@/core/email/interfaces/email-service.interface';
 import { renderEmail } from '@/core/email/render';
 import {
@@ -64,6 +65,7 @@ export class RegistrationConfirmationService {
         result.email,
         confirmationSubject(result.event.name),
         html,
+        [brandLogo],
       );
       if (!sent.sent) throw new Error('E-mail was not handed to the provider');
       await this.repository.markConfirmation(deliveryId, {

@@ -3,12 +3,11 @@ import {
   needsDetermination,
   REASON_MAX_LENGTH,
 } from '@/modules/accommodation/domain/determination';
+import { ActorDto } from '@/modules/accommodation/dto/actor.dto';
+import { MoveRecordDto } from '@/modules/accommodation/dto/order-moves.dto';
 import { DecisionRecordDto } from '@/modules/accommodation/dto/term-decision.dto';
-import {
-  DeterminationRecord,
-  RegistrationAccommodation,
-} from '@/modules/accommodation/repositories/registration-accommodation.repository';
-import { DecisionRecord } from '@/modules/accommodation/repositories/term-decision.repository';
+import { DeterminationRecord } from '@/modules/accommodation/repositories/registration-accommodation.repository';
+import { RegistrationAccommodationView } from '@/modules/accommodation/services/registration-accommodation.service';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, MaxLength, ValidateIf } from 'class-validator';
@@ -48,14 +47,6 @@ export class DetermineAccommodationDto {
     message: `Důvod může mít nejvýše ${REASON_MAX_LENGTH} znaků.`,
   })
   reason!: string;
-}
-
-export class ActorDto {
-  @ApiProperty()
-  id!: string;
-
-  @ApiProperty()
-  name!: string;
 }
 
 export class AccommodationAttributeDto {
@@ -162,6 +153,13 @@ export class RegistrationAccommodationDto {
   history!: DeterminationRecordDto[];
 
   @ApiProperty({
+    type: [MoveRecordDto],
+    description:
+      'The person’s moves in the terms’ orders (F39-1), newest first.',
+  })
+  moves!: MoveRecordDto[];
+
+  @ApiProperty({
     type: [DecisionRecordDto],
     description:
       'Every confirmation and waitlisting of the registration (F39-1), ' +
@@ -170,7 +168,7 @@ export class RegistrationAccommodationDto {
   decisions!: DecisionRecordDto[];
 
   static from(
-    model: RegistrationAccommodation & { decisions: DecisionRecord[] },
+    model: RegistrationAccommodationView,
   ): RegistrationAccommodationDto {
     const hard = model.hardAttribute;
     const determination = model.determination;
@@ -192,6 +190,7 @@ export class RegistrationAccommodationDto {
         determination?.isValid ? determination : null,
       ),
       history: model.history.map(DeterminationRecordDto.from),
+      moves: model.moves.map(MoveRecordDto.from),
       decisions: model.decisions.map(DecisionRecordDto.from),
     };
   }

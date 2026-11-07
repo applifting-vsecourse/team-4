@@ -1,0 +1,262 @@
+import { Prisma } from '@/generated/prisma/client';
+import { ResultEventPayload } from '@/modules/accommodation/domain/term-decision';
+import { fromDate } from '@/modules/events/domain/calendar-date';
+import {
+  changedValues,
+  ParticipantUpdatePayload,
+  ParticipantUpdateReason,
+  UpdateChange,
+  UpdatePayment,
+  UpdateTerm,
+} from '@/modules/registrations/domain/participant-update';
+import { normalizeEmail } from '@/modules/registrations/domain/registration';
+import {
+  ChangeSummary,
+  PlannedTerm,
+} from '@/modules/registrations/domain/registration-change';
+
+type Db = Prisma.TransactionClient;
+
+export type QueueUpdateInput = {
+  registrationId: string;
+  reason: ParticipantUpdateReason;
+  /** One saved event, one key: a repeat of the event queues nothing. */
+  dedupKey: string;
+  /** The payment this message is about (`paymentRecorded`). */
+  paymentId?: string;
+  /** The change request this message is about: its values are listed. */
+  changeId?: string;
+  /**
+   * A decision's result event (S3-02): terms and payment are taken from it, as
+   * they were at the moment of the decision, never from the live rows.
+   */
+  result?: ResultEventPayload;
+  /** The terms a request that is still waiting would touch. */
+  proposal?: PlannedTerm[];
+};
+
+const selectForUpdate = {
+  email: true,
+  participantAccountId: true,
+  participantAccount: { select: { email: true } },
+  variableSymbol: true,
+  bankAccountPrefix: true,
+  bankAccountNumber: true,
+  bankCode: true,
+  paymentReminderAt: true,
+  event: {
+    select: {
+      name: true,
+      contactName: true,
+      contactEmail: true,
+      contactPhone: true,
+      organization: { select: { name: true } },
+    },
+  },
+  terms: {
+    orderBy: [{ term: { startDate: 'asc' } }, { termId: 'asc' }],
+    select: {
+      termId: true,
+      status: true,
+      priceMinor: true,
+      term: { select: { label: true, startDate: true, endDate: true } },
+    },
+  },
+  payments: {
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    select: { id: true, amountMinor: true, receivedOn: true },
+  },
+} satisfies Prisma.RegistrationSelect;
+
+/**
+ * Queues the participant e-mail of a saved event in the event's own
+ * transaction, from the rows as they are right now. Returns false when the
+ * same event was queued before or the message could not be built (a missing
+ * detail it needs, such as the bank account of a debt, ends as a failed
+ * delivery; nothing is invented and the event itself is never rolled back).
+ */
+export const queueParticipantUpdate = async (
+  tx: Db,
+  input: QueueUpdateInput,
+): Promise<boolean> => {
+  const row = await tx.registration.findUniqueOrThrow({
+    where: { id: input.registrationId },
+    select: selectForUpdate,
+  });
+
+  const build = async (): Promise<ParticipantUpdatePayload> => {
+    const live = input.result === undefined;
+    const terms: UpdateTerm[] = input.result
+      ? input.result.terms
+          .filter((term) => term.status !== 'cancelled')
+          .map((term) => ({
+            label: term.label,
+            startDate: term.startDate,
+            endDate: term.endDate,
+            status: term.status,
+          }))
+      : row.terms
+          .filter((term) => term.status !== 'cancelled')
+          .map((term) => ({
+            label: term.term.label,
+            startDate: fromDate(term.term.startDate),
+            endDate: fromDate(term.term.endDate),
+            status: term.status,
+          }));
+    const dueMinor =
+      input.result?.payment.amountDueMinor ??
+      row.terms
+        .filter((term) => term.status === 'confirmed')
+        .reduce((sum, term) => sum + term.priceMinor, 0);
+    const receivedMinor =
+      input.result?.payment.paidMinor ??
+      row.payments.reduce((sum, payment) => sum + payment.amountMinor, 0);
+
+    let recorded: { amountMinor: number; receivedOn: string } | null = null;
+    if (input.reason === 'paymentRecorded') {
+      const payment = row.payments.find((p) => p.id === input.paymentId);
+      if (!payment) {
+        throw new Error(
+          `Payment ${input.paymentId} is not on the registration`,
+        );
+      }
+      recorded = {
+        amountMinor: payment.amountMinor,
+        receivedOn: fromDate(payment.receivedOn),
+      };
+    }
+
+    // Waiting terms are shown as such: nothing is promised before the decision.
+    let proposedTerms: UpdateTerm[] | null = null;
+    if (input.proposal) {
+      const merged = new Map<string, UpdateTerm>(
+        row.terms
+          .filter((term) => term.status !== 'cancelled')
+          .map((term) => [
+            term.termId,
+            {
+              label: term.term.label,
+              startDate: fromDate(term.term.startDate),
+              endDate: fromDate(term.term.endDate),
+              status: term.status,
+            },
+          ]),
+      );
+      let touched = false;
+      for (const planned of input.proposal) {
+        if (
+          planned.proposed === null ||
+          planned.proposed === planned.original
+        ) {
+          continue;
+        }
+        touched = true;
+        merged.set(planned.termId, {
+          label: planned.label,
+          startDate: planned.startDate,
+          endDate: planned.endDate,
+          status: planned.proposed === 'cancelled' ? 'cancelled' : 'proposed',
+        });
+      }
+      // A request that touches no term (a phone number) has no second list.
+      if (touched) {
+        proposedTerms = [...merged.values()].sort((a, b) =>
+          a.startDate.localeCompare(b.startDate),
+        );
+      }
+    }
+
+    let changes: UpdateChange[] = [];
+    if (input.changeId) {
+      const change = await tx.registrationChange.findUniqueOrThrow({
+        where: { id: input.changeId },
+        select: { summary: true },
+      });
+      changes = changedValues(change.summary as unknown as ChangeSummary);
+    }
+
+    const contactEmail = row.event.contactEmail;
+    // Free events have no account. Owing money without one is a defect: the
+    // message is not built (it ends as a failed delivery below) instead of
+    // being sent without payment details; the event itself is kept.
+    const balanceMinor = dueMinor - receivedMinor;
+    let bank: UpdatePayment['bank'] = null;
+    if (row.bankAccountNumber !== null && row.bankCode !== null) {
+      bank = {
+        prefix: row.bankAccountPrefix,
+        number: row.bankAccountNumber,
+        bankCode: row.bankCode,
+        variableSymbol:
+          input.result?.payment.variableSymbol ?? row.variableSymbol,
+        reminderAt: live
+          ? (row.paymentReminderAt?.toISOString() ?? null)
+          : (input.result?.payment.reminderAt ?? null),
+      };
+    } else if (balanceMinor > 0) {
+      throw new Error(
+        `Registration ${input.registrationId} owes money but has no bank account`,
+      );
+    }
+
+    return {
+      reason: input.reason,
+      eventName: row.event.name,
+      organizer: {
+        name: row.event.contactName ?? row.event.organization.name,
+        email: contactEmail,
+        phone: row.event.contactPhone,
+      },
+      terms,
+      proposedTerms,
+      changes,
+      payment: {
+        recorded,
+        receivedMinor,
+        balanceMinor,
+        bank,
+      },
+      hasMagicLink:
+        normalizeEmail(row.email) ===
+        normalizeEmail(row.participantAccount.email),
+    };
+  };
+
+  // A message that cannot be built must not undo the event it reports: it is
+  // kept as a failed delivery, which the operator finds, and not retried.
+  let payload: ParticipantUpdatePayload;
+  try {
+    payload = await build();
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'unknown error';
+    await tx.emailDelivery.createMany({
+      data: [
+        {
+          type: 'participant_update',
+          status: 'failed',
+          recipientEmail: row.email,
+          registrationId: input.registrationId,
+          participantAccountId: row.participantAccountId,
+          dedupKey: input.dedupKey,
+          errorMessage: reason.slice(0, 1000),
+        },
+      ],
+      skipDuplicates: true,
+    });
+    return false;
+  }
+
+  const created = await tx.emailDelivery.createMany({
+    data: [
+      {
+        type: 'participant_update',
+        recipientEmail: row.email,
+        registrationId: input.registrationId,
+        participantAccountId: row.participantAccountId,
+        payload: payload as unknown as Prisma.InputJsonValue,
+        dedupKey: input.dedupKey,
+      },
+    ],
+    skipDuplicates: true,
+  });
+  return created.count > 0;
+};

@@ -1,3 +1,4 @@
+import { brandLogo } from '@/core/email/brand-logo';
 import { EmailService } from '@/core/email/interfaces/email-service.interface';
 import { renderEmail } from '@/core/email/render';
 import { ParticipantMagicLink } from '@/core/email/templates/participant-magic-link';
@@ -124,7 +125,9 @@ export class ParticipantAccessService {
     try {
       const url = this.linkUrl(token);
       const html = await renderEmail(ParticipantMagicLink, { url });
-      await this.email.sendEmail(to, 'Přihlašovací odkaz do akc.io', html);
+      await this.email.sendEmail(to, 'Přihlašovací odkaz do akc.io', html, [
+        brandLogo,
+      ]);
       await this.repository.markDelivery(deliveryId, { status: 'accepted' });
     } catch (error) {
       // Handed to the provider is not delivered; a failure is kept for the

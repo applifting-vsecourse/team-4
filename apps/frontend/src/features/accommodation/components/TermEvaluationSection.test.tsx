@@ -6,6 +6,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { TermEvaluationSection } from "@/features/accommodation/components/TermEvaluationSection"
 import {
   EVALUATED_TERM,
+  makeMoves,
   makeRunEvidence,
   makeRuns,
   makeTermEvaluation,
@@ -24,7 +25,8 @@ const { get, post, put, FakeHTTPError } = vi.hoisted(() => {
 })
 
 vi.mock("@/lib/api-client", () => ({ api: { get, post, put }, HTTPError: FakeHTTPError }))
-vi.mock("sonner", () => ({ toast: { success: vi.fn() } }))
+const { toastError } = vi.hoisted(() => ({ toastError: vi.fn() }))
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: toastError } }))
 
 const answer = (value: unknown) => ({ json: () => Promise.resolve(value) })
 const refuse = (status: number, data: unknown) => ({
@@ -39,7 +41,9 @@ const serve = (evaluation = makeTermEvaluation()) =>
       ? answer({ runs: makeRuns() })
       : path.includes("/runs/")
         ? answer(makeRunEvidence())
-        : answer(evaluation),
+        : path.endsWith("/order/moves")
+          ? answer(makeMoves())
+          : answer(evaluation),
   )
 
 const onSelect = vi.fn()
@@ -92,12 +96,21 @@ describe("TermEvaluationSection", () => {
     )
     expect(within(order).getAllByText("Vhodný")).toHaveLength(3)
     expect(within(order).getByText("Ruční určení")).toBeInTheDocument()
-    // Everyone can be decided; moving in the order comes with a later slice.
+    // Everyone can be decided. Moving needs a queue with someone else in it:
+    // Alex has no queue yet, Jakub is alone in his.
     expect(screen.getByRole("button", { name: "Potvrdit všechny vhodné (3)" })).toBeEnabled()
     expect(within(order).getAllByRole("button", { name: /^Akce:/ })).toHaveLength(5)
+    expect(within(order).getByText("Přesunuto ručně")).toBeInTheDocument()
     await userEvent.click(within(order).getByRole("button", { name: "Akce: Alex Šimek" }))
     expect(await screen.findByRole("menuitem", { name: "Určit ubytování" })).toBeInTheDocument()
     expect(screen.queryByRole("menuitem", { name: "Změnit pořadí" })).not.toBeInTheDocument()
+    await userEvent.keyboard("{Escape}")
+    await userEvent.click(within(order).getByRole("button", { name: "Akce: Jakub Svoboda" }))
+    expect(await screen.findByRole("menuitem", { name: "Potvrdit účast" })).toBeInTheDocument()
+    expect(screen.queryByRole("menuitem", { name: "Změnit pořadí" })).not.toBeInTheDocument()
+    await userEvent.keyboard("{Escape}")
+    await userEvent.click(within(order).getByRole("button", { name: "Akce: Lucie Sedláčková" }))
+    expect(await screen.findByRole("menuitem", { name: "Změnit pořadí" })).toBeInTheDocument()
   })
 
   it("recalculates on request and reads as running meanwhile", async () => {
@@ -186,6 +199,7 @@ describe("TermEvaluationSection", () => {
         needsDetermination: false,
         decisions: [],
         history: [],
+        moves: [],
       }),
     )
     renderSection()
@@ -411,6 +425,201 @@ describe("TermEvaluationSection", () => {
       expect(
         within(dialog).getByText("V termínu není dost volné kapacity, účast nebyla potvrzena."),
       ).toBeInTheDocument()
+    })
+  })
+
+  describe("changing the order", () => {
+    const MOVES = `organizations/org/events/event/accommodation/terms/${EVALUATED_TERM.id}/order/moves`
+
+    const openMove = async (name: string) => {
+      await userEvent.click(await screen.findByRole("button", { name: `Akce: ${name}` }))
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Změnit pořadí" }))
+      return screen.findByRole("dialog", { name: `Změnit pořadí: ${name}` })
+    }
+
+    const fill = async (dialog: HTMLElement, target: RegExp, reason: string) => {
+      await userEvent.click(within(dialog).getByRole("combobox"))
+      await userEvent.click(await screen.findByRole("option", { name: target }))
+      await userEvent.type(within(dialog).getByLabelText("Důvod"), reason)
+    }
+
+    it("lists runs and moves in the history of the term, newest first", async () => {
+      serve()
+      renderSection()
+
+      const history = (await screen.findByText("Historie termínu")).closest<HTMLElement>(
+        "[data-slot='card']",
+      )!
+      const entries = await within(history).findAllByRole("listitem")
+      expect(entries.map((entry) => entry.textContent)).toEqual([
+        expect.stringContaining("Vyhodnocení · Turnus 1"),
+        expect.stringContaining("Změna pořadí · Anna Procházková · Turnus 1 · fronta Žena"),
+        expect.stringContaining("Vyhodnocení · Turnus 1"),
+      ])
+      expect(within(history).getByText("Z 5. na 4. místo v pořadí termínu")).toBeInTheDocument()
+    })
+
+    it("places a person before another one of the queue after the review", async () => {
+      serve()
+      post.mockReturnValue(answer(makeTermEvaluation({ status: "stale", inputVersion: 5 })))
+      renderSection()
+
+      const dialog = await openMove("Lucie Sedláčková")
+      expect(within(dialog).getByText("Turnus 1 · fronta Žena")).toBeInTheDocument()
+      await fill(dialog, /Tereza Nováková/, " Organizační tým ")
+      await userEvent.click(within(dialog).getByRole("button", { name: "Pokračovat" }))
+
+      // The queue before and after, with the reason, before anything is sent.
+      const [original, moved] = within(dialog).getAllByRole("list")
+      expect(
+        within(original!)
+          .getAllByRole("listitem")
+          .map((item) => item.textContent),
+      ).toEqual(["Tereza Nováková", "Anna Procházková", "Lucie SedláčkováPřesouvá se"])
+      expect(
+        within(moved!)
+          .getAllByRole("listitem")
+          .map((item) => item.textContent),
+      ).toEqual(["Lucie SedláčkováPřesouvá se", "Tereza Nováková", "Anna Procházková"])
+      expect(within(dialog).getByText("Organizační tým")).toBeInTheDocument()
+      expect(post).not.toHaveBeenCalled()
+
+      await userEvent.click(within(dialog).getByRole("button", { name: "Uložit pořadí" }))
+
+      await waitFor(() =>
+        expect(post).toHaveBeenCalledWith(MOVES, {
+          json: {
+            registrationId: "0190c0de-0000-7000-8000-000000000605",
+            targetId: "0190c0de-0000-7000-8000-000000000601",
+            placement: "before",
+            reason: "Organizační tým",
+            expectedVersion: 4,
+          },
+        }),
+      )
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("dialog", { name: "Změnit pořadí: Lucie Sedláčková" }),
+        ).not.toBeInTheDocument(),
+      )
+    })
+
+    it("sends nothing without a target and a reason, and keeps the other input", async () => {
+      serve()
+      renderSection()
+
+      const dialog = await openMove("Tereza Nováková")
+      await userEvent.click(within(dialog).getByRole("radio", { name: "Za osobu" }))
+      await userEvent.click(within(dialog).getByRole("button", { name: "Pokračovat" }))
+
+      expect(
+        await within(dialog).findByText(
+          "Vyberte osobu, před kterou nebo za kterou se má přesunout.",
+        ),
+      ).toBeInTheDocument()
+      expect(within(dialog).getByText("Uveďte důvod změny pořadí.")).toBeInTheDocument()
+      expect(within(dialog).getByRole("radio", { name: "Za osobu" })).toBeChecked()
+
+      // Placing Tereza before Anna, who already stands after her, changes nothing.
+      await userEvent.click(within(dialog).getByRole("radio", { name: "Před osobu" }))
+      await fill(dialog, /Anna Procházková/, "Organizační tým")
+      await userEvent.click(within(dialog).getByRole("button", { name: "Pokračovat" }))
+      expect(
+        await within(dialog).findByText("Osoba už na tomto místě stojí. Pořadí by se nezměnilo."),
+      ).toBeInTheDocument()
+      expect(within(dialog).getByLabelText("Důvod")).toHaveValue("Organizační tým")
+      expect(post).not.toHaveBeenCalled()
+    })
+
+    it("refuses a stale move and asks for a new confirmation on the current queue", async () => {
+      serve()
+      post.mockReturnValueOnce(
+        refuse(409, {
+          code: "order_stale",
+          message: "Fronta se mezitím změnila. Načtěte ji znovu a přesun zopakujte.",
+        }),
+      )
+      renderSection()
+
+      const dialog = await openMove("Lucie Sedláčková")
+      await fill(dialog, /Tereza Nováková/, "Organizační tým")
+      await userEvent.click(within(dialog).getByRole("button", { name: "Pokračovat" }))
+      await userEvent.click(within(dialog).getByRole("button", { name: "Uložit pořadí" }))
+
+      expect(await within(dialog).findByText("Pořadí nebylo uloženo")).toBeInTheDocument()
+      serve(makeTermEvaluation({ inputVersion: 6 }))
+      await userEvent.click(within(dialog).getByRole("button", { name: "Načíst aktuální frontu" }))
+
+      // Back at the form with the entry kept; it is sent only after a new confirmation.
+      expect(await within(dialog).findByLabelText("Důvod")).toHaveValue("Organizační tým")
+      expect(post).toHaveBeenCalledTimes(1)
+      post.mockReturnValue(answer(makeTermEvaluation({ inputVersion: 7 })))
+      await userEvent.click(within(dialog).getByRole("button", { name: "Pokračovat" }))
+      await userEvent.click(within(dialog).getByRole("button", { name: "Uložit pořadí" }))
+      await waitFor(() => expect(post).toHaveBeenCalledTimes(2))
+      const [path, options] = post.mock.lastCall as [string, { json: { expectedVersion: number } }]
+      expect(path).toBe(MOVES)
+      expect(options.json.expectedVersion).toBe(6)
+    })
+
+    it("closes with an explanation when the reloaded queue no longer has the person", async () => {
+      serve()
+      post.mockReturnValue(refuse(409, { code: "order_stale" }))
+      renderSection()
+
+      const dialog = await openMove("Lucie Sedláčková")
+      await fill(dialog, /Tereza Nováková/, "Organizační tým")
+      await userEvent.click(within(dialog).getByRole("button", { name: "Pokračovat" }))
+      await userEvent.click(within(dialog).getByRole("button", { name: "Uložit pořadí" }))
+      await within(dialog).findByText("Pořadí nebylo uloženo")
+      const term = makeTermEvaluation()
+      serve({ ...term, order: term.order.filter((entry) => entry.firstName !== "Lucie") })
+      await userEvent.click(within(dialog).getByRole("button", { name: "Načíst aktuální frontu" }))
+
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("dialog", { name: "Změnit pořadí: Lucie Sedláčková" }),
+        ).not.toBeInTheDocument(),
+      )
+      expect(toastError).toHaveBeenCalledWith(
+        "Osobu už v této frontě nelze přesunout. Pořadí se nezměnilo.",
+      )
+      expect(post).toHaveBeenCalledTimes(1)
+    })
+
+    it("keeps the order after a failed write and retries the same move", async () => {
+      serve()
+      post.mockReturnValueOnce(refuse(500, {}))
+      renderSection()
+
+      const dialog = await openMove("Lucie Sedláčková")
+      await fill(dialog, /Tereza Nováková/, "Organizační tým")
+      await userEvent.click(within(dialog).getByRole("button", { name: "Pokračovat" }))
+      await userEvent.click(within(dialog).getByRole("button", { name: "Uložit pořadí" }))
+
+      expect(
+        await within(dialog).findByText("Změnu pořadí se nepodařilo uložit"),
+      ).toBeInTheDocument()
+      expect(within(dialog).getByText("Pořadí zůstává původní.")).toBeInTheDocument()
+      post.mockReturnValue(answer(makeTermEvaluation({ inputVersion: 5 })))
+      await userEvent.click(within(dialog).getByRole("button", { name: "Uložit pořadí" }))
+
+      await waitFor(() => expect(post).toHaveBeenCalledTimes(2))
+      expect(post.mock.calls[1]).toEqual(post.mock.calls[0])
+    })
+
+    it("tells a failed history from an empty one", async () => {
+      get.mockImplementation((path: string) =>
+        path.endsWith("/order/moves")
+          ? refuse(500, {})
+          : path.endsWith("/runs")
+            ? answer({ runs: [] })
+            : answer(makeTermEvaluation()),
+      )
+      renderSection()
+
+      expect(await screen.findByText("Historii se nepodařilo načíst")).toBeInTheDocument()
+      expect(screen.queryByText("Historie zatím neobsahuje záznamy")).not.toBeInTheDocument()
     })
   })
 })

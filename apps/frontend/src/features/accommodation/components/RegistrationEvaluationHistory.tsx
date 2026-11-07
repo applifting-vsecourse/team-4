@@ -8,7 +8,7 @@ import {
   EvaluationHistory,
   type HistoryEntry,
 } from "@/features/accommodation/components/EvaluationHistory"
-import { valueLabel } from "@/features/accommodation/lib/evaluationView"
+import { toHistoryMove, valueLabel } from "@/features/accommodation/lib/evaluationView"
 
 const STATE_LABELS = {
   pending: "Čeká na rozhodnutí",
@@ -25,8 +25,8 @@ type RegistrationEvaluationHistoryProps = {
 }
 
 // Detail přihlášky → Historie vyhodnocení (F39-1): the immutable record of the
-// determinations and the decisions on participation of this registration,
-// newest first.
+// determinations, the decisions on participation and the moves in the terms'
+// orders (S3-03) of this registration, newest first.
 export function RegistrationEvaluationHistory({
   organizationId,
   eventId,
@@ -45,7 +45,8 @@ export function RegistrationEvaluationHistory({
       />
     )
   }
-  const attribute = accommodation.data?.hardAttribute?.attribute ?? "gender"
+  const hard = accommodation.data?.hardAttribute ?? null
+  const attribute = hard?.attribute ?? "gender"
   return (
     <EvaluationHistory
       title="Historie vyhodnocení"
@@ -79,7 +80,11 @@ export function RegistrationEvaluationHistory({
               : "Jednotlivé rozhodnutí organizátora",
           }),
         ),
-        // The newest first, across both records.
+        ...(accommodation.data?.moves ?? []).map((move): HistoryEntry & { sortAt: string } => ({
+          ...toHistoryMove(move, hard?.attribute ?? null),
+          sortAt: move.createdAt,
+        })),
+        // The newest first, across every record.
       ].sort((a, b) => b.sortAt.localeCompare(a.sortAt))}
     />
   )

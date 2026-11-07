@@ -4,6 +4,7 @@ import { answerChanged } from '@/modules/accommodation/repositories/determinatio
 import { termInputsChanged } from '@/modules/accommodation/repositories/term-inputs';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
+import { changedBalance } from '@/modules/registrations/domain/participant-update';
 import {
   changedFields,
   ChangeKind,
@@ -19,6 +20,7 @@ import {
   needsOf,
   needsSelect,
 } from '@/modules/registrations/domain/registration-needs';
+import { queueParticipantUpdate } from '@/modules/registrations/repositories/participant-update-queue';
 import { Injectable } from '@nestjs/common';
 
 type Db = Prisma.TransactionClient;
@@ -382,6 +384,13 @@ export class RegistrationChangesRepository {
           },
           select: changeSelect,
         });
+        await queueParticipantUpdate(tx, {
+          registrationId,
+          reason: 'requestReceived',
+          dedupKey: `change-received:${row.id}`,
+          changeId: row.id,
+          proposal: plan.summary.terms,
+        });
         return { kind: 'requested', change: toModel(row, plan) };
       }
       await this.apply(tx, snapshot, plan, now);
@@ -399,6 +408,19 @@ export class RegistrationChangesRepository {
         },
         select: changeSelect,
       });
+      // The participant sees their own change; only a new amount is mailed.
+      if (
+        changedBalance(
+          plan.summary.original.balanceMinor,
+          plan.summary.proposed.balanceMinor,
+        )
+      ) {
+        await queueParticipantUpdate(tx, {
+          registrationId,
+          reason: 'balanceChanged',
+          dedupKey: `change-applied:${row.id}`,
+        });
+      }
       return { kind: 'applied', change: toModel(row) };
     });
   }
@@ -444,6 +466,12 @@ export class RegistrationChangesRepository {
           },
           select: changeSelect,
         });
+        await queueParticipantUpdate(tx, {
+          registrationId,
+          reason: 'requestApproved',
+          dedupKey: `change-decided:${changeId}`,
+          changeId,
+        });
         return { kind: 'decided', change: toModel(updated) };
       },
       'approved',
@@ -465,6 +493,12 @@ export class RegistrationChangesRepository {
           where: { id: changeId },
           data: { status: 'rejected', decidedAt: now },
           select: changeSelect,
+        });
+        await queueParticipantUpdate(tx, {
+          registrationId,
+          reason: 'requestRejected',
+          dedupKey: `change-decided:${changeId}`,
+          changeId,
         });
         return { kind: 'decided', change: toModel(updated) };
       },

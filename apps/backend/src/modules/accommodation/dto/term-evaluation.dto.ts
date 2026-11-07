@@ -220,6 +220,11 @@ export class OrderedPersonDto {
   })
   effectiveValue!: string | null;
 
+  @ApiProperty({
+    description: 'An organizer moved the person in this term’s order (F39-1).',
+  })
+  isMovedByHand!: boolean;
+
   @ApiPropertyOptional({
     enum: RESULTS,
     description: 'Missing when the shown proposal did not evaluate the person.',

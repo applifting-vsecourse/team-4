@@ -93,6 +93,8 @@ export const termEvaluationSchema = z.object({
       answer: z.string().nullable(),
       determinedValue: z.string().nullable(),
       effectiveValue: z.string().nullable(),
+      /** An organizer moved the person in this term's order (F39-1). */
+      isMovedByHand: z.boolean(),
       result: resultSchema.optional(),
       reason: reasonSchema.optional(),
     }),
@@ -170,6 +172,33 @@ export const runEvidenceSchema = runListItemSchema.extend({
 
 export type RunEvidence = z.infer<typeof runEvidenceSchema>
 
+const movePersonSchema = z.object({
+  registrationId: z.string().uuid(),
+  firstName: z.string(),
+  lastName: z.string(),
+})
+
+/** One manual change of a term's order (S3-03, F39-1), immutable. */
+export const moveRecordSchema = z.object({
+  id: z.string().uuid(),
+  createdAt: z.string(),
+  actor: z.object({ id: z.string(), name: z.string() }),
+  reason: z.string(),
+  termId: z.string().uuid(),
+  termLabel: z.string(),
+  person: movePersonSchema,
+  /** The effective value; null for the one queue without a hard attribute. */
+  queue: z.string().nullable(),
+  placement: z.enum(["before", "after"]),
+  target: movePersonSchema,
+  /** In the term order; 1 is the highest priority. */
+  fromPosition: z.number().int(),
+  toPosition: z.number().int(),
+  inputVersion: z.number().int(),
+})
+
+export type MoveRecord = z.infer<typeof moveRecordSchema>
+
 const participationSchema = z.enum(["pending", "confirmed", "waitlisted", "cancelled"])
 
 /** One saved change of a person's participation in a term (S3-02, F39-1). */
@@ -235,6 +264,8 @@ export const registrationAccommodationSchema = z.object({
       value: z.string(),
     }),
   ),
+  /** The person's moves in the terms' orders, newest first. */
+  moves: z.array(moveRecordSchema),
 })
 
 export type RegistrationAccommodation = z.infer<typeof registrationAccommodationSchema>
