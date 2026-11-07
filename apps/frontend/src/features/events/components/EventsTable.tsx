@@ -1,3 +1,4 @@
+import { type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
@@ -20,6 +21,26 @@ type EventsTableProps = {
   events: EventSummary[]
 }
 
+type EventLink = { organizationId: string; eventId: string }
+
+// The whole row opens the event. Safari does not position content against a <tr>, so a
+// single link stretched over the row would cover the whole table; every cell carries its
+// own overlay instead. Only the event name is exposed to assistive technology.
+function EventCell({ link, children }: { link: EventLink; children: ReactNode }) {
+  return (
+    <TableCell className="relative">
+      {children}
+      <Link
+        to={ROUTES.event}
+        params={link}
+        aria-hidden="true"
+        tabIndex={-1}
+        className="absolute inset-0"
+      />
+    </TableCell>
+  )
+}
+
 // The events of one organization.
 export function EventsTable({ organizationId, events }: EventsTableProps) {
   return (
@@ -35,36 +56,35 @@ export function EventsTable({ organizationId, events }: EventsTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {events.map((event) => (
-            <TableRow
-              key={event.id}
-              className="relative cursor-pointer"
-            >
-              <TableCell className="max-w-72 py-3">
-                {/* The link stretches over the whole row, so any part of it opens the event. */}
-                <Link
-                  to={ROUTES.event}
-                  params={{ organizationId, eventId: event.id }}
-                  className="block truncate font-medium after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
-                >
-                  {event.name}
-                </Link>
-                <span className="block truncate text-xs text-muted-foreground">
-                  {event.description}
-                </span>
-              </TableCell>
-              <TableCell>{event.location}</TableCell>
-              <TableCell>
-                {event.period
-                  ? formatCalendarRange(event.period.startDate, event.period.endDate)
-                  : "—"}
-              </TableCell>
-              <TableCell>{event.termCount}</TableCell>
-              <TableCell>
-                <EventStatusBadge status={event.status} />
-              </TableCell>
-            </TableRow>
-          ))}
+          {events.map((event) => {
+            const link = { organizationId, eventId: event.id }
+            return (
+              <TableRow key={event.id}>
+                <TableCell className="relative max-w-72 py-3">
+                  <Link
+                    to={ROUTES.event}
+                    params={link}
+                    className="block truncate font-medium after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
+                  >
+                    {event.name}
+                  </Link>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {event.description}
+                  </span>
+                </TableCell>
+                <EventCell link={link}>{event.location}</EventCell>
+                <EventCell link={link}>
+                  {event.period
+                    ? formatCalendarRange(event.period.startDate, event.period.endDate)
+                    : "—"}
+                </EventCell>
+                <EventCell link={link}>{event.termCount}</EventCell>
+                <EventCell link={link}>
+                  <EventStatusBadge status={event.status} />
+                </EventCell>
+              </TableRow>
+            )
+          })}
         </TableBody>
       </Table>
     </Card>

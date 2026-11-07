@@ -32,6 +32,11 @@ export type BulkConfirmationDialogProps = {
   remaining?: string
   /** Why the proposal is no longer valid, worded from the error code (state stale). */
   staleReason?: string
+  onOpenChange?: (isOpen: boolean) => void
+  /** The one explicit confirmation. */
+  onConfirm?: () => void
+  /** Loads the current proposal (state stale). */
+  onReload?: () => void
 }
 
 function participations(count: number) {
@@ -42,7 +47,7 @@ function participations(count: number) {
 
 // Správa akce → Přihlášky → Vyhodnocení → Potvrdit všechny vhodné (F14-1):
 // the one explicit confirmation of the term's proposal, with the people it
-// confirms. Design only: every value is passed in.
+// confirms. Every value is passed in; the handlers belong to the caller.
 export function BulkConfirmationDialog({
   isOpen,
   state,
@@ -50,13 +55,20 @@ export function BulkConfirmationDialog({
   people,
   remaining,
   staleReason,
+  onOpenChange,
+  onConfirm,
+  onReload,
 }: BulkConfirmationDialogProps) {
   const isSaving = state === "saving"
   const isStale = state === "stale"
   const count = people.length
 
   return (
-    <Dialog open={isOpen}>
+    <Dialog
+      open={isOpen}
+      // A confirmation in progress finishes before the dialog can close.
+      onOpenChange={(isOpening) => (isSaving ? undefined : onOpenChange?.(isOpening))}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Potvrdit všechny vhodné</DialogTitle>
@@ -98,12 +110,15 @@ export function BulkConfirmationDialog({
             </Button>
           </DialogClose>
           {isStale ? (
-            <Button>
+            <Button onClick={onReload}>
               <RefreshCw />
               Načíst nový návrh
             </Button>
           ) : (
-            <Button disabled={isSaving}>
+            <Button
+              disabled={isSaving}
+              onClick={onConfirm}
+            >
               {isSaving ? <Loader2 className="animate-spin" /> : null}
               {isSaving ? "Potvrzuji…" : `Potvrdit ${participations(count)}`}
             </Button>
