@@ -154,6 +154,9 @@ const statusesOf = (body: {
 const confirmedIn = (termId: string): Promise<number> =>
   prisma.registrationTerm.count({ where: { termId, status: 'confirmed' } });
 
+const waitingIn = (termId: string): Promise<number> =>
+  prisma.registrationTerm.count({ where: { termId, status: 'pending' } });
+
 const registrationsOf = (eventId: string): Promise<number> =>
   prisma.registration.count({ where: { eventId } });
 
@@ -164,7 +167,7 @@ beforeEach(async () => {
 });
 
 describe('saving a registration', () => {
-  it('stores the submission with a decision per term and records one confirmation e-mail', async () => {
+  it('stores the submission with every term waiting for the organizer and records one confirmation e-mail', async () => {
     const f = await eventWith({ rooms: [{ baseBeds: 1, termIndexes: [0] }] });
     const body = form(f.termIds, { email: '  Jana.Novakova@Example.TEST ' });
 
@@ -172,8 +175,8 @@ describe('saving a registration', () => {
 
     expect(response.status).toBe(201);
     expect(statusesOf(response.body)).toEqual({
-      T1: 'confirmed',
-      T2: 'waitlisted',
+      T1: 'pending',
+      T2: 'pending',
     });
     expect(response.body).toMatchObject({
       firstName: 'Jana',
@@ -201,7 +204,7 @@ describe('saving a registration', () => {
       bankAccountNumber: f.event.bankAccountNumber,
       bankCode: f.event.bankCode,
       paymentReminderDays: f.event.paymentReminderDays,
-      paymentReminderAt: expect.any(Date),
+      paymentReminderAt: null,
     });
     expect(stored.variableSymbol).toMatch(/^\d{1,10}$/);
     expect(stored.participantAccount.email).toBe('jana.novakova@example.test');
@@ -222,19 +225,19 @@ describe('saving a registration', () => {
     ]);
   });
 
-  it('saves a registration without any free bed as waitlisted, not as an error', async () => {
+  it('saves a registration without any free bed as waiting, not as an error', async () => {
     const f = await eventWith();
 
     const response = await submit(f.publicId, form(f.termIds));
 
     expect(response.status).toBe(201);
     expect(statusesOf(response.body)).toEqual({
-      T1: 'waitlisted',
-      T2: 'waitlisted',
+      T1: 'pending',
+      T2: 'pending',
     });
   });
 
-  it('confirms a free term at 0 Kč and lets a waitlisted participant hold no bed', async () => {
+  it('lets no saved registration take a bed, whatever the capacity', async () => {
     const f = await eventWith({
       terms: [{ ...T1, priceMinor: 0 }],
       rooms: [{ baseBeds: 1, termIndexes: [0] }],
@@ -242,13 +245,10 @@ describe('saving a registration', () => {
 
     const first = await submit(f.publicId, form(f.termIds));
     const second = await submit(f.publicId, form(f.termIds));
-    const third = await submit(f.publicId, form(f.termIds));
 
-    expect(first.body).toMatchObject({ selectedPriceMinor: 0 });
-    expect(statusesOf(first.body)).toEqual({ T1: 'confirmed' });
-    expect(statusesOf(second.body)).toEqual({ T1: 'waitlisted' });
-    expect(statusesOf(third.body)).toEqual({ T1: 'waitlisted' });
-    expect(await confirmedIn(f.termIds[0])).toBe(1);
+    expect(statusesOf(first.body)).toEqual({ T1: 'pending' });
+    expect(statusesOf(second.body)).toEqual({ T1: 'pending' });
+    expect(await confirmedIn(f.termIds[0])).toBe(0);
   });
 
   it('saves a registration to a free event without payment settings and asks for no payment (S3-C04)', async () => {
@@ -281,26 +281,12 @@ describe('saving a registration', () => {
       paymentReminderAt: null,
     });
   });
-
-  it('confirms a selection of one term only in that term', async () => {
-    const f = await eventWith({
-      rooms: [{ baseBeds: 1, termIndexes: [0, 1] }],
-    });
-
-    await submit(f.publicId, form([f.termIds[1]]));
-    const response = await submit(f.publicId, form(f.termIds));
-
-    expect(statusesOf(response.body)).toEqual({
-      T1: 'confirmed',
-      T2: 'waitlisted',
-    });
-  });
 });
 
-describe('payment obligation (S2-16)', () => {
+describe('nothing is due on receipt (S3-01)', () => {
   const oneBed = [{ baseBeds: 1, termIndexes: [0] }];
 
-  it('owes the confirmed terms only and returns amount, account, VS and reminder date', async () => {
+  it('has no obligation, reminder date or payment request before a term is confirmed', async () => {
     const f = await eventWith({
       terms: [
         { ...T1, priceMinor: 100_000 },
@@ -311,51 +297,17 @@ describe('payment obligation (S2-16)', () => {
 
     const response = await submit(f.publicId, form(f.termIds));
 
-    expect(statusesOf(response.body)).toEqual({
-      T1: 'confirmed',
-      T2: 'waitlisted',
+    expect(response.body).toMatchObject({
+      selectedPriceMinor: 300_000,
+      amountDueMinor: 0,
+      paymentInstructions: null,
+      paymentLinkToken: null,
     });
     const stored = await prisma.registration.findUniqueOrThrow({
       where: { id: response.body.id },
-      include: { terms: true },
     });
-    expect(response.body.amountDueMinor).toBe(100_000);
-    // The QR link (F21-1) is offered right away, for this registration only.
-    expect(response.body.paymentLinkToken).toBe(stored.paymentToken);
-    expect(response.body.paymentInstructions).toEqual({
-      amountMinor: 100_000,
-      variableSymbol: stored.variableSymbol,
-      account: { prefix: null, number: '123457', bankCode: '0100' },
-      reminderAt: stored.paymentReminderAt?.toISOString(),
-    });
-    const decidedAt = stored.terms[0].decidedAt.getTime();
-    const days = (stored.paymentReminderAt!.getTime() - decidedAt) / 86_400_000;
-    // 14 calendar days, give or take the hour of a DST change
-    expect(Math.abs(days - 14)).toBeLessThanOrEqual(1 / 24);
+    expect(stored.paymentReminderAt).toBeNull();
   });
-
-  it.each([
-    ['only waitlisted terms', { rooms: [] }],
-    [
-      'only confirmed free terms',
-      { terms: [{ ...T1, priceMinor: 0 }], rooms: oneBed },
-    ],
-  ])(
-    'has no obligation, reminder date or payment request for %s',
-    async (_, options) => {
-      const f = await eventWith(options);
-
-      const response = await submit(f.publicId, form(f.termIds));
-
-      expect(response.body.amountDueMinor).toBe(0);
-      expect(response.body.paymentInstructions).toBeNull();
-      expect(response.body.paymentLinkToken).toBeNull();
-      const stored = await prisma.registration.findUniqueOrThrow({
-        where: { id: response.body.id },
-      });
-      expect(stored.paymentReminderAt).toBeNull();
-    },
-  );
 
   it('gives every registration its own VS', async () => {
     const f = await eventWith({ rooms: [{ baseBeds: 5, termIndexes: [0] }] });
@@ -364,13 +316,14 @@ describe('payment obligation (S2-16)', () => {
       [1, 2, 3].map(() => submit(f.publicId, form(f.termIds))),
     );
 
-    const symbols = responses.map(
-      (response) => response.body.paymentInstructions.variableSymbol,
-    );
-    expect(new Set(symbols).size).toBe(3);
+    const stored = await prisma.registration.findMany({
+      where: { id: { in: responses.map((response) => response.body.id) } },
+      select: { variableSymbol: true },
+    });
+    expect(new Set(stored.map((row) => row.variableSymbol)).size).toBe(3);
   });
 
-  it('keeps the instructions of a repeat and of an existing registration after the settings change', async () => {
+  it('keeps the payment settings of a repeat and of an existing registration after the settings change', async () => {
     const f = await eventWith({ rooms: oneBed });
     const body = form(f.termIds);
     const original = await submit(f.publicId, body);
@@ -393,19 +346,12 @@ describe('payment obligation (S2-16)', () => {
       bankAccountNumber: '123457',
       bankCode: '0100',
       paymentReminderDays: 14,
-      variableSymbol: original.body.paymentInstructions.variableSymbol,
     });
-    expect(stored.paymentReminderAt?.toISOString()).toBe(
-      original.body.paymentInstructions.reminderAt,
-    );
-
-    const later = await submit(f.publicId, form([f.termIds[1]]));
-    expect(later.body.paymentInstructions).toBeNull();
   });
 });
 
 describe('the last bed under concurrency', () => {
-  it('confirms exactly one of many simultaneous registrations and saves them all', async () => {
+  it('saves every one of many simultaneous registrations as waiting', async () => {
     const f = await eventWith({
       terms: [T1],
       rooms: [{ baseBeds: 1, termIndexes: [0] }],
@@ -418,13 +364,12 @@ describe('the last bed under concurrency', () => {
     expect(responses.map((response) => response.status)).toEqual(
       Array(8).fill(201),
     );
-    const statuses = responses.map((response) => response.body.terms[0].status);
-    expect(statuses.filter((status) => status === 'confirmed')).toHaveLength(1);
-    expect(await confirmedIn(f.termIds[0])).toBe(1);
+    expect(await waitingIn(f.termIds[0])).toBe(8);
+    expect(await confirmedIn(f.termIds[0])).toBe(0);
     expect(await registrationsOf(f.event.id)).toBe(8);
   });
 
-  it('never confirms more than the capacity left by a concurrent room change', async () => {
+  it('lets a concurrent room change through, since a submission takes no bed', async () => {
     const f = await eventWith({
       terms: [T1],
       rooms: [{ baseBeds: 2, termIndexes: [0] }],
@@ -444,24 +389,14 @@ describe('the last bed under concurrency', () => {
       ...Array.from({ length: 4 }, () => submit(f.publicId, form(f.termIds))),
     ]);
 
+    expect(shrink.status).toBe('fulfilled');
     for (const result of submits) {
       expect(result).toMatchObject({
         status: 'fulfilled',
         value: { status: 201 },
       });
     }
-    const { baseBeds } = await prisma.roomTermAvailability.findUniqueOrThrow({
-      where: { roomId_termId: { roomId, termId: f.termIds[0] } },
-    });
-    const confirmed = await confirmedIn(f.termIds[0]);
-    expect(confirmed).toBeLessThanOrEqual(baseBeds);
-    // The shrink either went first (1 confirmation) or was refused because
-    // two beds were already confirmed.
-    expect(
-      shrink.status === 'fulfilled'
-        ? baseBeds === 1 && confirmed === 1
-        : baseBeds === 2 && confirmed === 2,
-    ).toBe(true);
+    expect(await waitingIn(f.termIds[0])).toBe(4);
   });
 });
 
@@ -492,7 +427,7 @@ describe('one registration per e-mail and event', () => {
       });
     }
     expect(await registrationsOf(f.event.id)).toBe(1);
-    expect(await confirmedIn(f.termIds[0])).toBe(1);
+    expect(await waitingIn(f.termIds[0])).toBe(1);
   });
 
   it('does not change the existing registration and reveals nothing of it', async () => {
@@ -602,7 +537,7 @@ describe('repeating a submission', () => {
     expect(responses.map((r) => r.status).sort()).toEqual([200, 200, 200, 201]);
     expect(new Set(responses.map((r) => r.body.id)).size).toBe(1);
     expect(await registrationsOf(f.event.id)).toBe(1);
-    expect(await confirmedIn(f.termIds[0])).toBe(1);
+    expect(await waitingIn(f.termIds[0])).toBe(1);
   });
 
   it('decides a retry of an unsaved submission against the current event', async () => {
@@ -705,8 +640,8 @@ describe('refused submissions save nothing', () => {
     const retried = await submit(f.publicId, body);
     expect(retried.status).toBe(201);
     expect(statusesOf(retried.body)).toEqual({
-      T1: 'confirmed',
-      T2: 'confirmed',
+      T1: 'pending',
+      T2: 'pending',
     });
   });
 });
@@ -871,28 +806,19 @@ describe('confirmation e-mail (S2-15)', () => {
     expect(props.terms).toEqual([
       expect.objectContaining({
         label: 'T1',
-        status: 'confirmed',
+        status: 'pending',
         priceMinor: 450_050,
       }),
       expect.objectContaining({
         label: 'T2',
-        status: 'waitlisted',
+        status: 'pending',
         priceMinor: 390_000,
       }),
     ]);
-    const stored = await prisma.registration.findUniqueOrThrow({
-      where: { id: response.body.id },
-    });
-    // The price of the selection is not the amount to pay: the waitlisted term owes nothing.
+    // The price of the selection is not the amount to pay: nothing is
+    // confirmed yet, so there are no payment instructions (S3-01).
     expect(props.selectedPriceMinor).toBe(840_050);
-    expect(props.payment).toMatchObject({
-      amountMinor: 450_050,
-      variableSymbol: stored.variableSymbol,
-      account: { number: '123457' },
-    });
-    expect(new Date(props.payment!.reminderAt)).toEqual(
-      stored.paymentReminderAt,
-    );
+    expect(props.payment).toBeNull();
 
     // The link is single-use and signs the participant in; the e-mail is
     // not stored, only the hash of the token.
@@ -912,26 +838,6 @@ describe('confirmation e-mail (S2-15)', () => {
       providerMessageId: 'msg-1',
       errorMessage: null,
     });
-  });
-
-  it('asks for no payment from a waitlisted-only or free result', async () => {
-    const waitlisted = await eventWith();
-    await submit(waitlisted.publicId, form(waitlisted.termIds));
-    const free = await eventWith({
-      terms: [{ ...T1, priceMinor: 0 }],
-      rooms: [{ baseBeds: 1, termIndexes: [0] }],
-    });
-    const freeResponse = await submit(free.publicId, form(free.termIds));
-    await confirmation.settle();
-
-    expect(mailbox.sent).toHaveLength(2);
-    for (const mail of mailbox.sent) {
-      expect((JSON.parse(mail.html) as Sent).payment).toBeNull();
-    }
-    const stored = await prisma.registration.findUniqueOrThrow({
-      where: { id: freeResponse.body.id },
-    });
-    expect(stored.paymentReminderAt).toBeNull();
   });
 
   it('keeps the registration and records a failure without the token when sending fails', async () => {

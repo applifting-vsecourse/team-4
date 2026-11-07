@@ -23,12 +23,3 @@ export const genderOtherFits = (
   gender: Gender | null,
   genderOther: string | null,
 ): boolean => genderOther === null || gender === 'other';
-
-/**
- * Only "Žena" and "Muž" can place the participant by the answer; for every
- * other answer, and for none, the organizer decides the accommodation by hand.
- * The rule is the input of the evaluation (F13-1); the stored answer is never
- * replaced by a guess.
- */
-export const requiresManualAccommodation = (gender: Gender | null): boolean =>
-  gender !== 'female' && gender !== 'male';

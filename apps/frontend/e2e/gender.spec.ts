@@ -1,12 +1,13 @@
 import { expect, test } from "@playwright/test"
 
 import { newParticipant, register, setUpEvent, type TermSpec } from "./support/api"
-import { closeDb, createMagicLink } from "./support/db"
+import { closeDb, createMagicLink, setGenderHardAttribute } from "./support/db"
 import { definition } from "./support/ui"
 
 // The voluntary gender answer for accommodation (F64): chosen in the public
 // form, shown to the participant and the organizer, changed by the participant
-// through the registration edit and corrected by the organizer.
+// through the registration edit and corrected by the organizer. With gender
+// as the hard attribute, an answer that places nobody is decided by hand (S3-01).
 
 const terms: TermSpec[] = [
   { label: "1. turnus", startDate: "2027-07-01", endDate: "2027-07-07", priceMinor: 100000 },
@@ -22,6 +23,7 @@ test("the answer from the form is shown to both sides, changed and corrected", a
   browser,
 }) => {
   const event = await setUpEvent(page.request, { terms, rooms })
+  await setGenderHardAttribute(event.eventId)
   const jana = newParticipant("Jana")
 
   const context = await browser.newContext()
@@ -128,6 +130,7 @@ test("an older registration without an answer reads Neuvedeno, decided by hand",
   page,
 }) => {
   const event = await setUpEvent(page.request, { terms, rooms })
+  await setGenderHardAttribute(event.eventId)
   const registration = await register(
     page.request,
     event.publicId,
@@ -140,4 +143,20 @@ test("an older registration without an answer reads Neuvedeno, decided by hand",
   )
   await expect(definition(page, ANSWER)).toHaveText("Neuvedeno")
   await expect(page.getByText("Ubytování je potřeba určit ručně")).toBeVisible()
+})
+
+test("without a hard attribute nobody's accommodation is decided by hand", async ({ page }) => {
+  const event = await setUpEvent(page.request, { terms, rooms })
+  const registration = await register(
+    page.request,
+    event.publicId,
+    newParticipant("Eva"),
+    event.termIds,
+  )
+
+  await page.goto(
+    `/organizations/${event.organizationId}/events/${event.eventId}/registrations/${registration.id}`,
+  )
+  await expect(definition(page, ANSWER)).toHaveText("Neuvedeno")
+  await expect(page.getByText("Ubytování je potřeba určit ručně")).toBeHidden()
 })

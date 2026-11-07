@@ -33,9 +33,7 @@ const preview = (overrides: Partial<ChangePreview> = {}): ChangePreview => ({
   version: 3,
   requiresApproval: false,
   kinds: ["move"],
-  moves: [
-    { fromTermId: T2, toTermId: T3, resultStatus: "confirmed", requiresWaitlistConsent: false },
-  ],
+  moves: [{ fromTermId: T2, toTermId: T3, resultStatus: "pending", requiresReleaseConsent: false }],
   summary: {
     values: [],
     needs: null,
@@ -46,7 +44,7 @@ const preview = (overrides: Partial<ChangePreview> = {}): ChangePreview => ({
         startDate: "2026-11-20",
         endDate: "2026-11-22",
         priceMinor: 240_000,
-        original: "confirmed",
+        original: "waitlisted",
         proposed: "cancelled",
       },
       {
@@ -56,7 +54,7 @@ const preview = (overrides: Partial<ChangePreview> = {}): ChangePreview => ({
         endDate: "2026-12-06",
         priceMinor: 290_000,
         original: null,
-        proposed: "confirmed",
+        proposed: "pending",
       },
     ],
     original: money(480_000),
@@ -71,7 +69,7 @@ const refuse = (status: number, data: unknown) => ({
 })
 
 const PROPOSAL = {
-  moves: [{ fromTermId: T2, toTermId: T3, acceptWaitlist: false }],
+  moves: [{ fromTermId: T2, toTermId: T3, acceptRelease: false }],
   cancelledTermIds: [],
 }
 
@@ -83,7 +81,6 @@ const CHANGE_RESULT = {
   createdAt: "2026-11-02T10:00:00.000Z",
   decidedAt: "2026-11-02T10:00:00.000Z",
   summary: preview().summary,
-  needsParticipantConsent: false,
   isStale: false,
   participant: { firstName: "Jana", lastName: "Nováková", email: "jana@example.com" },
 }
@@ -191,28 +188,69 @@ describe("ChangeReviewDialog", () => {
     expect(screen.getByRole("button", { name: "Odeslat žádost o schválení" })).toBeInTheDocument()
   })
 
-  it("needs consent to the waitlist when the result changed, and sends it", async () => {
-    const waitlisted = preview({
+  it("needs consent before a confirmed place is given up, and sends it (S3-01)", async () => {
+    const releasing = preview({
       moves: [
-        { fromTermId: T2, toTermId: T3, resultStatus: "waitlisted", requiresWaitlistConsent: true },
+        { fromTermId: T2, toTermId: T3, resultStatus: "pending", requiresReleaseConsent: true },
       ],
     })
-    serve(
-      refuse(409, { code: "waitlist_consent_required", preview: waitlisted }),
-      answer({ outcome: "applied", change: CHANGE_RESULT }),
+    post.mockImplementation((path: string) =>
+      path.endsWith("/preview")
+        ? answer(releasing)
+        : answer({ outcome: "applied", change: CHANGE_RESULT }),
     )
     renderReview()
-    await userEvent.click(await screen.findByRole("button", { name: "Potvrdit změnu" }))
 
-    expect(await screen.findByText(/se mezitím zaplnil/)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/Přesunem přijdete o potvrzené místo v termínu Turnus 2/),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/O účasti v termínu Turnus 3 rozhodne organizátor/)).toBeInTheDocument()
     const confirm = screen.getByRole("button", { name: "Potvrdit změnu" })
     expect(confirm).toBeDisabled()
     await userEvent.click(screen.getByRole("checkbox", { name: /Souhlasím/ }))
     await userEvent.click(confirm)
 
     await waitFor(() => expect(onDone).toHaveBeenCalled())
-    const body = post.mock.lastCall?.[1] as { json: { moves: { acceptWaitlist: boolean }[] } }
-    expect(body.json.moves[0]?.acceptWaitlist).toBe(true)
+    const body = post.mock.lastCall?.[1] as { json: { moves: { acceptRelease: boolean }[] } }
+    expect(body.json.moves[0]?.acceptRelease).toBe(true)
+  })
+
+  it("asks for consent again when the refreshed review gives up another place (S3-01)", async () => {
+    const T1 = id(101)
+    const releasing = preview({
+      moves: [
+        { fromTermId: T2, toTermId: T3, resultStatus: "pending", requiresReleaseConsent: true },
+      ],
+    })
+    const both = preview({
+      moves: [
+        { fromTermId: T1, toTermId: T3, resultStatus: "pending", requiresReleaseConsent: true },
+        { fromTermId: T2, toTermId: T3, resultStatus: "pending", requiresReleaseConsent: true },
+      ],
+      summary: {
+        ...releasing.summary,
+        terms: [
+          { ...releasing.summary.terms[0]!, termId: T1, label: "Turnus 1" },
+          ...releasing.summary.terms,
+        ],
+      },
+    })
+    post.mockImplementation((path: string) =>
+      path.endsWith("/preview")
+        ? answer(releasing)
+        : refuse(409, { code: "release_consent_required", preview: both }),
+    )
+    renderReview()
+
+    await userEvent.click(await screen.findByRole("checkbox", { name: /Souhlasím/ }))
+    await userEvent.click(screen.getByRole("button", { name: "Potvrdit změnu" }))
+
+    expect(
+      await screen.findByText(/Přesunem přijdete o potvrzené místo v termínu Turnus 1, Turnus 2/),
+    ).toBeInTheDocument()
+    expect(screen.getByRole("checkbox", { name: /Souhlasím/ })).not.toBeChecked()
+    expect(screen.getByRole("button", { name: "Potvrdit změnu" })).toBeDisabled()
+    expect(onDone).not.toHaveBeenCalled()
   })
 
   it("lets the participant go back when the review cannot be loaded", async () => {

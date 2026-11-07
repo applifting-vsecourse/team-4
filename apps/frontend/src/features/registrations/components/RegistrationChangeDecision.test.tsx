@@ -28,7 +28,6 @@ const change = (overrides: Record<string, unknown> = {}) => ({
   kinds: ["move"],
   createdAt: "2026-10-30T13:05:00.000Z",
   decidedAt: null,
-  needsParticipantConsent: false,
   isStale: false,
   participant: { firstName: "Jana", lastName: "Nováková", email: "jana@example.com" },
   summary: {
@@ -98,6 +97,21 @@ describe("RegistrationChangeDecision", () => {
     )
   })
 
+  it("explains that a move without consent to give up a confirmed place can only be rejected", async () => {
+    get.mockReturnValue(answer({ changes: [change()] }))
+    post.mockReturnValue({
+      json: () =>
+        Promise.reject(new FakeHTTPError({ status: 409 }, { code: "release_consent_required" })),
+    })
+    renderDecision()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Schválit" }))
+
+    expect(await screen.findByText(/Žádost lze jen zamítnout/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Schválit" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Zamítnout" })).toBeEnabled()
+  })
+
   it("rejects a request", async () => {
     get.mockReturnValue(answer({ changes: [change()] }))
     post.mockReturnValue(
@@ -107,15 +121,6 @@ describe("RegistrationChangeDecision", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Zamítnout" }))
     await waitFor(() => expect(post).toHaveBeenCalledWith(expect.stringMatching(/\/reject$/)))
-  })
-
-  it("waits for the participant when the target term filled up", async () => {
-    get.mockReturnValue(answer({ changes: [change({ needsParticipantConsent: true })] }))
-    renderDecision()
-
-    expect(await screen.findByText(/až po novém souhlasu účastníka/)).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Schválit" })).toBeDisabled()
-    expect(screen.getByRole("button", { name: "Zamítnout" })).toBeEnabled()
   })
 
   it("cannot approve a request made on an older version of the registration, only reject it", async () => {

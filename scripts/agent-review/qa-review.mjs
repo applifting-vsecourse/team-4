@@ -15,6 +15,7 @@ export async function ensureQaReviewRequest({
   issue,
   dryRun,
   waiver,
+  stacked = false,
   log = console.log,
 }) {
   const path = `/repos/${repo}/pulls/${pr.number}`;
@@ -40,7 +41,8 @@ export async function ensureQaReviewRequest({
     severityFor(current) === 'low' ||
     current.state !== 'open' ||
     current.draft ||
-    current.base.ref !== 'main' ||
+    // The tip of a stack targets the PR below it, not main.
+    (current.base.ref !== 'main' && !stacked) ||
     !requirementsApproval(current, reviews)
   ) {
     log(`QA request skipped for #${pr.number}: PR is no longer eligible`);

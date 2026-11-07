@@ -1,6 +1,6 @@
 import { test } from "@playwright/test"
 
-import { closeDb, createMagicLink } from "./support/db"
+import { closeDb, createMagicLink, decideTerms, registrationIdOf } from "./support/db"
 import {
   contextOptions,
   endDemo,
@@ -201,19 +201,21 @@ test(sprintReviewTitle, async ({ page, browser }) => {
 
     await step(
       mobileWindow,
-      "6/9 · Potvrzení obou termínů a pokyny k platbě — S2-14, S2-16",
+      "6/9 · Oba termíny čekají na rozhodnutí, zatím nic k platbě — S2-14, S3-01",
       async () => {
         const result = mobile.getByRole("region", { name: "Přihláška je uložená" })
         for (const label of ["Sobota", "Neděle"]) {
           await expect(result.getByRole("listitem").filter({ hasText: label })).toContainText(
-            "Potvrzeno",
+            "Čeká na rozhodnutí organizátora",
           )
         }
-        await expect(definition(result, "K úhradě za potvrzené termíny")).toHaveText("2 500 Kč")
-        await expect(definition(result, "Variabilní symbol")).toHaveText(/\d+/)
+        await expect(result.getByText("Nyní nemáte platební povinnost.")).toBeVisible()
         await mobileFits()
       },
     )
+
+    // Until the term evaluation offers the decision (S3-01), it is made in the data.
+    await decideTerms(await registrationIdOf(participant.email), "confirmed")
 
     await step(page, "7/9 · Alena vidí obsazenost a přihlášku Jany — S2-10, S2-11", async () => {
       await nav("Ubytování").click()

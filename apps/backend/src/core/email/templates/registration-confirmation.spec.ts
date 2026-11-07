@@ -20,6 +20,13 @@ const waitlisted: ConfirmationTerm = {
   priceMinor: 390_050,
   status: 'waitlisted',
 };
+const pending: ConfirmationTerm = {
+  label: '3. turnus',
+  startDate: '2026-07-20',
+  endDate: '2026-07-26',
+  priceMinor: 410_000,
+  status: 'pending',
+};
 const payment: ConfirmationPayment = {
   amountMinor: 450_000,
   variableSymbol: '2610190042',
@@ -50,6 +57,16 @@ const text = (html: string): string =>
     .replace(/[\s\u00a0]+/g, ' ');
 
 describe('RegistrationConfirmation', () => {
+  it('shows waiting terms without a debt or payment instructions (S3-01)', async () => {
+    const out = text(await render([pending], null));
+
+    expect(out).toContain('Čeká na rozhodnutí organizátora');
+    expect(out).toContain('Za tyto termíny zatím nic neplatíte');
+    expect(out).toContain('Nyní není co hradit.');
+    expect(out).not.toContain('Platební instrukce');
+    expect(out).not.toContain('K úhradě');
+  });
+
   it('shows a mixed result with its own status per term and both amounts', async () => {
     const out = text(await render([confirmed, waitlisted], payment));
 

@@ -9,7 +9,7 @@ import {
   signUpOrganizer,
   type OpenEvent,
 } from "./support/api"
-import { closeDb, createMagicLink } from "./support/db"
+import { closeDb, createMagicLink, decideTerms } from "./support/db"
 import { pickDate } from "./support/ui"
 
 // Programme of a term (F65): the organizer's editing, what a confirmed
@@ -69,6 +69,8 @@ async function eventWithTwoParticipants(page: Page, browser: Browser) {
     event.termIds[0]!,
   ])
   await publicContext.close()
+  await decideTerms(janaRegistration.id, "confirmed")
+  await decideTerms(beaRegistration.id, "waitlisted")
   return { event, jana, bea, janaRegistration, beaRegistration }
 }
 

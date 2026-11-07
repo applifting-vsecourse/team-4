@@ -12,9 +12,7 @@ export class ParticipantRegistrationsService {
   ) {}
 
   /** Terms of the registration's event, for moving to another. */
-  availableTerms(
-    registrationId: string,
-  ): Promise<(EventTermInfo & { isFull: boolean })[]> {
+  availableTerms(registrationId: string): Promise<EventTermInfo[]> {
     return this.changes.availableTerms(registrationId);
   }
 

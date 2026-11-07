@@ -151,9 +151,10 @@ unchanged scope approval but require fresh code review and QA.
 `MatejKrones` approves QA after the testing handoff; on Matej's PRs, David performs
 QA. Request QA only after independent review passes and the current commit receives
 a bot-authored QA handoff, except for approved Storybook design-preview PRs. The
-issue enters Ready for Testing when all linked PRs are ready; an eligible
-prerequisite PR targeting main can receive its own handoff while stacked
-dependents keep the overall issue in Ready for Code Review. Low PRs
+issue enters Ready for Testing when all linked PRs are ready. A plain stack of
+PRs is handed to QA once, on its tip (see [Stacked PRs](#stacked-prs)); a PR
+that targets a feature branch outside a plain stack keeps waiting for its
+prerequisite and retargeting to main. Low PRs
 receive no automated QA request. CODEOWNERS routes
 David enforcement-path requests; code-owner approval is disabled. GitHub's
 blanket approval count is zero after severity installation; Delivery stages
@@ -164,6 +165,32 @@ for that PR commit; CI and severity-specific requirements/QA still apply. Preser
 findings and record a manual waiver, never a fabricated Copilot pass. A new
 commit needs a new waiver or review; recheck edited/deleted commands.
 Never manufacture passing gate evidence or bypass merge protection.
+
+### Stacked PRs
+
+Split a story that exceeds the Copilot review limit into a stack of PRs, one
+reviewable slice each. The workflow judges the stack as one change; the rules
+and automation are in [`docs/delivery-workflow.md`](docs/delivery-workflow.md#stacked-prs).
+
+- Create each branch from the one below it; the bottom PR targets `main`, every
+  other PR targets the branch of the PR below it.
+- Keep the stack in sync by merging the parent branch into the child, bottom to
+  top, whenever a lower PR changes, including after syncing with `main`. Never
+  rebase, squash or force-push a stacked branch: it rewrites the commits that
+  were reviewed and tested, and the carried-over reviews and the single QA pass
+  depend on the history staying intact.
+- A stack has one author and every PR links the same issue; use `Refs #N` on every
+  slice and `Closes #N` only on the tip, which completes the story. A Low PR
+  cannot be the tip. Label each PR with its own severity.
+- Do not ask for QA on lower PRs. When every slice has passed review the bot hands
+  the stack to QA once, on the tip; QA tests the tip commit, which contains the
+  whole change.
+- After creating the PRs, link them into a stack on GitHub with
+  `gh stack link <PRs, bottom to top>`, and merge with the stack merge button (or
+  `gh stack merge <stack-number> --merge`). The merge is atomic. Always choose the
+  merge-commit method; squash and rebase break the stack. Never use
+  `gh stack sync`, `rebase`, `push` or `submit`: they can rebase and force-push
+  the branches and rewrite the PR bases.
 
 ### PRs handling
 

@@ -33,6 +33,8 @@ function run(
           status = body.variables.option; calls.push('status:'+status);
           data={data:{updateProjectV2ItemFieldValue:{projectV2Item:{id:'item'}}}};
         } else data={data:{node:{status:{name:status}}}};
+      } else if (path === '/repos/owner/repo/pulls') {
+        data = []; // nothing is stacked on the PR
       } else if (path.endsWith('/pulls/12/reviews')) {
         data=approved && !(revokeBeforeReview && ++reviewReads > 1) ? [{id:1,user:{login:'darebakdavca'},state:'APPROVED',commit_id:sha,submitted_at:'2000-01-01T00:00:00Z'}] : [];
       } else if (path.endsWith('/pulls/12')) {

@@ -131,6 +131,24 @@ describe("RoomsSection", () => {
     expect(screen.getByText("Akce zatím nemá žádné termíny")).toBeInTheDocument()
   })
 
+  it("fills the default base beds into every term until a term is edited itself", async () => {
+    renderSection({ rooms: [], terms: overview.terms })
+    await userEvent.click(screen.getByRole("button", { name: "Přidat pokoj" }))
+    await userEvent.type(screen.getByRole("textbox", { name: "Výchozí základní lůžka" }), "4")
+    const [first, second] = screen.getAllByRole("textbox", { name: "Základní lůžka" })
+    expect(first).toHaveValue("4")
+    expect(second).toHaveValue("4")
+
+    await userEvent.clear(second!)
+    await userEvent.type(second!, "2")
+    await userEvent.type(screen.getByRole("textbox", { name: "Výchozí základní lůžka" }), "5")
+    expect(first).toHaveValue("5")
+    expect(second).toHaveValue("2")
+    for (const extra of screen.getAllByRole("textbox", { name: "Přistýlky" })) {
+      expect(extra).toHaveValue("0")
+    }
+  })
+
   it("saves the beds of each term separately", async () => {
     requests.put.mockReturnValue({
       json: () => Promise.resolve(roomsOverviewSchema.parse(overview)),

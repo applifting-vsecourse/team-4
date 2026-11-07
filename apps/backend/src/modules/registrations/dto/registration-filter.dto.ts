@@ -6,7 +6,7 @@ import { ParticipationStatus } from '@/modules/registrations/domain/registration
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsUUID } from 'class-validator';
 
-const STATUSES: ParticipationStatus[] = ['confirmed', 'waitlisted'];
+const STATUSES: ParticipationStatus[] = ['pending', 'confirmed', 'waitlisted'];
 
 export class RegistrationFilterDto {
   @ApiPropertyOptional({

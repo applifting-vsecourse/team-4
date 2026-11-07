@@ -13,7 +13,7 @@ import {
 import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
 
 /** A term's participation before or after the change; "cancelled" once released. */
-export type TermState = "confirmed" | "waitlisted" | "cancelled"
+export type TermState = "pending" | "confirmed" | "waitlisted" | "cancelled"
 
 /** A personal or contact value, or a part of the needs (F63), the change replaces. */
 export type ChangedValue = { label: string; original: string; proposed: string }
@@ -98,16 +98,17 @@ export function ChangeSummary({ values = [], terms = [], money = [] }: ChangeSum
         <ComparisonTable
           heading="Cena a saldo"
           firstColumn="Položka"
+          isNumeric
         >
           {money.map((line) => (
             <TableRow key={line.label}>
               <TableCell>
                 <span className="text-muted-foreground">{line.label}</span>
               </TableCell>
-              <TableCell>
+              <TableCell className="text-right whitespace-nowrap">
                 <span className="font-mono">{line.original}</span>
               </TableCell>
-              <TableCell>
+              <TableCell className="text-right whitespace-nowrap">
                 <span className="font-mono font-medium">{line.proposed}</span>
               </TableCell>
             </TableRow>
@@ -125,9 +126,15 @@ export function TermStateBadge({ state }: { state: TermState | null }) {
   return <ParticipationBadge status={state} />
 }
 
-type ComparisonTableProps = { heading: string; firstColumn: string; children: ReactNode }
+type ComparisonTableProps = {
+  heading: string
+  firstColumn: string
+  /** The compared columns hold amounts: header and values align to the right. */
+  isNumeric?: boolean
+  children: ReactNode
+}
 
-function ComparisonTable({ heading, firstColumn, children }: ComparisonTableProps) {
+function ComparisonTable({ heading, firstColumn, isNumeric, children }: ComparisonTableProps) {
   return (
     <section className="space-y-2">
       <h3 className="text-sm font-medium">{heading}</h3>
@@ -135,8 +142,8 @@ function ComparisonTable({ heading, firstColumn, children }: ComparisonTableProp
         <TableHeader>
           <TableRow>
             <TableHead>{firstColumn}</TableHead>
-            <TableHead>Původně</TableHead>
-            <TableHead>Nově</TableHead>
+            <TableHead className={isNumeric ? "text-right" : undefined}>Původně</TableHead>
+            <TableHead className={isNumeric ? "text-right" : undefined}>Nově</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>{children}</TableBody>

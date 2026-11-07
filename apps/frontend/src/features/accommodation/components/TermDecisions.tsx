@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 import { RESULT_BADGE, type ProposalResult } from "@/features/accommodation/lib/proposal"
 
-export type DecisionTermState = "confirmed" | "pending" | "waitlisted"
+export type DecisionTermState = "confirmed" | "pending" | "waitlisted" | "cancelled"
 
 export type DecisionTerm = {
   id: string
@@ -23,13 +23,24 @@ const STATE_BADGE: Record<
   confirmed: { label: "Potvrzeno", variant: "success" },
   pending: { label: "Čeká na rozhodnutí", variant: "secondary" },
   waitlisted: { label: "Náhradník", variant: "warning" },
+  cancelled: { label: "Odhlášeno", variant: "secondary" },
+}
+
+/** F14-1, a later slice: without them no decision is offered. */
+export type TermDecisionHandlers = {
+  onConfirm?: (term: DecisionTerm) => void
+  onWaitlist?: (term: DecisionTerm) => void
 }
 
 // Správa akce → Přihlášky → detail přihlášky → Termíny (F14-1): each term with
 // its own state and the decision still open for it. A confirmed term offers
 // no decision, confirmed people are not moved. Design only: every value is
 // passed in.
-export function TermDecisions({ terms }: { terms: DecisionTerm[] }) {
+export function TermDecisions({
+  terms,
+  onConfirm,
+  onWaitlist,
+}: { terms: DecisionTerm[] } & TermDecisionHandlers) {
   return (
     <Card>
       <CardHeader>
@@ -60,23 +71,27 @@ export function TermDecisions({ terms }: { terms: DecisionTerm[] }) {
                   </div>
                 ) : null}
               </div>
-              {term.state === "confirmed" ? null : (
+              {term.state === "confirmed" || term.state === "cancelled" ? null : (
                 <div className="flex flex-wrap justify-end gap-2">
-                  {term.state === "pending" ? (
+                  {term.state === "pending" && onWaitlist ? (
                     <Button
                       size="sm"
                       variant="outline"
                       aria-label={`Zařadit mezi náhradníky: ${term.label}`}
+                      onClick={() => onWaitlist(term)}
                     >
                       Náhradník
                     </Button>
                   ) : null}
-                  <Button
-                    size="sm"
-                    aria-label={`Potvrdit účast: ${term.label}`}
-                  >
-                    Potvrdit
-                  </Button>
+                  {onConfirm ? (
+                    <Button
+                      size="sm"
+                      aria-label={`Potvrdit účast: ${term.label}`}
+                      onClick={() => onConfirm(term)}
+                    >
+                      Potvrdit
+                    </Button>
+                  ) : null}
                 </div>
               )}
             </li>

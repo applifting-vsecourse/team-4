@@ -9,6 +9,7 @@ import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
+import { EvaluationModeSection } from "@/features/accommodation/components/EvaluationModeSection"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
@@ -120,6 +121,10 @@ function EventPage() {
         <PresentationSection
           organizationId={organizationId}
           event={event}
+        />
+        <EvaluationModeSection
+          organizationId={organizationId}
+          eventId={eventId}
         />
       </div>
     </section>

@@ -13,10 +13,13 @@ export const MAX_ATTEMPTS = 3;
 const BOT_LOGIN = 'github-actions[bot]';
 
 const PR_MARKER =
-  /<!-- agent-review pr=(\d+) sha=([0-9a-f]{40}) result=(pass|findings|error) attempt=(\d+) -->/;
+  /<!-- agent-review pr=(\d+) sha=([0-9a-f]{40}) result=(pass|findings|error) attempt=(\d+)(?: slice=([0-9a-f]{64}))? -->/;
 
-export function prMarker({ pr, sha, result, attempt }) {
-  return `<!-- agent-review pr=${pr} sha=${sha} result=${result} attempt=${attempt} -->`;
+// `slice` fingerprints the lines a stacked PR adds and removes itself (see
+// delivery/stack.mjs), so a pass can be carried to a head that only merged in
+// its parent branch.
+export function prMarker({ pr, sha, result, attempt, slice }) {
+  return `<!-- agent-review pr=${pr} sha=${sha} result=${result} attempt=${attempt}${slice ? ` slice=${slice}` : ''} -->`;
 }
 
 export function issueMarker({ issue, state }) {
@@ -162,6 +165,24 @@ export function findPriorResults({ comments, pr, sha }) {
   return { final, errorAttempts, lastError };
 }
 
+/**
+ * The newest bot-authored pass for this PR whose own slice has the same
+ * fingerprint, whatever commit it was recorded on. Callers must still prove the
+ * current head contains that commit before trusting it.
+ */
+export function findCarryOver({ comments, pr, slice }) {
+  if (!slice) return null;
+  let found = null;
+  for (const c of comments) {
+    if (c.user?.login !== BOT_LOGIN) continue;
+    const m = PR_MARKER.exec(c.body ?? '');
+    if (!m || Number(m[1]) !== pr || m[3] !== 'pass' || m[5] !== slice)
+      continue;
+    found = { sha: m[2], url: c.html_url };
+  }
+  return found;
+}
+
 export function hasBotComment(comments, marker) {
   return comments.some(
     (c) => c.user?.login === BOT_LOGIN && (c.body ?? '').includes(marker),
@@ -238,8 +259,10 @@ export function formatPrComment({
   binaryOnly = false,
   pr,
   issue,
+  slice,
+  carriedFrom,
 }) {
-  const marker = prMarker({ pr, sha, result, attempt });
+  const marker = prMarker({ pr, sha, result, attempt, slice });
   const skippedBlock = skipped.length
     ? `\n\n<details><summary>Skipped binaries (${skipped.length})</summary>\n\n${skipped.map((path) => '- ' + path).join('\n')}\n\n</details>`
     : '';
@@ -249,6 +272,8 @@ export function formatPrComment({
   const notesBlock = notes.length
     ? `\n\n<details><summary>Poznámky (${notes.length}, neblokují)</summary>\n\n**Poznámky (neblokují):**\n${formatFindings(notes)}\n\n</details>`
     : '';
+  if (carriedFrom)
+    return `${marker}\n### Agentní code review: převzato z předchozího commitu\n\nZměna tohoto PR je stejná jako na commitu \`${carriedFrom.slice(0, 7)}\`, který prošel review; tento commit do ní jen přibral novější base větev. Review se neopakuje.\n\n${head}`;
   if (binaryOnly)
     return `${marker}\nText review: no text changes. Copilot not called.\n\n${head}`;
   if (result === 'pass') {

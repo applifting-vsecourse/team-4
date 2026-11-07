@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 
 import { newParticipant, register, setUpEvent, type OpenEvent } from "./support/api"
+import { decideTerms } from "./support/db"
 import { definition } from "./support/ui"
 
 // Payments beyond the debt (S2-12) and the list catching up with a payment
@@ -28,7 +29,8 @@ test("an overpayment shows as Přeplatek in the detail and, without a reload, in
 }) => {
   const event = await setUpEvent(page.request, { terms, rooms })
   const anna = newParticipant("Anna")
-  await register(request, event.publicId, anna, event.termIds)
+  const registration = await register(request, event.publicId, anna, event.termIds)
+  await decideTerms(registration.id, "confirmed")
 
   // The list is loaded before the payment, so it has to catch up afterwards.
   await page.goto(registrationsUrl(event))
@@ -47,8 +49,7 @@ test("an overpayment shows as Přeplatek in the detail and, without a reload, in
 
 test("a payment without an obligation is an overpayment", async ({ page, request }) => {
   const event = await setUpEvent(page.request, { terms, rooms })
-  await register(request, event.publicId, newParticipant("Anna"), event.termIds)
-  // The only bed is taken: Petr is waitlisted and owes nothing.
+  // Petr waits for the organizer's decision and owes nothing (S3-01).
   const petr = await register(request, event.publicId, newParticipant("Petr"), event.termIds)
 
   await page.goto(`${registrationsUrl(event)}/${petr.id}`)

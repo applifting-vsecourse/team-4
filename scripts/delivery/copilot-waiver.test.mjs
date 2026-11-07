@@ -333,8 +333,13 @@ async function checkScenario(mode) {
   const statuses = [];
   const patches = [];
   globalThis.fetch = async (url, options = {}) => {
-    const path = new URL(url).pathname;
-    if (mode === 'scoped-pr' && path === '/repos/owner/repo/pulls')
+    const { pathname: path, searchParams } = new URL(url);
+    if (
+      mode === 'scoped-pr' &&
+      path === '/repos/owner/repo/pulls' &&
+      !searchParams.has('base') &&
+      !searchParams.has('head')
+    )
       throw new Error('PR event must not scan all PRs');
     const body = options.body ? JSON.parse(options.body) : {};
     let data;

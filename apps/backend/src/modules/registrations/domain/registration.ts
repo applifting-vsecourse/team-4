@@ -5,9 +5,14 @@ import {
   normalizeNeeds,
   RegistrationNeeds,
 } from '@/modules/registrations/domain/registration-needs';
-import { TermCapacity } from '@/modules/rooms/domain/room';
 
-export type ParticipationStatus = 'confirmed' | 'waitlisted' | 'cancelled';
+/**
+ * `pending` waits for the organizer's decision (S3-01, spec v4 §3): a new
+ * registration and a moved term start there. Only `confirmed` holds a bed and
+ * creates a debt.
+ */
+export type ParticipationStatus =
+  'pending' | 'confirmed' | 'waitlisted' | 'cancelled';
 
 /** A submission as the API received it, already trimmed and in E.164. */
 export type RegistrationInput = {
@@ -51,15 +56,6 @@ export const submissionHash = (input: RegistrationInput): string =>
       ]),
     )
     .digest('hex');
-
-/**
- * Each term on its own: a bed free at the moment of saving confirms, otherwise
- * the participant waits (S2-08). A full or bed-less term is not an error.
- */
-export const decideParticipation = (
-  term: Pick<TermCapacity, 'capacity' | 'confirmed'>,
-): ParticipationStatus =>
-  term.confirmed < term.capacity ? 'confirmed' : 'waitlisted';
 
 const PRAGUE = 'Europe/Prague';
 
@@ -111,7 +107,7 @@ export const paymentReminderAt = (confirmedAt: Date, days: number): Date => {
   return new Date(result);
 };
 
-/** Σ price of the confirmed terms in haléře; waitlisted terms owe nothing. */
+/** Σ price of the confirmed terms in haléře; unconfirmed terms owe nothing. */
 export const amountDueMinor = (
   terms: { status: ParticipationStatus; priceMinor: number }[],
 ): number =>
@@ -119,7 +115,7 @@ export const amountDueMinor = (
     .filter((term) => term.status === 'confirmed')
     .reduce((sum, term) => sum + term.priceMinor, 0);
 
-/** Price of the selected terms, waitlisted ones included; released terms are not selected. */
+/** Price of the selected terms, unconfirmed ones included; released terms are not selected. */
 export const selectedPriceMinor = (
   terms: { status: ParticipationStatus; priceMinor: number }[],
 ): number =>

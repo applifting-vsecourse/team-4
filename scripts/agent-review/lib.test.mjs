@@ -4,6 +4,7 @@ import {
   buildPrompt,
   decideIssue,
   formatIssueNote,
+  findCarryOver,
   findPriorResults,
   formatPrComment,
   parseVerdict,
@@ -236,4 +237,82 @@ test('formatIssueNote lists each PR once when blocked', () => {
   });
   assert.equal(note.match(/PR #1/g).length, 1);
   assert.equal(note.match(/PR #2/g).length, 1);
+});
+
+const SLICE = 'c'.repeat(64);
+
+test('a slice fingerprint in the marker does not change who the exact-commit lookup trusts', () => {
+  const marker = prMarker({
+    pr: 7,
+    sha: SHA,
+    result: 'pass',
+    attempt: 1,
+    slice: SLICE,
+  });
+  assert.match(marker, new RegExp(`attempt=1 slice=${SLICE} -->`));
+  const prior = findPriorResults({
+    comments: [botComment(marker)],
+    pr: 7,
+    sha: SHA,
+  });
+  assert.equal(prior.final.result, 'pass');
+  // Delivery looks for this exact prefix before the slice.
+  assert.ok(
+    marker.startsWith(`<!-- agent-review pr=7 sha=${SHA} result=pass `),
+  );
+});
+
+test('findCarryOver finds a bot pass for the same slice on any commit', () => {
+  const pass = prMarker({
+    pr: 7,
+    sha: OTHER_SHA,
+    result: 'pass',
+    attempt: 1,
+    slice: SLICE,
+  });
+  assert.deepEqual(
+    findCarryOver({ comments: [botComment(pass, 'u')], pr: 7, slice: SLICE }),
+    { sha: OTHER_SHA, url: 'u' },
+  );
+});
+
+test('findCarryOver ignores forgeries, other slices, other PRs, findings and unsliced passes', () => {
+  const m = (over) =>
+    prMarker({
+      pr: 7,
+      sha: OTHER_SHA,
+      result: 'pass',
+      attempt: 1,
+      slice: SLICE,
+      ...over,
+    });
+  const human = {
+    user: { login: 'someone' },
+    body: m({}),
+    html_url: 'x',
+  };
+  const comments = [
+    human,
+    botComment(m({ slice: 'd'.repeat(64) })),
+    botComment(m({ pr: 8 })),
+    botComment(m({ result: 'findings' })),
+    botComment(m({ slice: undefined })),
+  ];
+  assert.equal(findCarryOver({ comments, pr: 7, slice: SLICE }), null);
+  assert.equal(findCarryOver({ comments, pr: 7, slice: undefined }), null);
+});
+
+test('a carried-over comment is a pass for the new commit and names its source', () => {
+  const body = formatPrComment({
+    sha: SHA,
+    result: 'pass',
+    attempt: 1,
+    pr: 7,
+    issue: 5,
+    slice: SLICE,
+    carriedFrom: OTHER_SHA,
+  });
+  assert.ok(body.startsWith(`<!-- agent-review pr=7 sha=${SHA} result=pass `));
+  assert.match(body, /bbbbbbb/);
+  assert.match(body, /převzato/);
 });

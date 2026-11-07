@@ -28,7 +28,7 @@ export type TermRoom = {
 /** An active participation in the term. */
 export type TermParticipant = {
   registrationId: string;
-  /** Unconfirmed (waitlisted, later also pending) ones are candidates. */
+  /** Unconfirmed (pending or waitlisted) ones are candidates. */
   isConfirmed: boolean;
   receivedAt: Date;
   /** The answer to the hard attribute; null when not given. */

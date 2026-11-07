@@ -760,15 +760,16 @@ describe('occupancy of terms', () => {
     expect(await submit()).toBe(201);
 
     const submitted = await call(f.ownerId, 'GET', f.path);
-    expect(occupancy(submitted.body).T1).toEqual([1, 1, 0, 1]);
+    // A submission waits for the organizer and takes no bed (S3-01).
+    expect(occupancy(submitted.body).T1).toEqual([1, 0, 1, 0]);
 
-    // More beds do not turn the waiting participant into a confirmed one.
+    // More beds do not confirm a waiting participant.
     await call(f.ownerId, 'PUT', `${f.path}/${room.body.rooms[0].id}`, {
       label: 'Pokoj 1',
       ...beds(3, [f.termIds[0]]),
     });
     const enlarged = await call(f.ownerId, 'GET', f.path);
-    expect(occupancy(enlarged.body).T1).toEqual([3, 1, 2, 1]);
+    expect(occupancy(enlarged.body).T1).toEqual([3, 0, 3, 0]);
   });
 });
 

@@ -49,11 +49,14 @@ async function scenario(options) {
     ],
     issue_url: `https://api.github.com/repos/owner/repo/issues/${12 + i}`,
     user: { login: author },
-    head: { sha },
+    head: { sha, ref: `branch-${12 + i}` },
     state: 'open',
     base: {
-      ref:
-        options.stacked || options.stackedPrs?.includes(12 + i)
+      ref: options.chain
+        ? i === 0
+          ? (options.firstBase ?? 'main')
+          : `branch-${11 + i}`
+        : options.stacked || options.stackedPrs?.includes(12 + i)
           ? 'feature/prerequisite'
           : 'main',
     },
@@ -179,6 +182,48 @@ async function scenario(options) {
   }
   let failed = false;
   const headReads = new Map();
+  const diffText =
+    'diff --git a/file.ts b/file.ts\nnew file mode 100644\n--- /dev/null\n+++ b/file.ts\n@@ -0,0 +1 @@\n+export const value = 1;\n';
+  if (options.carryOver) {
+    const { prMarker } = await import('./scripts/agent-review/lib.mjs');
+    const { sliceFingerprint } = await import('./scripts/delivery/stack.mjs');
+    const slice =
+      options.carryOver === 'other-slice'
+        ? 'e'.repeat(64)
+        : sliceFingerprint(diffText);
+    const { requirementsMarker: recordMarker } =
+      await import('./scripts/delivery/lib.mjs');
+    for (const pr of prs) {
+      // The record of the earlier commit predates the pass; the current
+      // commit's record is newer than both, as it is after a real push.
+      const own = comments
+        .get(pr.number)
+        .find((c) => c.body.startsWith('<!-- requirements-ready'));
+      const review = /review=(\S+) -->/.exec(own.body)[1];
+      own.created_at = '2003-06-01T00:00:00Z';
+      comments
+        .get(pr.number)
+        .push(
+          bot(
+            recordMarker(pr.number, 'b'.repeat(40), 78, review) + '\n',
+            '2001-06-01T00:00:00Z',
+          ),
+        );
+      comments.get(pr.number).push(
+        bot(
+          `<!-- agent-review-scope issue=78 -->\n` +
+            prMarker({
+              pr: pr.number,
+              sha: 'b'.repeat(40),
+              result: 'pass',
+              attempt: 1,
+              slice,
+            }),
+          '2002-01-01T00:00:00Z',
+        ),
+      );
+    }
+  }
   globalThis.fetch = async (url, opts = {}) => {
     const path = new URL(url).pathname;
     const body = opts.body ? JSON.parse(opts.body) : {};
@@ -298,6 +343,16 @@ async function scenario(options) {
         users: requested.get(number).map((login) => ({ login })),
         teams: [],
       };
+    } else if (path === '/repos/owner/repo/pulls') {
+      // PRs stacked on a branch, read to see whether a stack extends beyond
+      // the PRs linked to the issue.
+      const params = new URL(url).searchParams;
+      data =
+        params.get('state') === 'closed'
+          ? (options.closedPrs?.[params.get('head').split(':')[1]] ?? [])
+          : (options.unlinkedAbove?.[params.get('base')] ?? []);
+    } else if (path.includes('/compare/')) {
+      data = { status: options.compareStatus ?? 'ahead' };
     } else if (path.includes('/actions/runs')) {
       if (options.ciUnavailable) throw new Error('CI API unavailable');
       data = { workflow_runs: [] };
@@ -311,7 +366,7 @@ async function scenario(options) {
           text: async () =>
             options.binaryOnly
               ? 'diff --git a/image.png b/image.png\nBinary files a/image.png and b/image.png differ\n'
-              : 'diff --git a/file.ts b/file.ts\nnew file mode 100644\n--- /dev/null\n+++ b/file.ts\n@@ -0,0 +1 @@\n+export const value = 1;\n',
+              : diffText,
         };
       }
       assert.notEqual(
@@ -338,6 +393,7 @@ async function scenario(options) {
             ? { ref: 'feature/other' }
             : pr?.base,
         head: {
+          ref: pr?.head?.ref,
           sha: options.pushDuringReview && count >= 3 ? 'b'.repeat(40) : sha,
         },
       };
@@ -842,4 +898,129 @@ test('PR requirements command is recorded on the issue and advances High work on
   assert.match(grants[0], /pr-comment:12:512:/);
   assert.ok(r.calls.includes('status:Ready for Code Review'));
   assert.deepEqual(r.handoffs, [1]);
+});
+
+const chain = { authors: ['developer', 'developer', 'developer'], chain: true };
+
+test('a chain of PRs is reviewed as one stack and handed to QA once, at the tip', () => {
+  const r = run({ ...chain, runs: 2 });
+  assert.equal(r.status, 'Ready for Testing');
+  assert.deepEqual(r.handoffs, [1, 1, 1]);
+  assert.deepEqual(r.requested, { 12: [], 13: [], 14: ['MatejKrones'] });
+  assert.ok(r.prComments[12].some((c) => c.includes('via stack tip #14')));
+  assert.ok(r.prComments[13].some((c) => c.includes('via stack tip #14')));
+  assert.ok(r.prComments[14].some((c) => c.includes('Stack: #12 ← #13 ← #14')));
+  assert.equal(r.calls.filter((c) => c.startsWith('request:')).length, 1);
+  assert.ok(r.calls.indexOf('handoff:12') < r.calls.indexOf('request:14'));
+  assert.equal(r.calls.filter((c) => c === 'exit:0').length, 2);
+});
+
+test('a stacked PR that lacks its parent is not reviewed or handed to QA', () => {
+  const r = run({ ...chain, compareStatus: 'diverged' });
+  assert.equal(r.status, 'Ready for Code Review');
+  assert.deepEqual(r.handoffs, [0, 0, 0]);
+  assert.deepEqual(r.requested, { 12: [], 13: [], 14: [] });
+  assert.ok(r.calls.includes('exit:0'));
+});
+
+test('a failed slice keeps the whole stack out of QA', () => {
+  const r = run({ ...chain, verdictByPr: { 13: 'findings' } });
+  assert.equal(r.status, 'Ready for Code Review');
+  assert.deepEqual(r.handoffs, [0, 0, 0]);
+  assert.deepEqual(r.requested, { 12: [], 13: [], 14: [] });
+});
+
+test('a pass for the same slice carries over a parent merge without a new review', () => {
+  const r = run({ ...chain, freshReview: true, carryOver: true });
+  assert.equal(r.status, 'Ready for Testing');
+  assert.deepEqual(r.handoffs, [1, 1, 1]);
+  for (const number of [12, 13, 14])
+    assert.ok(
+      r.prComments[number].some(
+        (c) => c.includes('result=pass') && c.includes('převzato'),
+      ),
+    );
+  assert.deepEqual(r.requested, { 12: [], 13: [], 14: ['MatejKrones'] });
+});
+
+test('a pass for a different slice is not carried over', () => {
+  const r = run({ ...chain, freshReview: true, carryOver: 'other-slice' });
+  assert.equal(r.status, 'Ready for Code Review');
+  assert.deepEqual(r.handoffs, [0, 0, 0]);
+  for (const number of [12, 13, 14])
+    assert.ok(!r.prComments[number].some((c) => c.includes('převzato')));
+});
+
+test('an earlier commit that is not in the new head is not carried over', () => {
+  const r = run({
+    ...chain,
+    freshReview: true,
+    carryOver: true,
+    compareStatus: 'diverged',
+  });
+  assert.equal(r.status, 'Ready for Code Review');
+  assert.deepEqual(r.handoffs, [0, 0, 0]);
+});
+
+test('a stack with a PR the issue does not link waits, with a note, instead of deadlocking', () => {
+  const r = run({
+    ...chain,
+    unlinkedAbove: { 'branch-14': [{ number: 99 }] },
+  });
+  assert.equal(r.status, 'Ready for Code Review');
+  assert.deepEqual(r.handoffs, [0, 0, 0]);
+  assert.deepEqual(r.requested, { 12: [], 13: [], 14: [] });
+  assert.ok(
+    r.issueComments.some((c) =>
+      c.includes('#99 is stacked on #14 but not linked to this issue'),
+    ),
+  );
+});
+
+test('a stack whose tip is Low severity waits, since a Low tip gets no QA', () => {
+  const r = run({ ...chain, severityByPr: { 14: 'severity:low' } });
+  assert.equal(r.status, 'Ready for Code Review');
+  assert.deepEqual(r.handoffs.slice(0, 2), [0, 0]);
+  assert.deepEqual(r.requested[12], []);
+  assert.ok(r.issueComments.some((c) => c.includes('tip #14 is Low severity')));
+});
+
+test('PRs by different authors are not a stack: only the main-target PR is handed over', () => {
+  const r = run({
+    authors: ['developer', 'developer', 'someone-else'],
+    chain: true,
+  });
+  assert.deepEqual(r.handoffs, [1, 0, 0]);
+  assert.deepEqual(r.requested, { 12: ['MatejKrones'], 13: [], 14: [] });
+});
+
+test('the last PR of a half-merged stack is still reviewed and handed to QA', () => {
+  // #12 merged; #13 is alone and still targets #12's branch (not yet retargeted).
+  const r = run({
+    authors: ['developer'],
+    chain: true,
+    firstBase: 'branch-11',
+    closedPrs: {
+      'branch-11': [
+        {
+          head: { ref: 'branch-11', sha: 'c'.repeat(40) },
+          merged_at: '2026-11-06T00:00:00Z',
+        },
+      ],
+    },
+  });
+  assert.equal(r.status, 'Ready for Testing');
+  assert.deepEqual(r.handoffs, [1]);
+  assert.deepEqual(r.requested, { 12: ['MatejKrones'] });
+});
+
+test('a lone PR on a branch which no merged PR owns keeps waiting', () => {
+  const r = run({
+    authors: ['developer'],
+    chain: true,
+    firstBase: 'branch-11',
+  });
+  assert.equal(r.status, 'Ready for Code Review');
+  assert.deepEqual(r.handoffs, [0]);
+  assert.deepEqual(r.requested, { 12: [] });
 });

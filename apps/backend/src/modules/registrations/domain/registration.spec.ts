@@ -1,6 +1,5 @@
 import {
   amountDueMinor,
-  decideParticipation,
   normalizeEmail,
   paymentReminderAt,
   RegistrationInput,
@@ -16,26 +15,6 @@ const input: RegistrationInput = {
   phone: '+420777123456',
   termIds: ['b', 'a'],
 };
-
-describe('decideParticipation', () => {
-  it('confirms while a bed is free and waitlists otherwise', () => {
-    expect(decideParticipation({ capacity: 2, confirmed: 1 })).toBe(
-      'confirmed',
-    );
-    expect(decideParticipation({ capacity: 2, confirmed: 2 })).toBe(
-      'waitlisted',
-    );
-    expect(decideParticipation({ capacity: 0, confirmed: 0 })).toBe(
-      'waitlisted',
-    );
-  });
-
-  it('waitlists in a term already over capacity', () => {
-    expect(decideParticipation({ capacity: 1, confirmed: 3 })).toBe(
-      'waitlisted',
-    );
-  });
-});
 
 describe('normalizeEmail', () => {
   it('trims and lower-cases', () => {

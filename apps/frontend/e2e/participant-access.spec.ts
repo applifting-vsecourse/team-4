@@ -1,7 +1,7 @@
 import { expect, test, type Browser } from "@playwright/test"
 
 import { newParticipant, recordPayment, register, setUpEvent } from "./support/api"
-import { closeDb, createMagicLink } from "./support/db"
+import { closeDb, createMagicLink, decideTerms } from "./support/db"
 import { definition } from "./support/ui"
 
 // The participant's own view after a magic link (S2-13, S2-14), showing what
@@ -23,6 +23,7 @@ async function janaWithPayment(browser: Browser) {
   const event = await setUpEvent(organizer, { terms, rooms })
   const jana = newParticipant("Jana")
   const registration = await register(organizer, event.publicId, jana, event.termIds)
+  await decideTerms(registration.id, "confirmed")
   await recordPayment(organizer, event, registration.id, 40000)
   await organizerContext.close()
   return { event, jana }

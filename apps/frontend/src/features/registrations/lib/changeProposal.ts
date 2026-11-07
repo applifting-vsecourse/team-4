@@ -69,7 +69,7 @@ export function buildProposal(contact: Current, state: EditState): ChangeProposa
       proposal.moves.push({
         fromTermId: termId,
         toTermId: choice.selectedTermId,
-        acceptWaitlist: false,
+        acceptRelease: false,
       })
     }
   }

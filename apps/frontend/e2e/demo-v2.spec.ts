@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url"
 import { test, type Page } from "@playwright/test"
 
 import { createOrganization, register, setUpEvent } from "./support/api"
-import { closeDb, createMagicLink } from "./support/db"
+import { closeDb, createMagicLink, decideTerms, registrationIdOf, termIdOf } from "./support/db"
 import { contextOptions, endDemo, expect, isDemo, step, type } from "./support/demo"
 import { EXTRA_VIDEO_DIR, isRecording } from "./support/recording"
 import { definition, pickDate } from "./support/ui"
@@ -522,17 +522,15 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view @dem
 
   await scene(
     visitor,
-    "Sobota potvrzena, Neděle náhradník; platí se jen potvrzený termín",
-    ["S2-08", "S2-16", "S2-14"],
+    "Oba termíny čekají na rozhodnutí pořadatelky; zatím se nic neplatí",
+    ["S2-14", "S3-01"],
     async () => {
       await submit()
-      await expect(resultTerm("Sobota")).toContainText("Potvrzeno")
-      await expect(resultTerm("Neděle")).toContainText("Náhradník")
+      await expect(resultTerm("Sobota")).toContainText("Čeká na rozhodnutí organizátora")
+      await expect(resultTerm("Neděle")).toContainText("Čeká na rozhodnutí organizátora")
       await expect(definition(result, "Cena výběru")).toHaveText("2 500 Kč")
-      await expect(definition(result, "K úhradě za potvrzené termíny")).toHaveText("1 000 Kč")
-      await expect(definition(result, "Číslo účtu")).toHaveText("2000145399/0800")
-      await expect(definition(result, "Variabilní symbol")).toHaveText(/\d+/)
-      await expect(definition(result, "Datum připomenutí platby")).toContainText("(Europe/Prague)")
+      await expect(result.getByText("Nyní nemáte platební povinnost.")).toBeVisible()
+      await expect(definition(result, "Datum připomenutí platby")).toHaveCount(0)
       await expectNoSidewaysScroll(visitor)
     },
   )
@@ -554,20 +552,33 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view @dem
 
   await scene(
     visitor,
-    "Petr chce Sobotu, ale lůžko je obsazené: náhradník a nic neplatí",
-    ["S2-08", "S2-14", "S2-16"],
+    "Petr chce Sobotu: také čeká a nic neplatí",
+    ["S2-14", "S3-01"],
     async () => {
       await visitor.goto(publicUrl)
       await termBox("Sobota").check()
       await fillContact(petr)
       await submit()
-      await expect(resultTerm("Sobota")).toContainText("Náhradník")
+      await expect(resultTerm("Sobota")).toContainText("Čeká na rozhodnutí organizátora")
       await expect(result.getByText("Nyní nemáte platební povinnost.")).toBeVisible()
       await expect(definition(result, "Datum připomenutí platby")).toHaveCount(0)
     },
   )
 
   // ── Act 4: Alena works with the registrations ─────────────────────────────
+
+  // Until the term evaluation offers the decision (S3-01), it is made in the data.
+  await scene(
+    page,
+    "Alena rozhodne: Jana v Sobotu potvrzena, v Neděli náhradník; Petr náhradník",
+    ["S3-01"],
+    async () => {
+      const janaId = await registrationIdOf(jana.email)
+      await decideTerms(janaId, "confirmed", [await termIdOf(janaId, "Sobota")])
+      await decideTerms(janaId, "waitlisted", [await termIdOf(janaId, "Neděle")])
+      await decideTerms(await registrationIdOf(petr.email), "waitlisted")
+    },
+  )
 
   await scene(
     page,
@@ -675,7 +686,12 @@ test("demo V2: Sprint 2 from the landing page to the participant's own view @dem
     await dialog.getByRole("button", { name: "Uložit platbu" }).click()
     await expect(dialog).toBeHidden()
   }
-  const payments = page.getByRole("listitem").filter({ hasText: /Kč$/ })
+  // The terms list ends its items with a price too; only received payments count.
+  const payments = page
+    .getByText("Přijaté platby", { exact: true })
+    .locator("xpath=ancestor::*[@data-slot='card'][1]")
+    .getByRole("listitem")
+    .filter({ hasText: /Kč$/ })
 
   await scene(
     page,
