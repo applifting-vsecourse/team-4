@@ -140,52 +140,56 @@
 }
 
 .dark {
-  /* Same ticket in the dark: warm ink surfaces, paper text and outlines. */
-  --background: oklch(0.19 0.025 60);
-  --foreground: oklch(0.955 0.035 95);
-  --card: oklch(0.225 0.028 60);
+  /* "Night ticket": its own palette, not an inversion of paper. Cool, barely tinted slate ink
+     (hue 262) so lime stays the only loud colour. Elevation comes from lighter surfaces:
+     sidebar < background < card < popover; hover and selected states are lighter still. Text is
+     an off-white, never pure white, to avoid halation; accents are slightly desaturated. */
+  --background: oklch(0.175 0.012 262);
+  --foreground: oklch(0.93 0.006 262);
+  --card: oklch(0.212 0.014 262);
   --card-foreground: var(--foreground);
-  --popover: oklch(0.27 0.03 60);
+  --popover: oklch(0.25 0.015 262);
   --popover-foreground: var(--foreground);
-  --primary: oklch(0.87 0.21 125);
-  --primary-foreground: oklch(0.17 0.03 60);
-  --secondary: oklch(0.28 0.03 60);
+  --primary: oklch(0.88 0.19 128);
+  /* Lime keeps a dark text of its own hue family; 12.8:1. */
+  --primary-foreground: oklch(0.21 0.035 135);
+  --secondary: oklch(0.262 0.014 262);
   --secondary-foreground: var(--foreground);
-  --muted: oklch(0.28 0.03 60);
-  --muted-foreground: oklch(0.78 0.035 85);
-  --accent: oklch(0.33 0.035 60);
+  --muted: oklch(0.262 0.014 262);
+  --muted-foreground: oklch(0.74 0.015 262);
+  --accent: oklch(0.3 0.016 262);
   --accent-foreground: var(--foreground);
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --destructive-subtle: #450a0a;
-  --destructive-subtle-foreground: #f87171;
-  --success: #4ade80;
-  --success-subtle: #052e16;
-  --warning: #fb923c;
-  --warning-subtle: #431407;
-  --border: oklch(0.4 0.03 60);
-  /* Ticket outlines are toned down in the dark: full paper would outshine the text. Still 3:1+
-     against every surface, so control boundaries stay visible. */
-  --input: oklch(0.58 0.03 75);
-  --ring: oklch(0.72 0.16 40);
-  --sidebar: var(--background);
+  --destructive: oklch(0.69 0.19 23);
+  --destructive-foreground: oklch(0.985 0 0);
+  --destructive-subtle: oklch(0.285 0.07 23);
+  --destructive-subtle-foreground: oklch(0.81 0.11 23);
+  --success: oklch(0.8 0.15 152);
+  --success-subtle: oklch(0.28 0.055 155);
+  --warning: oklch(0.82 0.14 72);
+  --warning-subtle: oklch(0.3 0.06 65);
+  --border: oklch(0.33 0.014 262);
+  /* Control outlines: 3:1+ against every surface, so boundaries stay visible without glare. */
+  --input: oklch(0.54 0.016 262);
+  --ring: oklch(0.72 0.13 250);
+  /* The navigation recedes below the page. */
+  --sidebar: oklch(0.155 0.011 262);
   --sidebar-foreground: var(--foreground);
-  --sidebar-primary: oklch(0.33 0.035 60);
+  --sidebar-primary: oklch(0.29 0.035 128);
   --sidebar-primary-foreground: var(--foreground);
   --sidebar-accent: var(--secondary);
   --sidebar-accent-foreground: var(--foreground);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
-  --overlay: rgb(0 0 0 / 0.6);
-  /* Hard shadows stay darker than every surface, so they read as shadows, not a paper glow. */
-  --shadow-2xs: 1px 1px 0 0 oklch(0.08 0.02 60);
-  --shadow-xs: 1px 1px 0 0 oklch(0.08 0.02 60);
-  --shadow-sm: 2px 2px 0 0 oklch(0.08 0.02 60);
-  --shadow: 2px 2px 0 0 oklch(0.08 0.02 60);
-  --shadow-md: 3px 3px 0 0 oklch(0.08 0.02 60);
-  --shadow-lg: 4px 4px 0 0 oklch(0.08 0.02 60);
-  --shadow-xl: 6px 6px 0 0 oklch(0.08 0.02 60);
-  --shadow-2xl: 8px 8px 0 0 oklch(0.08 0.02 60);
+  --overlay: rgb(0 0 0 / 0.65);
+  /* Hard shadows stay darker than every surface, so they read as depth, not a glow. */
+  --shadow-2xs: 1px 1px 0 0 oklch(0.11 0.01 262);
+  --shadow-xs: 1px 1px 0 0 oklch(0.11 0.01 262);
+  --shadow-sm: 2px 2px 0 0 oklch(0.11 0.01 262);
+  --shadow: 2px 2px 0 0 oklch(0.11 0.01 262);
+  --shadow-md: 3px 3px 0 0 oklch(0.11 0.01 262);
+  --shadow-lg: 4px 4px 0 0 oklch(0.11 0.01 262);
+  --shadow-xl: 6px 6px 0 0 oklch(0.11 0.01 262);
+  --shadow-2xl: 8px 8px 0 0 oklch(0.11 0.01 262);
 }
 
 /* Ticket stub shape (S3-T2). Unlayered on purpose: the ink outline and hard shadow belong to the
@@ -199,6 +203,11 @@
 ) {
   border-width: 1.5px;
   border-color: var(--input);
+}
+/* In the dark a card stands out by its lighter surface; a control-strength outline around every
+   panel would compete with the content. Controls keep theirs. */
+.dark [data-slot="card"] {
+  border-color: var(--border);
 }
 /* Lime takes the ink of its own text, so the outline matches the hard shadow in both themes. */
 [data-slot="button"][data-variant="default"]:not([aria-invalid="true"]) {
