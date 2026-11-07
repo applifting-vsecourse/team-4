@@ -174,22 +174,22 @@
   /* The navigation recedes below the page. */
   --sidebar: oklch(0.155 0.011 262);
   --sidebar-foreground: var(--foreground);
-  --sidebar-primary: oklch(0.29 0.035 128);
+  --sidebar-primary: var(--accent);
   --sidebar-primary-foreground: var(--foreground);
   --sidebar-accent: var(--secondary);
   --sidebar-accent-foreground: var(--foreground);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
   --overlay: rgb(0 0 0 / 0.65);
-  /* Hard shadows stay darker than every surface, so they read as depth, not a glow. */
-  --shadow-2xs: 1px 1px 0 0 oklch(0.11 0.01 262);
-  --shadow-xs: 1px 1px 0 0 oklch(0.11 0.01 262);
-  --shadow-sm: 2px 2px 0 0 oklch(0.11 0.01 262);
-  --shadow: 2px 2px 0 0 oklch(0.11 0.01 262);
-  --shadow-md: 3px 3px 0 0 oklch(0.11 0.01 262);
-  --shadow-lg: 4px 4px 0 0 oklch(0.11 0.01 262);
-  --shadow-xl: 6px 6px 0 0 oklch(0.11 0.01 262);
-  --shadow-2xl: 8px 8px 0 0 oklch(0.11 0.01 262);
+  /* No hard offset shadows in the dark: depth comes from the lighter surfaces and outlines. */
+  --shadow-2xs: 0 0 0 0 transparent;
+  --shadow-xs: 0 0 0 0 transparent;
+  --shadow-sm: 0 0 0 0 transparent;
+  --shadow: 0 0 0 0 transparent;
+  --shadow-md: 0 0 0 0 transparent;
+  --shadow-lg: 0 0 0 0 transparent;
+  --shadow-xl: 0 0 0 0 transparent;
+  --shadow-2xl: 0 0 0 0 transparent;
 }
 
 /* Ticket stub shape (S3-T2). Unlayered on purpose: the ink outline and hard shadow belong to the
@@ -220,14 +220,6 @@
 [data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]):active {
   transform: translate(1px, 1px);
   box-shadow: var(--shadow-xs);
-}
-/* In the dark the near-black shadow vanishes on dark surfaces, so buttons looked flat. Their
-   shadow takes the control outline instead; cards keep theirs and stand out by their surface. */
-.dark [data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]) {
-  box-shadow: 2px 2px 0 0 var(--input);
-}
-.dark [data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]):active {
-  box-shadow: 1px 1px 0 0 var(--input);
 }
 [data-slot="table-head"] {
   font-weight: 700;

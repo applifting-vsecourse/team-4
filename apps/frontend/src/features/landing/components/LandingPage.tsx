@@ -24,8 +24,7 @@ import { cn } from "@/lib/utils"
 import { IllustratedSections } from "./IllustratedSections"
 
 // Landing page in the S3-T2 "Ticket stub" direction (A). Two audiences, one page: organizers
-// (wider panel, leads) and participants. The audience and closing panels are dark in both themes
-// (a `dark` scope), so they match each other and their buttons. Colours come only from semantic tokens.
+// (dark panel, leads) and participants (light panel). Colours come only from semantic tokens.
 // Every catalog entry leads to the public catalog (F54-2a); the page shows a preview of it.
 
 const WRAP = "mx-auto w-full max-w-280 px-4 md:px-8"
@@ -234,9 +233,9 @@ export function LandingPage({ catalogPreview }: { catalogPreview: ReactNode }) {
             <div className="grid items-start gap-6 md:grid-cols-12">
               <article
                 aria-labelledby="pro-poradatele"
-                className="dark flex flex-col gap-7 rounded-xl border-2 border-primary bg-card p-6 text-card-foreground md:col-span-7 md:p-8"
+                className="flex flex-col gap-7 rounded-xl border-2 border-background bg-foreground p-6 text-background md:col-span-7 md:p-8 dark:border-border dark:bg-card dark:text-card-foreground"
               >
-                <p className={cn(LABEL, "text-primary")}>Pro pořadatele</p>
+                <p className={LABEL}>Pro pořadatele</p>
                 <h3
                   id="pro-poradatele"
                   className="text-3xl font-semibold tracking-tight text-balance md:text-4xl"
@@ -266,7 +265,7 @@ export function LandingPage({ catalogPreview }: { catalogPreview: ReactNode }) {
 
               <article
                 aria-labelledby="pro-ucastniky"
-                className="dark flex flex-col gap-7 rounded-xl border-2 border-border bg-card p-6 text-card-foreground md:col-span-5 md:p-8"
+                className="flex flex-col gap-7 rounded-xl border-2 border-input bg-card p-6 md:col-span-5 md:p-8 dark:border-border"
               >
                 <p className={cn(LABEL, "text-muted-foreground")}>Pro účastníky</p>
                 <h3
@@ -378,7 +377,7 @@ export function LandingPage({ catalogPreview }: { catalogPreview: ReactNode }) {
           className="pb-12 md:pb-20"
         >
           <div className={WRAP}>
-            <div className="dark flex flex-col items-center gap-6 rounded-xl border-2 border-primary bg-card px-6 py-10 text-center text-card-foreground md:px-12 md:py-14">
+            <div className="flex flex-col items-center gap-6 rounded-xl bg-foreground px-6 py-10 text-center text-background md:px-12 md:py-14 dark:border-2 dark:border-border dark:bg-card dark:text-card-foreground">
               <h2
                 id="cta-nadpis"
                 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance md:text-5xl"
