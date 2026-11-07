@@ -26,6 +26,12 @@ export const accommodationHandlers = {
     http.post(`${BASE}/terms/:termId/evaluation`, () =>
       HttpResponse.json(makeTermEvaluation({ status: "running" }), { status: 202 }),
     ),
+    http.post(`${BASE}/terms/:termId/confirmations`, () =>
+      HttpResponse.json({ confirmed: [], isReplay: false }),
+    ),
+    http.post(`${BASE}/terms/:termId/registrations/:registrationId/decision`, () =>
+      HttpResponse.json({ status: "confirmed" }),
+    ),
     http.get(`${BASE}/terms/:termId/runs`, () => HttpResponse.json({ runs: makeRuns() })),
     http.get(`${BASE}/runs/:runId`, () => HttpResponse.json(makeRunEvidence())),
     http.get(REGISTRATION, () => HttpResponse.json(makeRegistrationAccommodation())),

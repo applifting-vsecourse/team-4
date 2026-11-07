@@ -7,6 +7,10 @@ import {
   RegistrationAccommodation,
   RegistrationAccommodationRepository,
 } from '@/modules/accommodation/repositories/registration-accommodation.repository';
+import {
+  DecisionRecord,
+  TermDecisionRepository,
+} from '@/modules/accommodation/repositories/term-decision.repository';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import {
   BadRequestException,
@@ -40,8 +44,10 @@ const REFUSALS: Record<DeterminationRefusal, () => Error> = {
     }),
 };
 
-/** With the person's manual changes of position in any term (S3-03). */
+/** With the person's decisions (S3-02) and moves in any term (S3-03). */
 export type RegistrationAccommodationView = RegistrationAccommodation & {
+  /** Newest first. */
+  decisions: DecisionRecord[];
   /** Newest first. */
   moves: MoveRecord[];
 };
@@ -57,16 +63,21 @@ export class RegistrationAccommodationService {
   constructor(
     private readonly repository: RegistrationAccommodationRepository,
     private readonly moves: OrderMovesRepository,
+    private readonly decisions: TermDecisionRepository,
   ) {}
 
   async get(
     scope: EventScope,
     registrationId: string,
   ): Promise<RegistrationAccommodationView> {
-    const accommodation = await this.repository.find(scope, registrationId);
-    if (!accommodation) throw notAvailable();
+    const [accommodation, decisions] = await Promise.all([
+      this.repository.find(scope, registrationId),
+      this.decisions.history(scope, registrationId),
+    ]);
+    if (!accommodation || !decisions) throw notAvailable();
     return {
       ...accommodation,
+      decisions,
       moves: await this.moves.findForRegistration(
         scope.eventId,
         registrationId,
