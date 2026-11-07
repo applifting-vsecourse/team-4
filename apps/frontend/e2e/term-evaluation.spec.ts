@@ -169,3 +169,49 @@ test("the organizer determines the accommodation from the order and the detail; 
     .locator("xpath=ancestor::*[@data-slot='card'][1]")
   await expect(termsCard).toContainText("Ruční určení", { timeout: 30_000 })
 })
+
+// S3-02: the organizer confirms the suitable of the current proposal at once,
+// sees the others untouched, and decides one person on their own.
+test("the organizer confirms the proposal of a term, then decides one person", async ({ page }) => {
+  const event = await setUp(page)
+  await page.goto(evaluationUrl(event))
+  await page.getByRole("button", { name: "Přepočítat" }).click()
+  await expect(page.getByText("Aktuální návrh", { exact: true })).toBeVisible({ timeout: 20_000 })
+
+  // Before: the term, the count and the people in the batch.
+  await page.getByRole("button", { name: "Potvrdit všechny vhodné (2)" }).click()
+  const dialog = page.getByRole("dialog", { name: "Potvrdit všechny vhodné" })
+  await expect(dialog).toContainText("1. turnus")
+  await expect(dialog.getByRole("listitem")).toHaveText([/Tereza/, /Jana/])
+  await dialog.getByRole("button", { name: "Potvrdit 2 účasti" }).click()
+  await expect(page.getByText("Potvrzeno 2 účasti v termínu 1. turnus.")).toBeVisible()
+
+  // The confirmed leave the order; the others stay as they were, in the other term too.
+  await expect(orderRow(page, "Tereza")).toHaveCount(0)
+  await expect(orderRow(page, "Petr")).toContainText("Čeká na rozhodnutí")
+  await page.getByRole("tab", { name: "2. turnus" }).click()
+  await expect(orderRow(page, "Tereza")).toContainText("Čeká na rozhodnutí")
+
+  // One person: the room is full, so the decision is explained and nothing is saved.
+  await page.getByRole("tab", { name: "1. turnus" }).click()
+  await page.getByRole("button", { name: "Akce: Petr" }).click()
+  await page.getByRole("menuitem", { name: "Potvrdit účast" }).click()
+  const decision = page.getByRole("dialog", { name: "Potvrdit účast" })
+  await decision.getByRole("button", { name: "Potvrdit účast" }).click()
+  await expect(decision.getByText("Účast nebyla potvrzena", { exact: true })).toBeVisible()
+  await decision.getByRole("button", { name: "Zavřít" }).click()
+  await expect(orderRow(page, "Petr")).toContainText("Čeká na rozhodnutí")
+
+  // Waitlisting needs no room and no value.
+  await page.getByRole("button", { name: "Akce: Petr" }).click()
+  await page.getByRole("menuitem", { name: "Zařadit mezi náhradníky" }).click()
+  await page
+    .getByRole("dialog", { name: "Zařadit mezi náhradníky" })
+    .getByRole("button", { name: "Zařadit mezi náhradníky" })
+    .click()
+  await expect(orderRow(page, "Petr")).toContainText("Náhradník")
+
+  // The history of the registration shows the decisions.
+  await orderRow(page, "Petr").getByRole("link").click()
+  await expect(page.getByText("Čeká na rozhodnutí → Náhradník")).toBeVisible()
+})

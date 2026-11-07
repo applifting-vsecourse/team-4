@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { readApiError } from "@/lib/apiError"
-import { formatPragueDateTime } from "@/lib/date"
+import { formatCalendarRange, formatPragueDateTime } from "@/lib/date"
 
 import {
   evaluationKeys,
@@ -12,17 +12,23 @@ import {
   termEvaluationQueryOptions,
   termRunsQueryOptions,
 } from "@/features/accommodation/api/evaluationQueryOptions"
+import { BulkConfirmationDialog } from "@/features/accommodation/components/BulkConfirmationDialog"
 import {
   DeterminationDialog,
   type DeterminationTarget,
 } from "@/features/accommodation/components/DeterminationDialog"
 import { EvaluationHistory } from "@/features/accommodation/components/EvaluationHistory"
+import {
+  ParticipationDecisionDialog,
+  type ParticipationDecisionTarget,
+} from "@/features/accommodation/components/ParticipationDecisionDialog"
 import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
 import { RunEvidenceSheet } from "@/features/accommodation/components/RunEvidenceSheet"
 import {
   TermEvaluation,
   type OrderPerson,
 } from "@/features/accommodation/components/TermEvaluation"
+import { useConfirmProposal } from "@/features/accommodation/hooks/useConfirmProposal"
 import { useRecalculate } from "@/features/accommodation/hooks/useRecalculate"
 import {
   attributeLabel,
@@ -52,12 +58,22 @@ export type TermEvaluationSectionProps = {
 
 const RECALCULATE_FAILED = "Zkuste to prosím znovu."
 
+function participations(count: number) {
+  if (count === 1) return "1 účast"
+  if (count >= 2 && count <= 4) return `${count} účasti`
+  return `${count} účastí`
+}
+
+/** The confirmation the organizer is shown: one proposal, one key. */
+type BulkAttempt = { runId: string; submissionKey: string; people: string[]; remaining?: string }
+
 // Přihlášky → Vyhodnocení (S3-01): the proposal of the selected term, its
 // queues and order, the history of its runs with their evidence, and the
-// determination of the accommodation of whoever needs one. Reading never
-// evaluates; "Přepočítat" queues a run and the term is read again until it is
-// stored. Confirming, waitlisting and moving come with later slices, so they
-// are not offered.
+// determination of the accommodation of whoever needs one, and the decisions
+// on participation (S3-02): confirming the suitable of the current proposal at
+// once, or one person at a time. Reading never evaluates; "Přepočítat" queues
+// a run and the term is read again until it is stored. Moving in the order
+// comes with a later slice, so it is not offered.
 export function TermEvaluationSection({
   organizationId,
   eventId,
@@ -87,6 +103,10 @@ export function TermEvaluationSection({
   const recalculate = useRecalculate(organizationId, eventId, termId)
   const [openRunId, setOpenRunId] = useState<string | null>(null)
   const [determining, setDetermining] = useState<DeterminationTarget | null>(null)
+  const [bulk, setBulk] = useState<BulkAttempt | null>(null)
+  const [deciding, setDeciding] = useState<ParticipationDecisionTarget | null>(null)
+  const [confirmedResult, setConfirmedResult] = useState<string | undefined>()
+  const confirmProposal = useConfirmProposal(organizationId, eventId, termId)
   const evidence = useQuery({
     ...runEvidenceQueryOptions(organizationId, eventId, openRunId ?? ""),
     enabled: openRunId !== null,
@@ -106,7 +126,10 @@ export function TermEvaluationSection({
   const common = {
     terms: terms.map(toEvaluationTerm),
     selectedTermId: termId,
-    onSelectTerm: (next: string) => onSelect({ termId: next, queue: "all" }),
+    onSelectTerm: (next: string) => {
+      setConfirmedResult(undefined)
+      onSelect({ termId: next, queue: "all" })
+    },
     selectedQueue: queue,
     onSelectQueue: (next: string) => onSelect({ termId, queue: next }),
   }
@@ -158,6 +181,44 @@ export function TermEvaluationSection({
     ? (readApiError(recalculate.error).message ?? RECALCULATE_FAILED)
     : undefined
 
+  const termName = `${data.term.label}, ${formatCalendarRange(data.term.startDate, data.term.endDate)}`
+  const suitableNames = data.order
+    .filter((entry) => entry.result === "suitable")
+    .map((entry) => `${entry.firstName} ${entry.lastName}`)
+  const proposal = data.capacity.proposal
+  const remaining = [
+    proposal && proposal.unsuitable > 0 ? `${proposal.unsuitable} neubytovatelní` : null,
+    proposal && proposal.manual > 0 ? `${proposal.manual} ruční určení` : null,
+  ]
+    .filter(Boolean)
+    .join(", ")
+  const bulkError = confirmProposal.isError ? readApiError(confirmProposal.error) : null
+  const isBulkStale =
+    bulkError?.code === "proposal_stale" ||
+    bulkError?.code === "proposal_unavailable" ||
+    bulkError?.code === "nothing_to_confirm"
+  const closeBulk = () => {
+    confirmProposal.reset()
+    setBulk(null)
+  }
+
+  // Confirming someone without an effective value determines it in the same step.
+  const openDecision = (person: OrderPerson, decision: "confirm" | "waitlist") => {
+    const entry = data.order.find((e) => e.registrationId === person.id)
+    if (!entry) return
+    setDeciding({
+      termId,
+      term: termName,
+      registrationId: entry.registrationId,
+      person: person.name,
+      decision,
+      determination:
+        decision === "confirm" && data.hardAttribute && entry.effectiveValue === null
+          ? { hardAttribute: data.hardAttribute, answer: entry.answer }
+          : undefined,
+    })
+  }
+
   return (
     <>
       <TermEvaluation
@@ -177,22 +238,33 @@ export function TermEvaluationSection({
         recalculateError={recalculateError}
         renderName={renderName}
         selectedQueue={shownQueue}
-        decisions={
-          data.hardAttribute
-            ? {
-                onDetermine: (person) => {
-                  const entry = data.order.find((e) => e.registrationId === person.id)
-                  if (!entry) return
-                  setDetermining({
-                    registrationId: entry.registrationId,
-                    person: person.name,
-                    answer: entry.answer,
-                    current: entry.determinedValue,
-                  })
-                },
+        confirmedResult={confirmedResult}
+        onConfirmAll={() => {
+          if (!data.proposalRun) return
+          // The list is frozen with the run it belongs to.
+          setBulk({
+            runId: data.proposalRun.id,
+            submissionKey: crypto.randomUUID(),
+            people: suitableNames,
+            remaining: remaining || undefined,
+          })
+        }}
+        decisions={{
+          onConfirm: (person) => openDecision(person, "confirm"),
+          onWaitlist: (person) => openDecision(person, "waitlist"),
+          onDetermine: data.hardAttribute
+            ? (person) => {
+                const entry = data.order.find((e) => e.registrationId === person.id)
+                if (!entry) return
+                setDetermining({
+                  registrationId: entry.registrationId,
+                  person: person.name,
+                  answer: entry.answer,
+                  current: entry.determinedValue,
+                })
               }
-            : undefined
-        }
+            : undefined,
+        }}
       >
         <EvaluationHistory
           title="Historie termínu"
@@ -210,6 +282,46 @@ export function TermEvaluationSection({
           />
         ) : null}
       </TermEvaluation>
+      <BulkConfirmationDialog
+        isOpen={bulk !== null}
+        state={
+          isBulkStale
+            ? "stale"
+            : bulkError
+              ? "failed"
+              : confirmProposal.isPending
+                ? "saving"
+                : "review"
+        }
+        term={termName}
+        people={bulk?.people ?? []}
+        remaining={bulk?.remaining}
+        staleReason={isBulkStale ? (bulkError?.message ?? undefined) : undefined}
+        onOpenChange={(isOpen) => (isOpen ? undefined : closeBulk())}
+        onReload={closeBulk}
+        onConfirm={() => {
+          if (!bulk) return
+          confirmProposal.mutate(
+            { runId: bulk.runId, submissionKey: bulk.submissionKey },
+            {
+              onSuccess: (result) => {
+                setConfirmedResult(
+                  `Potvrzeno ${participations(result.confirmed.length)} v termínu ${data.term.label}.`,
+                )
+                closeBulk()
+              },
+            },
+          )
+        }}
+      />
+      {deciding ? (
+        <ParticipationDecisionDialog
+          organizationId={organizationId}
+          eventId={eventId}
+          target={deciding}
+          onClose={() => setDeciding(null)}
+        />
+      ) : null}
       {determining && data.hardAttribute ? (
         <DeterminationDialog
           organizationId={organizationId}

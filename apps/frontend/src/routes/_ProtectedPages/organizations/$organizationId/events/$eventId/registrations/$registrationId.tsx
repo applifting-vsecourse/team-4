@@ -134,7 +134,9 @@ function RegistrationPage() {
             organizationId={organizationId}
             eventId={eventId}
             registrationId={registrationId}
+            person={name}
             terms={registration.data.terms}
+            invalidate={eventRegistrationKeys.detail(organizationId, eventId, registrationId)}
           />
         }
         history={
