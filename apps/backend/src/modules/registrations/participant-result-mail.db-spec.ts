@@ -48,6 +48,20 @@ beforeAll(async () => {
   prisma = app.get(PrismaService);
   results = app.get(ParticipantResultMailService);
   updates = app.get(ParticipantUpdateService);
+
+  // The database is shared: the decision specs that ran before leave many
+  // result events behind. Mark them handled (as the backfill migration does),
+  // so every scan here deals with this spec's own events only.
+  await prisma.$executeRaw`
+    INSERT INTO "email_delivery"
+      ("id", "type", "status", "recipientEmail", "registrationId",
+       "participantAccountId", "dedupKey", "errorMessage", "updatedAt")
+    SELECT gen_random_uuid(), 'participant_update', 'failed', r."email", r."id",
+           r."participantAccountId", 'result:' || e."id"::text,
+           'Left over from another spec', now()
+    FROM "registration_result_event" e
+    JOIN "registration" r ON r."id" = e."registrationId"
+    ON CONFLICT ("dedupKey") DO NOTHING`;
 });
 
 beforeEach(() => mailbox.reset());
