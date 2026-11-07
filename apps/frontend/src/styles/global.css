@@ -221,6 +221,14 @@
   transform: translate(1px, 1px);
   box-shadow: var(--shadow-xs);
 }
+/* In the dark the near-black shadow vanishes on dark surfaces, so buttons looked flat. Their
+   shadow takes the control outline instead; cards keep theirs and stand out by their surface. */
+.dark [data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]) {
+  box-shadow: 2px 2px 0 0 var(--input);
+}
+.dark [data-slot="button"]:not([data-variant="ghost"]):not([data-variant="link"]):active {
+  box-shadow: 1px 1px 0 0 var(--input);
+}
 [data-slot="table-head"] {
   font-weight: 700;
   color: var(--foreground);
