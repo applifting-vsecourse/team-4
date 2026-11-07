@@ -9,6 +9,7 @@ import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { WorkspacePage } from "@/components/WorkspacePage"
 import { readApiError } from "@/lib/apiError"
 
 import { useSession } from "@/features/auth/hooks/useSession"
@@ -69,7 +70,7 @@ function EditEventPage() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <Seo title={`Upravit akci ${event.name}`} />
       <PageHeader
         breadcrumb={
@@ -82,36 +83,39 @@ function EditEventPage() {
         }
         title="Upravit akci"
       />
-      {event.isLocked ? (
-        <div className="space-y-4">
-          <EventLockedAlert status={event.status} />
-          <Button
-            asChild
-            variant="outline"
-          >
-            <Link
-              to={ROUTES.eventSettings}
-              params={{ organizationId, eventId }}
+      {/* The form stays narrow; the page keeps the workspace's margins. */}
+      <div className="max-w-xl">
+        {event.isLocked ? (
+          <div className="space-y-4">
+            <EventLockedAlert status={event.status} />
+            <Button
+              asChild
+              variant="outline"
             >
-              Zpět na nastavení
-            </Link>
-          </Button>
-        </div>
-      ) : (
-        <Card>
-          <CardContent>
-            <EventForm
-              initialValues={initialValues}
-              submitLabel="Uložit změny"
-              isLoading={updateEvent.isPending}
-              errorMessage={errorMessage}
-              onSubmit={handleSubmit}
-              onCancel={backToSettings}
-            />
-          </CardContent>
-        </Card>
-      )}
-    </section>
+              <Link
+                to={ROUTES.eventSettings}
+                params={{ organizationId, eventId }}
+              >
+                Zpět na nastavení
+              </Link>
+            </Button>
+          </div>
+        ) : (
+          <Card>
+            <CardContent>
+              <EventForm
+                initialValues={initialValues}
+                submitLabel="Uložit změny"
+                isLoading={updateEvent.isPending}
+                errorMessage={errorMessage}
+                onSubmit={handleSubmit}
+                onCancel={backToSettings}
+              />
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </WorkspacePage>
   )
 }
 
@@ -121,7 +125,7 @@ function Unavailable() {
   const { organizationId } = Route.useParams()
   const { data: organization } = useQuery(organizationQueryOptions(organizationId))
   return (
-    <section className="mx-auto w-full max-w-xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <PageHeader
         breadcrumb={
           <EventBreadcrumb
@@ -139,6 +143,6 @@ function Unavailable() {
           />
         }
       />
-    </section>
+    </WorkspacePage>
   )
 }

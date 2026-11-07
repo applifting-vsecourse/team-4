@@ -1,6 +1,14 @@
 import { expect, test, type Page } from "@playwright/test"
 
-import { publish, setUpEvent, signUpOrganizer, unpublish, type OpenEvent } from "./support/api"
+import {
+  newParticipant,
+  publish,
+  register,
+  setUpEvent,
+  signUpOrganizer,
+  unpublish,
+  type OpenEvent,
+} from "./support/api"
 
 // The frame stays put (BUG 279): a page scrollbar that comes or goes never
 // moves the layout sideways, and every page outside the organization's
@@ -49,12 +57,13 @@ async function viewTop(page: Page) {
   const heading = page.getByRole("tabpanel").getByRole("heading", { level: 2 }).first()
   await expect(heading).toBeVisible()
   const box = (await heading.boundingBox())!
-  const content = (await page
+  const below = page
     .getByRole("tabpanel")
     .locator("section")
     .first()
     .locator(":scope > :nth-child(2)")
-    .boundingBox())!
+  await expect(below).toBeVisible()
+  const content = (await below.boundingBox())!
   return { headingMiddle: Math.round(box.y + box.height / 2), contentTop: Math.round(content.y) }
 }
 
@@ -84,6 +93,40 @@ test("a view that is still loading keeps its heading in place", async ({ page })
   await page.getByRole("tab", { name: "Vyhodnocení" }).click()
   expect((await viewTop(page)).headingMiddle).toBe(list.headingMiddle)
   release()
+})
+
+test("every page of the organization keeps the same side margins", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const event = await setUpEvent(page.request, { terms })
+  const registration = await register(
+    page.request,
+    event.publicId,
+    newParticipant("Jana"),
+    event.termIds,
+  )
+  const organization = `/organizations/${event.organizationId}`
+  const base = `${organization}/events/${event.eventId}`
+
+  const pages = [
+    organization,
+    base,
+    `${base}/registrations`,
+    `${base}/rooms`,
+    `${base}/settings`,
+    `${base}/terms/${event.termIds[0]}/programme`,
+    `${base}/registrations/${registration.id}`,
+    `${base}/edit`,
+    `${organization}/events/new`,
+  ]
+  const frames: Record<string, { left: number; right: number }> = {}
+  for (const path of pages) {
+    await page.goto(path)
+    await expect(page.locator("h1")).toBeVisible()
+    const box = (await page.locator("main[data-slot=sidebar-inset] > section").boundingBox())!
+    frames[path] = { left: Math.round(box.x), right: Math.round(box.x + box.width) }
+  }
+  const first = frames[organization]
+  for (const path of pages) expect.soft(frames[path], path).toEqual(first)
 })
 
 type Entry = { name: string; x: number }

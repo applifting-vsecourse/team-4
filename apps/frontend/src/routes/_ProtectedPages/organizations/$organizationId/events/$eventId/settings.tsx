@@ -8,6 +8,7 @@ import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { WorkspacePage } from "@/components/WorkspacePage"
 
 import { EvaluationModeSection } from "@/features/accommodation/components/EvaluationModeSection"
 import { useSession } from "@/features/auth/hooks/useSession"
@@ -42,7 +43,7 @@ function EventPage() {
   const { data: event } = useSuspenseQuery(eventQueryOptions(organizationId, eventId))
 
   return (
-    <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <Seo title="Nastavení" />
       <PageHeader
         breadcrumb={
@@ -127,7 +128,7 @@ function EventPage() {
           eventId={eventId}
         />
       </div>
-    </section>
+    </WorkspacePage>
   )
 }
 
@@ -137,7 +138,7 @@ function Unavailable() {
   const { organizationId } = Route.useParams()
   const { data: organization } = useQuery(organizationQueryOptions(organizationId))
   return (
-    <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <PageHeader
         breadcrumb={
           <EventBreadcrumb
@@ -155,6 +156,6 @@ function Unavailable() {
           />
         }
       />
-    </section>
+    </WorkspacePage>
   )
 }
