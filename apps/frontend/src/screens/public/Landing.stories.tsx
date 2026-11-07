@@ -36,6 +36,15 @@ const keepsWaysIn = async ({ canvasElement }: Pick<StoryContext, "canvasElement"
   await expect(
     catalogSection(canvasElement).getByRole("link", { name: "Celý katalog" }),
   ).toHaveAttribute("href", "/events")
+  const main = within(within(canvasElement).getByRole("main"))
+  await expect(main.getByRole("link", { name: "Více pro organizátory" })).toHaveAttribute(
+    "href",
+    "/for-organizers",
+  )
+  await expect(main.getByRole("link", { name: "Více pro účastníky" })).toHaveAttribute(
+    "href",
+    "/for-participants",
+  )
 }
 
 const showsCards = (count: number) => async (context: StoryContext) => {
