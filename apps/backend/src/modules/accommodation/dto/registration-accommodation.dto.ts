@@ -3,10 +3,10 @@ import {
   needsDetermination,
   REASON_MAX_LENGTH,
 } from '@/modules/accommodation/domain/determination';
-import {
-  DeterminationRecord,
-  RegistrationAccommodation,
-} from '@/modules/accommodation/repositories/registration-accommodation.repository';
+import { ActorDto } from '@/modules/accommodation/dto/actor.dto';
+import { MoveRecordDto } from '@/modules/accommodation/dto/order-moves.dto';
+import { DeterminationRecord } from '@/modules/accommodation/repositories/registration-accommodation.repository';
+import { RegistrationAccommodationView } from '@/modules/accommodation/services/registration-accommodation.service';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, MaxLength, ValidateIf } from 'class-validator';
@@ -46,14 +46,6 @@ export class DetermineAccommodationDto {
     message: `Důvod může mít nejvýše ${REASON_MAX_LENGTH} znaků.`,
   })
   reason!: string;
-}
-
-export class ActorDto {
-  @ApiProperty()
-  id!: string;
-
-  @ApiProperty()
-  name!: string;
 }
 
 export class AccommodationAttributeDto {
@@ -159,7 +151,16 @@ export class RegistrationAccommodationDto {
   @ApiProperty({ type: [DeterminationRecordDto], description: 'Newest first.' })
   history!: DeterminationRecordDto[];
 
-  static from(model: RegistrationAccommodation): RegistrationAccommodationDto {
+  @ApiProperty({
+    type: [MoveRecordDto],
+    description:
+      'The person’s moves in the terms’ orders (F39-1), newest first.',
+  })
+  moves!: MoveRecordDto[];
+
+  static from(
+    model: RegistrationAccommodationView,
+  ): RegistrationAccommodationDto {
     const hard = model.hardAttribute;
     const determination = model.determination;
     return {
@@ -180,6 +181,7 @@ export class RegistrationAccommodationDto {
         determination?.isValid ? determination : null,
       ),
       history: model.history.map(DeterminationRecordDto.from),
+      moves: model.moves.map(MoveRecordDto.from),
     };
   }
 }

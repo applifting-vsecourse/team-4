@@ -70,6 +70,7 @@ const view = (
     rooms: [{ roomId: 'r1', label: 'R1', baseBeds: 4, extraBeds: 1 }],
     people: [],
     storedOrder: null,
+    movedIds: [],
     inputVersion: 1,
     isRunning: false,
     latest: null,
@@ -191,6 +192,29 @@ describe('buildTermView', () => {
     expect(result.order.every((entry) => entry.effectiveValue === null)).toBe(
       true,
     );
+  });
+
+  it('keeps the stored manual order and marks who was moved by hand (Př. 9)', () => {
+    const result = view({
+      people: [
+        person('P1', 'pending', 'female'),
+        person('P2', 'pending', 'female', 1),
+        person('P3', 'waitlisted', 'female', 2),
+      ],
+      storedOrder: ['P1', 'P3', 'P2'],
+      movedIds: ['P3'],
+    });
+    expect(
+      result.order.map((entry) => [
+        entry.registrationId,
+        entry.position,
+        entry.isMovedByHand,
+      ]),
+    ).toEqual([
+      ['P1', 1, false],
+      ['P3', 2, true],
+      ['P2', 3, false],
+    ]);
   });
 
   it('adds the results of the shown proposal and marks it stale after a change', () => {

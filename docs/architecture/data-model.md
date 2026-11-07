@@ -431,8 +431,8 @@ current data; a run only proposes and never changes a participation, a debt or a
   `accommodation_intervention`; they are the evidence of a proposal and an order (F39-1).
 - **Versions and scheduling (S3-01, spec v4 §5).** `accommodation_term_state` holds the term's
   `inputVersion`. Every change a run depends on bumps it in the same transaction: a saved
-  registration, an executed change or gender correction in the term, a room edit (all terms of
-  the event). A run stores the version it read and is current while they are equal. In the
+  registration, an executed change or gender correction in the term, a determination, a
+  position change, a room edit (all terms of the event). A run stores the version it read and is current while they are equal. In the
   `automatic` mode a change sets `dueAt` 10 s ahead (each further change moves it); in the
   `manual` mode only "Přepočítat" sets it, to now.
 - **Worker.** Every backend process polls the state rows for due evaluations and takes them
@@ -446,8 +446,15 @@ current data; a run only proposes and never changes a participation, a debt or a
   records the answer, the value before and after, and every term of the registration gets a
   new input version. F64's "Ubytování je potřeba určit ručně" shows only while a hard
   attribute applies and there is no effective value.
-- **Writers.** Rules, orders and position changes are written by F39-1 and the rules settings;
-  until then they have no rows. Answers to the hard attribute come from the registration: the
+- **Position change (S3-03, F39-1).** The organizer places an unconfirmed person right before
+  or after another one of the same queue, with a reason. Under the lock of the term's state
+  row the move is checked against the `inputVersion` the organizer saw, the whole term order
+  is upserted in `accommodation_term_order`, an `accommodation_intervention` of kind
+  `position` records that version, the queue, the term and queue orders and the positions
+  before and after, the target and the placement, and the term gets a new input version. A
+  move made on an older version is refused, except the same move sent again, which finds its
+  own record (one per version at most) and changes nothing.
+- **Writers.** Rules are written by the rules settings; until then they have no rows. Answers to the hard attribute come from the registration: the
   F64 gender answer when the hard attribute is `gender`.
 
 ## 4. Field reference
