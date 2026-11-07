@@ -178,78 +178,96 @@ export class RegistrationAccommodationRepository {
         select: { id: true },
       });
       if (!owned) return { kind: 'not_found' };
-      await tx.$queryRaw`
+      return this.determineWithin(tx, registrationId, input);
+    });
+  }
+
+  /**
+   * The determination inside the caller's transaction (also used when a
+   * decision determines in the same step). The registration must already be
+   * known to belong to the scope.
+   */
+  async determineWithin(
+    tx: Db,
+    registrationId: string,
+    input: {
+      value: string;
+      reason: string;
+      answer: string | null;
+      actorId: string;
+    },
+  ): Promise<DeterminationOutcome> {
+    await tx.$queryRaw`
         SELECT "id" FROM "registration"
         WHERE "id" = ${registrationId}::uuid FOR UPDATE`;
-      const row = await tx.registration.findUniqueOrThrow({
-        where: { id: registrationId },
-        select: {
-          eventId: true,
-          gender: true,
-          event: {
-            select: {
-              accommodationRules: {
-                select: { hardAttribute: true, nonDeterminingValues: true },
-              },
+    const row = await tx.registration.findUniqueOrThrow({
+      where: { id: registrationId },
+      select: {
+        eventId: true,
+        gender: true,
+        event: {
+          select: {
+            accommodationRules: {
+              select: { hardAttribute: true, nonDeterminingValues: true },
             },
           },
-          accommodationManualValue: {
-            select: { value: true, basedOnAnswer: true },
-          },
-          terms: {
-            where: { status: { not: 'cancelled' } },
-            select: { termId: true },
-          },
         },
-      });
-      const hard = hardAttributeOf(row.event.accommodationRules);
-      const answer = hard ? answerOf(hard.attribute, row) : null;
-      if (hard && answer !== input.answer) return { kind: 'answer_changed' };
-      const refusal = refuseDetermination(hard, answer, input.value);
-      if (refusal) return { kind: 'refused', refusal };
-
-      const current = row.accommodationManualValue;
-      const previousValue =
-        current && current.basedOnAnswer === answer ? current.value : null;
-      if (previousValue === input.value) return { kind: 'determined' };
-
-      // The determination and its record carry the same moment.
-      const now = new Date();
-      await tx.accommodationManualValue.upsert({
-        where: { registrationId },
-        create: {
-          registrationId,
-          eventId: row.eventId,
-          value: input.value,
-          basedOnAnswer: answer,
-          reason: input.reason,
-          createdById: input.actorId,
-          createdAt: now,
+        accommodationManualValue: {
+          select: { value: true, basedOnAnswer: true },
         },
-        update: {
-          value: input.value,
-          basedOnAnswer: answer,
-          reason: input.reason,
-          createdById: input.actorId,
-          createdAt: now,
+        terms: {
+          where: { status: { not: 'cancelled' } },
+          select: { termId: true },
         },
-      });
-      await this.record(tx, {
-        createdAt: now,
-        eventId: row.eventId,
-        registrationId,
-        actorId: input.actorId,
-        reason: input.reason,
-        before: { answer, value: previousValue },
-        after: { answer, value: input.value },
-      });
-      await termInputsChanged(
-        tx,
-        row.eventId,
-        row.terms.map((term) => term.termId),
-      );
-      return { kind: 'determined' };
+      },
     });
+    const hard = hardAttributeOf(row.event.accommodationRules);
+    const answer = hard ? answerOf(hard.attribute, row) : null;
+    if (hard && answer !== input.answer) return { kind: 'answer_changed' };
+    const refusal = refuseDetermination(hard, answer, input.value);
+    if (refusal) return { kind: 'refused', refusal };
+
+    const current = row.accommodationManualValue;
+    const previousValue =
+      current && current.basedOnAnswer === answer ? current.value : null;
+    if (previousValue === input.value) return { kind: 'determined' };
+
+    // The determination and its record carry the same moment.
+    const now = new Date();
+    await tx.accommodationManualValue.upsert({
+      where: { registrationId },
+      create: {
+        registrationId,
+        eventId: row.eventId,
+        value: input.value,
+        basedOnAnswer: answer,
+        reason: input.reason,
+        createdById: input.actorId,
+        createdAt: now,
+      },
+      update: {
+        value: input.value,
+        basedOnAnswer: answer,
+        reason: input.reason,
+        createdById: input.actorId,
+        createdAt: now,
+      },
+    });
+    await this.record(tx, {
+      createdAt: now,
+      eventId: row.eventId,
+      registrationId,
+      actorId: input.actorId,
+      reason: input.reason,
+      before: { answer, value: previousValue },
+      after: { answer, value: input.value },
+    });
+    await termInputsChanged(
+      tx,
+      row.eventId,
+      row.terms.map((term) => term.termId),
+    );
+    return { kind: 'determined' };
   }
 
   private async record(
