@@ -357,9 +357,9 @@ async function flow() {
     'tip does not contain the edited commit yet',
   );
   // 8. The author brings the branches above #14 up to date, review carries
-  //    over, QA approves the new tip, and /merge-stack merges #12 before it is
-  //    interrupted. The rest still targets #12's branch but must stay green, or
-  //    a second command could never continue.
+  //    over, QA approves the new tip, and #12 is then merged on its own. The
+  //    rest still targets #12's branch but must stay green (not "waiting for a
+  //    prerequisite"), so it can be retargeted to main and merged.
   for (const n of NUMBERS.slice(idx(15))) {
     const member = byNumber(n);
     const sha = newSha();

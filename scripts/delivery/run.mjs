@@ -199,7 +199,7 @@ for (let pr of candidates) {
     const stack = stackByPr.get(pr.number);
     const stacked = stack && stack.prs.length > 1;
     // After the PR below has merged, the rest of a stack still targets its
-    // branch until `/merge-stack` retargets it: that is a stack waiting its turn,
+    // branch until it is retargeted to main: that is a stack waiting its turn,
     // not a PR with a missing prerequisite.
     const bottomBase = stack?.bottom.base.ref;
     const resuming =

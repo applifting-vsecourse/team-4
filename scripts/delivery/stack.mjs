@@ -129,7 +129,7 @@ export function inSync(status) {
 
 /**
  * Whether `bottom` still targets the branch of a PR which has already merged
- * and contains that PR's head: a stack which `/merge-stack` merged part way and
+ * and contains that PR's head: a stack whose bottom PR was merged on its own and
  * has not retargeted yet. A reused branch name proves nothing, so containment
  * is checked. `list(path)` reads every page of a list endpoint and
  * `compare(base, head)` returns the compare status.
