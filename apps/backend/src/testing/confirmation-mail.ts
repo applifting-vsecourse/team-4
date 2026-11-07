@@ -4,6 +4,8 @@ import {
 } from '@/core/email/interfaces/email-service.interface';
 import { ParticipantAccessRepository } from '@/modules/participant-access/repositories/participant-access.repository';
 import { ParticipantAccessService } from '@/modules/participant-access/services/participant-access.service';
+import { ParticipantUpdatesRepository } from '@/modules/registrations/repositories/participant-updates.repository';
+import { ParticipantUpdateService } from '@/modules/registrations/services/participant-update.service';
 import { RegistrationConfirmationService } from '@/modules/registrations/services/registration-confirmation.service';
 import { Config } from '@/shared/config/config.service';
 import { Provider } from '@nestjs/common';
@@ -48,6 +50,13 @@ export class Mailbox {
 /** Everything `RegistrationsService` needs to send its confirmation. */
 export const confirmationProviders = (mailbox: Mailbox): Provider[] => [
   RegistrationConfirmationService,
+  ...updateProviders(mailbox),
+];
+
+/** Everything the services that queue participant updates (F45-1) need to send them. */
+export const updateProviders = (mailbox: Mailbox): Provider[] => [
+  ParticipantUpdateService,
+  ParticipantUpdatesRepository,
   ParticipantAccessService,
   ParticipantAccessRepository,
   {

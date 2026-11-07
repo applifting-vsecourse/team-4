@@ -10,12 +10,14 @@ import { QrPaymentsController } from './controllers/qr-payments.controller';
 import { RegistrationChangesController } from './controllers/registration-changes.controller';
 import { EventRegistrationsRepository } from './repositories/event-registrations.repository';
 import { ParticipantRegistrationsRepository } from './repositories/participant-registrations.repository';
+import { ParticipantUpdatesRepository } from './repositories/participant-updates.repository';
 import { PaymentsRepository } from './repositories/payments.repository';
 import { QrPaymentsRepository } from './repositories/qr-payments.repository';
 import { RegistrationChangesRepository } from './repositories/registration-changes.repository';
 import { RegistrationsRepository } from './repositories/registrations.repository';
 import { EventRegistrationsService } from './services/event-registrations.service';
 import { ParticipantRegistrationsService } from './services/participant-registrations.service';
+import { ParticipantUpdateService } from './services/participant-update.service';
 import { PaymentsService } from './services/payments.service';
 import { QrPaymentsService } from './services/qr-payments.service';
 import { RegistrationChangesService } from './services/registration-changes.service';
@@ -35,6 +37,8 @@ import { RegistrationsService } from './services/registrations.service';
   providers: [
     RegistrationsService,
     RegistrationConfirmationService,
+    ParticipantUpdateService,
+    ParticipantUpdatesRepository,
     RegistrationsRepository,
     EventRegistrationsService,
     EventRegistrationsRepository,
