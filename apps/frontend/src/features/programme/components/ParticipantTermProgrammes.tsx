@@ -16,12 +16,12 @@ type ParticipantTermProgrammesProps = {
     label: string
     startDate: string
     endDate: string
-    status: "confirmed" | "waitlisted"
+    status: "pending" | "confirmed" | "waitlisted"
   }[]
 }
 
 // Moje přihlášky → Detail přihlášky → Program termínu (F65). Only a confirmed
-// term is requested; a waitlisted one gets an explanation and no request.
+// term is requested; an unconfirmed one gets an explanation and no request.
 export function ParticipantTermProgrammes({
   registrationId,
   terms,

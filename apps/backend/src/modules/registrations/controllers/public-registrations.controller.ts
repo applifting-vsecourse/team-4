@@ -34,8 +34,8 @@ export class PublicRegistrationsController {
   @ApiOperation({
     summary: 'Submit a registration through the public link',
     description:
-      'No sign-in. Each term is confirmed if it has a free bed at the moment ' +
-      'of saving, otherwise waitlisted; a full event is not an error. 404 ' +
+      "No sign-in. Each term waits for the organizer's decision (`pending`), " +
+      'whatever its capacity; nothing is due yet. 404 ' +
       '`event_unavailable` for an unknown link and for an event that is not ' +
       'open, 400 `term_unknown` for a term of another event, 409 ' +
       '`already_registered` for an e-mail registered for this event, 409 ' +

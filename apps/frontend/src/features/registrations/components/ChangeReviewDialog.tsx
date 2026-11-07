@@ -20,7 +20,7 @@ import {
 } from "@/features/registrations/api/registrationChangeSchemas"
 import {
   RegistrationChangeDialog,
-  type WaitlistConsent,
+  type ReleaseConsent,
 } from "@/features/registrations/components/RegistrationChangeDialog"
 import {
   usePreviewChange,
@@ -59,7 +59,6 @@ export function ChangeReviewDialog({
   const [preview, setPreview] = useState<ChangePreview | null>(null)
   const [error, setError] = useState<ChangeError | null>(null)
   const [isStale, setIsStale] = useState(false)
-  const [hasResultChanged, setHasResultChanged] = useState(false)
   const [isApprovalNewlyRequired, setIsApprovalNewlyRequired] = useState(false)
 
   const { mutate: requestPreview } = previewChange
@@ -110,23 +109,26 @@ export function ChangeReviewDialog({
 
   const summary = toSummaryProps(preview.summary)
   const isCancellation = preview.kinds.every((kind) => kind.startsWith("cancel"))
-  const consentMove = preview.moves.find((move) => move.requiresWaitlistConsent)
-  const labelOf = (termId: string) =>
-    preview.summary.terms.find((term) => term.termId === termId)?.label ?? ""
-  const waitlist: WaitlistConsent | undefined = consentMove
-    ? {
-        targetTerm: labelOf(consentMove.toTermId),
-        lostTerm: labelOf(consentMove.fromTermId),
-        hasResultChanged,
-      }
-    : undefined
+  const consentMoves = preview.moves.filter((move) => move.requiresReleaseConsent)
+  const labelsOf = (termIds: string[]) =>
+    termIds
+      .map((termId) => preview.summary.terms.find((term) => term.termId === termId)?.label ?? "")
+      .join(", ")
+  // One consent covers every confirmed place the change gives up.
+  const release: ReleaseConsent | undefined =
+    consentMoves.length > 0
+      ? {
+          targetTerm: labelsOf(consentMoves.map((move) => move.toTermId)),
+          lostTerm: labelsOf(consentMoves.map((move) => move.fromTermId)),
+        }
+      : undefined
 
-  const confirm = (isWaitlistAccepted: boolean) => {
+  const confirm = (isReleaseAccepted: boolean) => {
     setError(null)
     submitChange.mutate(
       {
         ...proposal,
-        moves: proposal.moves.map((move) => ({ ...move, acceptWaitlist: isWaitlistAccepted })),
+        moves: proposal.moves.map((move) => ({ ...move, acceptRelease: isReleaseAccepted })),
         expectedVersion: preview.version,
         expectsApproval: preview.requiresApproval,
       },
@@ -139,8 +141,7 @@ export function ChangeReviewDialog({
           } else if (described.kind === "approval_changed") {
             setIsApprovalNewlyRequired(described.preview.requiresApproval)
             setPreview(described.preview)
-          } else if (described.kind === "waitlist_consent_required") {
-            setHasResultChanged(true)
+          } else if (described.kind === "release_consent_required") {
             setPreview(described.preview)
           } else {
             setError(described)
@@ -158,7 +159,7 @@ export function ChangeReviewDialog({
       isApprovalRequired={preview.requiresApproval && !isApprovalNewlyRequired}
       isApprovalNewlyRequired={preview.requiresApproval && isApprovalNewlyRequired}
       hasFinancialImpact={preview.summary.terms.some((term) => term.original !== term.proposed)}
-      waitlist={waitlist}
+      release={release}
       errorMessage={error?.kind === "message" ? error.message : undefined}
       isStale={isStale}
       isSubmitting={submitChange.isPending}

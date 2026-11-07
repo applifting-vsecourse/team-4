@@ -9,9 +9,9 @@ import {
 export type ChangeError =
   /** The registration changed meanwhile; the proposal must not overwrite it. */
   | { kind: "stale" }
-  /** The refusal carries a fresh review: approval or the waitlist now applies. */
+  /** The refusal carries a fresh review: approval or a consent now applies. */
   | { kind: "approval_changed"; preview: ChangePreview }
-  | { kind: "waitlist_consent_required"; preview: ChangePreview }
+  | { kind: "release_consent_required"; preview: ChangePreview }
   | { kind: "message"; message: string }
 
 const FALLBACK = "Změnu se nepodařilo odeslat. Zkuste to prosím znovu."
@@ -31,8 +31,8 @@ export function describeChangeError(error: unknown): ChangeError {
   const preview = readPreview(error)
   if (code === "registration_stale") return { kind: "stale" }
   if (code === "approval_changed" && preview) return { kind: "approval_changed", preview }
-  if (code === "waitlist_consent_required" && preview) {
-    return { kind: "waitlist_consent_required", preview }
+  if (code === "release_consent_required" && preview) {
+    return { kind: "release_consent_required", preview }
   }
   if (status === 400 || status === 409) {
     return { kind: "message", message: message ?? FALLBACK }

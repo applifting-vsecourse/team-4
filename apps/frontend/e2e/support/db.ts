@@ -6,7 +6,8 @@ import pg from "pg"
 
 // Direct database access for what the UI only reaches through e-mail: a
 // magic link is created here, the same way the backend stores one, so a test
-// can open it without sending or reading any message.
+// can open it without sending or reading any message. `decideTerms` stands in
+// for the organizer's confirmation until the term evaluation offers it.
 
 const BACKEND_ENV = fileURLToPath(new URL("../../../backend/.env", import.meta.url))
 
@@ -58,4 +59,69 @@ export async function paymentToken(registrationId: string): Promise<string> {
   )
   if (!rows[0]) throw new Error(`No registration ${registrationId}`)
   return rows[0].paymentToken
+}
+
+/**
+ * Stand-in for the organizer's decision in the term evaluation (S3-01, slice
+ * 2) until the UI offers it: a registration's terms (all of them by default)
+ * become `status`. A confirmation starts the payment reminder the way the
+ * backend does once something is owed, and bumps the registration version.
+ * The reminder is approximate: the session time zone, not Prague wall-clock
+ * time across a DST change; no test depends on its exact hour.
+ */
+export async function decideTerms(
+  registrationId: string,
+  status: "confirmed" | "waitlisted",
+  termIds?: string[],
+): Promise<void> {
+  const { rowCount } = await db().query(
+    `UPDATE registration_term SET status = $2, "decidedAt" = now()
+     WHERE "registrationId" = $1 AND status = 'pending'
+       AND ($3::uuid[] IS NULL OR "termId" = ANY($3::uuid[]))`,
+    [registrationId, status, termIds ?? null],
+  )
+  if (!rowCount) throw new Error(`No pending term of registration ${registrationId}`)
+  await db().query(
+    `UPDATE registration r SET version = version + 1,
+       "paymentReminderAt" = COALESCE(r."paymentReminderAt",
+         CASE WHEN EXISTS (
+           SELECT 1 FROM registration_term t
+           WHERE t."registrationId" = r.id AND t.status = 'confirmed' AND t."priceMinor" > 0
+         ) THEN now() + make_interval(days => r."paymentReminderDays") END)
+     WHERE r.id = $1`,
+    [registrationId],
+  )
+}
+
+/** The registration saved for `email`, which the UI shows only after signing in. */
+export async function registrationIdOf(email: string): Promise<string> {
+  const { rows } = await db().query<{ id: string }>(
+    `SELECT id FROM registration WHERE lower(email) = lower($1)`,
+    [email.trim()],
+  )
+  if (rows.length !== 1) throw new Error(`Expected one registration of ${email}`)
+  return rows[0]!.id
+}
+
+/** The id of a registration's term labelled `label`, for terms created in the UI. */
+export async function termIdOf(registrationId: string, label: string): Promise<string> {
+  const { rows } = await db().query<{ id: string }>(
+    `SELECT t.id FROM registration_term rt JOIN event_term t ON t.id = rt."termId"
+     WHERE rt."registrationId" = $1 AND t.label = $2`,
+    [registrationId, label],
+  )
+  if (rows.length !== 1) throw new Error(`No term ${label} in registration ${registrationId}`)
+  return rows[0]!.id
+}
+
+/**
+ * Stand-in for the accommodation rules (#17) until they can be edited: gender
+ * splits the rooms of the event, "Jiná odpověď" and "Nechci uvést" place nobody.
+ */
+export async function setGenderHardAttribute(eventId: string): Promise<void> {
+  await db().query(
+    `INSERT INTO accommodation_rules ("eventId", "hardAttribute", "nonDeterminingValues", "updatedAt")
+     VALUES ($1, 'gender', ARRAY['other', 'undisclosed'], now())`,
+    [eventId],
+  )
 }

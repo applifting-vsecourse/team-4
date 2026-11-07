@@ -445,11 +445,11 @@ describe("submitting", () => {
     expect(sentBody().needs).toEqual(NO_NEEDS)
   })
 
-  it("says nothing is owed when every confirmed term is free or waitlisted", async () => {
+  it("shows a new registration waiting for the organizer in every term, with nothing owed (S3-01)", async () => {
     post.mockReturnValue(
       respondWith({
         ...RESULT,
-        terms: RESULT.terms.map((term) => ({ ...term, status: "waitlisted" })),
+        terms: RESULT.terms.map((term) => ({ ...term, status: "pending" })),
         amountDueMinor: 0,
         paymentInstructions: null,
         paymentLinkToken: null,
@@ -461,6 +461,7 @@ describe("submitting", () => {
     await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
 
     expect(await screen.findByText("Nyní nemáte platební povinnost.")).toBeInTheDocument()
+    expect(screen.getAllByText("Čeká na rozhodnutí organizátora")).toHaveLength(2)
     expect(screen.queryByText("Zbývá zaplatit")).not.toBeInTheDocument()
     expect(screen.queryByText("Datum připomenutí platby")).not.toBeInTheDocument()
     expect(screen.queryByText("Variabilní symbol")).not.toBeInTheDocument()

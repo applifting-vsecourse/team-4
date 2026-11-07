@@ -37,7 +37,8 @@ export type EvidencePerson = {
   answer: string
   /** The determination valid for that answer, e.g. "Žena". */
   determinedAs?: string
-  result: ProposalResult
+  /** Missing when the run produced no proposal (failed, timed out, conflict). */
+  result?: ProposalResult
   reason?: ReasonCode
 }
 
@@ -56,6 +57,9 @@ export type RunEvidenceSheetProps = {
   /** A manual order (F39-1) applied to the run. */
   isOrderManual: boolean
   order: EvidencePerson[]
+  onOpenChange?: (isOpen: boolean) => void
+  /** What the run ended with when it produced no proposal, already worded. */
+  outcome?: string
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -82,9 +86,14 @@ export function RunEvidenceSheet({
   confirmedCount,
   isOrderManual,
   order,
+  onOpenChange,
+  outcome,
 }: RunEvidenceSheetProps) {
   return (
-    <Sheet open={isOpen}>
+    <Sheet
+      open={isOpen}
+      onOpenChange={onOpenChange}
+    >
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Doklad vyhodnocení</SheetTitle>
@@ -118,6 +127,12 @@ export function RunEvidenceSheet({
               <dt className="text-muted-foreground">Pořadí</dt>
               <dd>{isOrderManual ? "Ručně upravené" : "Podle času přihlášení"}</dd>
             </div>
+            {outcome ? (
+              <div className="col-span-2">
+                <dt className="text-muted-foreground">Výsledek</dt>
+                <dd className="break-words">{outcome}</dd>
+              </div>
+            ) : null}
           </dl>
 
           <Section title="Dostupné pokoje">
@@ -152,10 +167,14 @@ export function RunEvidenceSheet({
                     <p>
                       {person.position}. {person.name}
                     </p>
-                    <Badge variant={RESULT_BADGE[person.result].variant}>
-                      {RESULT_BADGE[person.result].label}
-                      {person.reason ? ` · ${person.reason}` : ""}
-                    </Badge>
+                    {person.result ? (
+                      <Badge variant={RESULT_BADGE[person.result].variant}>
+                        {RESULT_BADGE[person.result].label}
+                        {person.reason ? ` · ${person.reason}` : ""}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </div>
                   <p className="text-muted-foreground">
                     {person.receivedAt}

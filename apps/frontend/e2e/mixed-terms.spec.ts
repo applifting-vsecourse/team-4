@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test"
 
 import { newParticipant, register, setUpEvent, type TermSpec } from "./support/api"
+import { decideTerms } from "./support/db"
 import { definition } from "./support/ui"
 
-// One bed, available in the first term only: a participant choosing both
-// terms is confirmed in one and waitlisted in the other, and owes only for the
-// confirmed one (S2-07, S2-08, S2-10, S2-16).
+// A participant choosing two terms waits for the organizer in both and owes
+// nothing (S3-01). Once decided, each term has its own status and only the
+// confirmed one is owed (S2-10, S2-16).
 
 const terms: TermSpec[] = [
   { label: "1. turnus", startDate: "2027-07-01", endDate: "2027-07-07", priceMinor: 100000 },
@@ -13,7 +14,7 @@ const terms: TermSpec[] = [
 ]
 const rooms = [{ label: "Chatka", baseBeds: 1, terms: [0] }]
 
-test("a participant picking two terms is confirmed in one and waitlisted in the other", async ({
+test("a participant picking two terms waits in both, owing nothing until a decision", async ({
   page,
   browser,
 }) => {
@@ -37,17 +38,25 @@ test("a participant picking two terms is confirmed in one and waitlisted in the 
 
   const result = visitor.getByRole("region", { name: "Přihláška je uložená" })
   const term = (label: string) => result.getByRole("listitem").filter({ hasText: label })
-  await expect(term("1. turnus")).toContainText("Potvrzeno")
-  await expect(term("2. turnus")).toContainText("Náhradník")
+  await expect(term("1. turnus")).toContainText("Čeká na rozhodnutí organizátora")
+  await expect(term("2. turnus")).toContainText("Čeká na rozhodnutí organizátora")
   await expect(definition(result, "Cena výběru")).toHaveText("3 000 Kč")
-  await expect(definition(result, "K úhradě za potvrzené termíny")).toHaveText("1 000 Kč")
+  await expect(result.getByText("Nyní nemáte platební povinnost.")).toBeVisible()
+  await expect(result.getByRole("img", { name: "QR kód s odkazem na platbu" })).toHaveCount(0)
 
   await visitorContext.close()
 })
 
 test("occupancy counts each term by its own status", async ({ page, request }) => {
   const event = await setUpEvent(page.request, { terms, rooms })
-  await register(request, event.publicId, newParticipant("Anna"), event.termIds)
+  const registration = await register(
+    request,
+    event.publicId,
+    newParticipant("Anna"),
+    event.termIds,
+  )
+  await decideTerms(registration.id, "confirmed", event.termIds.slice(0, 1))
+  await decideTerms(registration.id, "waitlisted", event.termIds.slice(1, 2))
 
   await page.goto(`/organizations/${event.organizationId}/events/${event.eventId}/rooms`)
   const occupancy = page.getByRole("region", { name: "Obsazenost po termínech" })

@@ -114,8 +114,7 @@ export function describeTerms(change: Pick<RegistrationChange, "kinds" | "summar
   const released = terms.filter((term) => term.proposed === "cancelled")
   const added = terms.filter(
     (term) =>
-      term.original !== "confirmed" &&
-      term.original !== "waitlisted" &&
+      (term.original === null || term.original === "cancelled") &&
       term.proposed !== null &&
       term.proposed !== "cancelled",
   )

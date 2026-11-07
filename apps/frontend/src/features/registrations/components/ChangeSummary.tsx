@@ -13,7 +13,7 @@ import {
 import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
 
 /** A term's participation before or after the change; "cancelled" once released. */
-export type TermState = "confirmed" | "waitlisted" | "cancelled"
+export type TermState = "pending" | "confirmed" | "waitlisted" | "cancelled"
 
 /** A personal or contact value, or a part of the needs (F63), the change replaces. */
 export type ChangedValue = { label: string; original: string; proposed: string }

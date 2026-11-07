@@ -63,7 +63,7 @@ export class ParticipantRegistrationModel {
     return !this.isCancelled && !this.hasPendingChange;
   }
 
-  /** Price of the selected terms; waitlisted ones included. */
+  /** Price of the selected terms; unconfirmed ones included. */
   get selectedPriceMinor(): number {
     return selectedPriceMinor(this.terms);
   }

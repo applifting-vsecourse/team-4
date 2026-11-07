@@ -1,4 +1,6 @@
+import { Gender } from '@/modules/registrations/domain/gender';
 import {
+  AccommodationInputs,
   ManagedRegistrationModel,
   paymentState,
 } from '@/modules/registrations/domain/managed-registration';
@@ -23,6 +25,13 @@ const REMINDER = new Date('2027-06-28T08:00:00Z');
 const registration = (
   terms: [ParticipationStatus, number][],
   payments: number[] = [],
+  {
+    gender = null,
+    accommodation = { hardAttribute: null, manualValue: null },
+  }: {
+    gender?: Gender | null;
+    accommodation?: AccommodationInputs;
+  } = {},
 ): ManagedRegistrationModel =>
   new ManagedRegistrationModel(
     'r',
@@ -47,9 +56,52 @@ const registration = (
       amountMinor,
       source: 'organizer' as const,
     })),
+    gender,
     null,
-    null,
+    accommodation,
   );
+
+describe('requiresManualAccommodation (F64, S3-01)', () => {
+  const GENDER = {
+    attribute: 'gender',
+    nonDeterminingValues: ['other', 'undisclosed'],
+  };
+
+  it.each<[Gender | null, boolean]>([
+    ['female', false],
+    ['male', false],
+    ['other', true],
+    ['undisclosed', true],
+    [null, true],
+  ])('with gender as the hard attribute, %s is %s', (gender, expected) => {
+    expect(
+      registration([], [], {
+        gender,
+        accommodation: { hardAttribute: GENDER, manualValue: null },
+      }).requiresManualAccommodation,
+    ).toBe(expected);
+  });
+
+  it('is never needed without a hard attribute', () => {
+    expect(
+      registration([], [], { gender: 'undisclosed' })
+        .requiresManualAccommodation,
+    ).toBe(false);
+  });
+
+  it('is settled by a determination until the answer changes', () => {
+    const determined = (gender: Gender): boolean =>
+      registration([], [], {
+        gender,
+        accommodation: {
+          hardAttribute: GENDER,
+          manualValue: { value: 'female', basedOnAnswer: 'undisclosed' },
+        },
+      }).requiresManualAccommodation;
+    expect(determined('undisclosed')).toBe(false);
+    expect(determined('other')).toBe(true);
+  });
+});
 
 describe('ManagedRegistrationModel', () => {
   it('owes only the confirmed terms of a mixed registration', () => {

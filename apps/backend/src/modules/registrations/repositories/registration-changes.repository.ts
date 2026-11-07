@@ -1,8 +1,9 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import { answerChanged } from '@/modules/accommodation/repositories/determination-lapse';
+import { termInputsChanged } from '@/modules/accommodation/repositories/term-inputs';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
-import { paymentReminderAt } from '@/modules/registrations/domain/registration';
 import {
   changedFields,
   ChangeKind,
@@ -18,13 +19,32 @@ import {
   needsOf,
   needsSelect,
 } from '@/modules/registrations/domain/registration-needs';
-import {
-  termsWithBeds,
-  toTermCapacity,
-} from '@/modules/rooms/repositories/rooms.repository';
 import { Injectable } from '@nestjs/common';
 
 type Db = Prisma.TransactionClient;
+
+const termOrder = [
+  { startDate: 'asc' },
+  { id: 'asc' },
+] satisfies Prisma.EventTermOrderByWithRelationInput[];
+
+const termInfoSelect = {
+  id: true,
+  label: true,
+  startDate: true,
+  endDate: true,
+  priceMinor: true,
+} satisfies Prisma.EventTermSelect;
+
+const toTermInfo = (
+  term: Prisma.EventTermGetPayload<{ select: typeof termInfoSelect }>,
+): EventTermInfo => ({
+  id: term.id,
+  label: term.label,
+  startDate: fromDate(term.startDate),
+  endDate: fromDate(term.endDate),
+  priceMinor: term.priceMinor,
+});
 
 export type ChangeStatus = 'pending' | 'applied' | 'approved' | 'rejected';
 
@@ -37,8 +57,6 @@ export type RegistrationChangeModel = {
   createdAt: Date;
   decidedAt: Date | null;
   summary: ChangeSummary;
-  /** Pending, and a move now ends on the waitlist without the participant's consent. */
-  needsParticipantConsent: boolean;
   /** Pending, and the registration changed after the proposal was made. */
   isStale: boolean;
   registration: { firstName: string; lastName: string; email: string };
@@ -61,7 +79,8 @@ export type SubmitOutcome =
   | { kind: 'invalid'; error: InvalidChangeError }
   /** The need for approval differs from what the participant confirmed. */
   | { kind: 'approval_changed'; plan: ChangePlan }
-  | { kind: 'waitlist_consent_required'; plan: ChangePlan };
+  /** A confirmed place would be given up without the participant's consent. */
+  | { kind: 'release_consent_required'; plan: ChangePlan };
 
 export type DecisionOutcome =
   | { kind: 'decided'; change: RegistrationChangeModel }
@@ -72,7 +91,8 @@ export type DecisionOutcome =
   | { kind: 'stale' }
   | { kind: 'not_found' }
   | { kind: 'invalid'; error: InvalidChangeError }
-  | { kind: 'waitlist_consent_required'; plan: ChangePlan };
+  /** A request filed without consent to give up a confirmed place; it can only be rejected. */
+  | { kind: 'release_consent_required'; plan: ChangePlan };
 
 const snapshotSelect = {
   id: true,
@@ -85,8 +105,6 @@ const snapshotSelect = {
   ...needsSelect,
   gender: true,
   genderOther: true,
-  paymentReminderAt: true,
-  paymentReminderDays: true,
   event: { select: { changeApprovalDays: true } },
   terms: {
     orderBy: [{ term: { startDate: 'asc' } }, { termId: 'asc' }],
@@ -166,14 +184,6 @@ const toModel = (
       original: summary.original,
       proposed: summary.proposed,
     },
-    needsParticipantConsent:
-      row.status === 'pending' &&
-      (live?.moves ?? []).some(
-        (move) =>
-          move.requiresWaitlistConsent &&
-          !proposal.moves.find((m) => m.toTermId === move.toTermId)
-            ?.acceptWaitlist,
-      ),
     isStale:
       row.status === 'pending' &&
       proposal.baseVersion !== row.registration.version,
@@ -252,7 +262,7 @@ export class RegistrationChangesRepository {
     return Promise.all(rows.map((row) => this.withLivePlan(this.prisma, row)));
   }
 
-  /** A waiting request is worked out against today's capacity and prices. */
+  /** A waiting request is worked out against today's prices. */
   private async withLivePlan(
     db: Db,
     row: ChangeRow,
@@ -276,30 +286,21 @@ export class RegistrationChangesRepository {
     }
   }
 
-  /** The bed situation of the event's terms the registration could move to. */
-  async availableTerms(
-    registrationId: string,
-  ): Promise<(EventTermInfo & { isFull: boolean })[]> {
+  /** The event's terms the registration could move to, by start. */
+  async availableTerms(registrationId: string): Promise<EventTermInfo[]> {
     const registration = await this.prisma.registration.findUniqueOrThrow({
       where: { id: registrationId },
       select: { eventId: true },
     });
     const terms = await this.prisma.eventTerm.findMany({
       where: { eventId: registration.eventId },
-      orderBy: termsWithBeds.orderBy,
-      select: { ...termsWithBeds.select, priceMinor: true },
+      orderBy: termOrder,
+      select: termInfoSelect,
     });
-    return terms.map((term) => {
-      const capacity = toTermCapacity(term);
-      return {
-        ...capacity,
-        priceMinor: term.priceMinor,
-        isFull: capacity.confirmed >= capacity.capacity,
-      };
-    });
+    return terms.map(toTermInfo);
   }
 
-  // ─── Participant: preview, submit, consent ────────────────────────────────
+  // ─── Participant: preview, submit ─────────────────────────────────────────
 
   async preview(
     accountId: string,
@@ -325,8 +326,7 @@ export class RegistrationChangesRepository {
   /**
    * Executes the change or files it as a request. The registration is locked,
    * then the terms it touches in id order (the serialization point shared with
-   * registering and room changes), so the capacity checked here is the one the
-   * change is applied against; a failure leaves nothing half done.
+   * registering and room changes); a failure leaves nothing half done.
    */
   async submit(
     accountId: string,
@@ -362,7 +362,7 @@ export class RegistrationChangesRepository {
         return invalid(error);
       }
       if (plan.moves.some((move) => needsConsent(move))) {
-        return { kind: 'waitlist_consent_required', plan };
+        return { kind: 'release_consent_required', plan };
       }
       if (plan.requiresApproval !== input.expectsApproval) {
         return { kind: 'approval_changed', plan };
@@ -403,40 +403,6 @@ export class RegistrationChangesRepository {
     });
   }
 
-  /** The participant accepts the waitlist for the moves of a waiting request. */
-  async acceptWaitlist(
-    accountId: string,
-    registrationId: string,
-    changeId: string,
-  ): Promise<RegistrationChangeModel | null> {
-    return this.prisma.$transaction(async (tx) => {
-      const row = await tx.registrationChange.findFirst({
-        where: {
-          id: changeId,
-          status: 'pending',
-          registrationId,
-          registration: { participantAccountId: accountId },
-        },
-        select: changeSelect,
-      });
-      if (!row) return null;
-      const proposal = row.proposal as unknown as ChangeProposal;
-      const accepted: ChangeProposal = {
-        ...proposal,
-        moves: proposal.moves.map((move) => ({
-          ...move,
-          acceptWaitlist: true,
-        })),
-      };
-      const updated = await tx.registrationChange.update({
-        where: { id: changeId },
-        data: { proposal: accepted as unknown as Prisma.InputJsonValue },
-        select: changeSelect,
-      });
-      return this.withLivePlan(tx, updated);
-    });
-  }
-
   // ─── Organizer: decide ────────────────────────────────────────────────────
 
   async approve(
@@ -464,8 +430,9 @@ export class RegistrationChangesRepository {
         } catch (error) {
           return invalid(error);
         }
+        // A request filed before S3-01 never asked to give up a confirmed place.
         if (plan.moves.some((move) => needsConsent(move))) {
-          return { kind: 'waitlist_consent_required', plan };
+          return { kind: 'release_consent_required', plan };
         }
         await this.apply(tx, snapshot, plan, now);
         const updated = await tx.registrationChange.update({
@@ -574,14 +541,10 @@ export class RegistrationChangesRepository {
         eventId: snapshot.eventId,
         id: { in: proposal.moves.map((move) => move.toTermId) },
       },
-      orderBy: termsWithBeds.orderBy,
-      select: { ...termsWithBeds.select, priceMinor: true },
+      select: termInfoSelect,
     });
     const eventTerms = new Map<string, EventTermInfo>(
-      targets.map((term) => [
-        term.id,
-        { ...toTermCapacity(term), priceMinor: term.priceMinor },
-      ]),
+      targets.map((term) => [term.id, toTermInfo(term)]),
     );
     return planChange(
       subjectOf(snapshot),
@@ -633,37 +596,27 @@ export class RegistrationChangesRepository {
         });
       }
     }
-    // Set once, from the first moment something is owed (S2-16).
-    const reminderDays = snapshot.paymentReminderDays;
-    const startsOwing =
-      plan.summary.proposed.dueMinor > 0 && snapshot.paymentReminderAt === null;
-    let reminderAt: Date | null = null;
-    // A registration of an all-free event has no payment snapshot, and its
-    // terms are locked from the first opening (S3-C04). Rather than accept a
-    // debt nobody can be reminded of or pay, roll the change back.
-    if (startsOwing) {
-      if (reminderDays === null) {
-        throw new Error(
-          `Registration ${snapshot.id} would owe money without payment settings`,
-        );
-      }
-      reminderAt = paymentReminderAt(now, reminderDays);
-    }
+    // A change never confirms a term (S3-01), so nothing new becomes due.
+    const fields = changedFields(plan.summary);
     await tx.registration.update({
       where: { id: snapshot.id },
-      data: {
-        ...changedFields(plan.summary),
-        version: { increment: 1 },
-        ...(reminderAt ? { paymentReminderAt: reminderAt } : {}),
-      },
+      data: { ...fields, version: { increment: 1 } },
     });
+    if (fields.gender !== undefined) await answerChanged(tx, snapshot.id);
+    // The participation or the answer changed in every term it touched.
+    await termInputsChanged(tx, snapshot.eventId, [
+      ...new Set([
+        ...snapshot.terms.map((term) => term.termId),
+        ...plan.summary.terms.map((term) => term.termId),
+      ]),
+    ]);
   }
 }
 
 const needsConsent = (move: {
-  requiresWaitlistConsent: boolean;
-  acceptWaitlist: boolean;
-}): boolean => move.requiresWaitlistConsent && !move.acceptWaitlist;
+  requiresReleaseConsent: boolean;
+  acceptRelease: boolean;
+}): boolean => move.requiresReleaseConsent && !move.acceptRelease;
 
 const invalid = (
   error: unknown,

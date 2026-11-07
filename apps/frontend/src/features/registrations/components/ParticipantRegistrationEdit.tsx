@@ -182,7 +182,7 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
             .filter((other) => !active.some((own) => own.termId === other.termId))
             .map((other) => ({
               id: other.termId,
-              label: `${other.label} · ${formatCalendarRange(other.startDate, other.endDate)} · ${formatCzk(other.priceMinor)}${other.isFull ? " · obsazeno" : ""}`,
+              label: `${other.label} · ${formatCalendarRange(other.startDate, other.endDate)} · ${formatCzk(other.priceMinor)}`,
             })),
         ],
       })),

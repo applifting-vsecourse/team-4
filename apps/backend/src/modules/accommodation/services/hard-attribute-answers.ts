@@ -1,11 +1,11 @@
+import { PrismaService } from '@/core/prisma/prisma.service';
+import {
+  answerOf,
+  GENDER_ATTRIBUTE,
+} from '@/modules/accommodation/domain/determination';
 import { Injectable } from '@nestjs/common';
 
-/**
- * Where participants' answers to the hard attribute come from. The registration
- * form has no categorical questions yet (F64, the categorical-questions story);
- * the story that adds them provides an implementation reading the stored
- * answers.
- */
+/** Where participants' answers to the hard attribute come from. */
 export abstract class HardAttributeAnswers {
   /** Answer by registration; a missing entry means no answer. */
   abstract answers(
@@ -15,10 +15,28 @@ export abstract class HardAttributeAnswers {
   ): Promise<Map<string, string | null>>;
 }
 
-/** No question stores answers yet: everyone is unanswered, nobody is guessed. */
+/**
+ * Answers stored on the registration. Only the gender question (F64) exists
+ * yet, the first preset of a categorical question; any other attribute has no
+ * answers until the categorical-questions story stores them, so nobody is
+ * guessed.
+ */
 @Injectable()
-export class NoHardAttributeAnswers extends HardAttributeAnswers {
-  answers(): Promise<Map<string, string | null>> {
-    return Promise.resolve(new Map());
+export class RegistrationHardAttributeAnswers extends HardAttributeAnswers {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
+
+  async answers(
+    eventId: string,
+    attribute: string,
+    registrationIds: string[],
+  ): Promise<Map<string, string | null>> {
+    if (attribute !== GENDER_ATTRIBUTE) return new Map();
+    const rows = await this.prisma.registration.findMany({
+      where: { eventId, id: { in: registrationIds } },
+      select: { id: true, gender: true },
+    });
+    return new Map(rows.map((row) => [row.id, answerOf(attribute, row)]));
   }
 }

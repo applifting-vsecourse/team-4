@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
 import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
 import {
   TermCapacitySummary,
@@ -98,7 +99,33 @@ export type TermEvaluationProps = {
   isLoadFailed?: boolean
   /** Below the order: the history of the term (F39-1). */
   children?: ReactNode
+  onSelectTerm?: (termId: string) => void
+  /** With it the queue tabs follow `selectedQueue`, e.g. kept in the URL. */
+  onSelectQueue?: (queue: string) => void
+  onRecalculate?: () => void
+  /** "Přepočítat" was refused or failed, already worded; the shown data stay. */
+  recalculateError?: string
+  onRetryLoad?: () => void
+  /** The bulk confirmation (F14-1); without it the button is not offered. */
+  onConfirmAll?: () => void
+  /** The decisions per person; a missing one is not offered. */
+  decisions?: PersonDecisions
+  /** The person's name, e.g. as a link to the registration detail. */
+  renderName?: (person: OrderPerson) => ReactNode
 }
+
+/** What the organizer may do with one person of the order. */
+export type PersonDecisions = {
+  /** F14-1. */
+  onConfirm?: (person: OrderPerson) => void
+  onWaitlist?: (person: OrderPerson) => void
+  /** Spec v4 §4; offered to someone needing or having a determination. */
+  onDetermine?: (person: OrderPerson) => void
+  /** F39-1. */
+  onMove?: (person: OrderPerson) => void
+}
+
+const hasDecisions = (decisions: PersonDecisions): boolean => Object.values(decisions).some(Boolean)
 
 function persons(count: number) {
   if (count === 1) return "1 osoba"
@@ -106,8 +133,15 @@ function persons(count: number) {
   return `${count} osob`
 }
 
-function DecisionMenu({ person }: { person: OrderPerson }) {
-  const canDetermine = person.result === "manual" || person.determinedAs !== undefined
+function DecisionMenu({ person, decisions }: { person: OrderPerson; decisions: PersonDecisions }) {
+  const canDetermine =
+    person.result === "manual" || person.queueId === null || person.determinedAs !== undefined
+  const canDecide =
+    decisions.onConfirm !== undefined ||
+    (person.state === "pending" && decisions.onWaitlist !== undefined)
+  const determine = canDetermine ? decisions.onDetermine : undefined
+  const move = person.queueId ? decisions.onMove : undefined
+  if (!canDecide && !determine && !move) return null
 
   return (
     <DropdownMenu>
@@ -121,17 +155,25 @@ function DecisionMenu({ person }: { person: OrderPerson }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem>Potvrdit účast</DropdownMenuItem>
-        {person.state === "pending" ? (
-          <DropdownMenuItem>Zařadit mezi náhradníky</DropdownMenuItem>
+        {decisions.onConfirm ? (
+          <DropdownMenuItem onSelect={() => decisions.onConfirm?.(person)}>
+            Potvrdit účast
+          </DropdownMenuItem>
         ) : null}
-        {canDetermine || person.queueId ? <DropdownMenuSeparator /> : null}
-        {canDetermine ? (
-          <DropdownMenuItem>
+        {person.state === "pending" && decisions.onWaitlist ? (
+          <DropdownMenuItem onSelect={() => decisions.onWaitlist?.(person)}>
+            Zařadit mezi náhradníky
+          </DropdownMenuItem>
+        ) : null}
+        {canDecide && (determine || move) ? <DropdownMenuSeparator /> : null}
+        {determine ? (
+          <DropdownMenuItem onSelect={() => determine(person)}>
             {person.determinedAs ? "Změnit určení ubytování" : "Určit ubytování"}
           </DropdownMenuItem>
         ) : null}
-        {person.queueId ? <DropdownMenuItem>Změnit pořadí</DropdownMenuItem> : null}
+        {move ? (
+          <DropdownMenuItem onSelect={() => move(person)}>Změnit pořadí</DropdownMenuItem>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   )
@@ -145,7 +187,15 @@ function StateBadge({ state }: { state: ParticipationState }) {
 
 // On a narrow card the state moves under the name instead of its own column, so
 // the row keeps its actions in view without scrolling sideways.
-function OrderTable({ people, attribute }: { people: OrderPerson[]; attribute: string | null }) {
+type OrderTableProps = {
+  people: OrderPerson[]
+  attribute: string | null
+  decisions: PersonDecisions
+  renderName?: (person: OrderPerson) => ReactNode
+}
+
+function OrderTable({ people, attribute, decisions, renderName }: OrderTableProps) {
+  const hasActions = hasDecisions(decisions)
   return (
     <div className="@container">
       <Card padding="none">
@@ -157,9 +207,11 @@ function OrderTable({ people, attribute }: { people: OrderPerson[]; attribute: s
               {attribute ? <TableHead>{attribute}</TableHead> : null}
               <TableHead className="hidden @2xl:table-cell">Stav</TableHead>
               <TableHead>Návrh</TableHead>
-              <TableHead>
-                <span className="sr-only">Akce</span>
-              </TableHead>
+              {hasActions ? (
+                <TableHead>
+                  <span className="sr-only">Akce</span>
+                </TableHead>
+              ) : null}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -168,7 +220,7 @@ function OrderTable({ people, attribute }: { people: OrderPerson[]; attribute: s
                 <TableCell className="text-right">{person.position}.</TableCell>
                 <TableCell className="whitespace-normal">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span>{person.name}</span>
+                    <span>{renderName ? renderName(person) : person.name}</span>
                     {person.isMovedByHand ? <Badge variant="outline">Přesunuto ručně</Badge> : null}
                   </div>
                   <p className="text-muted-foreground">
@@ -205,9 +257,14 @@ function OrderTable({ people, attribute }: { people: OrderPerson[]; attribute: s
                     "—"
                   )}
                 </TableCell>
-                <TableCell className="text-right">
-                  <DecisionMenu person={person} />
-                </TableCell>
+                {hasActions ? (
+                  <TableCell className="text-right">
+                    <DecisionMenu
+                      person={person}
+                      decisions={decisions}
+                    />
+                  </TableCell>
+                ) : null}
               </TableRow>
             ))}
           </TableBody>
@@ -217,7 +274,11 @@ function OrderTable({ people, attribute }: { people: OrderPerson[]; attribute: s
   )
 }
 
-function StatusAlert({ status, conflict }: Pick<TermEvaluationProps, "status" | "conflict">) {
+function StatusAlert({
+  status,
+  conflict,
+  onRecalculate,
+}: Pick<TermEvaluationProps, "status" | "conflict" | "onRecalculate">) {
   switch (status) {
     case "stale":
       return (
@@ -232,6 +293,7 @@ function StatusAlert({ status, conflict }: Pick<TermEvaluationProps, "status" | 
       return (
         <RetryAlert
           title={status === "failed" ? "Výpočet se nezdařil" : "Výpočet nedoběhl v časovém limitu"}
+          onRetry={onRecalculate}
         />
       )
     case "infeasible":
@@ -276,6 +338,14 @@ export function TermEvaluation({
   confirmedResult,
   isLoadFailed = false,
   children,
+  onSelectTerm,
+  onSelectQueue,
+  onRecalculate,
+  recalculateError,
+  onRetryLoad,
+  onConfirmAll,
+  decisions = {},
+  renderName,
 }: TermEvaluationProps) {
   const selectedTerm = terms.find((term) => term.id === selectedTermId)
   const suitable = people.filter((person) => person.result === "suitable").length
@@ -296,21 +366,30 @@ export function TermEvaluation({
         Vyhodnocení termínu
       </h2>
 
-      <Tabs value={selectedTermId}>
-        <TabsList aria-label="Termín">
-          {terms.map((term) => (
-            <TabsTrigger
-              key={term.id}
-              value={term.id}
-            >
-              {term.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <Tabs
+        value={selectedTermId}
+        onValueChange={onSelectTerm}
+      >
+        {/* Many terms scroll inside their row, never the page (360 px). */}
+        <div className="max-w-full overflow-x-auto pb-1">
+          <TabsList aria-label="Termín">
+            {terms.map((term) => (
+              <TabsTrigger
+                key={term.id}
+                value={term.id}
+              >
+                {term.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         <TabsContent value={selectedTermId}>
           {isLoadFailed ? (
-            <RetryAlert title="Vyhodnocení termínu se nepodařilo načíst" />
+            <RetryAlert
+              title="Vyhodnocení termínu se nepodařilo načíst"
+              onRetry={onRetryLoad}
+            />
           ) : (
             <div className="mt-2 space-y-6">
               <Card>
@@ -336,21 +415,35 @@ export function TermEvaluation({
                       <Button
                         variant="outline"
                         disabled={isRunning}
+                        onClick={onRecalculate}
                       >
                         {isRunning ? <Loader2 className="animate-spin" /> : <RefreshCw />}
                         {isRunning ? "Přepočítává se…" : "Přepočítat"}
                       </Button>
-                      <Button disabled={!canConfirm}>
-                        Potvrdit všechny vhodné{canConfirm ? ` (${suitable})` : ""}
-                      </Button>
+                      {onConfirmAll ? (
+                        <Button
+                          disabled={!canConfirm}
+                          onClick={onConfirmAll}
+                        >
+                          Potvrdit všechny vhodné{canConfirm ? ` (${suitable})` : ""}
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
+              {recalculateError ? (
+                <ErrorAlert
+                  title="Přepočet se nepodařilo spustit"
+                  detail={recalculateError}
+                />
+              ) : null}
+
               <StatusAlert
                 status={status}
                 conflict={conflict}
+                onRecalculate={onRecalculate}
               />
 
               {confirmedResult ? (
@@ -412,27 +505,35 @@ export function TermEvaluation({
                     >
                       Pořadí
                     </h3>
-                    <Tabs defaultValue={selectedQueue}>
-                      <TabsList aria-label="Fronta">
-                        <TabsTrigger value="all">Celý termín ({people.length})</TabsTrigger>
-                        {attribute
-                          ? queues.map((queue) => (
-                              <TabsTrigger
-                                key={queue.id}
-                                value={queue.id}
-                              >
-                                {queue.label} ({queue.pending + queue.waitlisted})
-                              </TabsTrigger>
-                            ))
-                          : null}
-                        {manual.length > 0 ? (
-                          <TabsTrigger value="manual">Ruční určení ({manual.length})</TabsTrigger>
-                        ) : null}
-                      </TabsList>
+                    <Tabs
+                      {...(onSelectQueue
+                        ? { value: selectedQueue, onValueChange: onSelectQueue }
+                        : { defaultValue: selectedQueue })}
+                    >
+                      <div className="max-w-full overflow-x-auto pb-1">
+                        <TabsList aria-label="Fronta">
+                          <TabsTrigger value="all">Celý termín ({people.length})</TabsTrigger>
+                          {attribute
+                            ? queues.map((queue) => (
+                                <TabsTrigger
+                                  key={queue.id}
+                                  value={queue.id}
+                                >
+                                  {queue.label} ({queue.pending + queue.waitlisted})
+                                </TabsTrigger>
+                              ))
+                            : null}
+                          {manual.length > 0 ? (
+                            <TabsTrigger value="manual">Ruční určení ({manual.length})</TabsTrigger>
+                          ) : null}
+                        </TabsList>
+                      </div>
                       <TabsContent value="all">
                         <OrderTable
                           people={people}
                           attribute={attribute}
+                          decisions={decisions}
+                          renderName={renderName}
                         />
                       </TabsContent>
                       {queues.map((queue) => {
@@ -450,6 +551,8 @@ export function TermEvaluation({
                               <OrderTable
                                 people={inQueue}
                                 attribute={attribute}
+                                decisions={decisions}
+                                renderName={renderName}
                               />
                             </div>
                           </TabsContent>
@@ -459,6 +562,8 @@ export function TermEvaluation({
                         <OrderTable
                           people={manual}
                           attribute={attribute}
+                          decisions={decisions}
+                          renderName={renderName}
                         />
                       </TabsContent>
                     </Tabs>

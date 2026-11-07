@@ -8,7 +8,7 @@ import {
   type OpenEvent,
   type TermSpec,
 } from "./support/api"
-import { closeDb, createMagicLink } from "./support/db"
+import { closeDb, createMagicLink, decideTerms } from "./support/db"
 
 // Changing an own registration (F35-2a): a move outside the organizer's
 // approval threshold is made at once; a change touching a term inside it
@@ -37,6 +37,7 @@ async function setUp(browser: Browser, organizerPage: Page) {
     jana,
     event.termIds.slice(0, 2),
   )
+  await decideTerms(registration.id, "confirmed")
 
   const context = await browser.newContext()
   const participant = await context.newPage()
@@ -74,11 +75,15 @@ test("a move outside the approval threshold is made at once", async ({ page, bro
   await expect(
     review.getByText("Storno poplatek a případnou vratku řeší organizátor"),
   ).toBeVisible()
+  // The new term waits for the organizer, so the confirmed place needs consent (S3-01).
+  await expect(review.getByText(/O účasti v termínu Turnus 3 rozhodne organizátor/)).toBeVisible()
+  await expect(review.getByRole("button", { name: "Potvrdit změnu" })).toBeDisabled()
+  await review.getByRole("checkbox", { name: /Souhlasím/ }).check()
   await review.getByRole("button", { name: "Potvrdit změnu" }).click()
 
   await expect(participant.getByRole("heading", { name: event.name, level: 1 })).toBeVisible()
   await expect(termRow(participant, "Turnus 2")).toContainText("Odhlášeno")
-  await expect(termRow(participant, "Turnus 3")).toContainText("Potvrzeno")
+  await expect(termRow(participant, "Turnus 3")).toContainText("Čeká na rozhodnutí organizátora")
   await expect(termRow(participant, "Turnus 1")).toContainText("Potvrzeno")
   await expect(participant.getByText("Historie změn")).toBeVisible()
   await context.close()

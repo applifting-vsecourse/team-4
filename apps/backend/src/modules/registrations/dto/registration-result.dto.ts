@@ -6,6 +6,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 
 const STATUSES: ParticipationStatus[] = [
+  'pending',
   'confirmed',
   'waitlisted',
   'cancelled',
@@ -30,7 +31,9 @@ export class RegistrationTermResultDto {
   @ApiProperty({
     enum: STATUSES,
     description:
-      '`confirmed` holds a bed in this term; `waitlisted` holds none and creates no payment obligation.',
+      "`pending` waits for the organizer's decision; `confirmed` holds a bed " +
+      'in this term; `pending` and `waitlisted` hold none and create no ' +
+      'payment obligation.',
   })
   status!: ParticipationStatus;
 
@@ -118,13 +121,13 @@ export class RegistrationResultDto {
 
   @ApiProperty({
     description:
-      'Sum of the selected terms in haléře. Not the amount due: waitlisted terms are included.',
+      'Sum of the selected terms in haléře. Not the amount due: unconfirmed terms are included.',
   })
   selectedPriceMinor!: number;
 
   @ApiProperty({
     description:
-      'Sum of the confirmed terms in haléře; 0 when all are waitlisted or free.',
+      'Sum of the confirmed terms in haléře; 0 when none is confirmed or all are free.',
   })
   amountDueMinor!: number;
 

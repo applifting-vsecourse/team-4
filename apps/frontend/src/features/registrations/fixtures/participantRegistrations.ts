@@ -110,7 +110,7 @@ export const SETTLED_REGISTRATION: ParticipantRegistration = participantRegistra
 
 export const OWN_REGISTRATIONS: ParticipantRegistration[] = [OWN_REGISTRATION, SETTLED_REGISTRATION]
 
-/** Terms of the event the registration could move to; the second one is full. */
+/** Terms of the event the registration could move to. */
 export const AVAILABLE_TERMS = [
   ...OWN_REGISTRATION.terms.map(({ termId, label, startDate, endDate, priceMinor }) => ({
     termId,
@@ -118,7 +118,6 @@ export const AVAILABLE_TERMS = [
     startDate,
     endDate,
     priceMinor,
-    isFull: false,
   })),
   {
     termId: uuid(103),
@@ -126,6 +125,5 @@ export const AVAILABLE_TERMS = [
     startDate: "2027-08-15",
     endDate: "2027-08-28",
     priceMinor: 450_000,
-    isFull: true,
   },
 ]

@@ -1,11 +1,13 @@
 import { test } from "@playwright/test"
 
+import { closeDb, decideTerms, registrationIdOf } from "./support/db"
 import { contextOptions, endDemo, expect, step, type } from "./support/demo"
 import { definition, pickDate } from "./support/ui"
 
 // The money path end to end, through the real UI, API and database: an
-// organizer prepares an event with one bed, two participants register (one
-// gets the bed, one is waitlisted), and recorded payments settle the debt.
+// organizer prepares an event with one bed, two participants register and
+// wait for the decision, one gets the bed and one is waitlisted, and recorded
+// payments settle the debt.
 //
 // `pnpm frontend demo` runs this as a guided walkthrough (see support/demo.ts).
 
@@ -15,6 +17,8 @@ const organizer = {
   email: `eva-${run}@example.test`,
   password: "demo-heslo-123",
 }
+
+test.afterAll(closeDb)
 
 test("an organizer opens an event, participants register and payments settle the debt", async ({
   page,
@@ -105,19 +109,27 @@ test("an organizer opens an event, participants register and payments settle the
     return visitor.getByRole("region", { name: "Přihláška je uložená" })
   }
 
-  await step(visitor, "7 · Anna se přihlásí a dostane poslední lůžko", async () => {
-    const result = await register("Anna", "Nováková", `anna-${run}@example.test`)
-    await expect(result.getByText("Potvrzeno")).toBeVisible()
-    await expect(definition(result, "Zbývá zaplatit")).toHaveText("4 500 Kč")
-    await expect(definition(result, "Číslo účtu")).toHaveText("2000145399/0800")
+  const anna = `anna-${run}@example.test`
+  const petr = `petr-${run}@example.test`
+
+  await step(visitor, "7 · Anna se přihlásí a čeká na rozhodnutí pořadatelky", async () => {
+    const result = await register("Anna", "Nováková", anna)
+    await expect(result.getByText("Čeká na rozhodnutí organizátora")).toBeVisible()
+    await expect(result.getByText("Nyní nemáte platební povinnost.")).toBeVisible()
   })
 
-  await step(visitor, "8 · Petr se přihlásí, lůžko už není: je náhradník", async () => {
-    const result = await register("Petr", "Svoboda", `petr-${run}@example.test`)
-    await expect(result.getByText("Náhradník")).toBeVisible()
+  await step(visitor, "8 · Petr se přihlásí a také čeká", async () => {
+    const result = await register("Petr", "Svoboda", petr)
+    await expect(result.getByText("Čeká na rozhodnutí organizátora")).toBeVisible()
   })
 
-  await step(page, "9 · Pořadatelka vidí obsazenost a obě přihlášky", async () => {
+  // Until the term evaluation offers the decision (S3-01), it is made in the data.
+  await step(page, "9 · Pořadatelka potvrdí Annu, Petr bude náhradník", async () => {
+    await decideTerms(await registrationIdOf(anna), "confirmed")
+    await decideTerms(await registrationIdOf(petr), "waitlisted")
+  })
+
+  await step(page, "10 · Pořadatelka vidí obsazenost a obě přihlášky", async () => {
     await page.getByRole("link", { name: "Ubytování" }).first().click()
     // The page may show the counts cached when the room was saved: a suspense
     // query counts as fresh for a second, and the test gets here faster than
@@ -139,14 +151,14 @@ test("an organizer opens an event, participants register and payments settle the
     await expect(dialog).toBeHidden()
   }
 
-  await step(page, "10 · Zapíše Anně zálohu 2 000 Kč", async () => {
+  await step(page, "11 · Zapíše Anně zálohu 2 000 Kč", async () => {
     await page.getByRole("link", { name: "Otevřít přihlášku Anna Nováková" }).click()
     await recordPayment("2000")
     await expect(page.getByText("Částečně zaplaceno")).toBeVisible()
     await expect(definition(page, "Dluh")).toHaveText("2 500 Kč")
   })
 
-  await step(page, "11 · Doplatek 2 500 Kč vyrovná dluh", async () => {
+  await step(page, "12 · Doplatek 2 500 Kč vyrovná dluh", async () => {
     await recordPayment("2500")
     await expect(page.getByText("Zaplaceno", { exact: true }).first()).toBeVisible()
     await expect(definition(page, "Přijato")).toHaveText("4 500 Kč")

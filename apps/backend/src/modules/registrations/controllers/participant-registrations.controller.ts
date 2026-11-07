@@ -137,10 +137,11 @@ export class ParticipantRegistrationsController {
   @ApiOperation({
     summary: 'Makes a change, or files it as a request for approval',
     description:
-      'The capacity and the approval threshold are checked again here. 409: ' +
-      '`registration_stale` (changed meanwhile), `approval_changed`, ' +
-      '`waitlist_consent_required` (the move would end on the waitlist), ' +
-      '`change_pending`. The two latter carry a fresh `preview`.',
+      'The approval threshold is checked again here. A moved-to term waits ' +
+      "for the organizer's decision. 409: `registration_stale` (changed " +
+      'meanwhile), `approval_changed`, `release_consent_required` (the move ' +
+      'gives up a confirmed place), `change_pending`. `approval_changed` and ' +
+      '`release_consent_required` carry a fresh `preview`.',
   })
   @ApiResponse({ status: 200, type: SubmittedChangeDto })
   async submit(
@@ -158,28 +159,5 @@ export class ParticipantRegistrationsController {
       outcome: result.outcome,
       change: RegistrationChangeDto.from(result.change),
     };
-  }
-
-  @Post(':registrationId/changes/:changeId/accept-waitlist')
-  @HttpCode(200)
-  @ApiOperation({
-    summary: 'Accepts the waitlist for the moves of a waiting request',
-    description:
-      'After the target term filled up the request cannot be approved until ' +
-      'the participant consents to the new result.',
-  })
-  @ApiResponse({ status: 200, type: RegistrationChangeDto })
-  async acceptWaitlist(
-    @CurrentParticipant() participant: ParticipantIdentity,
-    @Param('registrationId', ParseUUIDPipe) registrationId: string,
-    @Param('changeId', ParseUUIDPipe) changeId: string,
-  ): Promise<RegistrationChangeDto> {
-    return RegistrationChangeDto.from(
-      await this.changes.acceptWaitlist(
-        participant.accountId,
-        registrationId,
-        changeId,
-      ),
-    );
   }
 }

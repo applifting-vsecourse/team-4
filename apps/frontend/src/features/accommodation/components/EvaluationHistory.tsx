@@ -73,6 +73,9 @@ export type EvaluationHistoryProps = {
   entries: HistoryEntry[]
   /** The history could not be loaded; never shown as an empty history. */
   isLoadFailed?: boolean
+  onRetry?: () => void
+  /** Opens the evidence of a run; without it the run has no "Doklad". */
+  onOpenRun?: (runId: string) => void
 }
 
 const RUN_BADGE: Record<
@@ -85,7 +88,13 @@ const RUN_BADGE: Record<
   failed: { label: "Selhalo", variant: "destructive-subtle" },
 }
 
-function EntryBody({ entry }: { entry: HistoryEntry }) {
+function EntryBody({
+  entry,
+  onOpenRun,
+}: {
+  entry: HistoryEntry
+  onOpenRun?: (runId: string) => void
+}) {
   switch (entry.kind) {
     case "run":
       return (
@@ -99,12 +108,15 @@ function EntryBody({ entry }: { entry: HistoryEntry }) {
             </div>
             {entry.summary ? <p>{entry.summary}</p> : null}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-          >
-            Doklad
-          </Button>
+          {onOpenRun ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenRun(entry.id)}
+            >
+              Doklad
+            </Button>
+          ) : null}
         </div>
       )
     case "move":
@@ -160,6 +172,8 @@ export function EvaluationHistory({
   title,
   entries,
   isLoadFailed = false,
+  onRetry,
+  onOpenRun,
 }: EvaluationHistoryProps) {
   return (
     <Card>
@@ -168,7 +182,10 @@ export function EvaluationHistory({
       </CardHeader>
       <CardContent>
         {isLoadFailed ? (
-          <RetryAlert title="Historii se nepodařilo načíst" />
+          <RetryAlert
+            title="Historii se nepodařilo načíst"
+            onRetry={onRetry}
+          />
         ) : entries.length === 0 ? (
           <Empty>
             <EmptyHeader>
@@ -188,7 +205,10 @@ export function EvaluationHistory({
                 <p className="text-muted-foreground">
                   {entry.at} · {entry.author}
                 </p>
-                <EntryBody entry={entry} />
+                <EntryBody
+                  entry={entry}
+                  onOpenRun={onOpenRun}
+                />
               </li>
             ))}
           </ol>

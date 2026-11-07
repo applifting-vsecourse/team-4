@@ -467,8 +467,33 @@ const stored = async (
 
 // F64: the voluntary gender answer as the organizer reads and corrects it.
 describe('the gender answer', () => {
-  it('reads an unanswered registration as not answered, decided by hand', async () => {
+  /** Gender decides the rooms (S3-01): without it nobody is decided by hand. */
+  const genderEvent = async (): Promise<
+    Awaited<ReturnType<typeof eventWith>>
+  > => {
     const f = await eventWith();
+    await prisma.accommodationRules.create({
+      data: {
+        eventId: f.event.id,
+        hardAttribute: 'gender',
+        nonDeterminingValues: ['other', 'undisclosed'],
+      },
+    });
+    return f;
+  };
+
+  it('marks nobody as decided by hand when the event has no hard attribute', async () => {
+    const f = await eventWith();
+    const registration = await f.register({ 0: 'confirmed' });
+    const detail = await get(f.ownerId, `${f.path}/${registration.id}`);
+    expect(detail.body).toMatchObject({
+      gender: null,
+      requiresManualAccommodation: false,
+    });
+  });
+
+  it('reads an unanswered registration as not answered, decided by hand', async () => {
+    const f = await genderEvent();
     const registration = await f.register({ 0: 'confirmed' });
     const detail = await get(f.ownerId, `${f.path}/${registration.id}`);
     expect(detail.body).toMatchObject({
@@ -481,7 +506,7 @@ describe('the gender answer', () => {
   });
 
   it('is corrected, kept after a reload, and cleared back to not answered', async () => {
-    const f = await eventWith();
+    const f = await genderEvent();
     const registration = await f.register({ 0: 'confirmed' });
     const path = `${f.path}/${registration.id}`;
 
@@ -518,7 +543,7 @@ describe('the gender answer', () => {
   });
 
   it('keeps own words with "Jiná odpověď" and drops them with another answer', async () => {
-    const f = await eventWith();
+    const f = await genderEvent();
     const registration = await f.register({ 0: 'confirmed' });
     const path = `${f.path}/${registration.id}`;
 

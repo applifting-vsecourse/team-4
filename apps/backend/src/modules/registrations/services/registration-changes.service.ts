@@ -48,11 +48,11 @@ const previewOf = (plan: ChangePlan, version = 0): object => ({
   requiresApproval: plan.requiresApproval,
   kinds: plan.kinds,
   moves: plan.moves.map(
-    ({ fromTermId, toTermId, resultStatus, requiresWaitlistConsent }) => ({
+    ({ fromTermId, toTermId, resultStatus, requiresReleaseConsent }) => ({
       fromTermId,
       toTermId,
       resultStatus,
-      requiresWaitlistConsent,
+      requiresReleaseConsent,
     }),
   ),
   summary: plan.summary,
@@ -81,10 +81,10 @@ const refuse = (outcome: Failure, version?: number): Error => {
         'Pravidla schvalování se mezitím změnila. Zkontrolujte změnu znovu.',
         { preview: previewOf(outcome.plan, version) },
       );
-    case 'waitlist_consent_required':
+    case 'release_consent_required':
       return conflict(
-        'waitlist_consent_required',
-        'Přesun by skončil mezi náhradníky. Je potřeba váš souhlas.',
+        'release_consent_required',
+        'Přesunem přijdete o potvrzené místo a nový termín čeká na rozhodnutí organizátora. Je potřeba váš souhlas.',
         { preview: previewOf(outcome.plan, version) },
       );
     case 'invalid':
@@ -138,20 +138,6 @@ export class RegistrationChangesService {
       return { outcome: outcome.kind, change: outcome.change };
     }
     throw refuse(outcome, input.expectedVersion);
-  }
-
-  async acceptWaitlist(
-    accountId: string,
-    registrationId: string,
-    changeId: string,
-  ): Promise<RegistrationChangeModel> {
-    const change = await this.repository.acceptWaitlist(
-      accountId,
-      registrationId,
-      changeId,
-    );
-    if (!change) throw unavailable();
-    return change;
   }
 
   async listOwn(

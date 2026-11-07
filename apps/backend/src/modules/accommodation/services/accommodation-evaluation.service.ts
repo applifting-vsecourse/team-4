@@ -17,6 +17,10 @@ export const SOLVER_VERSION = 'highs-phase1/1';
 export type EvaluationOptions = {
   /** The organizer who asked for it; null when the system did. */
   triggeredById: string | null;
+  /** The id of a claimed evaluation (S3-01); generated otherwise. */
+  runId?: string;
+  /** The input version the evaluation stands for; the term's current one otherwise. */
+  inputVersion?: number;
   /** Wall-clock limit of the solver (spec: 30 s per term). */
   timeLimitMs?: number;
 };
@@ -41,7 +45,7 @@ export class AccommodationEvaluationService {
   async evaluateTerm(
     eventId: string,
     termId: string,
-    { triggeredById, timeLimitMs }: EvaluationOptions,
+    { triggeredById, runId, inputVersion, timeLimitMs }: EvaluationOptions,
   ): Promise<AccommodationRunModel | null> {
     const startedAt = new Date();
     const term = await this.repository.findTerm(eventId, termId);
@@ -76,6 +80,7 @@ export class AccommodationEvaluationService {
     }
 
     return this.repository.createRun({
+      id: runId,
       eventId,
       termId,
       status: result?.status ?? 'failed',
@@ -84,6 +89,7 @@ export class AccommodationEvaluationService {
       input: snapshot,
       result,
       error,
+      inputVersion: inputVersion ?? term.inputVersion,
       startedAt,
       finishedAt: new Date(),
     });
