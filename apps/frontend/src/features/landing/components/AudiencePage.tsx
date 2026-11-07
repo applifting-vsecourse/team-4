@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { ArrowRight, type LucideIcon } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { PublicShell } from "@/components/PublicShell"
@@ -111,10 +111,7 @@ export function AudiencePage({
             asChild
             variant="link"
           >
-            <Link to={otherAudience.to}>
-              {otherAudience.label}
-              <ArrowRight aria-hidden />
-            </Link>
+            <Link to={otherAudience.to}>{otherAudience.label}</Link>
           </Button>
         </nav>
       </div>
