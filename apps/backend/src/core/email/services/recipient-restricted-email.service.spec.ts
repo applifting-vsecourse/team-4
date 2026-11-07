@@ -24,6 +24,7 @@ describe('RecipientRestrictedEmailService', () => {
       ' allowed@example.com ',
       'Hi',
       '<p>x</p>',
+      undefined,
     );
   });
 

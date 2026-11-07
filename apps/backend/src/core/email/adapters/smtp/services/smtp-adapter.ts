@@ -1,6 +1,7 @@
 import { SMTPConfig } from '@/core/email/adapters/smtp/interfaces/smtp-config.interface';
 import {
   EmailService,
+  InlineImage,
   SendResult,
 } from '@/core/email/interfaces/email-service.interface';
 import { Injectable } from '@nestjs/common';
@@ -26,12 +27,19 @@ export class SMTPAdapter implements EmailService {
     to: string,
     subject: string,
     html: string,
+    inlineImages: InlineImage[] = [],
   ): Promise<SendResult> {
     const info = await this.transporter.sendMail({
       from: this.config.user,
       to,
       subject,
       html,
+      attachments: inlineImages.map((image) => ({
+        filename: image.filename,
+        content: image.content,
+        contentType: image.contentType,
+        cid: image.cid,
+      })),
     });
     return { sent: true, messageId: info.messageId ?? null };
   }
