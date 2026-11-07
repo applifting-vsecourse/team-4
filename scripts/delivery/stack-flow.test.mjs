@@ -6,6 +6,9 @@ import { execFileSync } from 'node:child_process';
 // is never called: passes are seeded, or carried over from an earlier commit.
 async function flow() {
   const assert = (await import('node:assert/strict')).default;
+  const { mkdtemp, rm, writeFile } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
   const { setTimeout: sleep } = await import('node:timers/promises');
   const { prMarker } = await import('./scripts/agent-review/lib.mjs');
   const { sliceFingerprint } = await import('./scripts/delivery/stack.mjs');
@@ -38,7 +41,7 @@ async function flow() {
       state: 'open',
       draft: false,
       title: `slice ${i + 1}`,
-      body: 'Refs #78',
+      body: number === tipNumber ? 'Closes #78' : 'Refs #78',
       labels: [{ name: 'severity:standard' }],
       user: { login: 'developer' },
       head: { ref: `branch-${number}`, sha },
@@ -129,15 +132,26 @@ async function flow() {
                         repository: { nameWithOwner: 'owner/repo' },
                         closedByPullRequestsReferences: {
                           pageInfo: { hasNextPage: false },
-                          nodes: prs.map((pr) => ({
-                            number: pr.number,
-                            state: 'OPEN',
-                            repository: { nameWithOwner: 'owner/repo' },
-                          })),
+                          nodes: [],
                         },
                         timelineItems: {
                           pageInfo: { hasNextPage: false },
-                          nodes: [],
+                          nodes: prs.map((pr) => ({
+                            __typename: 'CrossReferencedEvent',
+                            source: {
+                              __typename: 'PullRequest',
+                              number: pr.number,
+                              state: pr.state.toUpperCase(),
+                              body: pr.body,
+                              baseRefName: pr.base.ref,
+                              repository: { nameWithOwner: 'owner/repo' },
+                            },
+                            target: {
+                              __typename: 'Issue',
+                              number: 78,
+                              repository: { nameWithOwner: 'owner/repo' },
+                            },
+                          })),
                         },
                       },
                     },
@@ -160,9 +174,7 @@ async function flow() {
             repository: {
               pullRequest: {
                 closingIssuesReferences: {
-                  nodes: [
-                    { number: 78, repository: { nameWithOwner: 'owner/repo' } },
-                  ],
+                  nodes: [],
                   pageInfo: { hasNextPage: false },
                 },
               },
@@ -222,9 +234,24 @@ async function flow() {
     assert.equal(process.exitCode ?? 0, 0, 'agent-review failed');
     await sleep(5);
   }
-  async function deliver() {
-    process.exitCode = 0;
-    await import(`./scripts/delivery/run.mjs?flow=${run++}`);
+  async function deliver(eventName, number) {
+    const dir = await mkdtemp(join(tmpdir(), 'stack-flow-'));
+    try {
+      if (eventName) {
+        process.env.GITHUB_EVENT_NAME = eventName;
+        process.env.GITHUB_EVENT_PATH = join(dir, 'event.json');
+        await writeFile(
+          process.env.GITHUB_EVENT_PATH,
+          JSON.stringify({ pull_request: { number } }),
+        );
+      }
+      process.exitCode = 0;
+      await import(`./scripts/delivery/run.mjs?flow=${run++}`);
+    } finally {
+      process.env.GITHUB_EVENT_NAME = 'schedule';
+      process.env.GITHUB_EVENT_PATH = '';
+      await rm(dir, { recursive: true, force: true });
+    }
     assert.equal(process.exitCode ?? 0, 0, 'delivery check errored');
     await sleep(5);
     return Object.fromEntries(
@@ -258,7 +285,15 @@ async function flow() {
     submitted_at: new Date().toISOString(),
   });
   await sleep(5);
-  result = await deliver();
+  result = await deliver('pull_request_review', tipNumber);
+  assert.deepEqual(passing(result), NUMBERS);
+
+  // A dismissed approval invalidates every lower head even though none moved.
+  reviews.get(tipNumber)[0].state = 'DISMISSED';
+  result = await deliver('pull_request_review', tipNumber);
+  assert.deepEqual(passing(result), []);
+  reviews.get(tipNumber)[0].state = 'APPROVED';
+  result = await deliver('pull_request_review', tipNumber);
   assert.deepEqual(passing(result), NUMBERS);
 
   // 4. The parent of #15 gets a merge from main, then every branch above it
@@ -280,11 +315,8 @@ async function flow() {
     pr.head.sha = sha;
   }
   // Delivery sees new heads with no QA yet: the old tip approval is stale.
-  result = await deliver();
-  assert.deepEqual(
-    passing(result).filter((n) => n >= 14),
-    [],
-  );
+  result = await deliver('pull_request_target', tipNumber);
+  assert.deepEqual(passing(result), []);
 
   // 5. Review again: the passes carry over (Copilot is not installed here, so
   //    a real review would error) and QA is asked once more at the new tip.
@@ -319,7 +351,7 @@ async function flow() {
     new Set([...contains.get(edited.head.sha), editedSha]),
   );
   edited.head.sha = editedSha;
-  result = await deliver();
+  result = await deliver('pull_request_target', edited.number);
   assert.ok(
     !passing(result).some((n) => n <= 15),
     'tip does not contain the edited commit yet',

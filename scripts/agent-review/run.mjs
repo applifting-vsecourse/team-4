@@ -184,7 +184,7 @@ async function loadBoard() {
                       ... on CrossReferencedEvent {
                         source {
                           __typename
-                          ... on PullRequest { number state body repository { nameWithOwner } }
+                          ... on PullRequest { number state body baseRefName repository { nameWithOwner } }
                         }
                         target { __typename ... on Issue { number repository { nameWithOwner } } }
                       }

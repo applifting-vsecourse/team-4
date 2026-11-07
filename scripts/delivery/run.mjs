@@ -55,15 +55,17 @@ async function issuesFor(pr) {
   const linked = response.data.repository.pullRequest.closingIssuesReferences;
   if (linked.pageInfo.hasNextPage) throw new Error('Too many linked issues');
   const references = await Promise.all(
-    referencedIssueNumbers(pr.body).map(async (number) => {
-      const issue = await api(`/repos/${repo}/issues/${number}`);
-      if (issue.pull_request)
-        throw new Error(`#${number} refers to a pull request, not an issue`);
-      return {
-        number: issue.number,
-        repository: { nameWithOwner: repo },
-      };
-    }),
+    referencedIssueNumbers(pr.body, { stacked: pr.base.ref !== 'main' }).map(
+      async (number) => {
+        const issue = await api(`/repos/${repo}/issues/${number}`);
+        if (issue.pull_request)
+          throw new Error(`#${number} refers to a pull request, not an issue`);
+        return {
+          number: issue.number,
+          repository: { nameWithOwner: repo },
+        };
+      },
+    ),
   );
   const issues = [
     ...new Map(
@@ -106,7 +108,7 @@ async function reconcileChecks(pr, conclusion, summary) {
 
 // Find the stack around a PR with targeted lookups (the PR below it, the PRs
 // on top of it), so a PR event never scans every open PR.
-async function stackOf(pr) {
+async function stackNeighborhood(pr) {
   const owner = repo.split('/')[0];
   const nodes = new Map([[pr.number, pr]]);
   const open = (query) => list(`/repos/${repo}/pulls?state=open&${query}`);
@@ -122,7 +124,7 @@ async function stackOf(pr) {
     nodes.set(parent.number, parent);
     below = parent;
   }
-  const queue = [pr];
+  const queue = [...nodes.values()];
   while (queue.length) {
     const from = queue.shift();
     for (const child of others(
@@ -133,8 +135,7 @@ async function stackOf(pr) {
       queue.push(child);
     }
   }
-  const { stacks } = buildStacks([...nodes.values()]);
-  return stacks.find((st) => st.prs.some((p) => p.number === pr.number));
+  return [...nodes.values()];
 }
 // Whether `bottom` still targets the branch of a PR which has already merged
 // and contains that PR's head; a reused branch name proves nothing.
@@ -165,14 +166,25 @@ const scope = await eventScope();
 const onlyIssue = process.env.ONLY_ISSUE
   ? Number(process.env.ONLY_ISSUE)
   : null;
-const candidates =
+const eventPrs =
   scope.type === 'prs'
-    ? await Promise.all(
-        scope.numbers.map((number) => api(`/repos/${repo}/pulls/${number}`)),
-      )
+    ? scope.numbers
     : scope.type === 'pr'
-      ? [await api(`/repos/${repo}/pulls/${scope.number}`)]
-      : await list(`/repos/${repo}/pulls?state=open`);
+      ? [scope.number]
+      : null;
+const neighborhoods = eventPrs
+  ? await Promise.all(
+      eventPrs.map(async (number) =>
+        stackNeighborhood(await api(`/repos/${repo}/pulls/${number}`)),
+      ),
+    )
+  : [await list(`/repos/${repo}/pulls?state=open`)];
+const candidates = [
+  ...new Map(neighborhoods.flat().map((pr) => [pr.number, pr])).values(),
+];
+const stackByPr = new Map();
+for (const stack of buildStacks(candidates).stacks)
+  for (const pr of stack.prs) stackByPr.set(pr.number, stack);
 for (let pr of candidates) {
   if (pr.state !== 'open') continue;
   // Commit statuses do not become synthetic jobs in an unrelated Actions suite.
@@ -199,7 +211,7 @@ for (let pr of candidates) {
     await publish('pending', 'Checking requirements, agent review and QA');
     // A stack is judged as one unit: QA of the tip commit covers every PR the
     // tip contains. Anything that is not a plain chain onto main keeps waiting.
-    const stack = await stackOf(pr);
+    const stack = stackByPr.get(pr.number);
     const stacked = stack && stack.prs.length > 1;
     // After the PR below has merged, the rest of a stack still targets its
     // branch until `/merge-stack` retargets it: that is a stack waiting its turn,
