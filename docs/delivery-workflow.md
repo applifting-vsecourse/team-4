@@ -164,7 +164,7 @@ implementation commits even when GitHub dismisses the old native PR review.
 A stack is a linear chain of open PRs in one repository where each PR targets the
 branch of the PR below it and the bottom PR targets `main`. The workflow judges a
 stack as one change: each slice is reviewed on its own, QA happens once on the
-tip, and the whole stack merges with one command. Two PRs on one base, two open PRs from one
+tip, and the whole stack merges in one atomic merge. Two PRs on one base, two open PRs from one
 branch, a cycle or a fork-based PR are not stacks; they keep the per-PR behaviour above, so a PR
 whose base is not main and not part of a plain stack waits for its prerequisite.
 
@@ -207,35 +207,25 @@ tested.
   records, and QA must come after all of them. A new commit anywhere in the stack
   that the tip does not contain, or on the tip itself, needs a new approval.
 - **Severity and technical review** are judged per PR as before.
-- **Merging.** Comment `/merge-stack` on any PR of the stack. Only `darebakdavca`,
-  `rmnskb` and `MatejKrones` can use it. The command is read back from the API,
-  as `/copilot-waive` is, so an edited or deleted comment is not a command.
-  The bot refuses, merging nothing and replying with the reasons, unless every
-  PR's `Delivery stages` status and `verify` CI run are green, no PR is a draft
-  and the stack is in sync. The comment itself re-runs the delivery check for the stack, which marks each PR pending for a moment, so the bot waits up to five minutes for pending results to settle and judges what they settle to. It then merges bottom to top with merge commits, guarded by each head
-  SHA, retargets the next PR to `main` and waits for its fresh `Delivery stages`
-  result (up to ten minutes) before merging it; a result which is replaced
-  while it settles is judged again. Merge commits keep the QA-tested
-  commits in `main`'s history, so the heads above do not change. Branch
-  protection (CI and `Delivery stages`) still decides what can merge. The bot
-  replies once with the result; after an interruption, comment again and it
-  continues from the next open PR (the last one alone included, and the
-  stack stays green and keeps its review and QA meanwhile), provided the stack still contains the
-  merged PR's head (a reused branch name is not enough). `/merge-stack check` replies with the plan
-  and changes nothing. Commands run one stack at a time.
-  A lone PR is not a stack: use the merge button. If GitHub already retargeted
-  the next PR (branch deleted on merge), the bot still waits for its fresh
-  `Delivery stages` result before merging it. Only the three people above can
-  start a run at all: the workflow ignores everyone else's comments. GitHub keeps
-  only one queued run per concurrency group, so if a second command is queued
-  while one runs and a third arrives, the second is dropped without a reply:
-  comment again once the first has finished.
-  Merges and retargets are made with the `PROJECT_AUTOMATION_TOKEN` secret, so its
-  owner must be allowed to merge to `main` and the token needs Contents and Pull
-  requests read/write in addition to Projects. A merge made with the workflow
-  token would trigger no deploy, release or re-evaluation after the retarget.
-  Without the secret, `/merge-stack` replies that it is not configured and
-  `check` still works.
+- **Linking and merging.** After creating the PRs, link them into a stack on
+  GitHub with `gh stack link <PR numbers, bottom to top>`; it works from the PRs on
+  GitHub and needs no local tracking. The workflow detects a stack from branch
+  names and does not need the link: the link enables GitHub's atomic stack merge.
+  Merge with the stack merge button on any PR of the stack, or
+  `gh stack merge <stack-number> --merge`. The merge is atomic (all PRs merge or
+  none) and runs under the merger's own login, so branch protection (CI and
+  `Delivery stages`) applies and cannot be bypassed, and deploy and release run as
+  for any merge. Always choose the merge-commit method: squash and rebase rewrite
+  the commits that were reviewed and tested. Never use `gh stack sync`, `rebase`,
+  `push` or `submit` on a stack: they can rebase the branches, force-push them
+  (with lease) and rewrite the PR bases, which voids the reviews and the QA. GitHub refuses the ordinary merge endpoint for a PR
+  that belongs to a linked stack, so such a stack is merged as a stack. A stack
+  which is not linked can be merged by hand, bottom to top: merge the bottom PR
+  with a merge commit, retarget the next PR to `main`, wait until its
+  `Delivery stages` is green again, and repeat. While the rest of a stack still
+  targets the branch of a PR that merged on its own, its checks keep their result,
+  provided the stack still contains the merged PR's head (a reused branch name is
+  not enough).
 
 ## Manual Copilot waiver
 
@@ -366,8 +356,8 @@ evidence for the same head and unchanged policy/scope.
 
 ## Configuration and validation
 
-`PROJECT_AUTOMATION_TOKEN` is needed for the board and for `/merge-stack`;
-`COPILOT_GITHUB_TOKEN` is needed for agent review. The stage checker reads issue scope evidence with its normal
+`PROJECT_AUTOMATION_TOKEN` is needed for the board; `COPILOT_GITHUB_TOKEN` is needed
+for agent review. The stage checker reads issue scope evidence with its normal
 GITHUB_TOKEN. Neither workflow executes PR code with its write token. API,
 coverage and model failures must not produce a pass.
 

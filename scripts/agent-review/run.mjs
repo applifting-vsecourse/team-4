@@ -598,7 +598,7 @@ async function processIssue(board, item) {
       }
     };
     for (const stack of buildStacks(fetched).stacks) {
-      // After `/merge-stack` merged the bottom PR, the rest still targets its
+      // After the bottom PR of a stack was merged on its own, the rest still targets its
       // branch until the next one is retargeted: that stack carries on, even
       // when only one PR is left.
       const resuming = await resumableBase({

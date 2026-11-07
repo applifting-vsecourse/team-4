@@ -185,10 +185,12 @@ and automation are in [`docs/delivery-workflow.md`](docs/delivery-workflow.md#st
 - Do not ask for QA on lower PRs. When every slice has passed review the bot hands
   the stack to QA once, on the tip; QA tests the tip commit, which contains the
   whole change.
-- Merge by commenting `/merge-stack` on any PR of the stack (`/merge-stack check`
-  reports readiness without merging), not with the merge button. It merges bottom
-  to top with merge commits and retargets each next PR; squash merges break the
-  stack. Only David, Bogdan and Matej can use it.
+- After creating the PRs, link them into a stack on GitHub with
+  `gh stack link <PRs, bottom to top>`, and merge with the stack merge button (or
+  `gh stack merge <stack-number> --merge`). The merge is atomic. Always choose the
+  merge-commit method; squash and rebase break the stack. Never use
+  `gh stack sync`, `rebase`, `push` or `submit`: they can rebase and force-push
+  the branches and rewrite the PR bases.
 
 ### PRs handling
 
