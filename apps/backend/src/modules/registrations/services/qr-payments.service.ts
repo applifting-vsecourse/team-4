@@ -3,6 +3,7 @@ import {
   QrPaymentPage,
   QrPaymentsRepository,
 } from '@/modules/registrations/repositories/qr-payments.repository';
+import { ParticipantUpdateService } from '@/modules/registrations/services/participant-update.service';
 import {
   ConflictException,
   Injectable,
@@ -30,7 +31,10 @@ export type QrPaymentResult = {
  */
 @Injectable()
 export class QrPaymentsService {
-  constructor(private readonly repository: QrPaymentsRepository) {}
+  constructor(
+    private readonly repository: QrPaymentsRepository,
+    private readonly updates: ParticipantUpdateService,
+  ) {}
 
   async getPage(token: string): Promise<QrPaymentPage> {
     if (!PAYMENT_TOKEN_PATTERN.test(token)) throw unavailable();
@@ -52,6 +56,7 @@ export class QrPaymentsService {
     );
     switch (outcome.kind) {
       case 'paid':
+        this.updates.dispatch(outcome.registrationId);
         return outcome;
       case 'unavailable':
         throw unavailable();

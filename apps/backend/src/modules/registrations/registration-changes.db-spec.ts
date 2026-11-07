@@ -7,6 +7,7 @@ import { ParticipantRegistrationsRepository } from '@/modules/registrations/repo
 import { RegistrationChangesRepository } from '@/modules/registrations/repositories/registration-changes.repository';
 import { ParticipantRegistrationsService } from '@/modules/registrations/services/participant-registrations.service';
 import { RegistrationChangesService } from '@/modules/registrations/services/registration-changes.service';
+import { Mailbox, updateProviders } from '@/testing/confirmation-mail';
 import {
   CreatedEvent,
   createEvent,
@@ -16,6 +17,12 @@ import {
 } from '@/testing/factories';
 import { ExecutionContext, INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+
+// react-email's renderer cannot load under jest (see `render-markup.ts`).
+jest.mock('@/core/email/render', () => ({
+  renderEmail: (_template: unknown, props: object): Promise<string> =>
+    Promise.resolve(JSON.stringify(props)),
+}));
 
 // F35-2a through the HTTP API against a real database: changing, moving and
 // cancelling an own registration directly or through the organizer's approval,
@@ -87,6 +94,7 @@ beforeAll(async () => {
       ParticipantRegistrationsRepository,
       RegistrationChangesService,
       RegistrationChangesRepository,
+      ...updateProviders(new Mailbox()),
     ],
   }).compile();
   app = moduleRef.createNestApplication();

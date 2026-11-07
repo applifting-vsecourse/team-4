@@ -5,6 +5,7 @@ import {
   checkQrPayment,
   QrPaymentCheck,
 } from '@/modules/registrations/domain/qr-payment';
+import { queueParticipantUpdate } from '@/modules/registrations/repositories/participant-update-queue';
 import { Injectable } from '@nestjs/common';
 
 export type QrPaymentPage = {
@@ -23,6 +24,8 @@ export type QrPaymentOutcome =
       created: boolean;
       paidMinor: number;
       balanceMinor: number;
+      /** For sending the queued e-mail once the payment is saved. */
+      registrationId: string;
     };
 
 /** The registration is reached by its payment token only; nothing else is read. */
@@ -92,6 +95,7 @@ export class QrPaymentsRepository {
               created: false,
               paidMinor: amountMinor,
               balanceMinor,
+              registrationId: registration.id,
             }
           : { kind: 'key_reused' };
       }
@@ -99,7 +103,7 @@ export class QrPaymentsRepository {
       const check = checkQrPayment(balanceMinor, amountMinor);
       if (check !== 'ok') return { kind: check, balanceMinor };
 
-      await tx.payment.create({
+      const payment = await tx.payment.create({
         data: {
           organizationId: registration.organizationId,
           registrationId: registration.id,
@@ -108,12 +112,20 @@ export class QrPaymentsRepository {
           receivedOn: toDate(todayInPrague()),
           source: 'qr_link',
         },
+        select: { id: true },
+      });
+      await queueParticipantUpdate(tx, {
+        registrationId: registration.id,
+        reason: 'paymentRecorded',
+        dedupKey: `payment:${payment.id}`,
+        paymentId: payment.id,
       });
       return {
         kind: 'paid',
         created: true,
         paidMinor: amountMinor,
         balanceMinor: balanceMinor - amountMinor,
+        registrationId: registration.id,
       };
     });
   }

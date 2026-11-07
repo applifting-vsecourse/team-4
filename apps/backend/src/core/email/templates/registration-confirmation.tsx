@@ -98,7 +98,7 @@ export const RegistrationConfirmation = ({
       <Tailwind>
         <Body className="bg-gray-50 font-sans py-6">
           <Container className="bg-white rounded-lg mx-auto p-6 max-w-xl">
-            <EmailBrand url={url} />
+            <EmailBrand />
             <Heading className="text-2xl font-bold text-gray-900 mt-6 mb-0">
               Přihláška přijata
             </Heading>

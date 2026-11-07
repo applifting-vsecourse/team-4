@@ -11,6 +11,7 @@ import {
   RegistrationChangesRepository,
   SubmitOutcome,
 } from '@/modules/registrations/repositories/registration-changes.repository';
+import { ParticipantUpdateService } from '@/modules/registrations/services/participant-update.service';
 import {
   BadRequestException,
   ConflictException,
@@ -98,7 +99,10 @@ const refuse = (outcome: Failure, version?: number): Error => {
 
 @Injectable()
 export class RegistrationChangesService {
-  constructor(private readonly repository: RegistrationChangesRepository) {}
+  constructor(
+    private readonly repository: RegistrationChangesRepository,
+    private readonly updates: ParticipantUpdateService,
+  ) {}
 
   // ─── Participant ──────────────────────────────────────────────────────────
 
@@ -135,6 +139,7 @@ export class RegistrationChangesService {
       new Date(),
     );
     if (outcome.kind === 'applied' || outcome.kind === 'requested') {
+      this.updates.dispatch(registrationId);
       return { outcome: outcome.kind, change: outcome.change };
     }
     throw refuse(outcome, input.expectedVersion);
@@ -177,7 +182,7 @@ export class RegistrationChangesService {
       changeId,
       new Date(),
     );
-    return this.decided(outcome);
+    return this.decided(outcome, registrationId);
   }
 
   async reject(
@@ -191,11 +196,15 @@ export class RegistrationChangesService {
       changeId,
       new Date(),
     );
-    return this.decided(outcome);
+    return this.decided(outcome, registrationId);
   }
 
-  private decided(outcome: DecisionOutcome): RegistrationChangeModel {
+  private decided(
+    outcome: DecisionOutcome,
+    registrationId: string,
+  ): RegistrationChangeModel {
     if (outcome.kind === 'decided' || outcome.kind === 'already_decided') {
+      this.updates.dispatch(registrationId);
       return outcome.change;
     }
     if (outcome.kind === 'not_found') throw notAvailable();
