@@ -14,8 +14,8 @@ export type ParticipantUpdateReason =
   | 'requestRejected'
   | 'paymentRecorded';
 
-/** `pending`: proposed in a request the organizer has not decided yet. */
-export type UpdateTermStatus = ParticipationStatus | 'pending';
+/** `proposed`: a term a change request would add or move, not yet decided. */
+export type UpdateTermStatus = ParticipationStatus | 'proposed';
 
 export type UpdateTerm = {
   label: string;

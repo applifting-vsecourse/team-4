@@ -1,5 +1,6 @@
 import { brandLogo } from '@/core/email/brand-logo';
 import { EmailService } from '@/core/email/interfaces/email-service.interface';
+import { paymentQrImage } from '@/core/email/qr-code';
 import { renderEmail } from '@/core/email/render';
 import {
   ParticipantUpdate,
@@ -67,6 +68,15 @@ export class ParticipantUpdateService {
       }
       const payUrl = `${this.config.frontendUrl}/platba/${update.payment.paymentToken}`;
       secrets.push(update.payment.paymentToken);
+      // Only a debt asks for payment, and a waiting request shows no payments.
+      const images = [brandLogo];
+      if (
+        update.reason !== 'requestReceived' &&
+        update.payment.balanceMinor > 0 &&
+        update.payment.bank
+      ) {
+        images.push(await paymentQrImage(payUrl));
+      }
       const html = await renderEmail(ParticipantUpdate, {
         update,
         url,
@@ -76,7 +86,7 @@ export class ParticipantUpdateService {
         claimed.recipient,
         participantUpdateSubject(update.reason, update.eventName),
         html,
-        [brandLogo],
+        images,
       );
       if (!sent.sent) throw new Error('E-mail was not handed to the provider');
       await this.repository.mark(claimed.deliveryId, {

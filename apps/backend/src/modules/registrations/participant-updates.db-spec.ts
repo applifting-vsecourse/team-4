@@ -253,8 +253,8 @@ describe('change requests', () => {
       'confirmed',
       'confirmed',
     ]);
-    // The proposal is kept apart from what still holds.
-    expect(received.props.update.proposedTerms).toHaveLength(2);
+    // A change of the data alone touches no term, so there is no second list.
+    expect(received.props.update.proposedTerms).toBeNull();
     // And what exactly it would change.
     expect(received.props.update.changes).toEqual([
       {
@@ -373,6 +373,11 @@ describe('payments', () => {
     });
     expect(update.payment.receivedMinor).toBe(100_000);
     expect(update.payment.balanceMinor).toBe(140_000);
+    // A debt carries the QR code as an attached image, next to the logo.
+    expect(mailbox.images[0].map((image) => image.cid)).toEqual([
+      'akcio-logo',
+      'akcio-payment-qr',
+    ]);
   });
 
   it('sends one message for a repeated request', async () => {
@@ -394,6 +399,8 @@ describe('payments', () => {
 
     expect(sent()).toHaveLength(1);
     expect(sent()[0].props.update.payment.balanceMinor).toBe(0);
+    // Nothing is owed any more, so there is no code to pay with.
+    expect(mailbox.images[0].map((image) => image.cid)).toEqual(['akcio-logo']);
     expect(await deliveries(registration)).toHaveLength(1);
   });
 

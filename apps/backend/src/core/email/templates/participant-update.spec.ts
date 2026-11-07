@@ -82,8 +82,10 @@ describe('ParticipantUpdate', () => {
     expect(out).toContain('2301234567/2010');
     expect(out).toContain('2027014');
     expect(out).toContain('Datum připomenutí platby');
-    expect(html).toContain('<svg');
-    expect(html).toContain('aria-label="QR kód pro platbu"');
+    // The code is an attached image: inline SVG is stripped by mail clients.
+    expect(html).toMatch(/<img[^>]+src="cid:akcio-payment-qr"[^>]*>/);
+    expect(html).toContain('alt="QR kód pro platbu"');
+    expect(html).not.toContain('<svg');
     expect(out).not.toMatch(/undefined|null|\{\{/);
   });
 
@@ -120,7 +122,7 @@ describe('ParticipantUpdate', () => {
     expect(out).toContain('Celkem přijato 7 500 Kč');
     expect(out).toContain('Vše je uhrazeno');
     expect(out).not.toContain('Platební údaje');
-    expect(html).not.toContain('<svg');
+    expect(html).not.toContain('akcio-payment-qr');
   });
 
   it('names an overpayment without promising a refund', async () => {
@@ -149,7 +151,7 @@ describe('ParticipantUpdate', () => {
         update({
           reason: 'requestReceived',
           terms: [confirmed],
-          proposedTerms: [confirmed, { ...waitlisted, status: 'pending' }],
+          proposedTerms: [confirmed, { ...waitlisted, status: 'proposed' }],
         }),
       ),
     );

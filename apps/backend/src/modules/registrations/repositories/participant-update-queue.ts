@@ -139,20 +139,25 @@ export const queueParticipantUpdate = async (
           },
         ]),
     );
+    let touched = false;
     for (const planned of input.proposal) {
       if (planned.proposed === null || planned.proposed === planned.original) {
         continue;
       }
+      touched = true;
       merged.set(planned.termId, {
         label: planned.label,
         startDate: planned.startDate,
         endDate: planned.endDate,
-        status: planned.proposed === 'cancelled' ? 'cancelled' : 'pending',
+        status: planned.proposed === 'cancelled' ? 'cancelled' : 'proposed',
       });
     }
-    proposedTerms = [...merged.values()].sort((a, b) =>
-      a.startDate.localeCompare(b.startDate),
-    );
+    // A request that touches no term (a phone number) has no second list.
+    if (touched) {
+      proposedTerms = [...merged.values()].sort((a, b) =>
+        a.startDate.localeCompare(b.startDate),
+      );
+    }
   }
 
   let changes: UpdateChange[] = [];

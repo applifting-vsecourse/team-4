@@ -1,4 +1,3 @@
-import { QRCodeSVG } from 'qrcode.react';
 import * as React from 'react';
 import {
   Body,
@@ -8,6 +7,7 @@ import {
   Heading,
   Hr,
   Html,
+  Img,
   Preview,
   Section,
   Tailwind,
@@ -21,6 +21,7 @@ import {
   UpdateTerm,
 } from '@/modules/registrations/domain/participant-update';
 import { LOGO_CID } from '../brand-logo';
+import { QR_CID } from '../qr-code';
 import { EmailBrand } from './email-brand';
 import {
   formatBankAccount,
@@ -97,7 +98,8 @@ export interface ParticipantUpdateProps {
 const STATUS_LABELS: Record<UpdateTerm['status'], string> = {
   confirmed: 'Potvrzeno',
   waitlisted: 'Náhradník',
-  pending: 'Čeká na schválení',
+  pending: 'Čeká na rozhodnutí organizátora',
+  proposed: 'Čeká na schválení',
   cancelled: 'Odhlášeno',
 };
 
@@ -105,6 +107,7 @@ const STATUS_COLORS: Record<UpdateTerm['status'], string> = {
   confirmed: 'text-green-700',
   waitlisted: 'text-amber-700',
   pending: 'text-gray-700',
+  proposed: 'text-gray-700',
   cancelled: 'text-gray-500',
 };
 
@@ -283,11 +286,11 @@ const Payments = ({
             />
           ) : null}
           <Section className="mt-3">
-            <QRCodeSVG
-              value={payUrl}
-              size={160}
-              role="img"
-              aria-label="QR kód pro platbu"
+            <Img
+              src={`cid:${QR_CID}`}
+              width={160}
+              height={160}
+              alt="QR kód pro platbu"
             />
             <Text className="text-xs text-gray-600 leading-5 mt-2 mb-0">
               Kód vede na stránku platby. Funguje-li váš e-mail bez obrázků,
@@ -341,7 +344,9 @@ export const ParticipantUpdate = ({
             {proposed ? (
               <TermList title="Navrhovaná změna" terms={proposed} />
             ) : null}
-            {proposed ? null : <Payments update={update} payUrl={payUrl} />}
+            {update.reason === 'requestReceived' ? null : (
+              <Payments update={update} payUrl={payUrl} />
+            )}
 
             <Text className="text-base font-semibold text-gray-900 mt-6 mb-1">
               Kontakt na organizátora
