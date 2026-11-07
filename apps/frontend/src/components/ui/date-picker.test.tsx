@@ -21,4 +21,25 @@ describe("DatePicker", () => {
     await userEvent.selectOptions(years, nextYear)
     expect(years).toHaveValue(nextYear)
   })
+
+  it("marks days before a limit and days of taken ranges, keeping them selectable", async () => {
+    render(
+      <DatePicker
+        aria-label="Konec"
+        value="2027-08-10"
+        markedBefore="2027-08-05"
+        markedRanges={[{ from: "2027-08-20", to: "2027-08-22" }]}
+        markedLegend="Červeně: nelze"
+        onChange={vi.fn()}
+      />,
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Konec" }))
+
+    const isMarked = (day: string) =>
+      document.querySelector(`td[data-day="${day}"]`)!.className.includes("bg-destructive-subtle")
+    expect(isMarked("2027-08-03")).toBe(true)
+    expect(isMarked("2027-08-21")).toBe(true)
+    expect(isMarked("2027-08-08")).toBe(false)
+    expect(screen.getByText("Červeně: nelze")).toBeInTheDocument()
+  })
 })

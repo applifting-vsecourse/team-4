@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -41,6 +42,8 @@ export type RoomTermSetting = {
   extraBeds: string
   bedsError?: string
   extraBedsError?: string
+  /** Base beds were typed for this term itself, so the default no longer fills them. */
+  isBedsCustom?: boolean
 }
 
 type RoomCapacityDialogProps = {
@@ -89,6 +92,7 @@ export function RoomCapacityDialog({
           </DialogDescription>
         </DialogHeader>
         <RoomCapacityForm
+          isEdit={isEdit}
           initialLabel={label}
           initialTerms={terms}
           conflicts={conflicts}
@@ -103,6 +107,7 @@ export function RoomCapacityDialog({
 }
 
 type RoomCapacityFormProps = {
+  isEdit: boolean
   initialLabel: string
   initialTerms: RoomTermSetting[]
   conflicts?: CapacityConflict[]
@@ -113,6 +118,7 @@ type RoomCapacityFormProps = {
 }
 
 function RoomCapacityForm({
+  isEdit,
   initialLabel,
   initialTerms,
   conflicts,
@@ -123,6 +129,9 @@ function RoomCapacityForm({
 }: RoomCapacityFormProps) {
   const [label, setLabel] = useState(initialLabel)
   const [terms, setTerms] = useState(initialTerms)
+  const [defaultBeds, setDefaultBeds] = useState("")
+  // The default is offered when adding a room to more than one term.
+  const hasDefault = !isEdit && initialTerms.length > 1
   const [validationLabelError, setValidationLabelError] = useState<string>()
   // A server refusal belongs to the label it was given for.
   const [refusedLabel, setRefusedLabel] = useState(initialLabel)
@@ -133,6 +142,16 @@ function RoomCapacityForm({
     setTerms((current) =>
       current.map((term) => (term.termId === termId ? { ...term, ...patch } : term)),
     )
+
+  // The default fills every term whose base beds were not typed separately.
+  const changeDefault = (value: string) => {
+    setDefaultBeds(value)
+    setTerms((current) =>
+      current.map((term) =>
+        term.isBedsCustom ? term : { ...term, beds: value, bedsError: undefined },
+      ),
+    )
+  }
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -174,6 +193,23 @@ function RoomCapacityForm({
         />
         {labelError ? <FieldError>{labelError}</FieldError> : null}
       </Field>
+
+      {hasDefault ? (
+        <Field>
+          <FieldLabel htmlFor="room-default-beds">Výchozí základní lůžka</FieldLabel>
+          <Input
+            id="room-default-beds"
+            inputMode="numeric"
+            value={defaultBeds}
+            placeholder="0"
+            onFocus={(event) => event.target.select()}
+            onChange={(event) => changeDefault(event.target.value)}
+          />
+          <FieldDescription>
+            Předvyplní se ve všech termínech, upravit ji můžete jen u termínu, který se liší.
+          </FieldDescription>
+        </Field>
+      ) : null}
 
       {terms.map((term) => (
         <TermSettingFields
@@ -241,7 +277,13 @@ function TermSettingFields({
               disabled={!term.isAvailable}
               onFocus={(event) => event.target.select()}
               aria-invalid={term.bedsError ? true : undefined}
-              onChange={(event) => onChange({ beds: event.target.value, bedsError: undefined })}
+              onChange={(event) =>
+                onChange({
+                  beds: event.target.value,
+                  bedsError: undefined,
+                  isBedsCustom: event.target.value.trim() !== "",
+                })
+              }
             />
             {term.bedsError ? <FieldError>{term.bedsError}</FieldError> : null}
           </Field>
