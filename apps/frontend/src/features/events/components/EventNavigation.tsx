@@ -13,6 +13,7 @@ import { ROUTES } from "@/app/routes"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 
 const sections = [
   { label: "Přehled", icon: LayoutDashboard, to: ROUTES.event },
@@ -83,11 +84,13 @@ export function EventNavigation({ organizationId, eventId, isSidebar = false }: 
         )
       }
       // A tile is a card like the summary above it; the whole card is the link
-      // (stretched over it), an unfinished section is a plain card.
+      // (stretched over it). An unfinished section is a faded card, like the
+      // disabled entries in the sidebar.
       return (
         <li
           key={section.label}
-          className="flex"
+          aria-disabled={to ? undefined : true}
+          className={cn("flex", !to && "opacity-50 select-none")}
         >
           <Card className="group relative min-h-40 w-full justify-between">
             <CardHeader>
@@ -119,7 +122,7 @@ export function EventNavigation({ organizationId, eventId, isSidebar = false }: 
                     {section.label}
                   </Link>
                 ) : (
-                  <span className="text-muted-foreground">{section.label}</span>
+                  section.label
                 )}
               </CardTitle>
             </CardContent>
