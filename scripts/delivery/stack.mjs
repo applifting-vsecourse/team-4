@@ -155,7 +155,10 @@ export function sliceFingerprint(diff) {
   const files = [];
   let file = null;
   let inHunk = false;
-  for (const raw of String(diff ?? '').split('\n')) {
+  const lines = String(diff ?? '').split('\n');
+  // The text ends with a newline: that last empty piece is not a diff line.
+  if (lines.at(-1) === '') lines.pop();
+  for (const raw of lines) {
     const line = raw.replace(/\r$/, '');
     const start = FILE_START.exec(line);
     if (start) {
@@ -171,7 +174,7 @@ export function sliceFingerprint(diff) {
       inHunk = true;
       file.body.push('@@');
     } else if (inHunk) {
-      if (line !== '') file.body.push(line);
+      file.body.push(line);
     } else if (line.startsWith('index '))
       file.blob = line.split(/\s+/)[1]?.split('..')[1] ?? '';
     else if (MODE_LINE.test(line)) file.meta.push(line);

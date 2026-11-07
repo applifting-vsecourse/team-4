@@ -245,3 +245,27 @@ test('a base is resumable only when a merged PR of that branch is in the head', 
   );
   assert.equal(await run(bottom('b1'), [], 'ahead'), false);
 });
+
+test('blank lines inside a hunk count: added, removed, moved and empty context lines', () => {
+  const original = hunk('x.ts', ' a', '+b', ' c');
+  for (const changed of [
+    hunk('x.ts', ' a', '+b', '+', ' c'), // a blank line added
+    hunk('x.ts', ' a', '+b', '-', ' c'), // a blank line removed
+    hunk('x.ts', ' a', '+b', ' ', ' c'), // a blank context line
+    hunk('x.ts', ' a', '+b', '', ' c'), // an empty context line
+  ])
+    assert.notEqual(sliceFingerprint(original), sliceFingerprint(changed));
+  assert.notEqual(
+    sliceFingerprint(hunk('x.ts', ' a', '+', '+b', ' c')),
+    sliceFingerprint(hunk('x.ts', ' a', '+b', '+', ' c')),
+  );
+});
+
+test('the trailing newline of the diff is not a line', () => {
+  const body = hunk('x.ts', ' a', '+b');
+  assert.equal(sliceFingerprint(body), sliceFingerprint(body + '\n'));
+  assert.equal(
+    sliceFingerprint(body),
+    sliceFingerprint(body + '\r\n'.slice(1)),
+  );
+});
