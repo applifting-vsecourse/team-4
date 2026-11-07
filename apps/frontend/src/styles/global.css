@@ -196,13 +196,18 @@
    component itself and must win over the kit's neutral border utilities. Focus and invalid
    states keep their own colours. Badges keep their default 1px border.
    A button is matched by its variant and size, not by data-slot: as a trigger (`DialogTrigger
-   asChild` and the like) its data-slot becomes the trigger's, and it would lose the shape. */
+   asChild` and the like) its data-slot becomes the trigger's, and it would lose the shape. A form
+   field inside `FormControl` likewise carries data-slot="form-control" instead of its own. */
 [data-slot="card"],
 [data-variant][data-size]:not([data-variant="ghost"]):not([data-variant="link"]),
-:is([data-slot="input"], [data-slot="textarea"], [data-slot="select-trigger"]):not(
-  :focus-visible,
-  [aria-invalid="true"]
-) {
+:is(
+  [data-slot="input"],
+  [data-slot="textarea"],
+  [data-slot="select-trigger"],
+  input[data-slot="form-control"],
+  textarea[data-slot="form-control"],
+  [data-slot="form-control"][role="combobox"]
+):not(:focus-visible, [aria-invalid="true"]) {
   border-width: 1.5px;
   border-color: var(--input);
 }
@@ -219,6 +224,21 @@
 [data-variant][data-size]:not([data-variant="ghost"]):not([data-variant="link"]) {
   box-shadow: var(--shadow-sm);
 }
+/* Form fields have an outline and no shadow, all alike: the kit's `shadow-xs` on selects, radios
+   and checkboxes would draw a hard ink shadow the text inputs do not have. Focus and invalid
+   rings are box shadows too and stay. */
+:is(
+  [data-slot="input"],
+  [data-slot="textarea"],
+  [data-slot="select-trigger"],
+  [data-slot="radio-group-item"],
+  [data-slot="checkbox"],
+  input[data-slot="form-control"],
+  textarea[data-slot="form-control"],
+  [data-slot="form-control"]:is([role="combobox"], [role="radio"], [role="checkbox"])
+):not(:focus-visible, [aria-invalid="true"]) {
+  box-shadow: none;
+}
 /* In light mode form fields take the card surface, so they stand out from the paper page the way
    the filled fields of the dark theme do. On a card they keep its surface. */
 :root:not(.dark)
@@ -227,7 +247,14 @@
     [data-slot="textarea"],
     [data-slot="select-trigger"],
     [data-slot="radio-group-item"],
-    [data-slot="checkbox"]:not([data-state="checked"])
+    [data-slot="checkbox"]:not([data-state="checked"]),
+    input[data-slot="form-control"],
+    textarea[data-slot="form-control"],
+    [data-slot="form-control"]:is(
+      [role="combobox"],
+      [role="radio"],
+      [role="checkbox"]:not([data-state="checked"])
+    )
   ) {
   background-color: var(--card);
 }
