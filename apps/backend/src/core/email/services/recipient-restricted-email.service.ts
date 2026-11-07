@@ -1,5 +1,6 @@
 import {
   EmailService,
+  InlineImage,
   SendResult,
 } from '@/core/email/interfaces/email-service.interface';
 import { Logger } from '@nestjs/common';
@@ -24,6 +25,7 @@ export class RecipientRestrictedEmailService implements EmailService {
     to: string,
     subject: string,
     html: string,
+    inlineImages?: InlineImage[],
   ): Promise<SendResult> {
     if (normalize(to) !== this.allowedRecipient) {
       this.logger.warn(
@@ -31,7 +33,7 @@ export class RecipientRestrictedEmailService implements EmailService {
       );
       return { sent: false, messageId: null };
     }
-    return this.inner.sendEmail(to, subject, html);
+    return this.inner.sendEmail(to, subject, html, inlineImages);
   }
 }
 

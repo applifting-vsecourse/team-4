@@ -7,6 +7,7 @@ import {
 } from '@/modules/registrations/domain/managed-registration';
 import { RegistrationNeeds } from '@/modules/registrations/domain/registration-needs';
 import { EventRegistrationsRepository } from '@/modules/registrations/repositories/event-registrations.repository';
+import { ParticipantUpdateService } from '@/modules/registrations/services/participant-update.service';
 import {
   ConflictException,
   Injectable,
@@ -27,7 +28,10 @@ const changePending = (): ConflictException =>
 
 @Injectable()
 export class EventRegistrationsService {
-  constructor(private readonly repository: EventRegistrationsRepository) {}
+  constructor(
+    private readonly repository: EventRegistrationsRepository,
+    private readonly updates: ParticipantUpdateService,
+  ) {}
 
   /**
    * Registrations of one event, oldest first. A foreign event looks the same
@@ -81,6 +85,7 @@ export class EventRegistrationsService {
       });
     }
     if (outcome.kind === 'change_pending') throw changePending();
+    this.updates.dispatch(registrationId);
     return outcome.registration;
   }
 
@@ -97,6 +102,7 @@ export class EventRegistrationsService {
     );
     if (outcome === 'not_found') throw notAvailable();
     if (outcome === 'change_pending') throw changePending();
+    this.updates.dispatch(registrationId);
     return this.get(scope, registrationId);
   }
 }

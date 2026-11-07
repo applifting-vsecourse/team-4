@@ -120,9 +120,7 @@ describe('RegistrationConfirmation', () => {
 
   it('opens with the akc.io icon next to the wordmark', async () => {
     const out = await render([confirmed], payment);
-    expect(out).toMatch(
-      /<img[^>]+src="http:\/\/app\.test\/apple-touch-icon\.png"[^>]*>[\s\S]*akc\.io/,
-    );
+    expect(out).toMatch(/<img[^>]+src="cid:akcio-logo"[^>]*>[\s\S]*akc\.io/);
   });
 
   it('leaves no unfilled placeholders', async () => {
