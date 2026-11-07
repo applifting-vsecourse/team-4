@@ -7,6 +7,7 @@ import { TermEvaluationController } from '@/modules/accommodation/controllers/te
 import { EvaluationQueueRepository } from '@/modules/accommodation/repositories/evaluation-queue.repository';
 import { OrderMovesRepository } from '@/modules/accommodation/repositories/order-moves.repository';
 import { RegistrationAccommodationRepository } from '@/modules/accommodation/repositories/registration-accommodation.repository';
+import { TermDecisionRepository } from '@/modules/accommodation/repositories/term-decision.repository';
 import { TermEvaluationRepository } from '@/modules/accommodation/repositories/term-evaluation.repository';
 import { termInputsChanged } from '@/modules/accommodation/repositories/term-inputs';
 import {
@@ -70,6 +71,7 @@ beforeAll(async () => {
     providers: [
       OrderMovesService,
       OrderMovesRepository,
+      TermDecisionRepository,
       RegistrationAccommodationService,
       RegistrationAccommodationRepository,
       EventRegistrationsRepository,

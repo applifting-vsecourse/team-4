@@ -1,9 +1,17 @@
-import { useQueries } from "@tanstack/react-query"
+import { useState } from "react"
+import { useQueries, useQuery } from "@tanstack/react-query"
 
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 
-import { termEvaluationQueryOptions } from "@/features/accommodation/api/evaluationQueryOptions"
+import {
+  registrationAccommodationQueryOptions,
+  termEvaluationQueryOptions,
+} from "@/features/accommodation/api/evaluationQueryOptions"
+import {
+  ParticipationDecisionDialog,
+  type ParticipationDecisionTarget,
+} from "@/features/accommodation/components/ParticipationDecisionDialog"
 import {
   TermDecisions,
   type DecisionTerm,
@@ -25,18 +33,29 @@ type RegistrationTermDecisionsProps = {
   organizationId: string
   eventId: string
   registrationId: string
+  /** E.g. "Alex Šimek". */
+  person: string
   terms: RegistrationTerm[]
+  /** Reloaded after a decision, i.e. the registration detail with its term states. */
+  invalidate: readonly unknown[]
 }
 
 // Detail přihlášky → Termíny (F13-1): each term with its own state and the
-// person's place in the term's current proposal. Deciding a term comes with a
-// later slice, so no decision is offered yet.
+// person's place in the term's current proposal, and the decision still open
+// for it (F14-1). Confirming a person without an effective value determines
+// it in the same dialog.
 export function RegistrationTermDecisions({
   organizationId,
   eventId,
   registrationId,
+  person,
   terms,
+  invalidate,
 }: RegistrationTermDecisionsProps) {
+  const accommodation = useQuery(
+    registrationAccommodationQueryOptions(organizationId, eventId, registrationId),
+  )
+  const [deciding, setDeciding] = useState<ParticipationDecisionTarget | null>(null)
   // Only an undecided term has a place in a proposal.
   const open = terms.filter((term) => term.status === "pending" || term.status === "waitlisted")
   const evaluations = useQueries({
@@ -68,5 +87,40 @@ export function RegistrationTermDecisions({
     }
   })
 
-  return <TermDecisions terms={decisionTerms} />
+  const decide = (term: DecisionTerm, decision: "confirm" | "waitlist") => {
+    const source = terms.find((candidate) => candidate.termId === term.id)
+    if (!source) return
+    const hard = accommodation.data?.hardAttribute
+    setDeciding({
+      termId: source.termId,
+      term: `${source.label}, ${formatCalendarRange(source.startDate, source.endDate)}`,
+      registrationId,
+      person,
+      decision,
+      determination:
+        decision === "confirm" && hard && accommodation.data?.needsDetermination
+          ? { hardAttribute: hard, answer: accommodation.data.answer }
+          : undefined,
+    })
+  }
+
+  return (
+    <>
+      <TermDecisions
+        terms={decisionTerms}
+        // Whether the person needs a determination is known only once it is read.
+        onConfirm={accommodation.data ? (term) => decide(term, "confirm") : undefined}
+        onWaitlist={accommodation.data ? (term) => decide(term, "waitlist") : undefined}
+      />
+      {deciding ? (
+        <ParticipationDecisionDialog
+          organizationId={organizationId}
+          eventId={eventId}
+          target={deciding}
+          onClose={() => setDeciding(null)}
+          invalidate={invalidate}
+        />
+      ) : null}
+    </>
+  )
 }

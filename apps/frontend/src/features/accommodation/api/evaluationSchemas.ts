@@ -199,6 +199,43 @@ export const moveRecordSchema = z.object({
 
 export type MoveRecord = z.infer<typeof moveRecordSchema>
 
+const participationSchema = z.enum(["pending", "confirmed", "waitlisted", "cancelled"])
+
+/** One saved change of a person's participation in a term (S3-02, F39-1). */
+export const decisionRecordSchema = z.object({
+  id: z.string().uuid(),
+  createdAt: z.string(),
+  actor: z.object({ id: z.string(), name: z.string() }),
+  kind: z.enum(["bulk", "individual"]),
+  termId: z.string().uuid(),
+  termLabel: z.string(),
+  from: participationSchema,
+  to: participationSchema,
+  /** The proposal a bulk confirmation used. */
+  run: z.object({ id: z.string().uuid(), finishedAt: z.string() }).nullable(),
+  /** People confirmed in the same request. */
+  batchSize: z.number().int(),
+})
+
+export type DecisionRecord = z.infer<typeof decisionRecordSchema>
+
+/** Potvrdit všechny vhodné (S3-02). */
+export const confirmedProposalSchema = z.object({
+  confirmed: z.array(
+    z.object({
+      registrationId: z.string().uuid(),
+      firstName: z.string(),
+      lastName: z.string(),
+    }),
+  ),
+  isReplay: z.boolean(),
+})
+
+/** One person's decision in one term (S3-02). */
+export const participationDecidedSchema = z.object({
+  status: z.enum(["confirmed", "waitlisted"]),
+})
+
 /** The accommodation of one registration in the organizer's detail (spec v4 §4). */
 export const registrationAccommodationSchema = z.object({
   hardAttribute: hardAttributeSchema.nullable(),
@@ -215,6 +252,7 @@ export const registrationAccommodationSchema = z.object({
     .nullable(),
   effectiveValue: z.string().nullable(),
   needsDetermination: z.boolean(),
+  decisions: z.array(decisionRecordSchema),
   history: z.array(
     z.object({
       id: z.string().uuid(),

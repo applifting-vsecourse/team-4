@@ -4,8 +4,18 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { formatPragueDateTime } from "@/lib/date"
 
 import { registrationAccommodationQueryOptions } from "@/features/accommodation/api/evaluationQueryOptions"
-import { EvaluationHistory } from "@/features/accommodation/components/EvaluationHistory"
+import {
+  EvaluationHistory,
+  type HistoryEntry,
+} from "@/features/accommodation/components/EvaluationHistory"
 import { toHistoryMove, valueLabel } from "@/features/accommodation/lib/evaluationView"
+
+const STATE_LABELS = {
+  pending: "Čeká na rozhodnutí",
+  confirmed: "Potvrzeno",
+  waitlisted: "Náhradník",
+  cancelled: "Odhlášeno",
+} as const
 
 type RegistrationEvaluationHistoryProps = {
   organizationId: string
@@ -15,8 +25,8 @@ type RegistrationEvaluationHistoryProps = {
 }
 
 // Detail přihlášky → Historie vyhodnocení (F39-1): the immutable record of the
-// determinations of this registration and its moves in the terms' orders
-// (S3-03), newest first. Decisions join it with slice 2.
+// determinations, the decisions on participation and the moves in the terms'
+// orders (S3-03) of this registration, newest first.
 export function RegistrationEvaluationHistory({
   organizationId,
   eventId,
@@ -37,31 +47,45 @@ export function RegistrationEvaluationHistory({
   }
   const hard = accommodation.data?.hardAttribute ?? null
   const attribute = hard?.attribute ?? "gender"
-  const determinations = (accommodation.data?.history ?? []).map((record) => ({
-    time: Date.parse(record.createdAt),
-    entry: {
-      kind: "determination" as const,
-      id: record.id,
-      at: formatPragueDateTime(record.createdAt),
-      author: record.actor.name,
-      person,
-      answer: valueLabel(attribute, record.answer),
-      value: valueLabel(attribute, record.value),
-      reason: record.reason,
-    },
-  }))
-  const moves = (accommodation.data?.moves ?? []).map((move) => ({
-    time: Date.parse(move.createdAt),
-    entry: toHistoryMove(move, hard?.attribute ?? null),
-  }))
   return (
     <EvaluationHistory
       title="Historie vyhodnocení"
       isLoadFailed={accommodation.isError}
       onRetry={() => void accommodation.refetch()}
-      entries={[...determinations, ...moves]
-        .sort((a, b) => b.time - a.time)
-        .map(({ entry }) => entry)}
+      entries={[
+        ...(accommodation.data?.history ?? []).map((record): HistoryEntry & { sortAt: string } => ({
+          kind: "determination",
+          id: record.id,
+          sortAt: record.createdAt,
+          at: formatPragueDateTime(record.createdAt),
+          author: record.actor.name,
+          person,
+          answer: valueLabel(attribute, record.answer),
+          value: valueLabel(attribute, record.value),
+          reason: record.reason,
+        })),
+        ...(accommodation.data?.decisions ?? []).map(
+          (record): HistoryEntry & { sortAt: string } => ({
+            kind: "decision",
+            id: record.id,
+            sortAt: record.createdAt,
+            at: formatPragueDateTime(record.createdAt),
+            author: record.actor.name,
+            person,
+            termLabel: record.termLabel,
+            fromState: STATE_LABELS[record.from],
+            toState: STATE_LABELS[record.to],
+            basis: record.run
+              ? `Hromadně z návrhu z ${formatPragueDateTime(record.run.finishedAt)} (${record.batchSize} ${record.batchSize === 1 ? "osoba" : "osob"})`
+              : "Jednotlivé rozhodnutí organizátora",
+          }),
+        ),
+        ...(accommodation.data?.moves ?? []).map((move): HistoryEntry & { sortAt: string } => ({
+          ...toHistoryMove(move, hard?.attribute ?? null),
+          sortAt: move.createdAt,
+        })),
+        // The newest first, across every record.
+      ].sort((a, b) => b.sortAt.localeCompare(a.sortAt))}
     />
   )
 }

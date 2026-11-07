@@ -6,6 +6,7 @@ import { TermEvaluationController } from '@/modules/accommodation/controllers/te
 import { EvaluationQueueRepository } from '@/modules/accommodation/repositories/evaluation-queue.repository';
 import { OrderMovesRepository } from '@/modules/accommodation/repositories/order-moves.repository';
 import { RegistrationAccommodationRepository } from '@/modules/accommodation/repositories/registration-accommodation.repository';
+import { TermDecisionRepository } from '@/modules/accommodation/repositories/term-decision.repository';
 import { TermEvaluationRepository } from '@/modules/accommodation/repositories/term-evaluation.repository';
 import {
   HardAttributeAnswers,
@@ -66,6 +67,7 @@ beforeAll(async () => {
       RegistrationAccommodationService,
       RegistrationAccommodationRepository,
       OrderMovesRepository,
+      TermDecisionRepository,
       EventRegistrationsRepository,
       TermEvaluationService,
       TermEvaluationRepository,
@@ -228,6 +230,7 @@ describe('reading the accommodation of a registration', () => {
         needsDetermination: true,
         history: [],
         moves: [],
+        decisions: [],
       },
     });
   });

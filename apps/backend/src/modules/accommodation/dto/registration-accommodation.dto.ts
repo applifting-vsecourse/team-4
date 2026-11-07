@@ -5,6 +5,7 @@ import {
 } from '@/modules/accommodation/domain/determination';
 import { ActorDto } from '@/modules/accommodation/dto/actor.dto';
 import { MoveRecordDto } from '@/modules/accommodation/dto/order-moves.dto';
+import { DecisionRecordDto } from '@/modules/accommodation/dto/term-decision.dto';
 import { DeterminationRecord } from '@/modules/accommodation/repositories/registration-accommodation.repository';
 import { RegistrationAccommodationView } from '@/modules/accommodation/services/registration-accommodation.service';
 import { ApiProperty } from '@nestjs/swagger';
@@ -158,6 +159,14 @@ export class RegistrationAccommodationDto {
   })
   moves!: MoveRecordDto[];
 
+  @ApiProperty({
+    type: [DecisionRecordDto],
+    description:
+      'Every confirmation and waitlisting of the registration (F39-1), ' +
+      'newest first; never edited or deleted.',
+  })
+  decisions!: DecisionRecordDto[];
+
   static from(
     model: RegistrationAccommodationView,
   ): RegistrationAccommodationDto {
@@ -182,6 +191,7 @@ export class RegistrationAccommodationDto {
       ),
       history: model.history.map(DeterminationRecordDto.from),
       moves: model.moves.map(MoveRecordDto.from),
+      decisions: model.decisions.map(DecisionRecordDto.from),
     };
   }
 }
