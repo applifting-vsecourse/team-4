@@ -38,6 +38,8 @@ export type TermEvaluationData = {
   rooms: TermRoom[];
   people: Omit<TermPerson, 'answer'>[];
   storedOrder: string[] | null;
+  /** Everyone an organizer moved in the term's order (F39-1). */
+  movedIds: string[];
   inputVersion: number;
   isRunning: boolean;
   /** When the next evaluation is due; null when none is scheduled. */
@@ -85,7 +87,7 @@ const newestFirst = [
 ] satisfies Prisma.AccommodationRunOrderByWithRelationInput[];
 
 /** Only an event of an organization the caller owns (§3.2). */
-const ownedEvent = (scope: EventScope): Prisma.EventWhereInput => ({
+export const ownedEvent = (scope: EventScope): Prisma.EventWhereInput => ({
   id: scope.eventId,
   organizationId: scope.organizationId,
   organization: { ownerId: scope.ownerId },
@@ -147,6 +149,11 @@ export class TermEvaluationRepository {
         startDate: true,
         endDate: true,
         accommodationOrder: { select: { registrationIds: true } },
+        accommodationInterventions: {
+          where: { kind: 'position' },
+          distinct: ['registrationId'],
+          select: { registrationId: true },
+        },
         accommodationState: {
           select: {
             inputVersion: true,
@@ -240,6 +247,9 @@ export class TermEvaluationRepository {
         manualValue: registration.accommodationManualValue,
       })),
       storedOrder: term.accommodationOrder?.registrationIds ?? null,
+      movedIds: term.accommodationInterventions.map(
+        (record) => record.registrationId,
+      ),
       inputVersion: term.accommodationState?.inputVersion ?? 0,
       isRunning: Boolean(term.accommodationState?.runningRunId),
       scheduledAt: term.accommodationState?.dueAt ?? null,

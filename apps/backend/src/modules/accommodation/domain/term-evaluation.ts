@@ -72,6 +72,8 @@ export type OrderedPerson = {
   determinedValue: string | null;
   /** Null with a hard attribute: needs a manual determination (reason R). */
   effectiveValue: string | null;
+  /** An organizer moved the person in this term's order (F39-1). */
+  isMovedByHand: boolean;
   /** Missing when the shown proposal did not evaluate the person. */
   result?: ProposalResult;
   reason?: UnplacedReason;
@@ -181,6 +183,8 @@ export function buildTermView(input: {
   rooms: TermRoom[];
   people: TermPerson[];
   storedOrder: readonly string[] | null;
+  /** Everyone an organizer moved in the term's order. */
+  movedIds: readonly string[];
   inputVersion: number;
   isRunning: boolean;
   latest: RunOutcome | null;
@@ -198,6 +202,7 @@ export function buildTermView(input: {
       person.status !== 'confirmed',
   );
   const byId = new Map(unconfirmed.map((p) => [p.registrationId, p]));
+  const moved = new Set(input.movedIds);
   const order: OrderedPerson[] = termOrder(unconfirmed, input.storedOrder).map(
     (id, index) => {
       const person = byId.get(id) as TermPerson & {
@@ -217,6 +222,7 @@ export function buildTermView(input: {
         answer: person.answer,
         determinedValue: manual,
         effectiveValue: effectiveValue(hard, person.answer, person.manualValue),
+        isMovedByHand: moved.has(person.registrationId),
         ...resultOf(proposal, person.registrationId),
       };
     },

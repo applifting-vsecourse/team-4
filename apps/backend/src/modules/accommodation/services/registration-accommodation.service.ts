@@ -1,5 +1,9 @@
 import { DeterminationRefusal } from '@/modules/accommodation/domain/determination';
 import {
+  MoveRecord,
+  OrderMovesRepository,
+} from '@/modules/accommodation/repositories/order-moves.repository';
+import {
   RegistrationAccommodation,
   RegistrationAccommodationRepository,
 } from '@/modules/accommodation/repositories/registration-accommodation.repository';
@@ -40,28 +44,45 @@ const REFUSALS: Record<DeterminationRefusal, () => Error> = {
     }),
 };
 
+/** With the person's decisions (S3-02) and moves in any term (S3-03). */
+export type RegistrationAccommodationView = RegistrationAccommodation & {
+  /** Newest first. */
+  decisions: DecisionRecord[];
+  /** Newest first. */
+  moves: MoveRecord[];
+};
+
 /**
  * The accommodation of one registration as its organizer sees it (S3-01,
  * spec v4 §4): the answer to the hard attribute, the determination and its
- * history, and determining the effective value.
+ * history, the moves in the terms' orders, and determining the effective
+ * value.
  */
 @Injectable()
 export class RegistrationAccommodationService {
   constructor(
     private readonly repository: RegistrationAccommodationRepository,
+    private readonly moves: OrderMovesRepository,
     private readonly decisions: TermDecisionRepository,
   ) {}
 
   async get(
     scope: EventScope,
     registrationId: string,
-  ): Promise<RegistrationAccommodation & { decisions: DecisionRecord[] }> {
+  ): Promise<RegistrationAccommodationView> {
     const [accommodation, decisions] = await Promise.all([
       this.repository.find(scope, registrationId),
       this.decisions.history(scope, registrationId),
     ]);
     if (!accommodation || !decisions) throw notAvailable();
-    return { ...accommodation, decisions };
+    return {
+      ...accommodation,
+      decisions,
+      moves: await this.moves.findForRegistration(
+        scope.eventId,
+        registrationId,
+      ),
+    };
   }
 
   /** The original answer stays; nothing is confirmed, owed or sent. */
@@ -69,7 +90,7 @@ export class RegistrationAccommodationService {
     scope: EventScope,
     registrationId: string,
     input: { value: string; reason: string; answer: string | null },
-  ): Promise<RegistrationAccommodation & { decisions: DecisionRecord[] }> {
+  ): Promise<RegistrationAccommodationView> {
     const outcome = await this.repository.determine(scope, registrationId, {
       ...input,
       actorId: scope.ownerId,
