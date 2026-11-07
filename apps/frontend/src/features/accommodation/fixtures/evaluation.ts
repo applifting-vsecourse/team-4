@@ -185,6 +185,7 @@ export function makeRegistrationAccommodation(
     },
     effectiveValue: "female",
     needsDetermination: false,
+    decisions: [],
     history: [
       {
         id: uuid(901),
