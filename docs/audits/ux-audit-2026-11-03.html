@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UX audit akc.io</title>
+<style>
+  :root {
+    --bg: #f7efd9;
+    --surface: #fffbef;
+    --text: #1c130b;
+    --muted: #6b5f50;
+    --border: #1c130b;
+    --hairline: #ddd2b8;
+    --accent: #b7ea2a;
+    --high: #b42318;
+    --high-bg: #fde3df;
+    --medium: #9a5b00;
+    --medium-bg: #fcebc9;
+    --low: #33658a;
+    --low-bg: #e1ecf4;
+    --ok: #1f7a3d;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1c130b;
+      --surface: #261b11;
+      --text: #f7efd9;
+      --muted: #b7a98f;
+      --border: #5c4d3b;
+      --hairline: #3d3022;
+      --high: #ff8a7a;
+      --high-bg: #3b1a14;
+      --medium: #f5b74a;
+      --medium-bg: #3a2a10;
+      --low: #8ec0e6;
+      --low-bg: #16283a;
+      --ok: #7fd69a;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1040px; margin: 0 auto; padding: 40px 16px 80px; }
+  header .kicker { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: clamp(28px, 5vw, 44px); line-height: 1.1; margin: 8px 0 12px; }
+  h1 mark { background: var(--accent); color: #1c130b; padding: 0 .2em; }
+  h2 { font-size: 24px; margin: 48px 0 16px; }
+  h3 { font-size: 18px; margin: 0; }
+  p { margin: 0 0 12px; }
+  .lead { color: var(--muted); max-width: 70ch; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 28px 0 8px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; box-shadow: 3px 3px 0 var(--border); }
+  .stat b { display: block; font-size: 34px; line-height: 1; }
+  .stat span { color: var(--muted); font-size: 14px; }
+  .stat.high b { color: var(--high); }
+  .stat.medium b { color: var(--medium); }
+  .stat.low b { color: var(--low); }
+  .overview { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .overview th, .overview td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  .overview th { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .overview tr:last-child td { border-bottom: 0; }
+  .overview a { color: inherit; }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .badge.high { color: var(--high); background: var(--high-bg); }
+  .badge.medium { color: var(--medium); background: var(--medium-bg); }
+  .badge.low { color: var(--low); background: var(--low-bg); }
+  .finding { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 0 0 16px; box-shadow: 3px 3px 0 var(--border); }
+  .finding header { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 10px; }
+  .finding .num { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .finding .where { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+  .finding dl { display: grid; grid-template-columns: 9em 1fr; gap: 6px 16px; margin: 0; }
+  .finding dt { color: var(--muted); }
+  .finding dd { margin: 0; }
+  .finding figure { margin: 16px 0 0; }
+  .finding img { display: block; max-width: 100%; height: auto; border: 1px solid var(--hairline); border-radius: 8px; }
+  .finding img.phone { max-width: 320px; }
+  .finding figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .figs { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+  ul.clean { padding-left: 1.2em; margin: 0 0 12px; }
+  .ok { color: var(--ok); font-weight: 600; }
+  footer { margin-top: 56px; color: var(--muted); font-size: 14px; }
+  @media (max-width: 560px) {
+    .finding dl { grid-template-columns: 1fr; }
+    .finding dt { margin-top: 6px; }
+    .overview th:nth-child(4), .overview td:nth-child(4) { display: none; }
+  }
+  @media print {
+    body { background: #fff; }
+    .finding, .stat { box-shadow: none; break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="kicker">akc.io · UX audit · Sprint 3 (#166)</div>
+    <h1>UX audit <mark>akc.io</mark></h1>
+    <p class="lead">Průchod veřejným webem, účastnickou částí a organizátorským dashboardem z pohledu PO: co uživatele zdrží, zmate nebo mu na telefonu zůstane skryté. Každý nález má místo výskytu, dopad a doporučení.</p>
+  </header>
+
+  <section class="stats" aria-label="Souhrn nálezů">
+    <div class="stat"><b>13</b><span>nálezů celkem</span></div>
+    <div class="stat high"><b>2</b><span>vysoká závažnost</span></div>
+    <div class="stat medium"><b>6</b><span>střední závažnost</span></div>
+    <div class="stat low"><b>5</b><span>nízká závažnost</span></div>
+  </section>
+
+  <h2>Přehled nálezů</h2>
+  <div class="table-wrap">
+    <table class="overview">
+      <thead><tr><th>#</th><th>Závažnost</th><th>Nález</th><th>Kde</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><span class="badge high">Vysoká</span></td><td><a href="#f1">Na mobilu chybí záložka „Vyhodnocení“</a></td><td>Přihlášky</td></tr>
+        <tr><td>2</td><td><span class="badge high">Vysoká</span></td><td><a href="#f2">Tabulky na 360 px skrývají klíčové sloupce</a></td><td>Přihlášky, Akce a turnusy, Ubytování, Pro organizátory</td></tr>
+        <tr><td>3</td><td><span class="badge medium">Střední</span></td><td><a href="#f3">„Odhlásit se z akce“ vedle „Odhlásit se“</a></td><td>Moje přihlášky → detail</td></tr>
+        <tr><td>4</td><td><span class="badge medium">Střední</span></td><td><a href="#f4">Technický název časového pásma u data</a></td><td>Moje přihlášky, potvrzení přihlášky</td></tr>
+        <tr><td>5</td><td><span class="badge medium">Střední</span></td><td><a href="#f5">Nevyhodnocený termín hlásí čtyři stavy najednou</a></td><td>Přihlášky → Vyhodnocení</td></tr>
+        <tr><td>6</td><td><span class="badge medium">Střední</span></td><td><a href="#f6">Oříznutý štítek „Připravujeme“</a></td><td>Postranní menu</td></tr>
+        <tr><td>7</td><td><span class="badge medium">Střední</span></td><td><a href="#f7">Obsah dashboardu mimo orientační oblasti</a></td><td>Celý dashboard</td></tr>
+        <tr><td>8</td><td><span class="badge medium">Střední</span></td><td><a href="#f8">Šířka obsahu skáče mezi sekcemi akce</a></td><td>Sekce akce</td></tr>
+        <tr><td>9</td><td><span class="badge low">Nízká</span></td><td><a href="#f9">Částky střídají dvě písma</a></td><td>Přihlášky, detail, Moje přihlášky</td></tr>
+        <tr><td>10</td><td><span class="badge low">Nízká</span></td><td><a href="#f10">„Přijato“ ve dvou významech</a></td><td>Detail přihlášky</td></tr>
+        <tr><td>11</td><td><span class="badge low">Nízká</span></td><td><a href="#f11">Nerovnoměrné mezery ve veřejném formuláři</a></td><td>Veřejná přihláška</td></tr>
+        <tr><td>12</td><td><span class="badge low">Nízká</span></td><td><a href="#f12">Rozcestník opakuje menu</a></td><td>Přehled akce</td></tr>
+        <tr><td>13</td><td><span class="badge low">Nízká</span></td><td><a href="#f13">Zamčená úprava akce je slepá stránka</a></td><td>Nastavení → Upravit akci</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Nálezy</h2>
+
+  <article class="finding" id="f1">
+    <header><span class="num">1</span><h3>Na mobilu chybí záložka „Vyhodnocení“</h3><span class="badge high">Vysoká</span></header>
+    <div class="where">Správa akce → Přihlášky · šířka 360 px · světlý i tmavý režim</div>
+    <dl>
+      <dt>Problém</dt><dd>Přepínač „Seznam přihlášek / Ke schválení / Vyhodnocení“ je širší než obrazovka. Třetí záložka končí uprostřed slova a nic nenaznačuje, že se dá posunout.</dd>
+      <dt>Dopad</dt><dd>Organizátor na telefonu nenajde vyhodnocení termínu, tedy nejnovější funkci sprintu.</dd>
+      <dt>Doporučení</dt><dd>Záložky na úzkém displeji zalomit nebo zobrazit jako výběr (select), případně zkrátit popisky. Ověřit i stejný přepínač termínů ve vyhodnocení.</dd>
+    </dl>
+    <figure><img class="phone" src="ux-audit-2026-11-03/m-registrations-tabs-table.png" alt="Přihlášky na šířce 360 px: třetí záložka je useknutá na „Vyhodnoce“ a tabulka přihlášek končí uprostřed sloupce Termíny."><figcaption>Přihlášky na 360 px: „Vyhodnoce…“ a useknutá tabulka.</figcaption></figure>
+  </article>
+
+  <article class="finding" id="f2">
+    <header><span class="num">2</span><h3>Tabulky na 360 px skrývají klíčové sloupce</h3><span class="badge high">Vysoká</span></header>
+    <div class="where">Přihlášky, Akce a turnusy, Ubytování → Obsazenost po termínech, landing „Pro organizátory“ · 360 px</div>
+    <dl>
+      <dt>Problém</dt><dd>Tabulky se posouvají ve vlastním kontejneru, ale bez náznaku. Viditelný zůstává jen první sloupec: chybí stav platby a dluh, místo akce nebo počet volných lůžek. Posuvné oblasti nejdou zaměřit klávesnicí (axe: <code>scrollable-region-focusable</code>).</dd>
+      <dt>Dopad</dt><dd>Na telefonu nejde zjistit, kdo dluží nebo kolik je volných míst. Uživatel klávesnice se ke skrytým sloupcům nedostane vůbec.</dd>
+      <dt>Doporučení</dt><dd>Na úzkých displejích zobrazit řádky jako karty s nejdůležitějšími údaji, nebo alespoň přidat stín či šipku na okraji posuvné oblasti. Kontejner tabulky zpřístupnit klávesnici (<code>tabindex="0"</code> a popisek).</dd>
+    </dl>
+    <div class="figs">
+      <figure><img class="phone" src="ux-audit-2026-11-03/m-events-table.png" alt="Seznam akcí na 360 px: sloupec Místo je useknutý a další sloupce nejsou vidět."><figcaption>Akce a turnusy: z místa zbylo „Sokolovna…“.</figcaption></figure>
+      <figure><img class="phone" src="ux-audit-2026-11-03/m-rooms-table.png" alt="Obsazenost po termínech na 360 px: sloupec Volná lůžka je useknutý."><figcaption>Ubytování: „Volná lů…“.</figcaption></figure>
+    </div>
+  </article>
+
+  <article class="finding" id="f3">
+    <header><span class="num">3</span><h3>„Odhlásit se z akce“ vedle „Odhlásit se“</h3><span class="badge medium">Střední</span></header>
+    <div class="where">Moje přihlášky → detail přihlášky · nejvýraznější na mobilu</div>
+    <dl>
+      <dt>Problém</dt><dd>Nevratná akce „Odhlásit se z akce“ (zrušení účasti) je první tlačítko stránky. Hned nad ní je v hlavičce „Odhlásit se“, které jen ukončí přihlášení do aplikace. Stejné sloveso popisuje dvě zcela odlišné věci.</dd>
+      <dt>Dopad</dt><dd>Účastník, který se chce jen odhlásit z aplikace, může omylem otevřít zrušení účasti, nebo naopak hledat zrušení účasti v hlavičce.</dd>
+      <dt>Doporučení</dt><dd>Přejmenovat na „Zrušit účast“ a přesunout až za „Upravit přihlášku“, ideálně na konec stránky.</dd>
+    </dl>
+    <figure><img class="phone" src="ux-audit-2026-11-03/m-participant-actions.png" alt="Detail přihlášky účastníka: v hlavičce tlačítko Odhlásit se, pod ním první tlačítko Odhlásit se z akce, potom Upravit přihlášku a Aktualizovat."><figcaption>„Odhlásit se“ v hlavičce a „Odhlásit se z akce“ hned pod ní.</figcaption></figure>
+  </article>
+
+  <article class="finding" id="f4">
+    <header><span class="num">4</span><h3>Technický název časového pásma u data</h3><span class="badge medium">Střední</span></header>
+    <div class="where">Moje přihlášky (seznam i detail) → Platba → Datum připomenutí platby · potvrzení po odeslání veřejné přihlášky („Přijato … (Europe/Prague)“)</div>
+    <dl>
+      <dt>Problém</dt><dd>Datum se zobrazuje jako „16. 9. 2026 (Europe/Prague)“, stejně tak čas přijetí na potvrzení přihlášky. Identifikátor z databáze časových pásem nic neříká běžnému účastníkovi.</dd>
+      <dt>Doporučení</dt><dd>Zobrazit jen datum. Pokud je pásmo potřeba, použít srozumitelný tvar, např. „(čas v ČR)“. Stejně jako v organizátorském detailu, kde pásmo uvedené není.</dd>
+    </dl>
+    <figure><img class="phone" src="ux-audit-2026-11-03/m-participant-payment.png" alt="Karta Platba v detailu přihlášky účastníka s textem 16. 9. 2026 (Europe/Prague)."><figcaption>„16. 9. 2026 (Europe/Prague)“.</figcaption></figure>
+  </article>
+
+  <article class="finding" id="f5">
+    <header><span class="num">5</span><h3>Nevyhodnocený termín hlásí čtyři stavy najednou</h3><span class="badge medium">Střední</span></header>
+    <div class="where">Přihlášky → Vyhodnocení · termín bez proběhlého vyhodnocení</div>
+    <dl>
+      <dt>Problém</dt><dd>Současně je vidět „Bez návrhu“, „Aktualizuje se automaticky“, „Termín zatím nebyl vyhodnocen“ a „Bez platného návrhu“. „Potvrdit všechny vhodné“ je zakázané bez vysvětlení.</dd>
+      <dt>Dopad</dt><dd>Není jasné, jestli má organizátor čekat na automatické vyhodnocení, nebo kliknout na „Přepočítat“.</dd>
+      <dt>Doporučení</dt><dd>Jedno hlášení s dalším krokem, např. „Termín zatím nebyl vyhodnocen. Návrh vznikne automaticky, nebo ho spusťte tlačítkem Přepočítat.“ U zakázaného tlačítka uvést důvod.</dd>
+    </dl>
+    <figure><img src="ux-audit-2026-11-03/d-evaluation-states.png" alt="Vyhodnocení termínu: štítek Bez návrhu, text Aktualizuje se automaticky, hlášení Termín zatím nebyl vyhodnocen, sloupec Podle návrhu s textem Bez platného návrhu a zakázané tlačítko Potvrdit všechny vhodné."><figcaption>Čtyři varianty téhož stavu a zakázané tlačítko.</figcaption></figure>
+  </article>
+
+  <article class="finding" id="f6">
+    <header><span class="num">6</span><h3>Oříznutý štítek „Připravujeme“</h3><span class="badge medium">Střední</span></header>
+    <div class="where">Postranní menu akce → Komunikace · desktop, světlý i tmavý režim</div>
+    <dl>
+      <dt>Problém</dt><dd>Štítek u položky „Komunikace“ přetéká za okraj postranního panelu a končí „Připravujem“. U kratších položek se vejde.</dd>
+      <dt>Doporučení</dt><dd>Povolit zkrácení popisku položky, nebo štítek nahradit ikonou s popiskem. Hlídat i delší názvy budoucích sekcí.</dd>
+    </dl>
+    <figure><img src="ux-audit-2026-11-03/d-sidebar-badge.png" alt="Postranní menu: štítek Připravujeme u položky Komunikace je na pravém okraji useknutý." style="max-width:240px"><figcaption>„Komunikace · Připravujem…“.</figcaption></figure>
+  </article>
+
+  <article class="finding" id="f7">
+    <header><span class="num">7</span><h3>Obsah dashboardu mimo orientační oblasti</h3><span class="badge medium">Střední</span></header>
+    <div class="where">Všechny stránky organizátora na desktopu (axe: <code>region</code>, 3–8 prvků na stránku)</div>
+    <dl>
+      <dt>Problém</dt><dd>Nadpisy a skupiny postranního menu ani část hlavičky stránky neleží v žádné orientační oblasti (<code>nav</code>, <code>main</code>, <code>aside</code>).</dd>
+      <dt>Dopad</dt><dd>Uživatel čtečky obrazovky nemůže přeskočit mezi menu a obsahem pomocí oblastí; musí procházet prvek po prvku.</dd>
+      <dt>Doporučení</dt><dd>Postranní panel obalit do <code>&lt;nav aria-label="Navigace akce"&gt;</code> a obsah stránky do <code>&lt;main&gt;</code>.</dd>
+    </dl>
+  </article>
+
+  <article class="finding" id="f8">
+    <header><span class="num">8</span><h3>Šířka obsahu skáče mezi sekcemi akce</h3><span class="badge medium">Střední</span></header>
+    <div class="where">Přehled, Přihlášky, Nastavení, Upravit akci · desktop</div>
+    <dl>
+      <dt>Problém</dt><dd>Každá sekce téže akce má jinou šířku a levý okraj obsahu: Přihlášky začínají u 336 px, Přehled a Nastavení u 400 px, Upravit akci u 560 px. Drobečková navigace a nadpis při přepínání sekcí „skáčou“.</dd>
+      <dt>Doporučení</dt><dd>Sjednotit kontejner stránky: stejný levý okraj pro všechny sekce, užší sloupec jen uvnitř formulářů.</dd>
+    </dl>
+  </article>
+
+  <article class="finding" id="f9">
+    <header><span class="num">9</span><h3>Částky střídají dvě písma</h3><span class="badge low">Nízká</span></header>
+    <div class="where">Seznam přihlášek (Dluh, Přeplatek), Přijaté platby, Moje přihlášky → Platba</div>
+    <dl>
+      <dt>Problém</dt><dd>Stejné údaje o penězích jsou jednou v neproporcionálním písmu („Dluh 2 500 Kč“, „2 000 Kč“ v Přijatých platbách, celá karta Platba u účastníka), jinde proporcionální (karta Platba u organizátora).</dd>
+      <dt>Doporučení</dt><dd>Pro částky použít jedno písmo s tabulkovými číslicemi (<code>tabular-nums</code>). Neproporcionální písmo ponechat jen pro variabilní symbol a číslo účtu.</dd>
+    </dl>
+    <figure><img src="ux-audit-2026-11-03/d-registrations-amounts.png" alt="Seznam přihlášek: částky Dluh a Přeplatek ve sloupci Platba jsou v neproporcionálním písmu, ostatní text proporcionálně."><figcaption>Sloupec Platba v seznamu přihlášek.</figcaption></figure>
+  </article>
+
+  <article class="finding" id="f10">
+    <header><span class="num">10</span><h3>„Přijato“ ve dvou významech</h3><span class="badge low">Nízká</span></header>
+    <div class="where">Správa akce → Přihlášky → detail přihlášky</div>
+    <dl>
+      <dt>Problém</dt><dd>„Přijato 2. 9. 2026 9:15“ v hlavičce znamená přijetí přihlášky, „Přijato 2 000 Kč“ v kartě Platba přijaté peníze. Účastník pro tutéž částku vidí „Zaplaceno“.</dd>
+      <dt>Doporučení</dt><dd>V hlavičce „Přihláška přijata 2. 9. 2026 9:15“, v platbě „Zaplaceno“, jednotně pro organizátora i účastníka.</dd>
+    </dl>
+    <figure><img src="ux-audit-2026-11-03/d-registration-detail-received.png" alt="Detail přihlášky: v hlavičce Přijato 2. 9. 2026 9:15, v kartě Platba řádek Přijato 2 000 Kč."><figcaption>Dvakrát „Přijato“ na jedné obrazovce.</figcaption></figure>
+  </article>
+
+  <article class="finding" id="f11">
+    <header><span class="num">11</span><h3>Nerovnoměrné mezery ve veřejném formuláři</h3><span class="badge low">Nízká</span></header>
+    <div class="where">Veřejná přihláška na akci · nejvýraznější na mobilu</div>
+    <dl>
+      <dt>Problém</dt><dd>Mezi poli zůstává místo vyhrazené pro chybové hlášky, takže mezery jsou větší než mezi souvisejícími prvky a mezi termíny a cenou je prázdný pruh. Povinná pole jsou označená hvězdičkou, nepovinné pohlaví navíc textem „(nepovinné)“.</dd>
+      <dt>Doporučení</dt><dd>Místo pro chybu nevyhrazovat předem a mezery řídit tokeny z <code>DESIGN.md</code>. Držet jednu konvenci: buď hvězdička u povinných, nebo „nepovinné“ u nepovinných.</dd>
+    </dl>
+    <figure><img class="phone" src="ux-audit-2026-11-03/m-registration-form-spacing.png" alt="Veřejný formulář na 360 px: velká prázdná mezera mezi termíny a cenou a velké mezery mezi poli Jméno, Příjmení a E-mail."><figcaption>Prázdný pruh pod termíny a široké mezery mezi poli.</figcaption></figure>
+  </article>
+
+  <article class="finding" id="f12">
+    <header><span class="num">12</span><h3>Rozcestník opakuje menu</h3><span class="badge low">Nízká</span></header>
+    <div class="where">Správa akce → Přehled · desktop</div>
+    <dl>
+      <dt>Problém</dt><dd>Pod souhrnem akce jsou velké dlaždice Nastavení, Přihlášky, Platby a Ubytování. Stejné odkazy už nabízí postranní menu a tlačítka v kartách souhrnu („Zobrazit přihlášky“, „Zobrazit ubytování“). Dlaždice zabírají polovinu obrazovky a nenesou žádnou informaci.</dd>
+      <dt>Doporučení</dt><dd>Dlaždice odstranit, nebo je nahradit informacemi, které jinde nejsou (např. co čeká na schválení).</dd>
+    </dl>
+    <figure><img src="ux-audit-2026-11-03/d-overview.png" alt="Přehled akce na desktopu: tři karty souhrnu s tlačítky a pod nimi velké dlaždice Nastavení, Přihlášky, Platby a Ubytování."><figcaption>Dlaždice pod souhrnem akce.</figcaption></figure>
+  </article>
+
+  <article class="finding" id="f13">
+    <header><span class="num">13</span><h3>Zamčená úprava akce je slepá stránka</h3><span class="badge low">Nízká</span></header>
+    <div class="where">Nastavení → Upravit akci · akce s otevřeným přihlašováním</div>
+    <dl>
+      <dt>Problém</dt><dd>Po otevření přihlašování vede „Upravit akci“ na stránku, která obsahuje jen hlášení o zamčení a tlačítko zpět. Totéž hlášení už je v Nastavení.</dd>
+      <dt>Doporučení</dt><dd>Odkaz na úpravu u zamčené akce nenabízet, nebo ho zakázat s vysvětlením přímo v Nastavení.</dd>
+    </dl>
+  </article>
+
+  <h2>Zkontrolováno bez nálezu</h2>
+  <p>Na šířce 1440 px i 360 px, ve světlém i tmavém režimu: bez vodorovného posouvání stránky a bez dalších nálezů kromě obecného nálezu 7 (orientační oblasti dashboardu):</p>
+  <ul class="clean">
+    <li><span class="ok">✓</span> Úvodní stránka, Pro organizátory (kromě tabulky, viz nález 2), Pro účastníky</li>
+    <li><span class="ok">✓</span> Katalog akcí a veřejný detail akce</li>
+    <li><span class="ok">✓</span> Přihlášení a registrace organizátora</li>
+    <li><span class="ok">✓</span> Moje organizace, nová organizace, nová akce</li>
+    <li><span class="ok">✓</span> Nastavení akce, Ke schválení (prázdný stav), stránka 404</li>
+    <li><span class="ok">✓</span> Tmavý režim: kontrast textu a stavových štítků bez nálezu na všech stránkách</li>
+  </ul>
+
+  <h2>Metodika a omezení</h2>
+  <ul class="clean">
+    <li>Průchod všemi stránkami veřejného webu, účastnické části (přihlášený účastník) a organizátorského dashboardu na lokálním prostředí s demonstračními daty ze seedu.</li>
+    <li>Každá stránka ve čtyřech variantách: desktop 1440 × 900 a mobil 360 × 800, světlý a tmavý režim. Celkem 88 obrazovek.</li>
+    <li>Automatické kontroly na každé obrazovce: přetečení šířky stránky, pravidla přístupnosti axe-core 4.13 (WCAG 2.1 AA) a chyby v konzoli. Vizuální posouzení podle <code>DESIGN.md</code>.</li>
+    <li>Lokální databáze obsahuje i data z end-to-end testů (akce s generovanými názvy), proto texty veřejného katalogu nebyly posuzovány obsahově.</li>
+    <li>Nebyla posouzena stránka programu termínu a interaktivní stavy dialogů (otevřené, chybové, fokus). Patří do vizuální kontroly dashboardů v #242.</li>
+  </ul>
+
+  <footer>akc.io · UX audit k issue #166 · průchod proveden 7. 11. 2026</footer>
+</main>
+</body>
+</html>
