@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest"
 
-import { makeRunEvidence, makeTermEvaluation } from "@/features/accommodation/fixtures/evaluation"
+import {
+  makeMoves,
+  makeRunEvidence,
+  makeTermEvaluation,
+} from "@/features/accommodation/fixtures/evaluation"
 import {
   EVERYONE,
+  queueLabel,
   toConflict,
   toEvidence,
+  toHistoryMove,
   toHistoryRun,
   toOrderPeople,
   toQueues,
@@ -100,5 +106,26 @@ describe("evaluationView", () => {
     expect(evidence.order.every((person) => person.result === undefined)).toBe(true)
     expect(evidence.outcome).toBe("Výpočet se nezdařil: solver crashed")
     expect(toEvidence(makeRunEvidence()).outcome).toBeUndefined()
+  })
+
+  it("words a move of the order with its queue, positions and reason (F39-1)", () => {
+    const [move] = makeMoves()
+    expect(toHistoryMove(move!, "gender")).toMatchObject({
+      kind: "move",
+      author: "Marie Králová",
+      person: "Anna Procházková",
+      queueLabel: "Turnus 1 · fronta Žena",
+      fromPosition: 5,
+      toPosition: 4,
+      reason: "Sestra potvrzené účastnice, rodina žádá společný turnus.",
+    })
+    expect(queueLabel("Turnus 1", null, null)).toBe("Turnus 1 · fronta všech")
+    expect(toOrderPeople(makeTermEvaluation()).map((person) => person.isMovedByHand)).toEqual([
+      false,
+      false,
+      false,
+      true,
+      false,
+    ])
   })
 })

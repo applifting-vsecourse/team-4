@@ -5,6 +5,7 @@ import { Registration } from '@/generated/prisma/client';
 import { RegistrationAccommodationController } from '@/modules/accommodation/controllers/registration-accommodation.controller';
 import { TermDecisionController } from '@/modules/accommodation/controllers/term-decision.controller';
 import { AccommodationEvaluationRepository } from '@/modules/accommodation/repositories/accommodation-evaluation.repository';
+import { OrderMovesRepository } from '@/modules/accommodation/repositories/order-moves.repository';
 import { RegistrationAccommodationRepository } from '@/modules/accommodation/repositories/registration-accommodation.repository';
 import { TermDecisionRepository } from '@/modules/accommodation/repositories/term-decision.repository';
 import { TermEvaluationRepository } from '@/modules/accommodation/repositories/term-evaluation.repository';
@@ -64,6 +65,7 @@ beforeAll(async () => {
     providers: [
       TermDecisionService,
       TermDecisionRepository,
+      OrderMovesRepository,
       TermEvaluationRepository,
       AccommodationEvaluationService,
       AccommodationEvaluationRepository,

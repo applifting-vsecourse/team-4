@@ -3,13 +3,14 @@ import { http, HttpResponse } from "msw"
 import { env } from "@/config/env"
 
 import {
+  makeMoves,
   makeRegistrationAccommodation,
   makeRunEvidence,
   makeRuns,
   makeTermEvaluation,
 } from "@/features/accommodation/fixtures/evaluation"
 
-// MSW handlers for the term evaluation of an event (S3-01). Install with
+// MSW handlers for the term evaluation of an event (S3-01, S3-03). Install with
 // `msw.use(...)` in a story's `beforeEach`.
 
 const EVENT = `${env.VITE_API_URL}/organizations/:organizationId/events/:eventId`
@@ -33,6 +34,10 @@ export const accommodationHandlers = {
       HttpResponse.json({ status: "confirmed" }),
     ),
     http.get(`${BASE}/terms/:termId/runs`, () => HttpResponse.json({ runs: makeRuns() })),
+    http.get(`${BASE}/terms/:termId/order/moves`, () => HttpResponse.json(makeMoves())),
+    http.post(`${BASE}/terms/:termId/order/moves`, () =>
+      HttpResponse.json(makeTermEvaluation({ status: "stale" })),
+    ),
     http.get(`${BASE}/runs/:runId`, () => HttpResponse.json(makeRunEvidence())),
     http.get(REGISTRATION, () => HttpResponse.json(makeRegistrationAccommodation())),
     http.put(`${REGISTRATION}/determination`, () =>

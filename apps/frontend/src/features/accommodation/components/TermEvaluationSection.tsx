@@ -10,6 +10,7 @@ import {
   evaluationKeys,
   runEvidenceQueryOptions,
   termEvaluationQueryOptions,
+  termMovesQueryOptions,
   termRunsQueryOptions,
 } from "@/features/accommodation/api/evaluationQueryOptions"
 import { BulkConfirmationDialog } from "@/features/accommodation/components/BulkConfirmationDialog"
@@ -18,6 +19,7 @@ import {
   type DeterminationTarget,
 } from "@/features/accommodation/components/DeterminationDialog"
 import { EvaluationHistory } from "@/features/accommodation/components/EvaluationHistory"
+import { isMovable, MoveInQueueDialog } from "@/features/accommodation/components/MoveInQueueDialog"
 import {
   ParticipationDecisionDialog,
   type ParticipationDecisionTarget,
@@ -36,6 +38,7 @@ import {
   toConflict,
   toEvaluationTerm,
   toEvidence,
+  toHistoryMove,
   toHistoryRun,
   toOrderPeople,
   toQueues,
@@ -69,11 +72,11 @@ type BulkAttempt = { runId: string; submissionKey: string; people: string[]; rem
 
 // Přihlášky → Vyhodnocení (S3-01): the proposal of the selected term, its
 // queues and order, the history of its runs with their evidence, and the
-// determination of the accommodation of whoever needs one, and the decisions
-// on participation (S3-02): confirming the suitable of the current proposal at
-// once, or one person at a time. Reading never evaluates; "Přepočítat" queues
-// a run and the term is read again until it is stored. Moving in the order
-// comes with a later slice, so it is not offered.
+// determination of the accommodation of whoever needs one, the decisions on
+// participation (S3-02): confirming the suitable of the current proposal at
+// once, or one person at a time, and the manual order of a queue (S3-03).
+// Reading never evaluates; "Přepočítat" queues a run and the term is read
+// again until it is stored.
 export function TermEvaluationSection({
   organizationId,
   eventId,
@@ -93,6 +96,10 @@ export function TermEvaluationSection({
     ...termRunsQueryOptions(organizationId, eventId, termId),
     enabled: hasTerm,
   })
+  const moves = useQuery({
+    ...termMovesQueryOptions(organizationId, eventId, termId),
+    enabled: hasTerm,
+  })
   // A run stored while the term was polled belongs into the history.
   const settled = `${evaluation.data?.status}/${evaluation.data?.proposalRun?.id}`
   useEffect(() => {
@@ -103,6 +110,7 @@ export function TermEvaluationSection({
   const recalculate = useRecalculate(organizationId, eventId, termId)
   const [openRunId, setOpenRunId] = useState<string | null>(null)
   const [determining, setDetermining] = useState<DeterminationTarget | null>(null)
+  const [movingId, setMovingId] = useState<string | null>(null)
   const [bulk, setBulk] = useState<BulkAttempt | null>(null)
   const [deciding, setDeciding] = useState<ParticipationDecisionTarget | null>(null)
   const [confirmedResult, setConfirmedResult] = useState<string | undefined>()
@@ -177,6 +185,20 @@ export function TermEvaluationSection({
     ...(data.manualCount > 0 ? ["manual"] : []),
   ])
   const shownQueue = queueIds.has(queue) ? queue : "all"
+  // Runs and order changes, newest first: the moves a run used come before it.
+  const termLabel = selectedTerm?.label ?? data.term.label
+  const history = [
+    ...(runs.data ?? []).map((run) => ({
+      time: Date.parse(run.finishedAt),
+      entry: toHistoryRun(run, termLabel),
+    })),
+    ...(moves.data ?? []).map((move) => ({
+      time: Date.parse(move.createdAt),
+      entry: toHistoryMove(move, data.hardAttribute?.attribute ?? null),
+    })),
+  ]
+    .sort((a, b) => b.time - a.time)
+    .map(({ entry }) => entry)
   const recalculateError = recalculate.isError
     ? (readApiError(recalculate.error).message ?? RECALCULATE_FAILED)
     : undefined
@@ -264,15 +286,19 @@ export function TermEvaluationSection({
                 })
               }
             : undefined,
+          // Only someone who can stand next to another person of the queue.
+          canMove: (person) => isMovable(data, person.id),
+          onMove: (person) => setMovingId(person.id),
         }}
       >
         <EvaluationHistory
           title="Historie termínu"
-          entries={(runs.data ?? []).map((run) =>
-            toHistoryRun(run, selectedTerm?.label ?? data.term.label),
-          )}
-          isLoadFailed={runs.isError}
-          onRetry={() => void runs.refetch()}
+          entries={history}
+          isLoadFailed={runs.isError || moves.isError}
+          onRetry={() => {
+            if (runs.isError) void runs.refetch()
+            if (moves.isError) void moves.refetch()
+          }}
           onOpenRun={setOpenRunId}
         />
         {evidence.isError ? (
@@ -282,6 +308,15 @@ export function TermEvaluationSection({
           />
         ) : null}
       </TermEvaluation>
+      {movingId ? (
+        <MoveInQueueDialog
+          organizationId={organizationId}
+          eventId={eventId}
+          term={data}
+          registrationId={movingId}
+          onClose={() => setMovingId(null)}
+        />
+      ) : null}
       <BulkConfirmationDialog
         isOpen={bulk !== null}
         state={

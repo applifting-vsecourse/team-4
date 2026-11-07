@@ -1,9 +1,11 @@
 import { queryOptions } from "@tanstack/react-query"
+import { z } from "zod"
 
 import { api } from "@/lib/api-client"
 
 import {
   evaluationModeResponseSchema,
+  moveRecordSchema,
   registrationAccommodationSchema,
   runEvidenceSchema,
   runListSchema,
@@ -21,6 +23,8 @@ export const evaluationKeys = {
     [...evaluationKeys.event(organizationId, eventId), "term", termId] as const,
   runs: (organizationId: string, eventId: string, termId: string) =>
     [...evaluationKeys.event(organizationId, eventId), "runs", termId] as const,
+  moves: (organizationId: string, eventId: string, termId: string) =>
+    [...evaluationKeys.event(organizationId, eventId), "moves", termId] as const,
   run: (organizationId: string, eventId: string, runId: string) =>
     [...evaluationKeys.event(organizationId, eventId), "run", runId] as const,
   registration: (organizationId: string, eventId: string, registrationId: string) =>
@@ -71,6 +75,20 @@ export const termRunsQueryOptions = (organizationId: string, eventId: string, te
       runListSchema.parse(
         await api.get(`${accommodationPath(organizationId, eventId)}/terms/${termId}/runs`).json(),
       ).runs,
+  })
+
+/** The manual changes of the term's order (F39-1), newest first. */
+export const termMovesQueryOptions = (organizationId: string, eventId: string, termId: string) =>
+  queryOptions({
+    queryKey: evaluationKeys.moves(organizationId, eventId, termId),
+    queryFn: async () =>
+      z
+        .array(moveRecordSchema)
+        .parse(
+          await api
+            .get(`${accommodationPath(organizationId, eventId)}/terms/${termId}/order/moves`)
+            .json(),
+        ),
   })
 
 export const runEvidenceQueryOptions = (organizationId: string, eventId: string, runId: string) =>

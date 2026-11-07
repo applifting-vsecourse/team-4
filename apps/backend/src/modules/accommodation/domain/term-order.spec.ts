@@ -1,4 +1,7 @@
-import { termOrder } from '@/modules/accommodation/domain/term-order';
+import {
+  moveInOrder,
+  termOrder,
+} from '@/modules/accommodation/domain/term-order';
 
 const at = (time: string): Date => new Date(`2027-03-01T${time}Z`);
 
@@ -61,5 +64,144 @@ describe('termOrder', () => {
         ['p1', 'p2'],
       ),
     ).toEqual(['p2']);
+  });
+});
+
+describe('moveInOrder', () => {
+  const female = (
+    id: string,
+  ): { registrationId: string; effectiveValue: string } => ({
+    registrationId: id,
+    effectiveValue: 'female',
+  });
+
+  it('places P3 before P2 and keeps both orders (Př. 9)', () => {
+    const result = moveInOrder(
+      ['p1', 'p2', 'p3'],
+      ['p1', 'p2', 'p3'].map(female),
+      true,
+      { registrationId: 'p3', targetId: 'p2', placement: 'before' },
+    );
+
+    expect(result).toEqual({
+      kind: 'moved',
+      move: {
+        queue: 'female',
+        before: ['p1', 'p2', 'p3'],
+        after: ['p1', 'p3', 'p2'],
+        queueBefore: ['p1', 'p2', 'p3'],
+        queueAfter: ['p1', 'p3', 'p2'],
+        fromPosition: 3,
+        toPosition: 2,
+      },
+    });
+  });
+
+  it('changes the term order, the queue being a filtered view of it', () => {
+    const result = moveInOrder(
+      ['f1', 'm1', 'f2', 'm2', 'f3'],
+      [
+        female('f1'),
+        { registrationId: 'm1', effectiveValue: 'male' },
+        female('f2'),
+        { registrationId: 'm2', effectiveValue: 'male' },
+        female('f3'),
+      ],
+      true,
+      { registrationId: 'f1', targetId: 'f3', placement: 'after' },
+    );
+
+    expect(result).toMatchObject({
+      kind: 'moved',
+      move: {
+        after: ['m1', 'f2', 'm2', 'f3', 'f1'],
+        queueBefore: ['f1', 'f2', 'f3'],
+        queueAfter: ['f2', 'f3', 'f1'],
+        fromPosition: 1,
+        toPosition: 5,
+      },
+    });
+  });
+
+  it('moves anyone among everyone without a hard attribute', () => {
+    const result = moveInOrder(
+      ['a', 'b', 'c'],
+      ['a', 'b', 'c'].map((id) => ({
+        registrationId: id,
+        effectiveValue: null,
+      })),
+      false,
+      { registrationId: 'a', targetId: 'c', placement: 'after' },
+    );
+
+    expect(result).toMatchObject({
+      kind: 'moved',
+      move: {
+        queue: null,
+        after: ['b', 'c', 'a'],
+        queueAfter: ['b', 'c', 'a'],
+      },
+    });
+  });
+
+  it('refuses a confirmed person, who is not in the order (Př. 9)', () => {
+    expect(
+      moveInOrder(['p2', 'p3'], [female('p2'), female('p3')], true, {
+        registrationId: 'p1',
+        targetId: 'p2',
+        placement: 'before',
+      }),
+    ).toEqual({ kind: 'refused', refusal: 'person_not_movable' });
+  });
+
+  it('refuses someone waiting for a manual determination, and placing next to them', () => {
+    const members = [
+      female('f1'),
+      { registrationId: 'u1', effectiveValue: null },
+    ];
+    expect(
+      moveInOrder(['f1', 'u1'], members, true, {
+        registrationId: 'u1',
+        targetId: 'f1',
+        placement: 'before',
+      }),
+    ).toEqual({ kind: 'refused', refusal: 'person_not_movable' });
+    expect(
+      moveInOrder(['f1', 'u1'], members, true, {
+        registrationId: 'f1',
+        targetId: 'u1',
+        placement: 'after',
+      }),
+    ).toEqual({ kind: 'refused', refusal: 'target_invalid' });
+  });
+
+  it('refuses a target of another queue, the person itself, or no change', () => {
+    const members = [
+      female('f1'),
+      female('f2'),
+      { registrationId: 'm1', effectiveValue: 'male' },
+    ];
+    const order = ['f1', 'f2', 'm1'];
+    expect(
+      moveInOrder(order, members, true, {
+        registrationId: 'f1',
+        targetId: 'm1',
+        placement: 'after',
+      }),
+    ).toEqual({ kind: 'refused', refusal: 'target_invalid' });
+    expect(
+      moveInOrder(order, members, true, {
+        registrationId: 'f1',
+        targetId: 'f1',
+        placement: 'after',
+      }),
+    ).toEqual({ kind: 'refused', refusal: 'target_invalid' });
+    expect(
+      moveInOrder(order, members, true, {
+        registrationId: 'f1',
+        targetId: 'f2',
+        placement: 'before',
+      }),
+    ).toEqual({ kind: 'refused', refusal: 'order_unchanged' });
   });
 });
