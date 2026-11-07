@@ -197,16 +197,24 @@
    states keep their own colours. Badges keep their default 1px border.
    A button is matched by its variant and size, not by data-slot: as a trigger (`DialogTrigger
    asChild` and the like) its data-slot becomes the trigger's, and it would lose the shape. A form
-   field inside `FormControl` likewise carries data-slot="form-control" instead of its own. */
+   field inside `FormControl` likewise carries data-slot="form-control" instead of its own.
+   A button that acts as a field (the date picker, any button inside `FormControl`) is a field:
+   it gets the field's outline and surface, not the button's shadow. */
 [data-slot="card"],
-[data-variant][data-size]:not([data-variant="ghost"]):not([data-variant="link"]),
+[data-variant][data-size]:not(
+    [data-variant="ghost"],
+    [data-variant="link"],
+    [data-slot="date-picker"],
+    [data-slot="form-control"]
+  ),
 :is(
   [data-slot="input"],
   [data-slot="textarea"],
   [data-slot="select-trigger"],
+  [data-slot="date-picker"],
   input[data-slot="form-control"],
   textarea[data-slot="form-control"],
-  [data-slot="form-control"][role="combobox"]
+  button[data-slot="form-control"]:not([role="radio"], [role="checkbox"])
 ):not(:focus-visible, [aria-invalid="true"]) {
   border-width: 1.5px;
   border-color: var(--input);
@@ -221,7 +229,12 @@
   border-color: var(--primary-foreground);
 }
 [data-slot="card"],
-[data-variant][data-size]:not([data-variant="ghost"]):not([data-variant="link"]) {
+[data-variant][data-size]:not(
+    [data-variant="ghost"],
+    [data-variant="link"],
+    [data-slot="date-picker"],
+    [data-slot="form-control"]
+  ) {
   box-shadow: var(--shadow-sm);
 }
 /* Form fields have an outline and no shadow, all alike: the kit's `shadow-xs` on selects, radios
@@ -233,9 +246,10 @@
   [data-slot="select-trigger"],
   [data-slot="radio-group-item"],
   [data-slot="checkbox"],
+  [data-slot="date-picker"],
   input[data-slot="form-control"],
   textarea[data-slot="form-control"],
-  [data-slot="form-control"]:is([role="combobox"], [role="radio"], [role="checkbox"])
+  button[data-slot="form-control"]
 ):not(:focus-visible, [aria-invalid="true"]) {
   box-shadow: none;
 }
@@ -248,17 +262,19 @@
     [data-slot="select-trigger"],
     [data-slot="radio-group-item"],
     [data-slot="checkbox"]:not([data-state="checked"]),
+    [data-slot="date-picker"],
     input[data-slot="form-control"],
     textarea[data-slot="form-control"],
-    [data-slot="form-control"]:is(
-      [role="combobox"],
-      [role="radio"],
-      [role="checkbox"]:not([data-state="checked"])
-    )
+    button[data-slot="form-control"]:not([role="checkbox"][data-state="checked"])
   ) {
   background-color: var(--card);
 }
-[data-variant][data-size]:not([data-variant="ghost"]):not([data-variant="link"]):active {
+[data-variant][data-size]:not(
+    [data-variant="ghost"],
+    [data-variant="link"],
+    [data-slot="date-picker"],
+    [data-slot="form-control"]
+  ):active {
   transform: translate(1px, 1px);
   box-shadow: var(--shadow-xs);
 }
