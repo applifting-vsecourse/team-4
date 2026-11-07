@@ -92,13 +92,12 @@ describe("TermEvaluationSection", () => {
     )
     expect(within(order).getAllByText("Vhodný")).toHaveLength(3)
     expect(within(order).getByText("Ruční určení")).toBeInTheDocument()
-    // Confirming and moving come with later slices; only who needs a
-    // determination has an action.
-    expect(
-      screen.queryByRole("button", { name: /Potvrdit všechny vhodné/ }),
-    ).not.toBeInTheDocument()
-    expect(within(order).getAllByRole("button", { name: /^Akce:/ })).toHaveLength(1)
-    expect(within(order).getByRole("button", { name: "Akce: Alex Šimek" })).toBeInTheDocument()
+    // Everyone can be decided; moving in the order comes with a later slice.
+    expect(screen.getByRole("button", { name: "Potvrdit všechny vhodné (3)" })).toBeEnabled()
+    expect(within(order).getAllByRole("button", { name: /^Akce:/ })).toHaveLength(5)
+    await userEvent.click(within(order).getByRole("button", { name: "Akce: Alex Šimek" }))
+    expect(await screen.findByRole("menuitem", { name: "Určit ubytování" })).toBeInTheDocument()
+    expect(screen.queryByRole("menuitem", { name: "Změnit pořadí" })).not.toBeInTheDocument()
   })
 
   it("recalculates on request and reads as running meanwhile", async () => {
@@ -185,6 +184,7 @@ describe("TermEvaluationSection", () => {
         determination: null,
         effectiveValue: "male",
         needsDetermination: false,
+        decisions: [],
         history: [],
       }),
     )
@@ -239,5 +239,178 @@ describe("TermEvaluationSection", () => {
       await within(dialog).findByText("Účastník mezitím změnil odpověď. Načtěte ji znovu."),
     ).toBeInTheDocument()
     expect(within(dialog).getByLabelText("Důvod")).toHaveValue("Dohoda")
+  })
+
+  describe("Potvrdit všechny vhodné", () => {
+    const CONFIRM_PATH = `organizations/org/events/event/accommodation/terms/${EVALUATED_TERM.id}/confirmations`
+    const confirmed = [
+      {
+        registrationId: "0190c0de-0000-7000-8000-000000000601",
+        firstName: "Tereza",
+        lastName: "Nováková",
+      },
+      {
+        registrationId: "0190c0de-0000-7000-8000-000000000602",
+        firstName: "Jakub",
+        lastName: "Svoboda",
+      },
+      {
+        registrationId: "0190c0de-0000-7000-8000-000000000604",
+        firstName: "Anna",
+        lastName: "Procházková",
+      },
+    ]
+
+    it("shows the term and the people, then confirms the proposal once", async () => {
+      serve()
+      post.mockReturnValue(answer({ confirmed, isReplay: false }))
+      renderSection()
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Potvrdit všechny vhodné (3)" }),
+      )
+      const dialog = await screen.findByRole("dialog", { name: "Potvrdit všechny vhodné" })
+      expect(within(dialog).getByText(/Turnus 1/)).toBeInTheDocument()
+      expect(
+        within(dialog)
+          .getAllByRole("listitem")
+          .map((item) => item.textContent),
+      ).toEqual(["Tereza Nováková", "Jakub Svoboda", "Anna Procházková"])
+      expect(within(dialog).getByText(/1 neubytovatelní, 1 ruční určení/)).toBeInTheDocument()
+
+      await userEvent.click(within(dialog).getByRole("button", { name: "Potvrdit 3 účasti" }))
+
+      await waitFor(() => expect(post).toHaveBeenCalledTimes(1))
+      expect(post).toHaveBeenCalledWith(CONFIRM_PATH, {
+        json: {
+          runId: makeTermEvaluation().proposalRun!.id,
+          submissionKey: expect.any(String) as string,
+        },
+      })
+      expect(await screen.findByText("Potvrzeno 3 účasti v termínu Turnus 1.")).toBeInTheDocument()
+      expect(
+        screen.queryByRole("dialog", { name: "Potvrdit všechny vhodné" }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("explains an old proposal, confirms nobody and offers the current one", async () => {
+      serve()
+      post.mockReturnValue(
+        refuse(409, {
+          code: "proposal_stale",
+          message: "Podklady se změnily. Nikdo nebyl potvrzen, načtěte aktuální návrh.",
+        }),
+      )
+      renderSection()
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Potvrdit všechny vhodné (3)" }),
+      )
+      await userEvent.click(await screen.findByRole("button", { name: "Potvrdit 3 účasti" }))
+
+      expect(
+        await screen.findByText("Návrh je neaktuální, nikdo nebyl potvrzen"),
+      ).toBeInTheDocument()
+      expect(screen.getByText(/Nikdo nebyl potvrzen, načtěte/)).toBeInTheDocument()
+      await userEvent.click(screen.getByRole("button", { name: "Načíst nový návrh" }))
+      expect(
+        screen.queryByRole("dialog", { name: "Potvrdit všechny vhodné" }),
+      ).not.toBeInTheDocument()
+    })
+
+    it("keeps the confirmation retryable after a failed write", async () => {
+      serve()
+      post
+        .mockReturnValueOnce(refuse(500, {}))
+        .mockReturnValueOnce(answer({ confirmed, isReplay: true }))
+      renderSection()
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Potvrdit všechny vhodné (3)" }),
+      )
+      await userEvent.click(await screen.findByRole("button", { name: "Potvrdit 3 účasti" }))
+      expect(await screen.findByText("Potvrzení se nepodařilo uložit")).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole("button", { name: "Potvrdit 3 účasti" }))
+      await waitFor(() => expect(post).toHaveBeenCalledTimes(2))
+      // The retry is the same request, so it is saved once.
+      expect(post.mock.calls[1]?.[1]).toEqual(post.mock.calls[0]?.[1])
+    })
+  })
+
+  describe("deciding one person", () => {
+    const DECISION_PATH = (n: number) =>
+      `organizations/org/events/event/accommodation/terms/${EVALUATED_TERM.id}/registrations/0190c0de-0000-7000-8000-000000000${n}/decision`
+
+    it("waitlists a pending person without asking for a value", async () => {
+      serve()
+      post.mockReturnValue(answer({ status: "waitlisted" }))
+      renderSection()
+
+      await userEvent.click(await screen.findByRole("button", { name: "Akce: Lucie Sedláčková" }))
+      await userEvent.click(
+        await screen.findByRole("menuitem", { name: "Zařadit mezi náhradníky" }),
+      )
+      const dialog = await screen.findByRole("dialog", { name: "Zařadit mezi náhradníky" })
+      expect(within(dialog).queryByLabelText("Důvod")).not.toBeInTheDocument()
+      await userEvent.click(within(dialog).getByRole("button", { name: "Zařadit mezi náhradníky" }))
+
+      await waitFor(() =>
+        expect(post).toHaveBeenCalledWith(DECISION_PATH(605), {
+          json: { decision: "waitlist", submissionKey: expect.any(String) as string },
+        }),
+      )
+    })
+
+    it("confirms a person who needs a value together with the determination", async () => {
+      serve()
+      post.mockReturnValue(answer({ status: "confirmed" }))
+      renderSection()
+
+      await userEvent.click(await screen.findByRole("button", { name: "Akce: Alex Šimek" }))
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Potvrdit účast" }))
+      const dialog = await screen.findByRole("dialog", { name: "Potvrdit účast" })
+
+      // Nothing is sent without the value and the reason.
+      await userEvent.click(within(dialog).getByRole("button", { name: "Potvrdit účast" }))
+      expect(await within(dialog).findByText("Vyberte hodnotu.")).toBeInTheDocument()
+      expect(post).not.toHaveBeenCalled()
+
+      await userEvent.click(within(dialog).getByRole("combobox"))
+      await userEvent.click(await screen.findByRole("option", { name: "Muž" }))
+      await userEvent.type(within(dialog).getByLabelText("Důvod"), "Domluva s rodiči")
+      await userEvent.click(within(dialog).getByRole("button", { name: "Potvrdit účast" }))
+
+      await waitFor(() =>
+        expect(post).toHaveBeenCalledWith(DECISION_PATH(603), {
+          json: {
+            decision: "confirm",
+            submissionKey: expect.any(String) as string,
+            determination: { value: "male", reason: "Domluva s rodiči", answer: "undisclosed" },
+          },
+        }),
+      )
+    })
+
+    it("explains a decision the capacity refused", async () => {
+      serve()
+      post.mockReturnValue(
+        refuse(409, {
+          code: "no_capacity",
+          message: "V termínu není dost volné kapacity, účast nebyla potvrzena.",
+        }),
+      )
+      renderSection()
+
+      await userEvent.click(await screen.findByRole("button", { name: "Akce: Lucie Sedláčková" }))
+      await userEvent.click(await screen.findByRole("menuitem", { name: "Potvrdit účast" }))
+      const dialog = await screen.findByRole("dialog", { name: "Potvrdit účast" })
+      await userEvent.click(within(dialog).getByRole("button", { name: "Potvrdit účast" }))
+
+      expect(await within(dialog).findByText("Účast nebyla potvrzena")).toBeInTheDocument()
+      expect(
+        within(dialog).getByText("V termínu není dost volné kapacity, účast nebyla potvrzena."),
+      ).toBeInTheDocument()
+    })
   })
 })

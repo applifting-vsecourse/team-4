@@ -34,7 +34,7 @@ export type ManualDeterminationDialogProps = DeterminationFieldsProps & {
 /** The server's limit of the reason. */
 const REASON_MAX_LENGTH = 500
 
-function checkEntry(value: string, reason: string) {
+export function checkEntry(value: string, reason: string) {
   const trimmed = reason.trim()
   return {
     valueError: value ? undefined : "Vyberte hodnotu.",
