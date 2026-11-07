@@ -394,6 +394,18 @@ async function flow() {
     [13, 14, 15, 16, 17],
     'the rest of a half-merged stack must not be reported as waiting',
   );
+  // 9. Everything below the tip has merged. The tip is alone but still targets
+  //    #16's branch: it must stay green so a retry can finish the stack.
+  for (const n of [13, 14, 15, 16]) {
+    byNumber(n).state = 'closed';
+    byNumber(n).merged_at = new Date().toISOString();
+  }
+  result = await deliver();
+  assert.equal(
+    result[17]?.state,
+    'success',
+    `the last PR must not be reported as waiting: ${result[17]?.description}`,
+  );
   console.log(JSON.stringify({ ok: true }));
   process.exitCode = 0;
 }

@@ -97,6 +97,23 @@ export function inSync(status) {
 }
 
 /**
+ * Whether `bottom` still targets the branch of a PR which has already merged
+ * and contains that PR's head: a stack which `/merge-stack` merged part way and
+ * has not retargeted yet. A reused branch name proves nothing, so containment
+ * is checked. `list(path)` reads every page of a list endpoint and
+ * `compare(base, head)` returns the compare status.
+ */
+export async function resumableBase({ list, compare, repo, bottom }) {
+  if (bottom.base.ref === 'main') return false;
+  const closed = await list(
+    `/repos/${repo}/pulls?state=closed&head=${encodeURIComponent(`${repo.split('/')[0]}:${bottom.base.ref}`)}`,
+  );
+  for (const merged of closed.filter((p) => p.merged_at))
+    if (inSync(await compare(merged.head.sha, bottom.head.sha))) return true;
+  return false;
+}
+
+/**
  * Walks a stack and returns the PRs whose branch does not contain the head of
  * the PR below them. `compare(parent, child)` returns the compare status.
  * The bottom PR is checked against main by the caller's usual gates.

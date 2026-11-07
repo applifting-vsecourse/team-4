@@ -43,6 +43,7 @@ import {
   buildStacks,
   inSync,
   outOfSyncNote,
+  resumableBase,
   sliceFingerprint,
 } from '../delivery/stack.mjs';
 import { ciEvidence } from './ci-evidence.mjs';
@@ -585,8 +586,34 @@ async function processIssue(board, item) {
     // and never pass: such a stack waits, with a note saying why.
     const stackByPr = new Map();
     const blocked = new Map();
+    const pagedList = async (path) => {
+      const items = [];
+      for (let page = 1; ; page++) {
+        const batch = await api(
+          cfg.githubToken,
+          `${path}&per_page=100&page=${page}`,
+        );
+        items.push(...batch);
+        if (batch.length < 100) return items;
+      }
+    };
     for (const stack of buildStacks(fetched).stacks) {
-      if (stack.bottom.base.ref !== 'main') continue;
+      // After `/merge-stack` merged the bottom PR, the rest still targets its
+      // branch until the next one is retargeted: that stack carries on, even
+      // when only one PR is left.
+      const resuming = await resumableBase({
+        list: pagedList,
+        compare: async (parent, child) =>
+          (
+            await api(
+              cfg.githubToken,
+              `/repos/${cfg.repo}/compare/${parent}...${child}`,
+            )
+          ).status,
+        repo: cfg.repo,
+        bottom: stack.bottom,
+      });
+      if (stack.bottom.base.ref !== 'main' && !resuming) continue;
       const above = (
         await api(
           cfg.githubToken,
@@ -603,7 +630,8 @@ async function processIssue(board, item) {
           : null;
       for (const member of stack.prs) {
         if (reason) blocked.set(member.number, reason);
-        else if (stack.prs.length > 1) stackByPr.set(member.number, stack);
+        else if (stack.prs.length > 1 || resuming)
+          stackByPr.set(member.number, stack);
       }
     }
     for (const reason of new Set(blocked.values())) {

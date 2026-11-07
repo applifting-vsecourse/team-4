@@ -54,7 +54,7 @@ async function scenario(options) {
     base: {
       ref: options.chain
         ? i === 0
-          ? 'main'
+          ? (options.firstBase ?? 'main')
           : `branch-${11 + i}`
         : options.stacked || options.stackedPrs?.includes(12 + i)
           ? 'feature/prerequisite'
@@ -346,8 +346,11 @@ async function scenario(options) {
     } else if (path === '/repos/owner/repo/pulls') {
       // PRs stacked on a branch, read to see whether a stack extends beyond
       // the PRs linked to the issue.
-      const baseRef = new URL(url).searchParams.get('base');
-      data = options.unlinkedAbove?.[baseRef] ?? [];
+      const params = new URL(url).searchParams;
+      data =
+        params.get('state') === 'closed'
+          ? (options.closedPrs?.[params.get('head').split(':')[1]] ?? [])
+          : (options.unlinkedAbove?.[params.get('base')] ?? []);
     } else if (path.includes('/compare/')) {
       data = { status: options.compareStatus ?? 'ahead' };
     } else if (path.includes('/actions/runs')) {
@@ -989,4 +992,35 @@ test('PRs by different authors are not a stack: only the main-target PR is hande
   });
   assert.deepEqual(r.handoffs, [1, 0, 0]);
   assert.deepEqual(r.requested, { 12: ['MatejKrones'], 13: [], 14: [] });
+});
+
+test('the last PR of a half-merged stack is still reviewed and handed to QA', () => {
+  // #12 merged; #13 is alone and still targets #12's branch (not yet retargeted).
+  const r = run({
+    authors: ['developer'],
+    chain: true,
+    firstBase: 'branch-11',
+    closedPrs: {
+      'branch-11': [
+        {
+          head: { ref: 'branch-11', sha: 'c'.repeat(40) },
+          merged_at: '2026-11-06T00:00:00Z',
+        },
+      ],
+    },
+  });
+  assert.equal(r.status, 'Ready for Testing');
+  assert.deepEqual(r.handoffs, [1]);
+  assert.deepEqual(r.requested, { 12: ['MatejKrones'] });
+});
+
+test('a lone PR on a branch which no merged PR owns keeps waiting', () => {
+  const r = run({
+    authors: ['developer'],
+    chain: true,
+    firstBase: 'branch-11',
+  });
+  assert.equal(r.status, 'Ready for Code Review');
+  assert.deepEqual(r.handoffs, [0]);
+  assert.deepEqual(r.requested, { 12: [] });
 });

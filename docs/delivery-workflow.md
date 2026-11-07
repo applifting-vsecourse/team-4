@@ -219,7 +219,8 @@ tested.
   commits in `main`'s history, so the heads above do not change. Branch
   protection (CI and `Delivery stages`) still decides what can merge. The bot
   replies once with the result; after an interruption, comment again and it
-  continues from the next open PR, provided the stack still contains the
+  continues from the next open PR (the last one alone included, and the
+  stack stays green and keeps its review and QA meanwhile), provided the stack still contains the
   merged PR's head (a reused branch name is not enough). `/merge-stack check` replies with the plan
   and changes nothing. Commands run one stack at a time.
   A lone PR is not a stack: use the merge button. If GitHub already retargeted

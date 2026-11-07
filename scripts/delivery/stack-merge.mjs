@@ -2,7 +2,12 @@
 // `/merge-stack` comment command (see stack-merge-command.mjs). Branch
 // protection still decides what may merge (CI and Delivery stages), so this
 // can only do what a series of clicks could.
-import { buildStacks, inSync, outOfSync, outOfSyncNote } from './stack.mjs';
+import {
+  buildStacks,
+  outOfSync,
+  outOfSyncNote,
+  resumableBase,
+} from './stack.mjs';
 
 const STATUS = 'Delivery stages';
 const CI = 'verify';
@@ -52,7 +57,6 @@ export async function mergeStack({
   timeoutMs = 10 * 60 * 1000,
   log = console.log,
 }) {
-  const owner = repo.split('/')[0];
   // A stack missing a member would look like a shorter, valid stack, so every
   // page of open PRs is read.
   const all = async (path) => {
@@ -70,32 +74,21 @@ export async function mergeStack({
     throw new NotReady(
       `#${number} is not an open PR in a plain stack (a fork in the chain, a cycle or no such PR).`,
     );
-  if (requireStack && stack.prs.length < 2)
-    throw new NotReady(
-      `#${number} is not part of a stack; merge it with the merge button.`,
-    );
-
   // A bottom PR whose base is not main is only acceptable when that base is
   // the branch of a PR which has already merged (an interrupted earlier run).
   const bottom = stack.bottom;
-  if (bottom.base.ref !== 'main') {
-    const closed = await all(
-      `/repos/${repo}/pulls?state=closed&head=${encodeURIComponent(`${owner}:${bottom.base.ref}`)}`,
+  const compare = async (parent, child) =>
+    (await api(`/repos/${repo}/compare/${parent}...${child}`)).status;
+  const resuming = await resumableBase({ list: all, compare, repo, bottom });
+  if (bottom.base.ref !== 'main' && !resuming)
+    throw new NotReady(
+      `#${bottom.number} targets ${safe(bottom.base.ref)}, which is neither main nor the branch of a merged PR it contains.`,
     );
-    // A reused branch name proves nothing: the merged PR's head must be in the
-    // history of the PR which still targets its branch.
-    let resumable = false;
-    for (const candidate of closed.filter((p) => p.merged_at)) {
-      const { status } = await api(
-        `/repos/${repo}/compare/${candidate.head.sha}...${bottom.head.sha}`,
-      );
-      if (inSync(status)) resumable = true;
-    }
-    if (!resumable)
-      throw new NotReady(
-        `#${bottom.number} targets ${safe(bottom.base.ref)}, which is neither main nor the branch of a merged PR it contains.`,
-      );
-  }
+  // The last PR of a half-merged stack is alone, but still finishes the stack.
+  if (requireStack && stack.prs.length < 2 && !resuming)
+    throw new NotReady(
+      `#${number} is not part of a stack; merge it with the merge button.`,
+    );
 
   const statuses = new Map();
   const ci = new Map();

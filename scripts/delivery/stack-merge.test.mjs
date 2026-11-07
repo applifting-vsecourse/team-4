@@ -268,3 +268,32 @@ test('a result which is replaced while settling is judged again', async () => {
   assert.deepEqual(merged, [1, 2, 3]);
   assert.ok(bumpedId);
 });
+
+test('the last PR of a half-merged stack is still merged by a retry', async () => {
+  // #1 merged; #2 is all that is left and still targets #1's branch.
+  const { api, calls, prs } = repo({
+    count: 2,
+    mergedBase: [{ ref: 'b1', sha: sha(1), merged_at: '2026-11-06T00:00:00Z' }],
+  });
+  prs[0].state = 'closed';
+  const { merged } = await mergeStack({
+    ...base,
+    api,
+    number: 2,
+    requireStack: true,
+  });
+  assert.deepEqual(merged, [2]);
+  assert.deepEqual(
+    calls.map(([kind, n]) => `${kind}:${n}`),
+    ['retarget:2', 'merge:2'],
+  );
+});
+
+test('a lone PR on main is still not a stack', async () => {
+  const { api, calls } = repo({ count: 1 });
+  await assert.rejects(
+    mergeStack({ ...base, api, number: 1, requireStack: true }),
+    /not part of a stack/,
+  );
+  assert.deepEqual(calls, []);
+});

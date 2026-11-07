@@ -7,7 +7,12 @@ import {
   reviewersFor,
   technicalReviewRequired,
 } from './lib.mjs';
-import { buildStacks, inSync, outOfSync, outOfSyncNote } from './stack.mjs';
+import {
+  buildStacks,
+  outOfSync,
+  outOfSyncNote,
+  resumableBase,
+} from './stack.mjs';
 import { issueRequirements, scopeHash } from './requirements.mjs';
 import { copilotWaiver } from './copilot-waiver.mjs';
 import { referencedIssueNumbers } from '../automation/issue-links.mjs';
@@ -137,30 +142,10 @@ async function stackNeighborhood(pr) {
   }
   return [...nodes.values()];
 }
-// Whether `bottom` still targets the branch of a PR which has already merged
-// and contains that PR's head; a reused branch name proves nothing.
-const baseMerged = async (bottom) =>
-  (
-    await Promise.all(
-      (
-        await list(
-          `/repos/${repo}/pulls?state=closed&head=${encodeURIComponent(`${repo.split('/')[0]}:${bottom.base.ref}`)}`,
-        )
-      )
-        .filter((p) => p.merged_at)
-        .map(async (p) =>
-          inSync(
-            (
-              await api(
-                `/repos/${repo}/compare/${p.head.sha}...${bottom.head.sha}`,
-              )
-            ).status,
-          ),
-        ),
-    )
-  ).some(Boolean);
 const compareStatus = async (base, head) =>
   (await api(`/repos/${repo}/compare/${base}...${head}`)).status;
+const baseMerged = (bottom) =>
+  resumableBase({ list, compare: compareStatus, repo, bottom });
 
 const scope = await eventScope();
 const onlyIssue = process.env.ONLY_ISSUE
@@ -218,7 +203,7 @@ for (let pr of candidates) {
     // not a PR with a missing prerequisite.
     const bottomBase = stack?.bottom.base.ref;
     const resuming =
-      stacked && bottomBase !== 'main' && (await baseMerged(stack.bottom));
+      stack && bottomBase !== 'main' && (await baseMerged(stack.bottom));
     if (
       pr.base.ref !== 'main' &&
       (!stack || (bottomBase !== 'main' && !resuming))

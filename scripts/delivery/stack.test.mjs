@@ -6,6 +6,7 @@ import {
   inSync,
   outOfSync,
   outOfSyncNote,
+  resumableBase,
   sliceFingerprint,
 } from './stack.mjs';
 
@@ -222,4 +223,25 @@ test('a stack has one author, so one QA owner covers it', () => {
     by('matejkrones', pr(2, 'b', 'a')),
   ]);
   assert.equal(same.stacks[0].prs.length, 2);
+});
+
+test('a base is resumable only when a merged PR of that branch is in the head', async () => {
+  const bottom = (base) => ({ base: { ref: base }, head: { sha: 'h' } });
+  const merged = { merged_at: '2026-11-06T00:00:00Z', head: { sha: 'm' } };
+  const run = (b, closed, status) =>
+    resumableBase({
+      list: async () => closed,
+      compare: async () => status,
+      repo: 'o/r',
+      bottom: b,
+    });
+  assert.equal(await run(bottom('main'), [merged], 'ahead'), false);
+  assert.equal(await run(bottom('b1'), [merged], 'ahead'), true);
+  assert.equal(await run(bottom('b1'), [merged], 'identical'), true);
+  assert.equal(await run(bottom('b1'), [merged], 'diverged'), false);
+  assert.equal(
+    await run(bottom('b1'), [{ head: { sha: 'm' } }], 'ahead'),
+    false,
+  );
+  assert.equal(await run(bottom('b1'), [], 'ahead'), false);
 });
