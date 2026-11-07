@@ -44,6 +44,48 @@ test("a page scrollbar that appears or disappears does not move the layout", asy
   expect(await headingLeft(page)).toBe(short)
 })
 
+// Where a Přihlášky view puts its heading and the content below the heading row.
+async function viewTop(page: Page) {
+  const heading = page.getByRole("tabpanel").getByRole("heading", { level: 2 }).first()
+  await expect(heading).toBeVisible()
+  const box = (await heading.boundingBox())!
+  const content = (await page
+    .getByRole("tabpanel")
+    .locator("section")
+    .first()
+    .locator(":scope > :nth-child(2)")
+    .boundingBox())!
+  return { headingMiddle: Math.round(box.y + box.height / 2), contentTop: Math.round(content.y) }
+}
+
+test("switching the Přihlášky views keeps the heading and content in place", async ({ page }) => {
+  const event = await setUpEvent(page.request, { terms })
+  await page.goto(registrationsUrl(event, "list"))
+  const list = await viewTop(page)
+
+  for (const name of ["Ke schválení", "Vyhodnocení", "Seznam přihlášek"]) {
+    await page.getByRole("tab", { name }).click()
+    expect(await viewTop(page), name).toEqual(list)
+  }
+})
+
+test("a view that is still loading keeps its heading in place", async ({ page }) => {
+  const event = await setUpEvent(page.request, { terms })
+  await page.goto(registrationsUrl(event, "list"))
+  const list = await viewTop(page)
+
+  // Hold the evaluation's answer: the view shows its loading state meanwhile.
+  let release!: () => void
+  const held = new Promise<void>((resolve) => (release = resolve))
+  await page.route("**/evaluation**", async (route) => {
+    await held
+    await route.continue()
+  })
+  await page.getByRole("tab", { name: "Vyhodnocení" }).click()
+  expect((await viewTop(page)).headingMiddle).toBe(list.headingMiddle)
+  release()
+})
+
 type Entry = { name: string; x: number }
 
 // The visible links and buttons of the header with their left edges.

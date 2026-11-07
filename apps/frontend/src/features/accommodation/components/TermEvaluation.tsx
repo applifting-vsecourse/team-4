@@ -355,17 +355,7 @@ export function TermEvaluation({
   const badge = STATUS_BADGE[status]
 
   return (
-    <section
-      aria-labelledby="term-evaluation-heading"
-      className="space-y-4"
-    >
-      <h2
-        id="term-evaluation-heading"
-        className="text-h4"
-      >
-        Vyhodnocení termínu
-      </h2>
-
+    <TermEvaluationFrame>
       <Tabs
         value={selectedTermId}
         onValueChange={onSelectTerm}
@@ -576,6 +566,30 @@ export function TermEvaluation({
           )}
         </TabsContent>
       </Tabs>
+    </TermEvaluationFrame>
+  )
+}
+
+/**
+ * The view's section with the heading row of the other Přihlášky views, also
+ * around its loading and empty states, so neither switching views nor loading
+ * moves the heading.
+ */
+export function TermEvaluationFrame({ children }: { children: ReactNode }) {
+  return (
+    <section
+      aria-labelledby="term-evaluation-heading"
+      className="space-y-4"
+    >
+      <div className="flex min-h-9 items-center">
+        <h2
+          id="term-evaluation-heading"
+          className="text-h4"
+        >
+          Vyhodnocení termínu
+        </h2>
+      </div>
+      {children}
     </section>
   )
 }

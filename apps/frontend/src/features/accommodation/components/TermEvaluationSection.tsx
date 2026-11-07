@@ -26,6 +26,7 @@ import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
 import { RunEvidenceSheet } from "@/features/accommodation/components/RunEvidenceSheet"
 import {
   TermEvaluation,
+  TermEvaluationFrame,
   type OrderPerson,
 } from "@/features/accommodation/components/TermEvaluation"
 import { useConfirmProposal } from "@/features/accommodation/hooks/useConfirmProposal"
@@ -114,11 +115,13 @@ export function TermEvaluationSection({
 
   if (terms.length === 0) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyTitle>Akce zatím nemá žádný termín</EmptyTitle>
-        </EmptyHeader>
-      </Empty>
+      <TermEvaluationFrame>
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>Akce zatím nemá žádný termín</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
+      </TermEvaluationFrame>
     )
   }
 
@@ -136,11 +139,13 @@ export function TermEvaluationSection({
 
   if (evaluation.isPending) {
     return (
-      <Skeleton
-        className="h-64 w-full"
-        role="status"
-        aria-label="Načítání vyhodnocení termínu"
-      />
+      <TermEvaluationFrame>
+        <Skeleton
+          className="h-64 w-full"
+          role="status"
+          aria-label="Načítání vyhodnocení termínu"
+        />
+      </TermEvaluationFrame>
     )
   }
 
