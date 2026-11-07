@@ -41,6 +41,7 @@ export function TermsSection({ organizationId, event }: TermsSectionProps) {
     <TermDialog
       organizationId={organizationId}
       eventId={event.id}
+      allTerms={event.terms}
       trigger={
         <Button variant={event.terms.length === 0 ? "default" : "outline"}>
           <Plus />
@@ -117,6 +118,7 @@ export function TermsSection({ organizationId, event }: TermsSectionProps) {
                             organizationId={organizationId}
                             eventId={event.id}
                             term={term}
+                            allTerms={event.terms}
                             trigger={
                               <Button
                                 variant="ghost"

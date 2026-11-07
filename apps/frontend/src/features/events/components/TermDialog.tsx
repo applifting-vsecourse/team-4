@@ -23,12 +23,20 @@ type TermDialogProps = {
   eventId: string
   /** The term to edit; without it the dialog adds a new one. */
   term?: EventTerm
+  /** All terms of the event; the others' days are marked in the pickers. */
+  allTerms?: EventTerm[]
   trigger: ReactNode
 }
 
 // "Zrušit" and closing discard the changes: the form is mounted only while
 // the dialog is open, so it starts from the saved values every time.
-export function TermDialog({ organizationId, eventId, term, trigger }: TermDialogProps) {
+export function TermDialog({
+  organizationId,
+  eventId,
+  term,
+  allTerms = [],
+  trigger,
+}: TermDialogProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [failure, setFailure] = useState<TermSaveError | null>(null)
   const saveTerm = useSaveTerm(organizationId, eventId)
@@ -82,6 +90,9 @@ export function TermDialog({ organizationId, eventId, term, trigger }: TermDialo
           isLoading={saveTerm.isPending}
           errorMessage={failure?.errorMessage}
           fieldError={failure?.fieldError}
+          occupiedRanges={allTerms
+            .filter((other) => other.id !== term?.id)
+            .map((other) => ({ from: other.startDate, to: other.endDate }))}
           onSubmit={handleSubmit}
         />
       </DialogContent>
