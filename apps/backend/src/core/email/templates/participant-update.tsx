@@ -20,7 +20,6 @@ import {
   UpdateChange,
   UpdateTerm,
 } from '@/modules/registrations/domain/participant-update';
-import { LOGO_CID } from '../brand-logo';
 import { QR_CID } from '../qr-code';
 import { EmailBrand } from './email-brand';
 import {
@@ -320,7 +319,7 @@ export const ParticipantUpdate = ({
       <Tailwind>
         <Body className="bg-gray-50 font-sans py-6">
           <Container className="bg-white rounded-lg mx-auto p-6 max-w-xl">
-            <EmailBrand url={url} logoSrc={`cid:${LOGO_CID}`} />
+            <EmailBrand />
             <Heading className="text-2xl font-bold text-gray-900 mt-6 mb-0">
               {copy.heading}
             </Heading>

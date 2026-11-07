@@ -9,10 +9,11 @@ import { Injectable } from '@nestjs/common';
 
 export type ClaimedUpdate = {
   deliveryId: string;
-  accountId: string;
+  /** Null when the delivery has no account; sending then fails explicitly. */
+  accountId: string | null;
   recipient: string;
   /** Opens the payment page; read when sending, never kept in the payload. */
-  paymentToken: string;
+  paymentToken: string | null;
   update: ParticipantUpdatePayload;
 };
 
@@ -64,9 +65,9 @@ export class ParticipantUpdatesRepository {
     });
     return {
       deliveryId,
-      accountId: row.participantAccountId ?? '',
+      accountId: row.participantAccountId,
       recipient: row.recipientEmail,
-      paymentToken: row.registration?.paymentToken ?? '',
+      paymentToken: row.registration?.paymentToken ?? null,
       update: row.payload as unknown as ParticipantUpdatePayload,
     };
   }

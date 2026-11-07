@@ -265,11 +265,6 @@ export class EventRegistrationsRepository {
           data: { ...answer, version: { increment: 1 } },
           select: { version: true },
         });
-        await queueParticipantUpdate(tx, {
-          registrationId,
-          reason: 'organizerChange',
-          dedupKey: `organizer:${registrationId}:${updated.version}`,
-        });
         if (locked.gender !== answer.gender) {
           await answerChanged(tx, registrationId);
         }
@@ -283,6 +278,12 @@ export class EventRegistrationsRepository {
           scope.eventId,
           terms.map((term) => term.termId),
         );
+        // After the recomputation, so the message shows the saved result.
+        await queueParticipantUpdate(tx, {
+          registrationId,
+          reason: 'organizerChange',
+          dedupKey: `organizer:${registrationId}:${updated.version}`,
+        });
       }
       return 'updated';
     });

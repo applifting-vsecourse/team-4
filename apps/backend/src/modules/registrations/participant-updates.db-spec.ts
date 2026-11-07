@@ -2,17 +2,22 @@ import { randomUUID } from 'node:crypto';
 import { PrismaModule } from '@/core/prisma/prisma.module';
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Registration } from '@/generated/prisma/client';
+import { EventRegistrationsController } from '@/modules/registrations/controllers/event-registrations.controller';
 import { ParticipantRegistrationsController } from '@/modules/registrations/controllers/participant-registrations.controller';
 import { PaymentsController } from '@/modules/registrations/controllers/payments.controller';
+import { QrPaymentsController } from '@/modules/registrations/controllers/qr-payments.controller';
 import { RegistrationChangesController } from '@/modules/registrations/controllers/registration-changes.controller';
 import { ParticipantUpdatePayload } from '@/modules/registrations/domain/participant-update';
 import { EventRegistrationsRepository } from '@/modules/registrations/repositories/event-registrations.repository';
 import { ParticipantRegistrationsRepository } from '@/modules/registrations/repositories/participant-registrations.repository';
 import { PaymentsRepository } from '@/modules/registrations/repositories/payments.repository';
+import { QrPaymentsRepository } from '@/modules/registrations/repositories/qr-payments.repository';
 import { RegistrationChangesRepository } from '@/modules/registrations/repositories/registration-changes.repository';
+import { EventRegistrationsService } from '@/modules/registrations/services/event-registrations.service';
 import { ParticipantRegistrationsService } from '@/modules/registrations/services/participant-registrations.service';
 import { ParticipantUpdateService } from '@/modules/registrations/services/participant-update.service';
 import { PaymentsService } from '@/modules/registrations/services/payments.service';
+import { QrPaymentsService } from '@/modules/registrations/services/qr-payments.service';
 import { RegistrationChangesService } from '@/modules/registrations/services/registration-changes.service';
 import { Mailbox, updateProviders } from '@/testing/confirmation-mail';
 import {
@@ -98,6 +103,8 @@ beforeAll(async () => {
       ParticipantRegistrationsController,
       RegistrationChangesController,
       PaymentsController,
+      EventRegistrationsController,
+      QrPaymentsController,
     ],
     providers: [
       ParticipantRegistrationsService,
@@ -107,6 +114,9 @@ beforeAll(async () => {
       PaymentsService,
       PaymentsRepository,
       EventRegistrationsRepository,
+      EventRegistrationsService,
+      QrPaymentsService,
+      QrPaymentsRepository,
       ...updateProviders(mailbox),
     ],
   }).compile();
@@ -136,6 +146,20 @@ const call = async (
       ...(who.account ? { 'x-test-account': who.account } : {}),
       ...(who.user ? { 'x-test-user': who.user } : {}),
     },
+    body: JSON.stringify(body),
+  });
+  const text = await response.text();
+  return { status: response.status, body: text ? JSON.parse(text) : null };
+};
+
+const put = async (
+  path: string,
+  who: { user: string },
+  body: unknown,
+): Promise<Call> => {
+  const response = await fetch(`${baseUrl}/${path}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json', 'x-test-user': who.user },
     body: JSON.stringify(body),
   });
   const text = await response.text();
@@ -428,6 +452,103 @@ describe('payments', () => {
     expect(delivery.errorMessage).toContain('provider down');
     expect(delivery.errorMessage).not.toContain(registration.paymentToken);
     expect(delivery.errorMessage).not.toContain('token=');
+  });
+});
+
+describe('payment through the QR link', () => {
+  it('confirms the payment once, and a replay of the request sends nothing', async () => {
+    const fixture = await setup(null);
+    const registration = await register(fixture, [1]);
+    const body = { submissionKey: randomUUID(), amountMinor: 100_000 };
+    const path = `public/payments/${registration.paymentToken}`;
+
+    const paid = await call(path, {}, body);
+    const replay = await call(path, {}, body);
+    await updates.settle();
+
+    // 201 for the saved payment, 200 for the replay that saves nothing.
+    expect(paid.status).toBe(201);
+    expect(replay.status).toBe(200);
+    expect(sent()).toHaveLength(1);
+    const { update } = sent()[0].props;
+    expect(update.reason).toBe('paymentRecorded');
+    expect(update.payment.recorded?.amountMinor).toBe(100_000);
+    expect(update.payment.balanceMinor).toBe(140_000);
+    expect(await deliveries(registration)).toHaveLength(1);
+  });
+});
+
+describe('corrections by the organizer', () => {
+  const needs = (health: string) => ({
+    transport: null,
+    transportNote: '',
+    hasNoDietRestriction: false,
+    diet: [],
+    dietNote: '',
+    health,
+  });
+
+  it('send one message for a real change of the needs and none for a repeat', async () => {
+    const fixture = await setup(null);
+    const registration = await register(fixture, [1]);
+    const path = `${managed(fixture, registration)}/needs`;
+
+    const first = await put(
+      path,
+      { user: fixture.ownerId },
+      {
+        needs: needs('Alergie'),
+        expectedVersion: 0,
+      },
+    );
+    // The same needs again, on the new version: nothing changes.
+    const same = await put(
+      path,
+      { user: fixture.ownerId },
+      {
+        needs: needs('Alergie'),
+        expectedVersion: first.body.version,
+      },
+    );
+    await updates.settle();
+
+    expect(first.status).toBe(200);
+    expect(same.status).toBe(200);
+    expect(sent()).toHaveLength(1);
+    expect(sent()[0].props.update.reason).toBe('organizerChange');
+    // Health details stay in the app.
+    expect(mailbox.sent[0].html).not.toContain('Alergie');
+    const [delivery] = await deliveries(registration);
+    expect(delivery.dedupKey).toBe(`organizer:${registration.id}:1`);
+  });
+
+  it('send one message for a changed gender answer and none for the same one', async () => {
+    const fixture = await setup(null);
+    const registration = await register(fixture, [1]);
+    const path = `${managed(fixture, registration)}/gender`;
+
+    await put(path, { user: fixture.ownerId }, { gender: 'female' });
+    await put(path, { user: fixture.ownerId }, { gender: 'female' });
+    await updates.settle();
+
+    expect(sent()).toHaveLength(1);
+    expect(sent()[0].props.update.reason).toBe('organizerChange');
+  });
+
+  it('send nothing for a refused correction', async () => {
+    const fixture = await setup(null);
+    const registration = await register(fixture, [1]);
+
+    const stale = await put(
+      `${managed(fixture, registration)}/needs`,
+      { user: fixture.ownerId },
+      { needs: needs('x'), expectedVersion: 99 },
+    );
+    await updates.settle();
+
+    expect(stale.status).toBe(409);
+    expect(mailbox.sent).toHaveLength(0);
+    expect(await deliveries(registration)).toHaveLength(0);
   });
 });
 

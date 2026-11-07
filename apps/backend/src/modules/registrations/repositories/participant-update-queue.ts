@@ -177,7 +177,8 @@ export const queueParticipantUpdate = async (
 
     const contactEmail = row.event.contactEmail;
     // Free events have no account. Owing money without one is a defect: the
-    // event rolls back instead of sending a message without payment details.
+    // message is not built (it ends as a failed delivery below) instead of
+    // being sent without payment details; the event itself is kept.
     const balanceMinor = dueMinor - receivedMinor;
     let bank: UpdatePayment['bank'] = null;
     if (row.bankAccountNumber !== null && row.bankCode !== null) {
