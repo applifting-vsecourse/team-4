@@ -12,7 +12,8 @@ on:
 permissions:
   contents: read
   issues: write
-  pull-requests: read
+  # The reply is a comment on a PR, which needs write access to pull requests.
+  pull-requests: write
 
 # One stack at a time: a second command waits instead of racing the first.
 concurrency:
