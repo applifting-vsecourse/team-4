@@ -483,6 +483,38 @@ describe('deciding one person', () => {
     ).toBe(1);
   });
 
+  it('answers a sequential retry with the saved result, with or without a determination', async () => {
+    const f = await setup(undefined, { gender: true });
+    const plain = await register(f, 'female');
+    const determined = await register(f, 'undisclosed');
+    const body = {
+      decision: 'confirm',
+      determination: {
+        value: 'female',
+        answer: 'undisclosed',
+        reason: 'Domluva',
+      },
+    };
+    const keys = [randomUUID(), randomUUID()];
+
+    const first = [
+      await decide(f, plain, { decision: 'confirm' }, { key: keys[0] }),
+      await decide(f, determined, body, { key: keys[1] }),
+    ];
+    const retry = [
+      await decide(f, plain, { decision: 'confirm' }, { key: keys[0] }),
+      await decide(f, determined, body, { key: keys[1] }),
+    ];
+
+    expect(first.map((r) => r.status)).toEqual([200, 200]);
+    expect(retry).toEqual(first);
+    expect(
+      await prisma.accommodationDecision.count({
+        where: { eventId: f.event.id },
+      }),
+    ).toBe(2);
+  });
+
   it('needs the determination of a person without a value, saved with the decision', async () => {
     const f = await setup(undefined, { gender: true });
     const person = await register(f, 'undisclosed');

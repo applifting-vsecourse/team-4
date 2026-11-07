@@ -65,7 +65,7 @@ function participations(count: number) {
 }
 
 /** The confirmation the organizer is shown: one proposal, one key. */
-type BulkAttempt = { runId: string; submissionKey: string }
+type BulkAttempt = { runId: string; submissionKey: string; people: string[]; remaining?: string }
 
 // Přihlášky → Vyhodnocení (S3-01): the proposal of the selected term, its
 // queues and order, the history of its runs with their evidence, and the
@@ -241,7 +241,13 @@ export function TermEvaluationSection({
         confirmedResult={confirmedResult}
         onConfirmAll={() => {
           if (!data.proposalRun) return
-          setBulk({ runId: data.proposalRun.id, submissionKey: crypto.randomUUID() })
+          // The list is frozen with the run it belongs to.
+          setBulk({
+            runId: data.proposalRun.id,
+            submissionKey: crypto.randomUUID(),
+            people: suitableNames,
+            remaining: remaining || undefined,
+          })
         }}
         decisions={{
           onConfirm: (person) => openDecision(person, "confirm"),
@@ -288,21 +294,24 @@ export function TermEvaluationSection({
                 : "review"
         }
         term={termName}
-        people={suitableNames}
-        remaining={remaining || undefined}
+        people={bulk?.people ?? []}
+        remaining={bulk?.remaining}
         staleReason={isBulkStale ? (bulkError?.message ?? undefined) : undefined}
         onOpenChange={(isOpen) => (isOpen ? undefined : closeBulk())}
         onReload={closeBulk}
         onConfirm={() => {
           if (!bulk) return
-          confirmProposal.mutate(bulk, {
-            onSuccess: (result) => {
-              setConfirmedResult(
-                `Potvrzeno ${participations(result.confirmed.length)} v termínu ${data.term.label}.`,
-              )
-              closeBulk()
+          confirmProposal.mutate(
+            { runId: bulk.runId, submissionKey: bulk.submissionKey },
+            {
+              onSuccess: (result) => {
+                setConfirmedResult(
+                  `Potvrzeno ${participations(result.confirmed.length)} v termínu ${data.term.label}.`,
+                )
+                closeBulk()
+              },
             },
-          })
+          )
         }}
       />
       {deciding ? (

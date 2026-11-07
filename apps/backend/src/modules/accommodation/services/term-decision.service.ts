@@ -136,7 +136,12 @@ export class TermDecisionService {
     for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
       // The version first: a change after it is caught under the lock.
       const expectedVersion = await this.decisions.inputVersion(termId);
-      if (input.decision === 'confirm') {
+      // A repeat of a saved request is answered by the repository's replay,
+      // not refused because the person is confirmed by now.
+      const isRepeat = await this.decisions.isSaved(input.submissionKey);
+      if (isRepeat) {
+        // Nothing to check.
+      } else if (input.decision === 'confirm') {
         await this.checkConfirmation(
           scope,
           termId,

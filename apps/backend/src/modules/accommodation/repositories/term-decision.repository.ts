@@ -86,6 +86,15 @@ export class TermDecisionRepository {
     private readonly determinations: RegistrationAccommodationRepository,
   ) {}
 
+  /** Whether a decision request with this key was already saved. */
+  async isSaved(submissionKey: string): Promise<boolean> {
+    return (
+      (await this.prisma.accommodationDecision.count({
+        where: { submissionKey },
+      })) > 0
+    );
+  }
+
   /** The term's input version now; 0 before its first change. */
   async inputVersion(termId: string): Promise<number> {
     const state = await this.prisma.accommodationTermState.findUnique({
