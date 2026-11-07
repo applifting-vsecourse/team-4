@@ -1,5 +1,10 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
-import { ParticipantUpdatePayload } from '@/modules/registrations/domain/participant-update';
+import { ResultEventPayload } from '@/modules/accommodation/domain/term-decision';
+import {
+  ParticipantUpdatePayload,
+  resultReason,
+} from '@/modules/registrations/domain/participant-update';
+import { queueParticipantUpdate } from '@/modules/registrations/repositories/participant-update-queue';
 import { Injectable } from '@nestjs/common';
 
 export type ClaimedUpdate = {
@@ -8,6 +13,15 @@ export type ClaimedUpdate = {
   recipient: string;
   update: ParticipantUpdatePayload;
 };
+
+export type ResultEvent = {
+  id: string;
+  registrationId: string;
+  payload: ResultEventPayload;
+};
+
+/** One result event is mailed once: the key is its id. */
+export const resultKey = (eventId: string): string => `result:${eventId}`;
 
 @Injectable()
 export class ParticipantUpdatesRepository {
@@ -68,6 +82,61 @@ export class ParticipantUpdatesRepository {
               providerMessageId: outcome.providerMessageId,
             }
           : { status: 'failed', errorMessage: outcome.error },
+    });
+  }
+
+  /**
+   * Decision results (S3-02) that have no delivery yet, oldest first. The
+   * delivery row is the only mark: the S3-02 table is read, never changed.
+   */
+  async findUnmailedResults(limit: number): Promise<ResultEvent[]> {
+    const rows = await this.prisma.$queryRaw<
+      { id: string; registrationId: string; payload: ResultEventPayload }[]
+    >`
+      SELECT e."id", e."registrationId", e."payload"
+      FROM "registration_result_event" e
+      WHERE NOT EXISTS (
+        SELECT 1 FROM "email_delivery" d
+        WHERE d."dedupKey" = 'result:' || e."id"::text)
+      ORDER BY e."createdAt", e."id"
+      LIMIT ${limit}`;
+    return rows;
+  }
+
+  /** Queues the e-mail of a result; false when it was queued before. */
+  queueResult(event: ResultEvent): Promise<boolean> {
+    return this.prisma.$transaction((tx) =>
+      queueParticipantUpdate(tx, {
+        registrationId: event.registrationId,
+        reason: resultReason(event.payload),
+        dedupKey: resultKey(event.id),
+        result: event.payload,
+      }),
+    );
+  }
+
+  /**
+   * Keeps a result whose message could not be built as a failed delivery, so
+   * it is found by the operator and not tried again.
+   */
+  async recordResultFailure(event: ResultEvent, error: string): Promise<void> {
+    const registration = await this.prisma.registration.findUniqueOrThrow({
+      where: { id: event.registrationId },
+      select: { email: true, participantAccountId: true },
+    });
+    await this.prisma.emailDelivery.createMany({
+      data: [
+        {
+          type: 'participant_update',
+          status: 'failed',
+          recipientEmail: registration.email,
+          registrationId: event.registrationId,
+          participantAccountId: registration.participantAccountId,
+          dedupKey: resultKey(event.id),
+          errorMessage: error.slice(0, 1000),
+        },
+      ],
+      skipDuplicates: true,
     });
   }
 }

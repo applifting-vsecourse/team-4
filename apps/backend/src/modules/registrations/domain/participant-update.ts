@@ -1,3 +1,4 @@
+import { ResultEventPayload } from '@/modules/accommodation/domain/term-decision';
 import { ParticipationStatus } from '@/modules/registrations/domain/registration';
 import { ChangeSummary } from '@/modules/registrations/domain/registration-change';
 import { RegistrationNeeds } from '@/modules/registrations/domain/registration-needs';
@@ -171,3 +172,17 @@ export const changedValues = (
   }
   return rows;
 };
+
+/**
+ * A decision that gave a waitlisted term its place is the freed-place message;
+ * every other decision (a batch or a single confirmation, a waitlisting) is
+ * the evaluation result. The terms in the message carry each state.
+ */
+export const resultReason = (
+  result: Pick<ResultEventPayload, 'decided'>,
+): Extract<ParticipantUpdateReason, 'evaluation' | 'waitlistConfirmed'> =>
+  result.decided.some(
+    (term) => term.from === 'waitlisted' && term.to === 'confirmed',
+  )
+    ? 'waitlistConfirmed'
+    : 'evaluation';

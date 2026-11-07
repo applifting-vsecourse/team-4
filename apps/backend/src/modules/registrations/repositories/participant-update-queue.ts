@@ -1,4 +1,5 @@
 import { Prisma } from '@/generated/prisma/client';
+import { ResultEventPayload } from '@/modules/accommodation/domain/term-decision';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import {
   changedValues,
@@ -25,6 +26,11 @@ export type QueueUpdateInput = {
   paymentId?: string;
   /** The change request this message is about: its values are listed. */
   changeId?: string;
+  /**
+   * A decision's result event (S3-02): terms and payment are taken from it, as
+   * they were at the moment of the decision, never from the live rows.
+   */
+  result?: ResultEventPayload;
   /** The terms a request that is still waiting would touch. */
   proposal?: PlannedTerm[];
 };
@@ -78,21 +84,32 @@ export const queueParticipantUpdate = async (
     select: selectForUpdate,
   });
 
-  const terms: UpdateTerm[] = row.terms
-    .filter((term) => term.status !== 'cancelled')
-    .map((term) => ({
-      label: term.term.label,
-      startDate: fromDate(term.term.startDate),
-      endDate: fromDate(term.term.endDate),
-      status: term.status,
-    }));
-  const dueMinor = row.terms
-    .filter((term) => term.status === 'confirmed')
-    .reduce((sum, term) => sum + term.priceMinor, 0);
-  const receivedMinor = row.payments.reduce(
-    (sum, payment) => sum + payment.amountMinor,
-    0,
-  );
+  const live = input.result === undefined;
+  const terms: UpdateTerm[] = input.result
+    ? input.result.terms
+        .filter((term) => term.status !== 'cancelled')
+        .map((term) => ({
+          label: term.label,
+          startDate: term.startDate,
+          endDate: term.endDate,
+          status: term.status,
+        }))
+    : row.terms
+        .filter((term) => term.status !== 'cancelled')
+        .map((term) => ({
+          label: term.term.label,
+          startDate: fromDate(term.term.startDate),
+          endDate: fromDate(term.term.endDate),
+          status: term.status,
+        }));
+  const dueMinor =
+    input.result?.payment.amountDueMinor ??
+    row.terms
+      .filter((term) => term.status === 'confirmed')
+      .reduce((sum, term) => sum + term.priceMinor, 0);
+  const receivedMinor =
+    input.result?.payment.paidMinor ??
+    row.payments.reduce((sum, payment) => sum + payment.amountMinor, 0);
 
   let recorded: { amountMinor: number; receivedOn: string } | null = null;
   if (input.reason === 'paymentRecorded') {
@@ -157,8 +174,11 @@ export const queueParticipantUpdate = async (
       prefix: row.bankAccountPrefix,
       number: row.bankAccountNumber,
       bankCode: row.bankCode,
-      variableSymbol: row.variableSymbol,
-      reminderAt: row.paymentReminderAt?.toISOString() ?? null,
+      variableSymbol:
+        input.result?.payment.variableSymbol ?? row.variableSymbol,
+      reminderAt: live
+        ? (row.paymentReminderAt?.toISOString() ?? null)
+        : (input.result?.payment.reminderAt ?? null),
     };
   } else if (balanceMinor > 0) {
     throw new Error(

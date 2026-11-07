@@ -17,6 +17,7 @@ import { RegistrationChangesRepository } from './repositories/registration-chang
 import { RegistrationsRepository } from './repositories/registrations.repository';
 import { EventRegistrationsService } from './services/event-registrations.service';
 import { ParticipantRegistrationsService } from './services/participant-registrations.service';
+import { ParticipantResultMailService } from './services/participant-result-mail.service';
 import { ParticipantUpdateService } from './services/participant-update.service';
 import { PaymentsService } from './services/payments.service';
 import { QrPaymentsService } from './services/qr-payments.service';
@@ -39,6 +40,7 @@ import { RegistrationsService } from './services/registrations.service';
     RegistrationConfirmationService,
     ParticipantUpdateService,
     ParticipantUpdatesRepository,
+    ParticipantResultMailService,
     RegistrationsRepository,
     EventRegistrationsService,
     EventRegistrationsRepository,
