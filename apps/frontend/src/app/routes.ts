@@ -1,5 +1,7 @@
 export const ROUTES = {
   home: "/",
+  forOrganizers: "/for-organizers",
+  forParticipants: "/for-participants",
   organizations: "/organizations",
   newOrganization: "/organizations/new",
   organization: "/organizations/$organizationId",

@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProtectedPagesRouteImport } from './routes/_ProtectedPages'
 import { Route as DesignSystemRouteImport } from './routes/design-system'
+import { Route as ForOrganizersRouteImport } from './routes/for-organizers'
+import { Route as ForParticipantsRouteImport } from './routes/for-participants'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as EventsIndexRouteImport } from './routes/events/index'
@@ -47,6 +49,16 @@ const ProtectedPagesRoute = ProtectedPagesRouteImport.update({
 const DesignSystemRoute = DesignSystemRouteImport.update({
   id: '/design-system',
   path: '/design-system',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForOrganizersRoute = ForOrganizersRouteImport.update({
+  id: '/for-organizers',
+  path: '/for-organizers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForParticipantsRoute = ForParticipantsRouteImport.update({
+  id: '/for-participants',
+  path: '/for-participants',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -189,6 +201,8 @@ const ProtectedPagesOrganizationsOrganizationIdEventsEventIdTermsTermIdProgramme
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/design-system': typeof DesignSystemRoute
+  '/for-organizers': typeof ForOrganizersRoute
+  '/for-participants': typeof ForParticipantsRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
@@ -215,6 +229,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/design-system': typeof DesignSystemRoute
+  '/for-organizers': typeof ForOrganizersRoute
+  '/for-participants': typeof ForParticipantsRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
@@ -242,6 +258,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_ProtectedPages': typeof ProtectedPagesRouteWithChildren
   '/design-system': typeof DesignSystemRoute
+  '/for-organizers': typeof ForOrganizersRoute
+  '/for-participants': typeof ForParticipantsRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
@@ -270,6 +288,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/design-system'
+    | '/for-organizers'
+    | '/for-participants'
     | '/login'
     | '/signup'
     | '/my-registrations/$registrationId'
@@ -296,6 +316,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/design-system'
+    | '/for-organizers'
+    | '/for-participants'
     | '/login'
     | '/signup'
     | '/my-registrations/$registrationId'
@@ -322,6 +344,8 @@ export interface FileRouteTypes {
     | '/'
     | '/_ProtectedPages'
     | '/design-system'
+    | '/for-organizers'
+    | '/for-participants'
     | '/login'
     | '/signup'
     | '/my-registrations/$registrationId'
@@ -350,6 +374,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProtectedPagesRoute: typeof ProtectedPagesRouteWithChildren
   DesignSystemRoute: typeof DesignSystemRoute
+  ForOrganizersRoute: typeof ForOrganizersRoute
+  ForParticipantsRoute: typeof ForParticipantsRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
   MyRegistrationsRegistrationIdRoute: typeof MyRegistrationsRegistrationIdRoute
@@ -383,6 +409,20 @@ declare module '@tanstack/react-router' {
       path: '/design-system'
       fullPath: '/design-system'
       preLoaderRoute: typeof DesignSystemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for-organizers': {
+      id: '/for-organizers'
+      path: '/for-organizers'
+      fullPath: '/for-organizers'
+      preLoaderRoute: typeof ForOrganizersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for-participants': {
+      id: '/for-participants'
+      path: '/for-participants'
+      fullPath: '/for-participants'
+      preLoaderRoute: typeof ForParticipantsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -602,6 +642,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProtectedPagesRoute: ProtectedPagesRouteWithChildren,
   DesignSystemRoute: DesignSystemRoute,
+  ForOrganizersRoute: ForOrganizersRoute,
+  ForParticipantsRoute: ForParticipantsRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
   MyRegistrationsRegistrationIdRoute: MyRegistrationsRegistrationIdRoute,

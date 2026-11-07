@@ -37,6 +37,25 @@ test("the landing page leads a visitor to the public catalog without signing in"
   await expect(page).toHaveURL(/\/events$/)
 })
 
+test("the landing page leads to the organizer and participant pages, which survive a reload", async ({
+  page,
+}) => {
+  await page.goto("/")
+  await page.getByRole("link", { name: "Více pro organizátory" }).click()
+  await expect(page).toHaveURL(/\/for-organizers$/)
+  await page.reload()
+  await expect(page.getByRole("heading", { name: "Pro organizátory", level: 1 })).toBeVisible()
+
+  const other = page.getByRole("navigation", { name: "Další stránky" })
+  await other.getByRole("link", { name: "Pro účastníky" }).click()
+  await expect(page).toHaveURL(/\/for-participants$/)
+  await page.reload()
+  await expect(page.getByRole("heading", { name: "Pro účastníky", level: 1 })).toBeVisible()
+
+  await other.getByRole("link", { name: "Úvod" }).click()
+  await expect(page.getByRole("heading", { name: "Akce bez chaosu", level: 1 })).toBeVisible()
+})
+
 test("an organizer reloading inside the second organization stays in it", async ({ page }) => {
   await signUpOrganizer(page.request)
   await createOrganization(page.request)
