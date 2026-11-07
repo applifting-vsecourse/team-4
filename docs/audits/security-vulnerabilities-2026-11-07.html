@@ -41,11 +41,12 @@
   .stat b { display: block; font-size: 32px; line-height: 1; }
   .stat span { color: var(--muted); font-size: 13px; }
   .stat.ok b { color: var(--ok); }
-  .badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
-  .badge.critical { color: var(--critical); background: var(--critical-bg); }
-  .badge.high { color: var(--high); background: var(--high-bg); }
-  .badge.moderate { color: var(--moderate); background: var(--moderate-bg); }
-  .badge.low { color: var(--low); background: var(--low-bg); }
+  .pkg td i { display: block; font-style: normal; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+  b.c, b.h, b.m, b.l { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+  b.c { color: var(--critical); background: var(--critical-bg); }
+  b.h { color: var(--high); background: var(--high-bg); }
+  b.m { color: var(--moderate); background: var(--moderate-bg); }
+  b.l { color: var(--low); background: var(--low-bg); }
   .tag { font-size: 12px; color: var(--muted); border: 1px solid var(--hairline); border-radius: 999px; padding: 0 8px; }
   .tag.runtime { color: var(--text); border-color: var(--border); }
   .count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
@@ -55,20 +56,23 @@
   .card td { padding: 4px 0; border-bottom: 1px solid var(--hairline); }
   .card tr:last-child td { border-bottom: 0; }
   .card td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
-  .toc { columns: 3 220px; padding: 0; list-style: none; margin: 0; }
-  .toc li { break-inside: avoid; padding: 2px 0; }
   .pkg { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin: 0 0 14px; }
   .pkg header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
   .meta { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
   .table-wrap { overflow-x: auto; }
   .pkg table { width: 100%; border-collapse: collapse; margin-top: 6px; }
-  .pkg th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 6px 8px 6px 0; border-bottom: 1px solid var(--hairline); }
   .pkg td { padding: 8px 8px 8px 0; border-bottom: 1px solid var(--hairline); vertical-align: top; }
   .pkg tr:last-child td { border-bottom: 0; }
   .pkg td:first-child { width: 7.5em; }
-  .pr, .pkg th:last-child { width: 7em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .pkg td:last-child { width: 7em; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .open { color: var(--moderate); font-weight: 600; }
   footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
+  @media (max-width: 560px) {
+    .pkg tr { display: grid; grid-template-columns: 1fr auto; padding: 8px 0; border-bottom: 1px solid var(--hairline); }
+    .pkg td { border: 0; padding: 2px 0; width: auto; }
+    .pkg td:nth-child(2) { grid-row: 2; grid-column: 1 / -1; }
+    .pkg td:last-child { text-align: right; }
+  }
   @media print { body { background: #fff; } .stat { box-shadow: none; } .pkg { break-inside: avoid; } }
 </style>
 </head>
@@ -106,990 +110,398 @@
     </div>
   </div>
 
-  <h2>Balíčky</h2>
-  <ul class="toc">
-      <li><a href="#next"><code>next</code></a> <span class="badge critical">Kritická</span> <span class="count">38</span></li>
-      <li><a href="#better-auth"><code>better-auth</code></a> <span class="badge critical">Kritická</span> <span class="count">3</span></li>
-      <li><a href="#handlebars"><code>handlebars</code></a> <span class="badge critical">Kritická</span> <span class="count">3</span></li>
-      <li><a href="#proxy-addr"><code>proxy-addr</code></a> <span class="badge critical">Kritická</span> <span class="count">1</span></li>
-      <li><a href="#shell-quote"><code>shell-quote</code></a> <span class="badge critical">Kritická</span> <span class="count">1</span></li>
-      <li><a href="#undici"><code>undici</code></a> <span class="badge high">Vysoká</span> <span class="count">19</span></li>
-      <li><a href="#nodemailer"><code>nodemailer</code></a> <span class="badge high">Vysoká</span> <span class="count">14</span></li>
-      <li><a href="#fast-uri"><code>fast-uri</code></a> <span class="badge high">Vysoká</span> <span class="count">10</span></li>
-      <li><a href="#multer"><code>multer</code></a> <span class="badge high">Vysoká</span> <span class="count">6</span></li>
-      <li><a href="#seroval"><code>seroval</code></a> <span class="badge high">Vysoká</span> <span class="count">6</span></li>
-      <li><a href="#vite"><code>vite</code></a> <span class="badge high">Vysoká</span> <span class="count">6</span></li>
-      <li><a href="#postcss"><code>postcss</code></a> <span class="badge high">Vysoká</span> <span class="count">4</span></li>
-      <li><a href="#brace-expansion"><code>brace-expansion</code></a> <span class="badge high">Vysoká</span> <span class="count">3</span></li>
-      <li><a href="#sharp"><code>sharp</code></a> <span class="badge high">Vysoká</span> <span class="count">3</span></li>
-      <li><a href="#js-yaml"><code>js-yaml</code></a> <span class="badge high">Vysoká</span> <span class="count">2</span></li>
-      <li><a href="#mysql2"><code>mysql2</code></a> <span class="badge high">Vysoká</span> <span class="count">2</span></li>
-      <li><a href="#body-parser"><code>body-parser</code></a> <span class="badge high">Vysoká</span> <span class="count">1</span></li>
-      <li><a href="#deepmerge-ts"><code>deepmerge-ts</code></a> <span class="badge high">Vysoká</span> <span class="count">1</span></li>
-      <li><a href="#engine.io"><code>engine.io</code></a> <span class="badge high">Vysoká</span> <span class="count">1</span></li>
-      <li><a href="#source-map-js"><code>source-map-js</code></a> <span class="badge high">Vysoká</span> <span class="count">1</span></li>
-      <li><a href="#zod"><code>zod</code></a> <span class="badge high">Vysoká</span> <span class="count">1</span></li>
-      <li><a href="#qs"><code>qs</code></a> <span class="badge moderate">Střední</span> <span class="count">3</span></li>
-      <li><a href="#@vitest/mocker"><code>@vitest/mocker</code></a> <span class="badge moderate">Střední</span> <span class="count">2</span></li>
-      <li><a href="#glob"><code>glob</code></a> <span class="badge moderate">Střední</span> <span class="count">1</span></li>
-      <li><a href="#minimatch"><code>minimatch</code></a> <span class="badge moderate">Střední</span> <span class="count">1</span></li>
-      <li><a href="#deepmerge"><code>deepmerge</code></a> <span class="badge low">Nízká</span> <span class="count">1</span></li>
-  </ul>
-
   <h2>Zranitelnosti podle balíčku</h2>
   <section class="pkg" id="next">
     <header>
-      <h3><code>next</code></h3><span class="badge critical">Kritická</span><span class="tag">odstraněno</span><span class="count">38×</span>
+      <h3><code>next</code></h3><b class=c>Kritická</b><span class="tag">odstraněno</span><span class="count">38×</span>
     </header>
     <p class="meta">Zranitelná verze 15.1.2 → nyní odstraněno · Odstraněno: nepoužívaný Next.js (volitelná závislost better-auth) · cesta: <code>backend › better-auth › next</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge critical">Kritická</span></td>
-          <td><a href="https://github.com/advisories/GHSA-f82v-jwr5-mffw">Authorization Bypass in Next.js Middleware</a><div class="meta">GHSA-f82v-jwr5-mffw · CVE-2025-29927 · zranitelné &gt;=15.0.0 &lt;15.2.3 · opraveno &gt;=15.2.3</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge critical">Kritická</span></td>
-          <td><a href="https://github.com/advisories/GHSA-9qr9-h5gf-34mp">Next.js is vulnerable to RCE in React flight protocol</a><div class="meta">GHSA-9qr9-h5gf-34mp · zranitelné &gt;=15.1.0-canary.0 &lt;15.1.9 · opraveno &gt;=15.1.9</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge critical">Kritická</span></td>
-          <td><a href="https://github.com/advisories/GHSA-2xp9-vwfh-vxw4">Next.js: Unauthenticated Remote Code Execution in Image Optimization API when AVIF files are used</a><div class="meta">GHSA-2xp9-vwfh-vxw4 · zranitelné &gt;=10.0.0 &lt;15.5.24 · opraveno &gt;=15.5.24</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge critical">Kritická</span></td>
-          <td><a href="https://github.com/advisories/GHSA-2464-fhr4-w9xw">Next.js: Unauthenticated Remote Code Execution in Image Optimization API when SVG files are used</a><div class="meta">GHSA-2464-fhr4-w9xw · zranitelné &gt;=10.0.0 &lt;=15.5.27 · opraveno &gt;=15.5.28</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge critical">Kritická</span></td>
-          <td><a href="https://github.com/advisories/GHSA-p293-qw3h-jr36">Next.js: Unauthenticated Remote Code Execution on windows-hosted servers</a><div class="meta">GHSA-p293-qw3h-jr36 · CVE-2026-75604 · zranitelné &gt;=13.4.0 &lt;15.5.24 · opraveno &gt;=15.5.24</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-mwv6-3258-q52c">Next Vulnerable to Denial of Service with Server Components</a><div class="meta">GHSA-mwv6-3258-q52c · zranitelné &gt;=15.1.1-canary.0 &lt;15.1.10 · opraveno &gt;=15.1.10</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-67rr-84xm-4c7r">Next.JS vulnerability can lead to DoS via cache poisoning </a><div class="meta">GHSA-67rr-84xm-4c7r · CVE-2025-49826 · zranitelné &gt;=15.0.4-canary.51 &lt;15.1.8 · opraveno &gt;=15.1.8</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-h25m-26qc-wcjf">Next.js HTTP request deserialization can lead to DoS when using insecure React Server Components</a><div class="meta">GHSA-h25m-26qc-wcjf · zranitelné &gt;=15.1.1-canary.0 &lt;15.1.12 · opraveno &gt;=15.1.12</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-8h8q-6873-q5fj">Next.js Vulnerable to Denial of Service with Server Components</a><div class="meta">GHSA-8h8q-6873-q5fj · zranitelné &gt;=13.0.0 &lt;15.5.16 · opraveno &gt;=15.5.16</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-q4gf-8mx6-v5v3">Next.js has a Denial of Service with Server Components</a><div class="meta">GHSA-q4gf-8mx6-v5v3 · zranitelné &gt;=13.0.0 &lt;15.5.15 · opraveno &gt;=15.5.15</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-36qx-fr4f-26g5">Next.js has a Middleware / Proxy bypass in Pages Router applications using i18n</a><div class="meta">GHSA-36qx-fr4f-26g5 · CVE-2026-44573 · zranitelné &gt;=12.2.0 &lt;15.5.16 · opraveno &gt;=15.5.16</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-mg66-mrh9-m8jx">Next.js vulnerable to Denial of Service via connection exhaustion in applications using Cache Components</a><div class="meta">GHSA-mg66-mrh9-m8jx · CVE-2026-44579 · zranitelné &gt;=15.0.0 &lt;15.5.16 · opraveno &gt;=15.5.16</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-c4j6-fc7j-m34r">Next.js vulnerable to server-side request forgery in applications using WebSocket upgrades</a><div class="meta">GHSA-c4j6-fc7j-m34r · CVE-2026-44578 · zranitelné &gt;=13.4.13 &lt;15.5.16 · opraveno &gt;=15.5.16</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-m99w-x7hq-7vfj">Next.js: Denial of Service in App Router using Server Actions</a><div class="meta">GHSA-m99w-x7hq-7vfj · CVE-2026-64641 · zranitelné &gt;=13.0.0 &lt;15.5.21 · opraveno &gt;=15.5.21</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-p3m5-59mp-jv5r">Next.js: Denial of Service in App Router using Server Actions</a><div class="meta">GHSA-p3m5-59mp-jv5r · CVE-2026-94482 · zranitelné &gt;=13.0.0 &lt;=15.5.27 · opraveno &gt;=15.5.28</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-89xv-2m56-2m9x">Next.js: Server-Side Request Forgery in Server Actions on custom servers</a><div class="meta">GHSA-89xv-2m56-2m9x · CVE-2026-64649 · zranitelné &gt;=14.1.1 &lt;15.5.21 · opraveno &gt;=15.5.21</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-p9j2-gv94-2wf4">Next.js: Server-Side Request Forgery in rewrites via attacker-controlled destination hostname</a><div class="meta">GHSA-p9j2-gv94-2wf4 · CVE-2026-64645 · zranitelné &gt;=12.0.0 &lt;15.5.21 · opraveno &gt;=15.5.21</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-w37m-7fhw-fmv9">Next Server Actions Source Code Exposure </a><div class="meta">GHSA-w37m-7fhw-fmv9 · zranitelné &gt;=15.1.1-canary.0 &lt;15.1.10 · opraveno &gt;=15.1.10</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-g5qg-72qw-gw5v">Next.js Affected by Cache Key Confusion for Image Optimization API Routes</a><div class="meta">GHSA-g5qg-72qw-gw5v · CVE-2025-57752 · zranitelné &gt;=15.0.0 &lt;=15.4.4 · opraveno &gt;=15.4.5</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-xv57-4mr9-wg8v">Next.js Content Injection Vulnerability for Image Optimization</a><div class="meta">GHSA-xv57-4mr9-wg8v · CVE-2025-55173 · zranitelné &gt;=15.0.0 &lt;=15.4.4 · opraveno &gt;=15.4.5</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-4342-x723-ch2f">Next.js Improper Middleware Redirect Handling Leads to SSRF</a><div class="meta">GHSA-4342-x723-ch2f · CVE-2025-57822 · zranitelné &gt;=15.0.0-canary.0 &lt;15.4.7 · opraveno &gt;=15.4.7</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-h64f-5h5j-jqjh">Next.js has a Denial of Service in the Image Optimization API</a><div class="meta">GHSA-h64f-5h5j-jqjh · CVE-2026-44577 · zranitelné &gt;=10.0.0 &lt;15.5.16 · opraveno &gt;=15.5.16</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-mcj8-r9mp-w47p">Next.js has cache poisoning in SSG/ISR rendering that leads to cross-user content substitution and persistent denial of service</a><div class="meta">GHSA-mcj8-r9mp-w47p · CVE-2026-94484 · zranitelné &gt;=15.0.0 &lt;15.5.27 · opraveno &gt;=15.5.27</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-4jqv-mc3x-m676">Next.js has cache poisoning of SSG and ISR pages in self-hosted applications</a><div class="meta">GHSA-4jqv-mc3x-m676 · CVE-2026-94543 · zranitelné &gt;=15.0.0 &lt;15.5.27 · opraveno &gt;=15.5.27</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-gx5p-jg67-6x7h">Next.js has cross-site scripting in beforeInteractive scripts with untrusted input</a><div class="meta">GHSA-gx5p-jg67-6x7h · CVE-2026-44580 · zranitelné &gt;=13.0.0 &lt;15.5.16 · opraveno &gt;=15.5.16</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-9g9p-9gw9-jx7f">Next.js self-hosted applications vulnerable to DoS via Image Optimizer remotePatterns configuration</a><div class="meta">GHSA-9g9p-9gw9-jx7f · CVE-2025-59471 · zranitelné &gt;=10.0.0 &lt;15.5.10 · opraveno &gt;=15.5.10</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-wfc6-r584-vfw7">Next.js vulnerable to cache poisoning in React Server Component responses</a><div class="meta">GHSA-wfc6-r584-vfw7 · CVE-2026-44576 · zranitelné &gt;=14.2.0 &lt;15.5.16 · opraveno &gt;=15.5.16</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-ffhc-5mcf-pf4q">Next.js vulnerable to cross-site scripting in App Router applications using CSP nonces</a><div class="meta">GHSA-ffhc-5mcf-pf4q · CVE-2026-44581 · zranitelné &gt;=13.4.0 &lt;15.5.16 · opraveno &gt;=15.5.16</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-68g3-v927-f742">Next.js: Cache confusion of response bodies for requests with bodies</a><div class="meta">GHSA-68g3-v927-f742 · CVE-2026-64648 · zranitelné &gt;=13.0.0 &lt;15.5.21 · opraveno &gt;=15.5.21</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-4633-3j49-mh5q">Next.js: Cache confusion of response bodies for requests with bodies containing invalid UTF-8 byte sequences</a><div class="meta">GHSA-4633-3j49-mh5q · CVE-2026-64647 · zranitelné &gt;=13.0.0 &lt;15.5.21 · opraveno &gt;=15.5.21</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-ggv3-7p47-pfv8">Next.js: HTTP request smuggling in rewrites</a><div class="meta">GHSA-ggv3-7p47-pfv8 · CVE-2026-29057 · zranitelné &gt;=9.5.0 &lt;15.5.13 · opraveno &gt;=15.5.13</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-955p-x3mx-jcvp">Next.js: Unauthenticated disclosure of internal Server Function endpoints</a><div class="meta">GHSA-955p-x3mx-jcvp · CVE-2026-64643 · zranitelné &gt;=13.0.0 &lt;15.5.21 · opraveno &gt;=15.5.21</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-4c39-4ccg-62r3">Next.js: Unbounded Server Action payload in Edge runtime</a><div class="meta">GHSA-4c39-4ccg-62r3 · CVE-2026-64646 · zranitelné &gt;=13.0.0 &lt;15.5.21 · opraveno &gt;=15.5.21</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-3x4c-7xq6-9pq8">Next.js: Unbounded next/image disk cache growth can exhaust storage</a><div class="meta">GHSA-3x4c-7xq6-9pq8 · CVE-2026-27980 · zranitelné &gt;=10.0.0 &lt;15.5.14 · opraveno &gt;=15.5.14</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge low">Nízká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-3h52-269p-cp9r">Information exposure in Next.js dev server due to lack of origin verification</a><div class="meta">GHSA-3h52-269p-cp9r · CVE-2025-48068 · zranitelné &gt;=15.0.0 &lt;15.2.2 · opraveno &gt;=15.2.2</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge low">Nízká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-qpjv-v59x-3qc4">Next.js Race Condition to Cache Poisoning</a><div class="meta">GHSA-qpjv-v59x-3qc4 · CVE-2025-32421 · zranitelné &gt;=15.0.0 &lt;15.1.6 · opraveno &gt;=15.1.6</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge low">Nízká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-vfv6-92ff-j949">Next.js vulnerable to cache poisoning via collisions in React Server Component cache-busting</a><div class="meta">GHSA-vfv6-92ff-j949 · CVE-2026-44582 · zranitelné &gt;=13.4.6 &lt;15.5.16 · opraveno &gt;=15.5.16</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge low">Nízká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-3g8h-86w9-wvmq">Next.js&#x27;s Middleware / Proxy redirects can be cache-poisoned</a><div class="meta">GHSA-3g8h-86w9-wvmq · CVE-2026-44572 · zranitelné &gt;=12.2.0 &lt;15.5.16 · opraveno &gt;=15.5.16</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=c>Kritická</b><td><a href=//github.com/advisories/GHSA-f82v-jwr5-mffw>Authorization Bypass in Next.js Middleware</a><i>CVE-2025-29927 · &gt;=15.0.0 &lt;15.2.3 → &gt;=15.2.3</i><td>#290
+<tr><td><b class=c>Kritická</b><td><a href=//github.com/advisories/GHSA-9qr9-h5gf-34mp>Next.js is vulnerable to RCE in React flight protocol</a><i>&gt;=15.1.0-canary.0 &lt;15.1.9 → &gt;=15.1.9</i><td>#290
+<tr><td><b class=c>Kritická</b><td><a href=//github.com/advisories/GHSA-2xp9-vwfh-vxw4>Next.js: Unauthenticated Remote Code Execution in Image Optimization API when AVIF files are used</a><i>&gt;=10.0.0 &lt;15.5.24 → &gt;=15.5.24</i><td>#290
+<tr><td><b class=c>Kritická</b><td><a href=//github.com/advisories/GHSA-2464-fhr4-w9xw>Next.js: Unauthenticated Remote Code Execution in Image Optimization API when SVG files are used</a><i>&gt;=10.0.0 &lt;=15.5.27 → &gt;=15.5.28</i><td>#290
+<tr><td><b class=c>Kritická</b><td><a href=//github.com/advisories/GHSA-p293-qw3h-jr36>Next.js: Unauthenticated Remote Code Execution on windows-hosted servers</a><i>CVE-2026-75604 · &gt;=13.4.0 &lt;15.5.24 → &gt;=15.5.24</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-mwv6-3258-q52c>Next Vulnerable to Denial of Service with Server Components</a><i>&gt;=15.1.1-canary.0 &lt;15.1.10 → &gt;=15.1.10</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-67rr-84xm-4c7r>Next.JS vulnerability can lead to DoS via cache poisoning </a><i>CVE-2025-49826 · &gt;=15.0.4-canary.51 &lt;15.1.8 → &gt;=15.1.8</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-h25m-26qc-wcjf>Next.js HTTP request deserialization can lead to DoS when using insecure React Server Components</a><i>&gt;=15.1.1-canary.0 &lt;15.1.12 → &gt;=15.1.12</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-8h8q-6873-q5fj>Next.js Vulnerable to Denial of Service with Server Components</a><i>&gt;=13.0.0 &lt;15.5.16 → &gt;=15.5.16</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-q4gf-8mx6-v5v3>Next.js has a Denial of Service with Server Components</a><i>&gt;=13.0.0 &lt;15.5.15 → &gt;=15.5.15</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-36qx-fr4f-26g5>Next.js has a Middleware / Proxy bypass in Pages Router applications using i18n</a><i>CVE-2026-44573 · &gt;=12.2.0 &lt;15.5.16 → &gt;=15.5.16</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-mg66-mrh9-m8jx>Next.js vulnerable to Denial of Service via connection exhaustion in applications using Cache Components</a><i>CVE-2026-44579 · &gt;=15.0.0 &lt;15.5.16 → &gt;=15.5.16</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-c4j6-fc7j-m34r>Next.js vulnerable to server-side request forgery in applications using WebSocket upgrades</a><i>CVE-2026-44578 · &gt;=13.4.13 &lt;15.5.16 → &gt;=15.5.16</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-m99w-x7hq-7vfj>Next.js: Denial of Service in App Router using Server Actions</a><i>CVE-2026-64641 · &gt;=13.0.0 &lt;15.5.21 → &gt;=15.5.21</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-p3m5-59mp-jv5r>Next.js: Denial of Service in App Router using Server Actions</a><i>CVE-2026-94482 · &gt;=13.0.0 &lt;=15.5.27 → &gt;=15.5.28</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-89xv-2m56-2m9x>Next.js: Server-Side Request Forgery in Server Actions on custom servers</a><i>CVE-2026-64649 · &gt;=14.1.1 &lt;15.5.21 → &gt;=15.5.21</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-p9j2-gv94-2wf4>Next.js: Server-Side Request Forgery in rewrites via attacker-controlled destination hostname</a><i>CVE-2026-64645 · &gt;=12.0.0 &lt;15.5.21 → &gt;=15.5.21</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-w37m-7fhw-fmv9>Next Server Actions Source Code Exposure </a><i>&gt;=15.1.1-canary.0 &lt;15.1.10 → &gt;=15.1.10</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-g5qg-72qw-gw5v>Next.js Affected by Cache Key Confusion for Image Optimization API Routes</a><i>CVE-2025-57752 · &gt;=15.0.0 &lt;=15.4.4 → &gt;=15.4.5</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-xv57-4mr9-wg8v>Next.js Content Injection Vulnerability for Image Optimization</a><i>CVE-2025-55173 · &gt;=15.0.0 &lt;=15.4.4 → &gt;=15.4.5</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-4342-x723-ch2f>Next.js Improper Middleware Redirect Handling Leads to SSRF</a><i>CVE-2025-57822 · &gt;=15.0.0-canary.0 &lt;15.4.7 → &gt;=15.4.7</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-h64f-5h5j-jqjh>Next.js has a Denial of Service in the Image Optimization API</a><i>CVE-2026-44577 · &gt;=10.0.0 &lt;15.5.16 → &gt;=15.5.16</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-mcj8-r9mp-w47p>Next.js has cache poisoning in SSG/ISR rendering that leads to cross-user content substitution and persistent denial of service</a><i>CVE-2026-94484 · &gt;=15.0.0 &lt;15.5.27 → &gt;=15.5.27</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-4jqv-mc3x-m676>Next.js has cache poisoning of SSG and ISR pages in self-hosted applications</a><i>CVE-2026-94543 · &gt;=15.0.0 &lt;15.5.27 → &gt;=15.5.27</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-gx5p-jg67-6x7h>Next.js has cross-site scripting in beforeInteractive scripts with untrusted input</a><i>CVE-2026-44580 · &gt;=13.0.0 &lt;15.5.16 → &gt;=15.5.16</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-9g9p-9gw9-jx7f>Next.js self-hosted applications vulnerable to DoS via Image Optimizer remotePatterns configuration</a><i>CVE-2025-59471 · &gt;=10.0.0 &lt;15.5.10 → &gt;=15.5.10</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-wfc6-r584-vfw7>Next.js vulnerable to cache poisoning in React Server Component responses</a><i>CVE-2026-44576 · &gt;=14.2.0 &lt;15.5.16 → &gt;=15.5.16</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-ffhc-5mcf-pf4q>Next.js vulnerable to cross-site scripting in App Router applications using CSP nonces</a><i>CVE-2026-44581 · &gt;=13.4.0 &lt;15.5.16 → &gt;=15.5.16</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-68g3-v927-f742>Next.js: Cache confusion of response bodies for requests with bodies</a><i>CVE-2026-64648 · &gt;=13.0.0 &lt;15.5.21 → &gt;=15.5.21</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-4633-3j49-mh5q>Next.js: Cache confusion of response bodies for requests with bodies containing invalid UTF-8 byte sequences</a><i>CVE-2026-64647 · &gt;=13.0.0 &lt;15.5.21 → &gt;=15.5.21</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-ggv3-7p47-pfv8>Next.js: HTTP request smuggling in rewrites</a><i>CVE-2026-29057 · &gt;=9.5.0 &lt;15.5.13 → &gt;=15.5.13</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-955p-x3mx-jcvp>Next.js: Unauthenticated disclosure of internal Server Function endpoints</a><i>CVE-2026-64643 · &gt;=13.0.0 &lt;15.5.21 → &gt;=15.5.21</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-4c39-4ccg-62r3>Next.js: Unbounded Server Action payload in Edge runtime</a><i>CVE-2026-64646 · &gt;=13.0.0 &lt;15.5.21 → &gt;=15.5.21</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-3x4c-7xq6-9pq8>Next.js: Unbounded next/image disk cache growth can exhaust storage</a><i>CVE-2026-27980 · &gt;=10.0.0 &lt;15.5.14 → &gt;=15.5.14</i><td>#290
+<tr><td><b class=l>Nízká</b><td><a href=//github.com/advisories/GHSA-3h52-269p-cp9r>Information exposure in Next.js dev server due to lack of origin verification</a><i>CVE-2025-48068 · &gt;=15.0.0 &lt;15.2.2 → &gt;=15.2.2</i><td>#290
+<tr><td><b class=l>Nízká</b><td><a href=//github.com/advisories/GHSA-qpjv-v59x-3qc4>Next.js Race Condition to Cache Poisoning</a><i>CVE-2025-32421 · &gt;=15.0.0 &lt;15.1.6 → &gt;=15.1.6</i><td>#290
+<tr><td><b class=l>Nízká</b><td><a href=//github.com/advisories/GHSA-vfv6-92ff-j949>Next.js vulnerable to cache poisoning via collisions in React Server Component cache-busting</a><i>CVE-2026-44582 · &gt;=13.4.6 &lt;15.5.16 → &gt;=15.5.16</i><td>#290
+<tr><td><b class=l>Nízká</b><td><a href=//github.com/advisories/GHSA-3g8h-86w9-wvmq>Next.js&#x27;s Middleware / Proxy redirects can be cache-poisoned</a><i>CVE-2026-44572 · &gt;=12.2.0 &lt;15.5.16 → &gt;=15.5.16</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="better-auth">
     <header>
-      <h3><code>better-auth</code></h3><span class="badge critical">Kritická</span><span class="tag runtime">produkce</span><span class="count">3×</span>
+      <h3><code>better-auth</code></h3><b class=c>Kritická</b><span class="tag runtime">produkce</span><span class="count">3×</span>
     </header>
     <p class="meta">Zranitelná verze 1.7.1 → nyní 1.7.18 · Aktualizace přímé závislosti · cesta: <code>backend › better-auth</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge critical">Kritická</span></td>
-          <td><a href="https://github.com/advisories/GHSA-965c-763c-88jm">better-auth: OAuth state can be used as a Magic Link to sign in as another user</a><div class="meta">GHSA-965c-763c-88jm · CVE-2026-114607 · zranitelné &gt;=1.4.0-beta.18 &lt;1.7.7 · opraveno &gt;=1.7.7</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-r4xp-prcw-77qf">better-auth: OAuth Proxy lets an attacker sign in as another user</a><div class="meta">GHSA-r4xp-prcw-77qf · zranitelné &gt;=1.5.0-beta.12 &lt;1.7.7 · opraveno &gt;=1.7.7</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge low">Nízká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-44jh-23m7-hpcf">@better-auth/drizzle-adapter: Concurrent requests can exceed rate limits on PostgreSQL</a><div class="meta">GHSA-44jh-23m7-hpcf · zranitelné &gt;=1.6.17 &lt;1.7.7 · opraveno &gt;=1.7.7</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=c>Kritická</b><td><a href=//github.com/advisories/GHSA-965c-763c-88jm>better-auth: OAuth state can be used as a Magic Link to sign in as another user</a><i>CVE-2026-114607 · &gt;=1.4.0-beta.18 &lt;1.7.7 → &gt;=1.7.7</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-r4xp-prcw-77qf>better-auth: OAuth Proxy lets an attacker sign in as another user</a><i>&gt;=1.5.0-beta.12 &lt;1.7.7 → &gt;=1.7.7</i><td>#290
+<tr><td><b class=l>Nízká</b><td><a href=//github.com/advisories/GHSA-44jh-23m7-hpcf>@better-auth/drizzle-adapter: Concurrent requests can exceed rate limits on PostgreSQL</a><i>&gt;=1.6.17 &lt;1.7.7 → &gt;=1.7.7</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="handlebars">
     <header>
-      <h3><code>handlebars</code></h3><span class="badge critical">Kritická</span><span class="tag">jen vývoj/CI</span><span class="count">3×</span>
+      <h3><code>handlebars</code></h3><b class=c>Kritická</b><span class="tag">jen vývoj/CI</span><span class="count">3×</span>
     </header>
     <p class="meta">Zranitelná verze 4.7.9 → nyní 4.7.10 · Aktualizace nadřazeného balíčku · cesta: <code>backend › ts-jest › handlebars</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge critical">Kritická</span></td>
-          <td><a href="https://github.com/advisories/GHSA-8r5x-fm3f-whwj">Handlebars: JavaScript Injection via AST Type Confusion in compile (bypass of CVE-2026-33937)</a><div class="meta">GHSA-8r5x-fm3f-whwj · CVE-2026-106446 · zranitelné &gt;=4.0.0 &lt;=4.7.9 · opraveno &gt;=4.7.10</div></td>
-          <td class="pr">#291</td>
-        </tr>
-        <tr>
-          <td><span class="badge critical">Kritická</span></td>
-          <td><a href="https://github.com/advisories/GHSA-p8wg-vrv2-v86f">Handlebars: JavaScript Injection via Own Property Check Bypass</a><div class="meta">GHSA-p8wg-vrv2-v86f · CVE-2026-106445 · zranitelné &gt;=3.0.0 &lt;=4.7.9 · opraveno &gt;=4.7.10</div></td>
-          <td class="pr">#291</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-xw65-4hp5-5hc7">Handlebars: JavaScript Injection via Unsafe Inline Embedding of Precompiled Templates</a><div class="meta">GHSA-xw65-4hp5-5hc7 · CVE-2026-106444 · zranitelné &gt;=4.0.0 &lt;=4.7.9 · opraveno &gt;=4.7.10</div></td>
-          <td class="pr">#291</td>
-        </tr>
+<tr><td><b class=c>Kritická</b><td><a href=//github.com/advisories/GHSA-8r5x-fm3f-whwj>Handlebars: JavaScript Injection via AST Type Confusion in compile (bypass of CVE-2026-33937)</a><i>CVE-2026-106446 · &gt;=4.0.0 &lt;=4.7.9 → &gt;=4.7.10</i><td>#291
+<tr><td><b class=c>Kritická</b><td><a href=//github.com/advisories/GHSA-p8wg-vrv2-v86f>Handlebars: JavaScript Injection via Own Property Check Bypass</a><i>CVE-2026-106445 · &gt;=3.0.0 &lt;=4.7.9 → &gt;=4.7.10</i><td>#291
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-xw65-4hp5-5hc7>Handlebars: JavaScript Injection via Unsafe Inline Embedding of Precompiled Templates</a><i>CVE-2026-106444 · &gt;=4.0.0 &lt;=4.7.9 → &gt;=4.7.10</i><td>#291
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="proxy-addr">
     <header>
-      <h3><code>proxy-addr</code></h3><span class="badge critical">Kritická</span><span class="tag runtime">produkce</span><span class="count">1×</span>
+      <h3><code>proxy-addr</code></h3><b class=c>Kritická</b><span class="tag runtime">produkce</span><span class="count">1×</span>
     </header>
     <p class="meta">Zranitelná verze 2.0.7 → nyní 2.0.8 · Vynucená opravená verze (overrides) · cesta: <code>backend › express › proxy-addr</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge critical">Kritická</span></td>
-          <td><a href="https://github.com/advisories/GHSA-jqcg-44mw-7w3h">proxy-addr vulnerable to IP spoofing via IPv4-mapped IPv6 trust subnet</a><div class="meta">GHSA-jqcg-44mw-7w3h · CVE-2026-90711 · zranitelné &gt;=1.1.0 &lt;2.0.8 · opraveno &gt;=2.0.8</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=c>Kritická</b><td><a href=//github.com/advisories/GHSA-jqcg-44mw-7w3h>proxy-addr vulnerable to IP spoofing via IPv4-mapped IPv6 trust subnet</a><i>CVE-2026-90711 · &gt;=1.1.0 &lt;2.0.8 → &gt;=2.0.8</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="shell-quote">
     <header>
-      <h3><code>shell-quote</code></h3><span class="badge critical">Kritická</span><span class="tag">jen vývoj/CI</span><span class="count">1×</span>
+      <h3><code>shell-quote</code></h3><b class=c>Kritická</b><span class="tag">jen vývoj/CI</span><span class="count">1×</span>
     </header>
     <p class="meta">Zranitelná verze 1.10.0 → nyní 1.12.0 · Vynucená opravená verze (overrides) · cesta: <code>. › npm-run-all › shell-quote</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge critical">Kritická</span></td>
-          <td><a href="https://github.com/advisories/GHSA-pqg4-j6r4-53mv">shell-quote: `quote()` command injection via a line terminator in a token after a `{ comment }` token</a><div class="meta">GHSA-pqg4-j6r4-53mv · CVE-2026-102422 · zranitelné &gt;=1.8.4 &lt;1.11.0 · opraveno &gt;=1.11.0</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=c>Kritická</b><td><a href=//github.com/advisories/GHSA-pqg4-j6r4-53mv>shell-quote: `quote()` command injection via a line terminator in a token after a `{ comment }` token</a><i>CVE-2026-102422 · &gt;=1.8.4 &lt;1.11.0 → &gt;=1.11.0</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="undici">
     <header>
-      <h3><code>undici</code></h3><span class="badge high">Vysoká</span><span class="tag">jen vývoj/CI</span><span class="count">19×</span>
+      <h3><code>undici</code></h3><b class=h>Vysoká</b><span class="tag">jen vývoj/CI</span><span class="count">19×</span>
     </header>
     <p class="meta">Zranitelná verze 8.10.0 → nyní 8.12.4 · Aktualizace nadřazeného balíčku · cesta: <code>frontend › jsdom › undici</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-qrxm-fqhp-jwvm">undici vulnerable to Denial of Service via TLS 1.2 certificate-changing renegotiation</a><div class="meta">GHSA-qrxm-fqhp-jwvm · CVE-2026-87018 · zranitelné &gt;=8.0.0 &lt;8.12.2 · opraveno &gt;=8.12.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-xjj6-f33q-929c">undici vulnerable to Denial of Service via unhandled error on excessive content-encodings</a><div class="meta">GHSA-xjj6-f33q-929c · CVE-2026-109869 · zranitelné &gt;=8.0.0 &lt;8.12.2 · opraveno &gt;=8.12.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-rfgv-xxqx-mfg5">undici vulnerable to Denial of Service via unrequested WebSocket subprotocol</a><div class="meta">GHSA-rfgv-xxqx-mfg5 · CVE-2026-19534 · zranitelné &gt;=8.0.0 &lt;8.10.2 · opraveno &gt;=8.10.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-w293-vg96-wgc3">undici vulnerable to TLS certificate validation bypass via dropped connect options in BalancedPool</a><div class="meta">GHSA-w293-vg96-wgc3 · CVE-2026-84961 · zranitelné &gt;=8.0.0 &lt;8.10.2 · opraveno &gt;=8.10.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-2m5v-pch6-74hx">undici vulnerable to TLS certificate validation bypass via dropped tls options in Agent</a><div class="meta">GHSA-2m5v-pch6-74hx · CVE-2026-109383 · zranitelné &gt;=8.0.0 &lt;8.12.2 · opraveno &gt;=8.12.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-4w7w-5xrc-9h26">undici vulnerable to cache poisoning and cross-user disclosure via cross-origin redirects</a><div class="meta">GHSA-4w7w-5xrc-9h26 · CVE-2026-109829 · zranitelné &gt;=8.0.0 &lt;8.12.2 · opraveno &gt;=8.12.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-vp8m-p9jh-q5pm">undici vulnerable to cross-origin cache poisoning via missing origin isolation in interceptors</a><div class="meta">GHSA-vp8m-p9jh-q5pm · CVE-2026-85152 · zranitelné &gt;=8.10.0 &lt;8.10.2 · opraveno &gt;=8.10.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-9fm3-97px-rjf6">undici WebSocket client vulnerable to Denial of Service via unbounded automatic PONG buffering</a><div class="meta">GHSA-9fm3-97px-rjf6 · CVE-2026-109932 · zranitelné &gt;=8.0.0 &lt;8.12.2 · opraveno &gt;=8.12.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-rx4f-c7p8-82vq">undici vulnerable to Denial of Service via WebSocketStream unclean close</a><div class="meta">GHSA-rx4f-c7p8-82vq · CVE-2026-85014 · zranitelné &gt;=8.0.0 &lt;8.10.2 · opraveno &gt;=8.10.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-pmjh-fq2x-6v4x">undici vulnerable to Denial of Service via orphaned RetryHandler response body</a><div class="meta">GHSA-pmjh-fq2x-6v4x · CVE-2026-18149 · zranitelné &gt;=8.0.0 &lt;8.10.2 · opraveno &gt;=8.10.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-3xpg-4rpp-hhhm">undici vulnerable to Denial of Service via unbounded decompression of compressed responses</a><div class="meta">GHSA-3xpg-4rpp-hhhm · CVE-2026-84890 · zranitelné &gt;=8.0.0 &lt;8.10.2 · opraveno &gt;=8.10.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-4qv8-2p9j-2685">undici vulnerable to Denial of Service via unbounded memory in the EventSource parser</a><div class="meta">GHSA-4qv8-2p9j-2685 · CVE-2026-109924 · zranitelné &gt;=8.0.0 &lt;8.12.2 · opraveno &gt;=8.12.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-3wwx-pv8p-q78v">undici vulnerable to Denial of Service via unhandled error in WebSocket permessage-deflate decompression</a><div class="meta">GHSA-3wwx-pv8p-q78v · CVE-2026-85024 · zranitelné &gt;=8.1.0 &lt;8.10.2 · opraveno &gt;=8.10.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-55wc-3pg8-jfw6">undici vulnerable to Denial of Service via unhandled exception in the decompress interceptor</a><div class="meta">GHSA-55wc-3pg8-jfw6 · CVE-2026-87029 · zranitelné &gt;=8.0.0 &lt;8.12.2 · opraveno &gt;=8.12.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-f72v-6w45-q472">undici vulnerable to Subresource Integrity bypass via non-lowercase algorithm tokens</a><div class="meta">GHSA-f72v-6w45-q472 · CVE-2026-109841 · zranitelné &gt;=8.0.0 &lt;8.12.2 · opraveno &gt;=8.12.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-2jfj-6hjv-fm6j">undici vulnerable to cross-user cookie disclosure via Set-Cookie caching in shared caches</a><div class="meta">GHSA-2jfj-6hjv-fm6j · CVE-2026-84933 · zranitelné &gt;=8.0.0 &lt;8.10.2 · opraveno &gt;=8.10.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge low">Nízká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-8436-99hf-9mmv">undici vulnerable to caching and replay of unsafe HTTP method responses</a><div class="meta">GHSA-8436-99hf-9mmv · CVE-2026-85008 · zranitelné &gt;=8.0.0 &lt;8.10.2 · opraveno &gt;=8.10.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge low">Nízká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-r53p-7pc4-xj5r">undici vulnerable to downstream response splitting via retry interceptor</a><div class="meta">GHSA-r53p-7pc4-xj5r · CVE-2026-18540 · zranitelné &gt;=8.0.0 &lt;8.10.2 · opraveno &gt;=8.10.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge low">Nízká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-2gqq-gqf2-x968">undici vulnerable to response truncation via oversized chunked responses in the dump interceptor</a><div class="meta">GHSA-2gqq-gqf2-x968 · CVE-2026-84947 · zranitelné &gt;=8.0.0 &lt;8.10.2 · opraveno &gt;=8.10.2</div></td>
-          <td class="pr">#292</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-qrxm-fqhp-jwvm>undici vulnerable to Denial of Service via TLS 1.2 certificate-changing renegotiation</a><i>CVE-2026-87018 · &gt;=8.0.0 &lt;8.12.2 → &gt;=8.12.2</i><td>#292
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-xjj6-f33q-929c>undici vulnerable to Denial of Service via unhandled error on excessive content-encodings</a><i>CVE-2026-109869 · &gt;=8.0.0 &lt;8.12.2 → &gt;=8.12.2</i><td>#292
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-rfgv-xxqx-mfg5>undici vulnerable to Denial of Service via unrequested WebSocket subprotocol</a><i>CVE-2026-19534 · &gt;=8.0.0 &lt;8.10.2 → &gt;=8.10.2</i><td>#292
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-w293-vg96-wgc3>undici vulnerable to TLS certificate validation bypass via dropped connect options in BalancedPool</a><i>CVE-2026-84961 · &gt;=8.0.0 &lt;8.10.2 → &gt;=8.10.2</i><td>#292
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-2m5v-pch6-74hx>undici vulnerable to TLS certificate validation bypass via dropped tls options in Agent</a><i>CVE-2026-109383 · &gt;=8.0.0 &lt;8.12.2 → &gt;=8.12.2</i><td>#292
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-4w7w-5xrc-9h26>undici vulnerable to cache poisoning and cross-user disclosure via cross-origin redirects</a><i>CVE-2026-109829 · &gt;=8.0.0 &lt;8.12.2 → &gt;=8.12.2</i><td>#292
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-vp8m-p9jh-q5pm>undici vulnerable to cross-origin cache poisoning via missing origin isolation in interceptors</a><i>CVE-2026-85152 · &gt;=8.10.0 &lt;8.10.2 → &gt;=8.10.2</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-9fm3-97px-rjf6>undici WebSocket client vulnerable to Denial of Service via unbounded automatic PONG buffering</a><i>CVE-2026-109932 · &gt;=8.0.0 &lt;8.12.2 → &gt;=8.12.2</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-rx4f-c7p8-82vq>undici vulnerable to Denial of Service via WebSocketStream unclean close</a><i>CVE-2026-85014 · &gt;=8.0.0 &lt;8.10.2 → &gt;=8.10.2</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-pmjh-fq2x-6v4x>undici vulnerable to Denial of Service via orphaned RetryHandler response body</a><i>CVE-2026-18149 · &gt;=8.0.0 &lt;8.10.2 → &gt;=8.10.2</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-3xpg-4rpp-hhhm>undici vulnerable to Denial of Service via unbounded decompression of compressed responses</a><i>CVE-2026-84890 · &gt;=8.0.0 &lt;8.10.2 → &gt;=8.10.2</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-4qv8-2p9j-2685>undici vulnerable to Denial of Service via unbounded memory in the EventSource parser</a><i>CVE-2026-109924 · &gt;=8.0.0 &lt;8.12.2 → &gt;=8.12.2</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-3wwx-pv8p-q78v>undici vulnerable to Denial of Service via unhandled error in WebSocket permessage-deflate decompression</a><i>CVE-2026-85024 · &gt;=8.1.0 &lt;8.10.2 → &gt;=8.10.2</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-55wc-3pg8-jfw6>undici vulnerable to Denial of Service via unhandled exception in the decompress interceptor</a><i>CVE-2026-87029 · &gt;=8.0.0 &lt;8.12.2 → &gt;=8.12.2</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-f72v-6w45-q472>undici vulnerable to Subresource Integrity bypass via non-lowercase algorithm tokens</a><i>CVE-2026-109841 · &gt;=8.0.0 &lt;8.12.2 → &gt;=8.12.2</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-2jfj-6hjv-fm6j>undici vulnerable to cross-user cookie disclosure via Set-Cookie caching in shared caches</a><i>CVE-2026-84933 · &gt;=8.0.0 &lt;8.10.2 → &gt;=8.10.2</i><td>#292
+<tr><td><b class=l>Nízká</b><td><a href=//github.com/advisories/GHSA-8436-99hf-9mmv>undici vulnerable to caching and replay of unsafe HTTP method responses</a><i>CVE-2026-85008 · &gt;=8.0.0 &lt;8.10.2 → &gt;=8.10.2</i><td>#292
+<tr><td><b class=l>Nízká</b><td><a href=//github.com/advisories/GHSA-r53p-7pc4-xj5r>undici vulnerable to downstream response splitting via retry interceptor</a><i>CVE-2026-18540 · &gt;=8.0.0 &lt;8.10.2 → &gt;=8.10.2</i><td>#292
+<tr><td><b class=l>Nízká</b><td><a href=//github.com/advisories/GHSA-2gqq-gqf2-x968>undici vulnerable to response truncation via oversized chunked responses in the dump interceptor</a><i>CVE-2026-84947 · &gt;=8.0.0 &lt;8.10.2 → &gt;=8.10.2</i><td>#292
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="nodemailer">
     <header>
-      <h3><code>nodemailer</code></h3><span class="badge high">Vysoká</span><span class="tag runtime">produkce</span><span class="count">14×</span>
+      <h3><code>nodemailer</code></h3><b class=h>Vysoká</b><span class="tag runtime">produkce</span><span class="count">14×</span>
     </header>
     <p class="meta">Zranitelná verze 9.0.5 → nyní 10.4.0 · Aktualizace přímé závislosti · cesta: <code>backend › nodemailer</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-2x7j-588g-ccc2">Nodemailer: Quadratic (O(n²)) time complexity in addressparser allows remote denial of service via a crafted address list</a><div class="meta">GHSA-2x7j-588g-ccc2 · zranitelné &lt;9.1.0 · opraveno &gt;=9.1.0</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-v53p-9fqp-m79j">Nodemailer: Quadratic backtracking in the addressparser free-text fallback allows remote denial of service</a><div class="meta">GHSA-v53p-9fqp-m79j · zranitelné &lt;=10.0.5 · opraveno &gt;=10.0.6</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-m943-m63m-w62w">Nodemailer: A &quot;;&quot; inside a quoted string or comment ends an address group early in addressparser, turning display text into a recipient</a><div class="meta">GHSA-m943-m63m-w62w · zranitelné &gt;=3.0.0 &lt;10.1.4 · opraveno &gt;=10.1.4</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-85x2-q946-cp5h">Nodemailer: A &quot;&gt;&quot; inside a quoted local part ends an angle-addr early in addressparser, delivering to a domain the header does not name</a><div class="meta">GHSA-85x2-q946-cp5h · zranitelné &gt;=3.0.0 &lt;10.1.4 · opraveno &gt;=10.1.4</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-8c8m-p3m8-cjg8">Nodemailer: A nested comment ends early in addressparser, releasing the rest of the comment as a recipient</a><div class="meta">GHSA-8c8m-p3m8-cjg8 · zranitelné &gt;=3.0.0 &lt;10.1.4 · opraveno &gt;=10.1.4</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-wmmp-3585-3rmp">Nodemailer: IDN/Punycode domain allow-list bypass leads to email delivery to an attacker-controlled domain</a><div class="meta">GHSA-wmmp-3585-3rmp · zranitelné &lt;9.1.0 · opraveno &gt;=9.1.0</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-8vvx-rff5-p5rq">Nodemailer: Nested structured recipient arrays bypass the parser depth limit and cause stack exhaustion DoS</a><div class="meta">GHSA-8vvx-rff5-p5rq · zranitelné &lt;10.0.2 · opraveno &gt;=10.0.2</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-6vj9-mwq6-2f5v">Nodemailer: Process-global DNS cache reuses TLS `servername` across transports, enabling cross-tenant SMTP credential disclosure</a><div class="meta">GHSA-6vj9-mwq6-2f5v · zranitelné &gt;=5.0.0 &lt;10.0.2 · opraveno &gt;=10.0.2</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-39m8-27wv-hr27">Nodemailer: Quadratic (O(n^2)) DKIM header unfolding lets a large folded header cause remote denial of service during signing</a><div class="meta">GHSA-39m8-27wv-hr27 · CVE-2026-110871 · zranitelné &gt;=3.0.0 &lt;=10.0.9 · opraveno &gt;=10.0.10</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-4g23-2xm8-66gc">Nodemailer: Quadratic (O(n^2)) SMTP client reply parsing lets a malicious server or MITM cause a pre-auth remote denial of service</a><div class="meta">GHSA-4g23-2xm8-66gc · zranitelné &gt;=3.0.0 &lt;=10.0.9 · opraveno &gt;=10.0.10</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-4ffr-jq9g-5ffx">Nodemailer: Quadratic backtracking in SMTP AUTH mechanism detection regexes allows pre-auth remote denial of service</a><div class="meta">GHSA-4ffr-jq9g-5ffx · zranitelné &gt;=3.0.0 &lt;=10.0.12 · opraveno &gt;=10.0.13</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-g73g-hqqh-jr95">Nodemailer: RFC 5322 comment inside an angle-bracket address is never stripped</a><div class="meta">GHSA-g73g-hqqh-jr95 · zranitelné &gt;=3.0.0 &lt;=10.0.12 · opraveno &gt;=10.0.13</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-cc9r-2j5m-2m83">Nodemailer: Recipient-domain validation bypass via RFC 5322 comment mis-parsing leads to email delivery to an attacker-controlled domain</a><div class="meta">GHSA-cc9r-2j5m-2m83 · zranitelné &gt;=6.9.16 &lt;9.1.0 · opraveno &gt;=9.1.0</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-8m3c-c648-2xjj">Nodemailer: resolveContent() on a MailMessage bypasses disableFileAccess/disableUrlAccess when called with the legacy signature</a><div class="meta">GHSA-8m3c-c648-2xjj · zranitelné &lt;=9.1.0 · opraveno &gt;=9.1.1</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-2x7j-588g-ccc2>Nodemailer: Quadratic (O(n²)) time complexity in addressparser allows remote denial of service via a crafted address list</a><i>&lt;9.1.0 → &gt;=9.1.0</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-v53p-9fqp-m79j>Nodemailer: Quadratic backtracking in the addressparser free-text fallback allows remote denial of service</a><i>&lt;=10.0.5 → &gt;=10.0.6</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-m943-m63m-w62w>Nodemailer: A &quot;;&quot; inside a quoted string or comment ends an address group early in addressparser, turning display text into a recipient</a><i>&gt;=3.0.0 &lt;10.1.4 → &gt;=10.1.4</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-85x2-q946-cp5h>Nodemailer: A &quot;&gt;&quot; inside a quoted local part ends an angle-addr early in addressparser, delivering to a domain the header does not name</a><i>&gt;=3.0.0 &lt;10.1.4 → &gt;=10.1.4</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-8c8m-p3m8-cjg8>Nodemailer: A nested comment ends early in addressparser, releasing the rest of the comment as a recipient</a><i>&gt;=3.0.0 &lt;10.1.4 → &gt;=10.1.4</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-wmmp-3585-3rmp>Nodemailer: IDN/Punycode domain allow-list bypass leads to email delivery to an attacker-controlled domain</a><i>&lt;9.1.0 → &gt;=9.1.0</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-8vvx-rff5-p5rq>Nodemailer: Nested structured recipient arrays bypass the parser depth limit and cause stack exhaustion DoS</a><i>&lt;10.0.2 → &gt;=10.0.2</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-6vj9-mwq6-2f5v>Nodemailer: Process-global DNS cache reuses TLS `servername` across transports, enabling cross-tenant SMTP credential disclosure</a><i>&gt;=5.0.0 &lt;10.0.2 → &gt;=10.0.2</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-39m8-27wv-hr27>Nodemailer: Quadratic (O(n^2)) DKIM header unfolding lets a large folded header cause remote denial of service during signing</a><i>CVE-2026-110871 · &gt;=3.0.0 &lt;=10.0.9 → &gt;=10.0.10</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-4g23-2xm8-66gc>Nodemailer: Quadratic (O(n^2)) SMTP client reply parsing lets a malicious server or MITM cause a pre-auth remote denial of service</a><i>&gt;=3.0.0 &lt;=10.0.9 → &gt;=10.0.10</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-4ffr-jq9g-5ffx>Nodemailer: Quadratic backtracking in SMTP AUTH mechanism detection regexes allows pre-auth remote denial of service</a><i>&gt;=3.0.0 &lt;=10.0.12 → &gt;=10.0.13</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-g73g-hqqh-jr95>Nodemailer: RFC 5322 comment inside an angle-bracket address is never stripped</a><i>&gt;=3.0.0 &lt;=10.0.12 → &gt;=10.0.13</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-cc9r-2j5m-2m83>Nodemailer: Recipient-domain validation bypass via RFC 5322 comment mis-parsing leads to email delivery to an attacker-controlled domain</a><i>&gt;=6.9.16 &lt;9.1.0 → &gt;=9.1.0</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-8m3c-c648-2xjj>Nodemailer: resolveContent() on a MailMessage bypasses disableFileAccess/disableUrlAccess when called with the legacy signature</a><i>&lt;=9.1.0 → &gt;=9.1.1</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="fast-uri">
     <header>
-      <h3><code>fast-uri</code></h3><span class="badge high">Vysoká</span><span class="tag">jen vývoj/CI</span><span class="count">10×</span>
+      <h3><code>fast-uri</code></h3><b class=h>Vysoká</b><span class="tag">jen vývoj/CI</span><span class="count">10×</span>
     </header>
     <p class="meta">Zranitelná verze 3.1.5 → nyní 3.1.9 · Vynucená opravená verze (overrides) · cesta: <code>backend › @nestjs/cli › @angular-devkit/core › ajv › fast-uri</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-qw65-cvwx-89v3">fast-uri vulnerable to authority injection via an unvalidated port in serialize</a><div class="meta">GHSA-qw65-cvwx-89v3 · CVE-2026-84292 · zranitelné &gt;=3.0.0 &lt;3.1.7 · opraveno &gt;=3.1.7</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-jqff-g426-hqxp">fast-uri vulnerable to host confusion via percent-encoded scheme normalization</a><div class="meta">GHSA-jqff-g426-hqxp · CVE-2026-76172 · zranitelné &gt;=3.0.0 &lt;3.1.6 · opraveno &gt;=3.1.6</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-5jgf-p345-68v8">fast-uri vulnerable to host confusion via skipped IDN canonicalization on scheme-relative references</a><div class="meta">GHSA-5jgf-p345-68v8 · CVE-2026-75931 · zranitelné &gt;=3.1.3 &lt;3.1.6 · opraveno &gt;=3.1.6</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-f65p-4m7j-42xc">fast-uri vulnerable to server-side request forgery via malformed IPv6 normalization</a><div class="meta">GHSA-f65p-4m7j-42xc · CVE-2026-75975 · zranitelné &gt;=3.0.0 &lt;3.1.6 · opraveno &gt;=3.1.6</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-fph4-wmhf-6fwf">fast-uri vulnerable to server-side request forgery via repeated hostname percent-decoding</a><div class="meta">GHSA-fph4-wmhf-6fwf · CVE-2026-75899 · zranitelné &gt;=3.1.2 &lt;3.1.6 · opraveno &gt;=3.1.6</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-w74x-v6f9-j3xg">fast-uri vulnerable to URI scheme spoofing via percent-encoded scheme decoding</a><div class="meta">GHSA-w74x-v6f9-j3xg · CVE-2026-110306 · zranitelné &gt;=3.0.0 &lt;3.1.9 · opraveno &gt;=3.1.9</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-wjr9-j795-jxcr">fast-uri vulnerable to host confusion via unchecked WHATWG host canonicalization</a><div class="meta">GHSA-wjr9-j795-jxcr · CVE-2026-110180 · zranitelné &gt;=3.1.3 &lt;3.1.9 · opraveno &gt;=3.1.9</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-hrr3-gc8f-f4qj">fast-uri vulnerable to inconsistent host case normalization via percent-encoded octets</a><div class="meta">GHSA-hrr3-gc8f-f4qj · CVE-2026-86472 · zranitelné &gt;=3.0.0 &lt;3.1.8 · opraveno &gt;=3.1.8</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge low">Nízká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-xhq7-xmqj-769h">fast-uri vulnerable to improper path equivalence in relative reference normalization</a><div class="meta">GHSA-xhq7-xmqj-769h · CVE-2026-110095 · zranitelné &gt;=3.0.0 &lt;3.1.9 · opraveno &gt;=3.1.9</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge low">Nízká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-333x-w4r6-6crp">fast-uri vulnerable to scheme injection via an unescaped first-segment colon in suffix references</a><div class="meta">GHSA-333x-w4r6-6crp · CVE-2026-110725 · zranitelné &gt;=3.0.0 &lt;3.1.9 · opraveno &gt;=3.1.9</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-qw65-cvwx-89v3>fast-uri vulnerable to authority injection via an unvalidated port in serialize</a><i>CVE-2026-84292 · &gt;=3.0.0 &lt;3.1.7 → &gt;=3.1.7</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-jqff-g426-hqxp>fast-uri vulnerable to host confusion via percent-encoded scheme normalization</a><i>CVE-2026-76172 · &gt;=3.0.0 &lt;3.1.6 → &gt;=3.1.6</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-5jgf-p345-68v8>fast-uri vulnerable to host confusion via skipped IDN canonicalization on scheme-relative references</a><i>CVE-2026-75931 · &gt;=3.1.3 &lt;3.1.6 → &gt;=3.1.6</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-f65p-4m7j-42xc>fast-uri vulnerable to server-side request forgery via malformed IPv6 normalization</a><i>CVE-2026-75975 · &gt;=3.0.0 &lt;3.1.6 → &gt;=3.1.6</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-fph4-wmhf-6fwf>fast-uri vulnerable to server-side request forgery via repeated hostname percent-decoding</a><i>CVE-2026-75899 · &gt;=3.1.2 &lt;3.1.6 → &gt;=3.1.6</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-w74x-v6f9-j3xg>fast-uri vulnerable to URI scheme spoofing via percent-encoded scheme decoding</a><i>CVE-2026-110306 · &gt;=3.0.0 &lt;3.1.9 → &gt;=3.1.9</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-wjr9-j795-jxcr>fast-uri vulnerable to host confusion via unchecked WHATWG host canonicalization</a><i>CVE-2026-110180 · &gt;=3.1.3 &lt;3.1.9 → &gt;=3.1.9</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-hrr3-gc8f-f4qj>fast-uri vulnerable to inconsistent host case normalization via percent-encoded octets</a><i>CVE-2026-86472 · &gt;=3.0.0 &lt;3.1.8 → &gt;=3.1.8</i><td>#290
+<tr><td><b class=l>Nízká</b><td><a href=//github.com/advisories/GHSA-xhq7-xmqj-769h>fast-uri vulnerable to improper path equivalence in relative reference normalization</a><i>CVE-2026-110095 · &gt;=3.0.0 &lt;3.1.9 → &gt;=3.1.9</i><td>#290
+<tr><td><b class=l>Nízká</b><td><a href=//github.com/advisories/GHSA-333x-w4r6-6crp>fast-uri vulnerable to scheme injection via an unescaped first-segment colon in suffix references</a><i>CVE-2026-110725 · &gt;=3.0.0 &lt;3.1.9 → &gt;=3.1.9</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="multer">
     <header>
-      <h3><code>multer</code></h3><span class="badge high">Vysoká</span><span class="tag runtime">produkce</span><span class="count">6×</span>
+      <h3><code>multer</code></h3><b class=h>Vysoká</b><span class="tag runtime">produkce</span><span class="count">6×</span>
     </header>
     <p class="meta">Zranitelná verze 2.2.0 → nyní 2.5.0 · Vynucená opravená verze (overrides) · cesta: <code>backend › @nestjs/platform-express › multer</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-q7qp-rjg7-q26m">multer vulnerable to Denial of Service via a pending asynchronous fileFilter after request teardown</a><div class="meta">GHSA-q7qp-rjg7-q26m · CVE-2026-113872 · zranitelné &gt;=2.0.0 &lt;2.5.0 · opraveno &gt;=2.5.0</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-wc9g-mqfw-jrwm">multer vulnerable to Denial of Service via crafted multipart field names</a><div class="meta">GHSA-wc9g-mqfw-jrwm · CVE-2026-77078 · zranitelné &lt;2.3.0 · opraveno &gt;=2.3.0</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-qfvm-cv95-jqjf">multer vulnerable to Denial of Service via file descriptor leak on aborted uploads</a><div class="meta">GHSA-qfvm-cv95-jqjf · CVE-2026-77037 · zranitelné =2.2.0 · opraveno &gt;=2.3.0</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-535w-7cp7-47q4">multer vulnerable to Denial of Service via oversized array index in field names</a><div class="meta">GHSA-535w-7cp7-47q4 · CVE-2026-82333 · zranitelné &lt;2.3.0 · opraveno &gt;=2.3.0</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-3pph-fpjx-jg34">multer vulnerable to Denial of Service via orphaned disk writes on aborted uploads</a><div class="meta">GHSA-3pph-fpjx-jg34 · CVE-2026-88932 · zranitelné &gt;=2.2.0 &lt;2.4.0 · opraveno &gt;=2.4.0</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge low">Nízká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-qvfw-j98x-7q72">multer vulnerable to file size limit bypass via async fileFilter race condition</a><div class="meta">GHSA-qvfw-j98x-7q72 · CVE-2026-77063 · zranitelné &lt;2.3.0 · opraveno &gt;=2.3.0</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-q7qp-rjg7-q26m>multer vulnerable to Denial of Service via a pending asynchronous fileFilter after request teardown</a><i>CVE-2026-113872 · &gt;=2.0.0 &lt;2.5.0 → &gt;=2.5.0</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-wc9g-mqfw-jrwm>multer vulnerable to Denial of Service via crafted multipart field names</a><i>CVE-2026-77078 · &lt;2.3.0 → &gt;=2.3.0</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-qfvm-cv95-jqjf>multer vulnerable to Denial of Service via file descriptor leak on aborted uploads</a><i>CVE-2026-77037 · =2.2.0 → &gt;=2.3.0</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-535w-7cp7-47q4>multer vulnerable to Denial of Service via oversized array index in field names</a><i>CVE-2026-82333 · &lt;2.3.0 → &gt;=2.3.0</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-3pph-fpjx-jg34>multer vulnerable to Denial of Service via orphaned disk writes on aborted uploads</a><i>CVE-2026-88932 · &gt;=2.2.0 &lt;2.4.0 → &gt;=2.4.0</i><td>#290
+<tr><td><b class=l>Nízká</b><td><a href=//github.com/advisories/GHSA-qvfw-j98x-7q72>multer vulnerable to file size limit bypass via async fileFilter race condition</a><i>CVE-2026-77063 · &lt;2.3.0 → &gt;=2.3.0</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="seroval">
     <header>
-      <h3><code>seroval</code></h3><span class="badge high">Vysoká</span><span class="tag">jen vývoj/CI</span><span class="count">6×</span>
+      <h3><code>seroval</code></h3><b class=h>Vysoká</b><span class="tag">jen vývoj/CI</span><span class="count">6×</span>
     </header>
     <p class="meta">Zranitelná verze 1.6.2 → nyní 1.7.10 · Aktualizace nadřazeného balíčku · cesta: <code>frontend › @tanstack/router-plugin › @tanstack/router-core › seroval</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-wp97-x4hv-qvhp">Seroval `fromJSON`/`fromCrossJSON` denial of service via unvalidated array node length</a><div class="meta">GHSA-wp97-x4hv-qvhp · CVE-2026-116584 · zranitelné &gt;=1.4.1 &lt;=1.6.7 · opraveno &gt;=1.6.8</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-7rv5-mrxv-xcr9">Seroval: Deserialization invokes attacker-chosen callables: AsyncIteratorFactoryInstance calls source.on(listener) without type check</a><div class="meta">GHSA-7rv5-mrxv-xcr9 · CVE-2026-116580 · zranitelné &lt;=1.6.7 · opraveno &gt;=1.6.8</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-jp82-f5mq-hwhp">Seroval: Memory exhaustion via unchecked TypedArray length in JSON deserialization</a><div class="meta">GHSA-jp82-f5mq-hwhp · CVE-2026-104845 · zranitelné &lt;=1.6.2 · opraveno &gt;=1.6.3</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-97r2-qh9m-474h">Seroval: fromJSON deserializer trusts node-supplied array length and sequence doneAt (unauthenticated event-loop DoS)</a><div class="meta">GHSA-97r2-qh9m-474h · CVE-2026-116581 · zranitelné &lt;=1.6.7 · opraveno &gt;=1.6.8</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-f86p-h4j2-7qgj">Seroval: Code injection through a typed array&#x27;s own constructor property</a><div class="meta">GHSA-f86p-h4j2-7qgj · CVE-2026-116583 · zranitelné &gt;=1.6.0 &lt;1.6.11 · opraveno &gt;=1.6.11</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-9wx9-5pv9-3349">Seroval: Script injection through RegExp sources in serialized output</a><div class="meta">GHSA-9wx9-5pv9-3349 · CVE-2026-116582 · zranitelné &gt;=1.5.5 &lt;1.6.10 · opraveno &gt;=1.6.10</div></td>
-          <td class="pr">#292</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-wp97-x4hv-qvhp>Seroval `fromJSON`/`fromCrossJSON` denial of service via unvalidated array node length</a><i>CVE-2026-116584 · &gt;=1.4.1 &lt;=1.6.7 → &gt;=1.6.8</i><td>#292
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-7rv5-mrxv-xcr9>Seroval: Deserialization invokes attacker-chosen callables: AsyncIteratorFactoryInstance calls source.on(listener) without type check</a><i>CVE-2026-116580 · &lt;=1.6.7 → &gt;=1.6.8</i><td>#292
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-jp82-f5mq-hwhp>Seroval: Memory exhaustion via unchecked TypedArray length in JSON deserialization</a><i>CVE-2026-104845 · &lt;=1.6.2 → &gt;=1.6.3</i><td>#292
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-97r2-qh9m-474h>Seroval: fromJSON deserializer trusts node-supplied array length and sequence doneAt (unauthenticated event-loop DoS)</a><i>CVE-2026-116581 · &lt;=1.6.7 → &gt;=1.6.8</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-f86p-h4j2-7qgj>Seroval: Code injection through a typed array&#x27;s own constructor property</a><i>CVE-2026-116583 · &gt;=1.6.0 &lt;1.6.11 → &gt;=1.6.11</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-9wx9-5pv9-3349>Seroval: Script injection through RegExp sources in serialized output</a><i>CVE-2026-116582 · &gt;=1.5.5 &lt;1.6.10 → &gt;=1.6.10</i><td>#292
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="vite">
     <header>
-      <h3><code>vite</code></h3><span class="badge high">Vysoká</span><span class="tag">jen vývoj/CI</span><span class="count">6×</span>
+      <h3><code>vite</code></h3><b class=h>Vysoká</b><span class="tag">jen vývoj/CI</span><span class="count">6×</span>
     </header>
     <p class="meta">Zranitelná verze 8.2.1 → nyní 8.3.6 · Aktualizace přímé závislosti · cesta: <code>frontend › vite</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-587h-7wmj-h5pm">launch-editor: `fs.existsSync()` existence check can be bypassed on Windows</a><div class="meta">GHSA-587h-7wmj-h5pm · CVE-2026-112942 · zranitelné &gt;=8.2.0 &lt;=8.2.3 · opraveno &gt;=8.2.4</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-rq7h-c2jc-7f22">Vite: Files outside `server.fs.allow` could be served when project paths match system paths on non-Windows machine</a><div class="meta">GHSA-rq7h-c2jc-7f22 · CVE-2026-112946 · zranitelné &gt;=8.2.0 &lt;=8.2.3 · opraveno &gt;=8.2.4</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-vfpm-58rq-9qcg">Vite: First 4 bytes of files outside of `server.fs` setting is exposed by `?vite-wasm-instance`</a><div class="meta">GHSA-vfpm-58rq-9qcg · CVE-2026-112947 · zranitelné &gt;=8.2.0 &lt;=8.2.3 · opraveno &gt;=8.2.4</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-r825-w8mm-5pxw">launch-editor: Editor CLI flag misinterpretation causing arbitrary command execution for some editors</a><div class="meta">GHSA-r825-w8mm-5pxw · CVE-2026-112944 · zranitelné &gt;=8.2.0 &lt;=8.2.3 · opraveno &gt;=8.2.4</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-698v-4r3x-3vcv">launch-editor: escapeCmdArgs() omits % escaping on Windows</a><div class="meta">GHSA-698v-4r3x-3vcv · CVE-2026-112943 · zranitelné &gt;=8.2.0 &lt;=8.2.3 · opraveno &gt;=8.2.4</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge low">Nízká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-9jrq-w75r-8gcw">Vite: Cross origin script execution through Vite custom middleware</a><div class="meta">GHSA-9jrq-w75r-8gcw · CVE-2026-112945 · zranitelné &gt;=8.2.0 &lt;=8.2.3 · opraveno &gt;=8.2.4</div></td>
-          <td class="pr">#292</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-587h-7wmj-h5pm>launch-editor: `fs.existsSync()` existence check can be bypassed on Windows</a><i>CVE-2026-112942 · &gt;=8.2.0 &lt;=8.2.3 → &gt;=8.2.4</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-rq7h-c2jc-7f22>Vite: Files outside `server.fs.allow` could be served when project paths match system paths on non-Windows machine</a><i>CVE-2026-112946 · &gt;=8.2.0 &lt;=8.2.3 → &gt;=8.2.4</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-vfpm-58rq-9qcg>Vite: First 4 bytes of files outside of `server.fs` setting is exposed by `?vite-wasm-instance`</a><i>CVE-2026-112947 · &gt;=8.2.0 &lt;=8.2.3 → &gt;=8.2.4</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-r825-w8mm-5pxw>launch-editor: Editor CLI flag misinterpretation causing arbitrary command execution for some editors</a><i>CVE-2026-112944 · &gt;=8.2.0 &lt;=8.2.3 → &gt;=8.2.4</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-698v-4r3x-3vcv>launch-editor: escapeCmdArgs() omits % escaping on Windows</a><i>CVE-2026-112943 · &gt;=8.2.0 &lt;=8.2.3 → &gt;=8.2.4</i><td>#292
+<tr><td><b class=l>Nízká</b><td><a href=//github.com/advisories/GHSA-9jrq-w75r-8gcw>Vite: Cross origin script execution through Vite custom middleware</a><i>CVE-2026-112945 · &gt;=8.2.0 &lt;=8.2.3 → &gt;=8.2.4</i><td>#292
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="postcss">
     <header>
-      <h3><code>postcss</code></h3><span class="badge high">Vysoká</span><span class="tag">odstraněno</span><span class="count">4×</span>
+      <h3><code>postcss</code></h3><b class=h>Vysoká</b><span class="tag">odstraněno</span><span class="count">4×</span>
     </header>
     <p class="meta">Zranitelná verze 8.4.31 → nyní 8.5.32 · Odstraněno: nepoužívaný Next.js (volitelná závislost better-auth) · cesta: <code>backend › better-auth › next › postcss</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-6g55-p6wh-862q">PostCSS: Arbitrary file read and information disclosure via attacker-controlled sourceMappingURL in CSS comments</a><div class="meta">GHSA-6g55-p6wh-862q · CVE-2026-45623 · zranitelné &lt;=8.5.11 · opraveno &gt;=8.5.12</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-r28c-9q8g-f849">PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure</a><div class="meta">GHSA-r28c-9q8g-f849 · CVE-2026-73646 · zranitelné &lt;=8.5.17 · opraveno &gt;=8.5.18</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-qx2v-qp2m-jg93">PostCSS has XSS via Unescaped &lt;/style&gt; in its CSS Stringify Output</a><div class="meta">GHSA-qx2v-qp2m-jg93 · CVE-2026-41305 · zranitelné &lt;8.5.10 · opraveno &gt;=8.5.10</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-fxqj-rqcc-2cmp">PostCSS: incomplete fix of GHSA-6g55-p6wh-862q — attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset</a><div class="meta">GHSA-fxqj-rqcc-2cmp · CVE-2026-69153 · zranitelné &lt;=8.5.22 · opraveno &gt;=8.5.23</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-6g55-p6wh-862q>PostCSS: Arbitrary file read and information disclosure via attacker-controlled sourceMappingURL in CSS comments</a><i>CVE-2026-45623 · &lt;=8.5.11 → &gt;=8.5.12</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-r28c-9q8g-f849>PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure</a><i>CVE-2026-73646 · &lt;=8.5.17 → &gt;=8.5.18</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-qx2v-qp2m-jg93>PostCSS has XSS via Unescaped &lt;/style&gt; in its CSS Stringify Output</a><i>CVE-2026-41305 · &lt;8.5.10 → &gt;=8.5.10</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-fxqj-rqcc-2cmp>PostCSS: incomplete fix of GHSA-6g55-p6wh-862q — attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset</a><i>CVE-2026-69153 · &lt;=8.5.22 → &gt;=8.5.23</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="brace-expansion">
     <header>
-      <h3><code>brace-expansion</code></h3><span class="badge high">Vysoká</span><span class="tag">jen vývoj/CI</span><span class="count">3×</span>
+      <h3><code>brace-expansion</code></h3><b class=h>Vysoká</b><span class="tag">jen vývoj/CI</span><span class="count">3×</span>
     </header>
     <p class="meta">Zranitelná verze 1.1.18 → nyní 1.1.21, 5.0.12 · Vynucená opravená verze (overrides) · cesta: <code>. › npm-run-all › minimatch › brace-expansion</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-6j4f-fj2g-mc7p">brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion</a><div class="meta">GHSA-6j4f-fj2g-mc7p · CVE-2026-102276 · zranitelné &lt;1.1.19 · opraveno &gt;=1.1.19</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-qhr7-859c-m2p7">brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion</a><div class="meta">GHSA-qhr7-859c-m2p7 · CVE-2026-102278 · zranitelné &lt;1.1.20 · opraveno &gt;=1.1.20</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-q2hr-2g5m-vwhr">brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service</a><div class="meta">GHSA-q2hr-2g5m-vwhr · CVE-2026-102277 · zranitelné &lt;1.1.21 · opraveno &gt;=1.1.21</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-6j4f-fj2g-mc7p>brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion</a><i>CVE-2026-102276 · &lt;1.1.19 → &gt;=1.1.19</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-qhr7-859c-m2p7>brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion</a><i>CVE-2026-102278 · &lt;1.1.20 → &gt;=1.1.20</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-q2hr-2g5m-vwhr>brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service</a><i>CVE-2026-102277 · &lt;1.1.21 → &gt;=1.1.21</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="sharp">
     <header>
-      <h3><code>sharp</code></h3><span class="badge high">Vysoká</span><span class="tag">odstraněno</span><span class="count">3×</span>
+      <h3><code>sharp</code></h3><b class=h>Vysoká</b><span class="tag">odstraněno</span><span class="count">3×</span>
     </header>
     <p class="meta">Zranitelná verze 0.33.5 → nyní odstraněno · Odstraněno: nepoužívaný Next.js (volitelná závislost better-auth) · cesta: <code>backend › better-auth › next › sharp</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-wq5f-xc86-pv6w">sharp : Vulnerability in librsvg dependency CVE-2026-96889</a><div class="meta">GHSA-wq5f-xc86-pv6w · zranitelné &lt;0.35.5 · opraveno &gt;=0.35.5</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-f88m-g3jw-g9cj">sharp inherited vulnerabilities in libvips: CVE-2026-33327, CVE-2026-33328, CVE-2026-35590, CVE-2026-35591</a><div class="meta">GHSA-f88m-g3jw-g9cj · zranitelné &lt;0.35.0 · opraveno &gt;=0.35.0</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-rgj7-g3m4-5g8c">sharp: Vulnerabilities in libheif: GHSA-g89c-p67h-r497 and GHSA-2jg2-4ch7-h545</a><div class="meta">GHSA-rgj7-g3m4-5g8c · zranitelné &lt;0.35.4 · opraveno &gt;=0.35.4</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-wq5f-xc86-pv6w>sharp : Vulnerability in librsvg dependency CVE-2026-96889</a><i>&lt;0.35.5 → &gt;=0.35.5</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-f88m-g3jw-g9cj>sharp inherited vulnerabilities in libvips: CVE-2026-33327, CVE-2026-33328, CVE-2026-35590, CVE-2026-35591</a><i>&lt;0.35.0 → &gt;=0.35.0</i><td>#290
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-rgj7-g3m4-5g8c>sharp: Vulnerabilities in libheif: GHSA-g89c-p67h-r497 and GHSA-2jg2-4ch7-h545</a><i>&lt;0.35.4 → &gt;=0.35.4</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="js-yaml">
     <header>
-      <h3><code>js-yaml</code></h3><span class="badge high">Vysoká</span><span class="tag runtime">produkce</span><span class="count">2×</span>
+      <h3><code>js-yaml</code></h3><b class=h>Vysoká</b><span class="tag runtime">produkce</span><span class="count">2×</span>
     </header>
     <p class="meta">Zranitelná verze 3.15.1, 5.3.0 → nyní 3.15.2, 4.3.2, 5.5.0 · Aktualizace nadřazeného balíčku / Vynucená opravená verze (overrides) · cesta: <code>backend › jest › @jest/core › @jest/transform › babel-plugin-istanbul › @istanbuljs/load-nyc-config › js-yaml</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-2883-xcg3-v3hh">js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources</a><div class="meta">GHSA-2883-xcg3-v3hh · CVE-2026-84375 · zranitelné &gt;=3.0.0 &lt;3.15.2 · opraveno &gt;=3.15.2</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-r3ph-w7gj-g6xm">js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources</a><div class="meta">GHSA-r3ph-w7gj-g6xm · zranitelné &gt;=5.0.0 &lt;=5.4.0 · opraveno &gt;=5.4.1</div></td>
-          <td class="pr">#291</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-2883-xcg3-v3hh>js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources</a><i>CVE-2026-84375 · &gt;=3.0.0 &lt;3.15.2 → &gt;=3.15.2</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-r3ph-w7gj-g6xm>js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources</a><i>&gt;=5.0.0 &lt;=5.4.0 → &gt;=5.4.1</i><td>#291
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="mysql2">
     <header>
-      <h3><code>mysql2</code></h3><span class="badge high">Vysoká</span><span class="tag runtime">produkce</span><span class="count">2×</span>
+      <h3><code>mysql2</code></h3><b class=h>Vysoká</b><span class="tag runtime">produkce</span><span class="count">2×</span>
     </header>
     <p class="meta">Zranitelná verze 3.15.3 → nyní 3.24.4 · Aktualizace nadřazeného balíčku · cesta: <code>backend › better-auth › mysql2</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-3f6p-5ww8-9rcr">MySQL2: Auth Plugin Downgrade to mysql_clear_password Leaks Plaintext Credentials</a><div class="meta">GHSA-3f6p-5ww8-9rcr · zranitelné &lt;3.22.0 · opraveno &gt;=3.22.0</div></td>
-          <td class="pr">#291</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-rgwj-5xj2-c3m3">MySQL2: Unbounded zlib inflate in compressed MySQL protocol handler allows decompression-bomb DoS</a><div class="meta">GHSA-rgwj-5xj2-c3m3 · zranitelné &lt;=3.23.0 · opraveno &gt;=3.23.1</div></td>
-          <td class="pr">#291</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-3f6p-5ww8-9rcr>MySQL2: Auth Plugin Downgrade to mysql_clear_password Leaks Plaintext Credentials</a><i>&lt;3.22.0 → &gt;=3.22.0</i><td>#291
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-rgwj-5xj2-c3m3>MySQL2: Unbounded zlib inflate in compressed MySQL protocol handler allows decompression-bomb DoS</a><i>&lt;=3.23.0 → &gt;=3.23.1</i><td>#291
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="body-parser">
     <header>
-      <h3><code>body-parser</code></h3><span class="badge high">Vysoká</span><span class="tag runtime">produkce</span><span class="count">1×</span>
+      <h3><code>body-parser</code></h3><b class=h>Vysoká</b><span class="tag runtime">produkce</span><span class="count">1×</span>
     </header>
     <p class="meta">Zranitelná verze 2.3.0 → nyní 2.4.0 · Vynucená opravená verze (overrides) · cesta: <code>backend › express › body-parser</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-27r3-jxmh-p828">body-parser vulnerable to Denial of Service via trailing bytes after a compressed request body</a><div class="meta">GHSA-27r3-jxmh-p828 · CVE-2026-111181 · zranitelné &gt;=2.0.0 &lt;2.4.0 · opraveno &gt;=2.4.0</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-27r3-jxmh-p828>body-parser vulnerable to Denial of Service via trailing bytes after a compressed request body</a><i>CVE-2026-111181 · &gt;=2.0.0 &lt;2.4.0 → &gt;=2.4.0</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="deepmerge-ts">
     <header>
-      <h3><code>deepmerge-ts</code></h3><span class="badge high">Vysoká</span><span class="tag runtime">produkce</span><span class="count">1×</span>
+      <h3><code>deepmerge-ts</code></h3><b class=h>Vysoká</b><span class="tag runtime">produkce</span><span class="count">1×</span>
     </header>
     <p class="meta">Zranitelná verze 7.1.5 → nyní 8.0.2 · Aktualizace nadřazeného balíčku · cesta: <code>backend › prisma › @prisma/config › deepmerge-ts</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-ggr8-5vv4-36mx">DeepmergeTS has stack exhaustion when merging recursive object graphs</a><div class="meta">GHSA-ggr8-5vv4-36mx · CVE-2026-40345 · zranitelné &lt;8.0.0 · opraveno &gt;=8.0.0</div></td>
-          <td class="pr">#291</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-ggr8-5vv4-36mx>DeepmergeTS has stack exhaustion when merging recursive object graphs</a><i>CVE-2026-40345 · &lt;8.0.0 → &gt;=8.0.0</i><td>#291
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="engine.io">
     <header>
-      <h3><code>engine.io</code></h3><span class="badge high">Vysoká</span><span class="tag runtime">produkce</span><span class="count">1×</span>
+      <h3><code>engine.io</code></h3><b class=h>Vysoká</b><span class="tag runtime">produkce</span><span class="count">1×</span>
     </header>
     <p class="meta">Zranitelná verze 6.6.9 → nyní 6.6.11 · Vynucená opravená verze (overrides) · cesta: <code>backend › react-email › socket.io › engine.io</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-2gc4-cqfq-p2gv">Socket.IO: Engine.IO Protocol Revision Mismatch DoS</a><div class="meta">GHSA-2gc4-cqfq-p2gv · CVE-2026-102599 · zranitelné &gt;=6.6.0 &lt;6.6.10 · opraveno &gt;=6.6.10</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-2gc4-cqfq-p2gv>Socket.IO: Engine.IO Protocol Revision Mismatch DoS</a><i>CVE-2026-102599 · &gt;=6.6.0 &lt;6.6.10 → &gt;=6.6.10</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="source-map-js">
     <header>
-      <h3><code>source-map-js</code></h3><span class="badge high">Vysoká</span><span class="tag">odstraněno</span><span class="count">1×</span>
+      <h3><code>source-map-js</code></h3><b class=h>Vysoká</b><span class="tag">odstraněno</span><span class="count">1×</span>
     </header>
     <p class="meta">Zranitelná verze 1.2.1 → nyní 1.2.2 · Odstraněno: nepoužívaný Next.js (volitelná závislost better-auth) · cesta: <code>backend › better-auth › next › postcss › source-map-js</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-68fv-2mgg-jv7q">source-map-js allows event-loop denial of service through indexed source-map section offsets</a><div class="meta">GHSA-68fv-2mgg-jv7q · CVE-2026-93749 · zranitelné &gt;=1.0.0 &lt;1.2.2 · opraveno &gt;=1.2.2</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-68fv-2mgg-jv7q>source-map-js allows event-loop denial of service through indexed source-map section offsets</a><i>CVE-2026-93749 · &gt;=1.0.0 &lt;1.2.2 → &gt;=1.2.2</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="zod">
     <header>
-      <h3><code>zod</code></h3><span class="badge high">Vysoká</span><span class="tag runtime">produkce</span><span class="count">1×</span>
+      <h3><code>zod</code></h3><b class=h>Vysoká</b><span class="tag runtime">produkce</span><span class="count">1×</span>
     </header>
     <p class="meta">Zranitelná verze 4.4.3 → nyní 4.6.7 · Aktualizace přímé závislosti · cesta: <code>frontend › zod</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge high">Vysoká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-mrhx-c7xc-m3w5">Zod can exhaust memory while validating oversized constrained collections</a><div class="meta">GHSA-mrhx-c7xc-m3w5 · CVE-2023-54404 · zranitelné &lt;4.6.6 · opraveno &gt;=4.6.6</div></td>
-          <td class="pr">#292</td>
-        </tr>
+<tr><td><b class=h>Vysoká</b><td><a href=//github.com/advisories/GHSA-mrhx-c7xc-m3w5>Zod can exhaust memory while validating oversized constrained collections</a><i>CVE-2023-54404 · &lt;4.6.6 → &gt;=4.6.6</i><td>#292
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="qs">
     <header>
-      <h3><code>qs</code></h3><span class="badge moderate">Střední</span><span class="tag runtime">produkce</span><span class="count">3×</span>
+      <h3><code>qs</code></h3><b class=m>Střední</b><span class="tag runtime">produkce</span><span class="count">3×</span>
     </header>
     <p class="meta">Zranitelná verze 6.15.3 → nyní 6.17.1 · Vynucená opravená verze (overrides) · cesta: <code>backend › express › qs</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-6pq8-jhm2-2vcw">qs : qs.stringify with arrayFormat &#x27;comma&#x27; throws an uncaught TypeError on array elements carrying a non-callable own toString (DoS)</a><div class="meta">GHSA-6pq8-jhm2-2vcw · CVE-2026-110816 · zranitelné &gt;=6.7.0 &lt;=6.16.0 · opraveno &gt;=6.16.1</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-x5fp-wj9c-mxmx">qs array-limit bypass via bracket-key comma parsing</a><div class="meta">GHSA-x5fp-wj9c-mxmx · CVE-2026-82562 · zranitelné &gt;=6.14.2 &lt;=6.15.3 · opraveno &gt;=6.16.0</div></td>
-          <td class="pr">#290</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-4mjr-xmp4-gh2g">qs: Denial of Service via Attacker Controlled isBuffer</a><div class="meta">GHSA-4mjr-xmp4-gh2g · CVE-2026-82417 · zranitelné &gt;=2.2.5 &lt;6.16.0 · opraveno &gt;=6.16.0</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-6pq8-jhm2-2vcw>qs : qs.stringify with arrayFormat &#x27;comma&#x27; throws an uncaught TypeError on array elements carrying a non-callable own toString (DoS)</a><i>CVE-2026-110816 · &gt;=6.7.0 &lt;=6.16.0 → &gt;=6.16.1</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-x5fp-wj9c-mxmx>qs array-limit bypass via bracket-key comma parsing</a><i>CVE-2026-82562 · &gt;=6.14.2 &lt;=6.15.3 → &gt;=6.16.0</i><td>#290
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-4mjr-xmp4-gh2g>qs: Denial of Service via Attacker Controlled isBuffer</a><i>CVE-2026-82417 · &gt;=2.2.5 &lt;6.16.0 → &gt;=6.16.0</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="@vitest/mocker">
     <header>
-      <h3><code>@vitest/mocker</code></h3><span class="badge moderate">Střední</span><span class="tag">jen vývoj/CI</span><span class="count">2×</span>
+      <h3><code>@vitest/mocker</code></h3><b class=m>Střední</b><span class="tag">jen vývoj/CI</span><span class="count">2×</span>
     </header>
     <p class="meta">Zranitelná verze 4.1.11 → nyní 4.1.12 · Aktualizace nadřazeného balíčku · cesta: <code>backend › better-auth › vitest › @vitest/mocker</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-qxg6-89mg-rqv8">Vitest: Code injection via unauthenticated manual mock registration</a><div class="meta">GHSA-qxg6-89mg-rqv8 · CVE-2026-112949 · zranitelné &gt;=2.1.0-beta.7 &lt;4.1.12 · opraveno &gt;=4.1.12</div></td>
-          <td class="pr">#292</td>
-        </tr>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-xp26-3454-mjgp">Vitest: Windows backslash traversal bypasses the @vitest/mocker redirect allowlist fix</a><div class="meta">GHSA-xp26-3454-mjgp · CVE-2026-112950 · zranitelné &gt;=4.1.11 &lt;4.1.12 · opraveno &gt;=4.1.12</div></td>
-          <td class="pr">#292</td>
-        </tr>
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-qxg6-89mg-rqv8>Vitest: Code injection via unauthenticated manual mock registration</a><i>CVE-2026-112949 · &gt;=2.1.0-beta.7 &lt;4.1.12 → &gt;=4.1.12</i><td>#292
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-xp26-3454-mjgp>Vitest: Windows backslash traversal bypasses the @vitest/mocker redirect allowlist fix</a><i>CVE-2026-112950 · &gt;=4.1.11 &lt;4.1.12 → &gt;=4.1.12</i><td>#292
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="glob">
     <header>
-      <h3><code>glob</code></h3><span class="badge moderate">Střední</span><span class="tag">jen vývoj/CI</span><span class="count">1×</span>
+      <h3><code>glob</code></h3><b class=m>Střední</b><span class="tag">jen vývoj/CI</span><span class="count">1×</span>
     </header>
     <p class="meta">Zranitelná verze 10.5.0, 13.0.6 → nyní 14.0.4 · Vynucená opravená verze (overrides) · cesta: <code>backend › @nestjs/cli › glob</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-3g3m-2fjr-6pw4">Glob: AbortSignal cancellation bypass allows post-timeout filesystem traversal</a><div class="meta">GHSA-3g3m-2fjr-6pw4 · CVE-2026-118773 · zranitelné &gt;=9.0.0 &lt;=14.0.1 · opraveno &gt;=14.0.2</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-3g3m-2fjr-6pw4>Glob: AbortSignal cancellation bypass allows post-timeout filesystem traversal</a><i>CVE-2026-118773 · &gt;=9.0.0 &lt;=14.0.1 → &gt;=14.0.2</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="minimatch">
     <header>
-      <h3><code>minimatch</code></h3><span class="badge moderate">Střední</span><span class="tag">jen vývoj/CI</span><span class="count">1×</span>
+      <h3><code>minimatch</code></h3><b class=m>Střední</b><span class="tag">jen vývoj/CI</span><span class="count">1×</span>
     </header>
     <p class="meta">Zranitelná verze 9.0.9, 10.2.6 → nyní 3.1.5, 11.0.5 · Vynucená opravená verze (overrides) · cesta: <code>backend › @nestjs/cli › glob › minimatch</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge moderate">Střední</span></td>
-          <td><a href="https://github.com/advisories/GHSA-g3hv-75wg-m249">minimatch has potential denial of service via globparts amplification</a><div class="meta">GHSA-g3hv-75wg-m249 · CVE-2026-118764 · zranitelné &gt;=7.0.0 &lt;11.0.1 · opraveno &gt;=11.0.1</div></td>
-          <td class="pr">#290</td>
-        </tr>
+<tr><td><b class=m>Střední</b><td><a href=//github.com/advisories/GHSA-g3hv-75wg-m249>minimatch has potential denial of service via globparts amplification</a><i>CVE-2026-118764 · &gt;=7.0.0 &lt;11.0.1 → &gt;=11.0.1</i><td>#290
       </tbody>
     </table></div>
   </section>
   <section class="pkg" id="deepmerge">
     <header>
-      <h3><code>deepmerge</code></h3><span class="badge low">Nízká</span><span class="tag">jen vývoj/CI</span><span class="count">1×</span>
+      <h3><code>deepmerge</code></h3><b class=l>Nízká</b><span class="tag">jen vývoj/CI</span><span class="count">1×</span>
     </header>
     <p class="meta">Zranitelná verze 4.3.1 → nyní 4.3.1 · Zůstává: opravená verze neexistuje · cesta: <code>backend › @nestjs/cli › fork-ts-checker-webpack-plugin › deepmerge</code></p>
     <div class="table-wrap"><table>
-      <thead><tr><th>Závažnost</th><th>Zranitelnost</th><th>Opraveno v</th></tr></thead>
       <tbody>
-        <tr>
-          <td><span class="badge low">Nízká</span></td>
-          <td><a href="https://github.com/advisories/GHSA-gcqx-w48m-w2h4">deepmerge mergeObject() allows prototype poisoning of returned objects</a><div class="meta">GHSA-gcqx-w48m-w2h4 · CVE-2026-93753 · zranitelné &gt;=4.2.0 &lt;=4.3.1 · opraveno žádná</div></td>
-          <td class="pr"><span class="open">zůstává</span></td>
-        </tr>
+<tr><td><b class=l>Nízká</b><td><a href=//github.com/advisories/GHSA-gcqx-w48m-w2h4>deepmerge mergeObject() allows prototype poisoning of returned objects</a><i>CVE-2026-93753 · &gt;=4.2.0 &lt;=4.3.1 → žádná</i><td><span class=open>zůstává</span>
       </tbody>
     </table></div>
   </section>
