@@ -84,6 +84,7 @@ model User {
   accommodationManualValues  AccommodationManualValue[]
   accommodationInterventions AccommodationIntervention[]
   accommodationRuns          AccommodationRun[]
+  accommodationDecisions     AccommodationDecision[]
 
   username        String? @db.VarChar(50)
   displayUsername String? @db.VarChar(50)
@@ -192,6 +193,8 @@ model Event {
   accommodationRules         AccommodationRules?
   accommodationRuns          AccommodationRun[]
   accommodationInterventions AccommodationIntervention[]
+  accommodationDecisions     AccommodationDecision[]
+  registrationResultEvents   RegistrationResultEvent[]
   programmeItems             ProgrammeItem[]
   photos                     EventPhoto[]
 
@@ -233,6 +236,7 @@ model EventTerm {
   accommodationState         AccommodationTermState?
   accommodationRuns          AccommodationRun[]
   accommodationInterventions AccommodationIntervention[]
+  accommodationDecisions     AccommodationDecision[]
   programmeItems             ProgrammeItem[]
 
   @@unique([id, eventId])
@@ -432,6 +436,8 @@ model Registration {
   changes                    RegistrationChange[]
   accommodationManualValue   AccommodationManualValue?
   accommodationInterventions AccommodationIntervention[]
+  accommodationDecisions     AccommodationDecision[]
+  resultEvents               RegistrationResultEvent[]
 
   @@unique([eventId, participantAccountId])
   @@unique([id, eventId])
@@ -705,4 +711,64 @@ model AccommodationRun {
 
   @@index([termId, startedAt])
   @@map("accommodation_run")
+}
+
+enum AccommodationDecisionKind {
+  // "Potvrdit všechny vhodné": one proposal of a term, all of it or nothing.
+  bulk
+  // One person confirmed or waitlisted in a term (F14-1).
+  individual
+
+  @@map("accommodation_decision_kind")
+}
+
+// Immutable record of one change of a person's participation in a term (S3-02,
+// F39-1): who, when, term, before and after, and the run or the manual
+// decision it came from. One request (`submissionKey`) writes a row per
+// person; repeating it writes nothing.
+model AccommodationDecision {
+  id             String                    @id @default(uuid(7)) @db.Uuid
+  eventId        String                    @db.Uuid
+  termId         String                    @db.Uuid
+  registrationId String                    @db.Uuid
+  // The decision request this row belongs to (shared by a bulk confirmation).
+  batchId        String                    @db.Uuid
+  submissionKey  String                    @db.Uuid
+  kind           AccommodationDecisionKind
+  // The proposal a bulk confirmation used; null for an individual decision.
+  runId          String?                   @db.Uuid
+  actorId        String
+  fromStatus     ParticipationStatus
+  toStatus       ParticipationStatus
+  createdAt      DateTime                  @default(now()) @db.Timestamptz(3)
+
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  term         EventTerm    @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Restrict)
+  registration Registration @relation(fields: [registrationId, eventId], references: [id, eventId], onDelete: Restrict)
+  actor        User         @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@unique([submissionKey, registrationId])
+  @@index([registrationId, createdAt])
+  @@index([termId, createdAt])
+  @@map("accommodation_decision")
+}
+
+// The saved result of a decision for one registration (S3-02): the states of
+// its terms and its payment summary at that moment, for the participant
+// e-mail (F45-1) to send. Preparing it sends nothing; a delivery failure
+// never undoes the decision.
+model RegistrationResultEvent {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  eventId        String   @db.Uuid
+  registrationId String   @db.Uuid
+  batchId        String   @db.Uuid
+  payload        Json
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  registration Registration @relation(fields: [registrationId, eventId], references: [id, eventId], onDelete: Restrict)
+
+  @@unique([batchId, registrationId])
+  @@index([createdAt])
+  @@map("registration_result_event")
 }
