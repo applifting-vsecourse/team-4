@@ -11,6 +11,8 @@ export type ClaimedUpdate = {
   deliveryId: string;
   accountId: string;
   recipient: string;
+  /** Opens the payment page; read when sending, never kept in the payload. */
+  paymentToken: string;
   update: ParticipantUpdatePayload;
 };
 
@@ -57,12 +59,14 @@ export class ParticipantUpdatesRepository {
         recipientEmail: true,
         participantAccountId: true,
         payload: true,
+        registration: { select: { paymentToken: true } },
       },
     });
     return {
       deliveryId,
       accountId: row.participantAccountId ?? '',
       recipient: row.recipientEmail,
+      paymentToken: row.registration?.paymentToken ?? '',
       update: row.payload as unknown as ParticipantUpdatePayload,
     };
   }
@@ -113,30 +117,5 @@ export class ParticipantUpdatesRepository {
         result: event.payload,
       }),
     );
-  }
-
-  /**
-   * Keeps a result whose message could not be built as a failed delivery, so
-   * it is found by the operator and not tried again.
-   */
-  async recordResultFailure(event: ResultEvent, error: string): Promise<void> {
-    const registration = await this.prisma.registration.findUniqueOrThrow({
-      where: { id: event.registrationId },
-      select: { email: true, participantAccountId: true },
-    });
-    await this.prisma.emailDelivery.createMany({
-      data: [
-        {
-          type: 'participant_update',
-          status: 'failed',
-          recipientEmail: registration.email,
-          registrationId: event.registrationId,
-          participantAccountId: registration.participantAccountId,
-          dedupKey: resultKey(event.id),
-          errorMessage: error.slice(0, 1000),
-        },
-      ],
-      skipDuplicates: true,
-    });
   }
 }

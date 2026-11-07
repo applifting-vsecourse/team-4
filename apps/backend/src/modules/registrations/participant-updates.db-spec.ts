@@ -431,6 +431,41 @@ describe('payments', () => {
   });
 });
 
+describe('a message that cannot be built', () => {
+  it('never undoes the payment it reports', async () => {
+    const fixture = await setup(null);
+    const registration = await register(fixture, [1]);
+    // A legacy registration that owes money but has no account to pay to.
+    await prisma.registration.update({
+      where: { id: registration.id },
+      data: {
+        bankAccountNumber: null,
+        bankCode: null,
+        bankAccountPrefix: null,
+        paymentReminderDays: null,
+      },
+    });
+
+    const result = await call(
+      `${managed(fixture, registration)}/payments`,
+      { user: fixture.ownerId },
+      payment(50_000),
+    );
+    await updates.settle();
+
+    expect(result.status).toBe(201);
+    expect(
+      await prisma.payment.count({
+        where: { registrationId: registration.id },
+      }),
+    ).toBe(1);
+    const [delivery] = await deliveries(registration);
+    expect(delivery.status).toBe('failed');
+    expect(delivery.errorMessage).toContain('no bank account');
+    expect(mailbox.sent).toHaveLength(0);
+  });
+});
+
 describe('recipient and access', () => {
   it('sends to the contact e-mail without a sign-in link when it is not the account e-mail', async () => {
     const fixture = await setup(null);
@@ -468,6 +503,10 @@ describe('recipient and access', () => {
     );
     await updates.settle();
 
+    // The payment page token is read when sending, never kept in the payload.
+    expect(JSON.stringify(sent()[0].props.update)).not.toContain(
+      registration.paymentToken,
+    );
     const keys = Object.keys(sent()[0].props.update).sort();
     expect(keys).toEqual(
       [

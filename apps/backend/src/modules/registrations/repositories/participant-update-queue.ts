@@ -44,7 +44,6 @@ const selectForUpdate = {
   bankAccountNumber: true,
   bankCode: true,
   paymentReminderAt: true,
-  paymentToken: true,
   event: {
     select: {
       name: true,
@@ -72,8 +71,9 @@ const selectForUpdate = {
 /**
  * Queues the participant e-mail of a saved event in the event's own
  * transaction, from the rows as they are right now. Returns false when the
- * same event was queued before. A missing detail the message needs throws, so
- * the whole event rolls back instead of sending something invented.
+ * same event was queued before or the message could not be built (a missing
+ * detail it needs, such as the bank account of a debt, ends as a failed
+ * delivery; nothing is invented and the event itself is never rolled back).
  */
 export const queueParticipantUpdate = async (
   tx: Db,
@@ -84,135 +84,165 @@ export const queueParticipantUpdate = async (
     select: selectForUpdate,
   });
 
-  const live = input.result === undefined;
-  const terms: UpdateTerm[] = input.result
-    ? input.result.terms
-        .filter((term) => term.status !== 'cancelled')
-        .map((term) => ({
-          label: term.label,
-          startDate: term.startDate,
-          endDate: term.endDate,
-          status: term.status,
-        }))
-    : row.terms
-        .filter((term) => term.status !== 'cancelled')
-        .map((term) => ({
-          label: term.term.label,
-          startDate: fromDate(term.term.startDate),
-          endDate: fromDate(term.term.endDate),
-          status: term.status,
-        }));
-  const dueMinor =
-    input.result?.payment.amountDueMinor ??
-    row.terms
-      .filter((term) => term.status === 'confirmed')
-      .reduce((sum, term) => sum + term.priceMinor, 0);
-  const receivedMinor =
-    input.result?.payment.paidMinor ??
-    row.payments.reduce((sum, payment) => sum + payment.amountMinor, 0);
-
-  let recorded: { amountMinor: number; receivedOn: string } | null = null;
-  if (input.reason === 'paymentRecorded') {
-    const payment = row.payments.find((p) => p.id === input.paymentId);
-    if (!payment) {
-      throw new Error(`Payment ${input.paymentId} is not on the registration`);
-    }
-    recorded = {
-      amountMinor: payment.amountMinor,
-      receivedOn: fromDate(payment.receivedOn),
-    };
-  }
-
-  // Waiting terms are shown as such: nothing is promised before the decision.
-  let proposedTerms: UpdateTerm[] | null = null;
-  if (input.proposal) {
-    const merged = new Map<string, UpdateTerm>(
-      row.terms
-        .filter((term) => term.status !== 'cancelled')
-        .map((term) => [
-          term.termId,
-          {
+  const build = async (): Promise<ParticipantUpdatePayload> => {
+    const live = input.result === undefined;
+    const terms: UpdateTerm[] = input.result
+      ? input.result.terms
+          .filter((term) => term.status !== 'cancelled')
+          .map((term) => ({
+            label: term.label,
+            startDate: term.startDate,
+            endDate: term.endDate,
+            status: term.status,
+          }))
+      : row.terms
+          .filter((term) => term.status !== 'cancelled')
+          .map((term) => ({
             label: term.term.label,
             startDate: fromDate(term.term.startDate),
             endDate: fromDate(term.term.endDate),
             status: term.status,
-          },
-        ]),
-    );
-    let touched = false;
-    for (const planned of input.proposal) {
-      if (planned.proposed === null || planned.proposed === planned.original) {
-        continue;
+          }));
+    const dueMinor =
+      input.result?.payment.amountDueMinor ??
+      row.terms
+        .filter((term) => term.status === 'confirmed')
+        .reduce((sum, term) => sum + term.priceMinor, 0);
+    const receivedMinor =
+      input.result?.payment.paidMinor ??
+      row.payments.reduce((sum, payment) => sum + payment.amountMinor, 0);
+
+    let recorded: { amountMinor: number; receivedOn: string } | null = null;
+    if (input.reason === 'paymentRecorded') {
+      const payment = row.payments.find((p) => p.id === input.paymentId);
+      if (!payment) {
+        throw new Error(
+          `Payment ${input.paymentId} is not on the registration`,
+        );
       }
-      touched = true;
-      merged.set(planned.termId, {
-        label: planned.label,
-        startDate: planned.startDate,
-        endDate: planned.endDate,
-        status: planned.proposed === 'cancelled' ? 'cancelled' : 'proposed',
-      });
+      recorded = {
+        amountMinor: payment.amountMinor,
+        receivedOn: fromDate(payment.receivedOn),
+      };
     }
-    // A request that touches no term (a phone number) has no second list.
-    if (touched) {
-      proposedTerms = [...merged.values()].sort((a, b) =>
-        a.startDate.localeCompare(b.startDate),
+
+    // Waiting terms are shown as such: nothing is promised before the decision.
+    let proposedTerms: UpdateTerm[] | null = null;
+    if (input.proposal) {
+      const merged = new Map<string, UpdateTerm>(
+        row.terms
+          .filter((term) => term.status !== 'cancelled')
+          .map((term) => [
+            term.termId,
+            {
+              label: term.term.label,
+              startDate: fromDate(term.term.startDate),
+              endDate: fromDate(term.term.endDate),
+              status: term.status,
+            },
+          ]),
+      );
+      let touched = false;
+      for (const planned of input.proposal) {
+        if (
+          planned.proposed === null ||
+          planned.proposed === planned.original
+        ) {
+          continue;
+        }
+        touched = true;
+        merged.set(planned.termId, {
+          label: planned.label,
+          startDate: planned.startDate,
+          endDate: planned.endDate,
+          status: planned.proposed === 'cancelled' ? 'cancelled' : 'proposed',
+        });
+      }
+      // A request that touches no term (a phone number) has no second list.
+      if (touched) {
+        proposedTerms = [...merged.values()].sort((a, b) =>
+          a.startDate.localeCompare(b.startDate),
+        );
+      }
+    }
+
+    let changes: UpdateChange[] = [];
+    if (input.changeId) {
+      const change = await tx.registrationChange.findUniqueOrThrow({
+        where: { id: input.changeId },
+        select: { summary: true },
+      });
+      changes = changedValues(change.summary as unknown as ChangeSummary);
+    }
+
+    const contactEmail = row.event.contactEmail;
+    // Free events have no account. Owing money without one is a defect: the
+    // event rolls back instead of sending a message without payment details.
+    const balanceMinor = dueMinor - receivedMinor;
+    let bank: UpdatePayment['bank'] = null;
+    if (row.bankAccountNumber !== null && row.bankCode !== null) {
+      bank = {
+        prefix: row.bankAccountPrefix,
+        number: row.bankAccountNumber,
+        bankCode: row.bankCode,
+        variableSymbol:
+          input.result?.payment.variableSymbol ?? row.variableSymbol,
+        reminderAt: live
+          ? (row.paymentReminderAt?.toISOString() ?? null)
+          : (input.result?.payment.reminderAt ?? null),
+      };
+    } else if (balanceMinor > 0) {
+      throw new Error(
+        `Registration ${input.registrationId} owes money but has no bank account`,
       );
     }
-  }
 
-  let changes: UpdateChange[] = [];
-  if (input.changeId) {
-    const change = await tx.registrationChange.findUniqueOrThrow({
-      where: { id: input.changeId },
-      select: { summary: true },
-    });
-    changes = changedValues(change.summary as unknown as ChangeSummary);
-  }
-
-  const contactEmail = row.event.contactEmail;
-  // Free events have no account. Owing money without one is a defect: the
-  // event rolls back instead of sending a message without payment details.
-  const balanceMinor = dueMinor - receivedMinor;
-  let bank: UpdatePayment['bank'] = null;
-  if (row.bankAccountNumber !== null && row.bankCode !== null) {
-    bank = {
-      prefix: row.bankAccountPrefix,
-      number: row.bankAccountNumber,
-      bankCode: row.bankCode,
-      variableSymbol:
-        input.result?.payment.variableSymbol ?? row.variableSymbol,
-      reminderAt: live
-        ? (row.paymentReminderAt?.toISOString() ?? null)
-        : (input.result?.payment.reminderAt ?? null),
+    return {
+      reason: input.reason,
+      eventName: row.event.name,
+      organizer: {
+        name: row.event.contactName ?? row.event.organization.name,
+        email: contactEmail,
+        phone: row.event.contactPhone,
+      },
+      terms,
+      proposedTerms,
+      changes,
+      payment: {
+        recorded,
+        receivedMinor,
+        balanceMinor,
+        bank,
+      },
+      hasMagicLink:
+        normalizeEmail(row.email) ===
+        normalizeEmail(row.participantAccount.email),
     };
-  } else if (balanceMinor > 0) {
-    throw new Error(
-      `Registration ${input.registrationId} owes money but has no bank account`,
-    );
-  }
-
-  const payload: ParticipantUpdatePayload = {
-    reason: input.reason,
-    eventName: row.event.name,
-    organizer: {
-      name: row.event.contactName ?? row.event.organization.name,
-      email: contactEmail,
-      phone: row.event.contactPhone,
-    },
-    terms,
-    proposedTerms,
-    changes,
-    payment: {
-      recorded,
-      receivedMinor,
-      balanceMinor,
-      bank,
-      paymentToken: row.paymentToken,
-    },
-    hasMagicLink:
-      normalizeEmail(row.email) ===
-      normalizeEmail(row.participantAccount.email),
   };
+
+  // A message that cannot be built must not undo the event it reports: it is
+  // kept as a failed delivery, which the operator finds, and not retried.
+  let payload: ParticipantUpdatePayload;
+  try {
+    payload = await build();
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'unknown error';
+    await tx.emailDelivery.createMany({
+      data: [
+        {
+          type: 'participant_update',
+          status: 'failed',
+          recipientEmail: row.email,
+          registrationId: input.registrationId,
+          participantAccountId: row.participantAccountId,
+          dedupKey: input.dedupKey,
+          errorMessage: reason.slice(0, 1000),
+        },
+      ],
+      skipDuplicates: true,
+    });
+    return false;
+  }
 
   const created = await tx.emailDelivery.createMany({
     data: [

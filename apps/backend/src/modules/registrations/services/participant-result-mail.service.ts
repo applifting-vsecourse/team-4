@@ -65,12 +65,11 @@ export class ParticipantResultMailService
             this.updates.dispatch(event.registrationId);
           }
         } catch (error) {
-          const reason =
-            error instanceof Error ? error.message : 'unknown error';
-          this.logger.error(`Result ${event.id} was not mailed: ${reason}`);
-          await this.repository
-            .recordResultFailure(event, reason)
-            .catch(() => undefined);
+          // Only a failure of the database itself gets here (a message that
+          // cannot be built is kept by the queue): the next scan tries again.
+          this.logger.error(
+            `Result ${event.id} was not queued: ${String(error)}`,
+          );
         }
       }
     } catch (error) {

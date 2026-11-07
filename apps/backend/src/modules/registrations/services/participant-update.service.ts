@@ -66,8 +66,8 @@ export class ParticipantUpdateService {
         url = await this.access.issueConfirmationLink(claimed.accountId);
         secrets.push(url, new URL(url).searchParams.get('token') ?? '');
       }
-      const payUrl = `${this.config.frontendUrl}/platba/${update.payment.paymentToken}`;
-      secrets.push(update.payment.paymentToken);
+      const payUrl = `${this.config.frontendUrl}/platba/${claimed.paymentToken}`;
+      secrets.push(claimed.paymentToken);
       // Only a debt asks for payment, and a waiting request shows no payments.
       const images = [brandLogo];
       if (

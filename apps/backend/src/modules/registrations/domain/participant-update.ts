@@ -46,8 +46,6 @@ export type UpdatePayment = {
     /** Set once, from the first moment something was owed. */
     reminderAt: string | null;
   } | null;
-  /** Opens the payment page the QR code encodes; only while a debt remains. */
-  paymentToken: string;
 };
 
 /**

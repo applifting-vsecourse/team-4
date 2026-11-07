@@ -48,7 +48,6 @@ const update = (
       variableSymbol: '2027014',
       reminderAt: '2027-06-14T22:00:00.000Z',
     },
-    paymentToken: 'tok',
     ...payment,
   },
   ...overrides,
