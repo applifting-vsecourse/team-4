@@ -212,7 +212,7 @@ tested.
   as `/copilot-waive` is, so an edited or deleted comment is not a command.
   The bot refuses, merging nothing and replying with the reasons, unless every
   PR's `Delivery stages` status and `verify` CI run are green, no PR is a draft
-  and the stack is in sync. It then merges bottom to top with merge commits, guarded by each head
+  and the stack is in sync. The comment itself re-runs the delivery check for the stack, which marks each PR pending for a moment, so the bot waits up to five minutes for pending results to settle and judges what they settle to. It then merges bottom to top with merge commits, guarded by each head
   SHA, retargets the next PR to `main` and waits for its fresh `Delivery stages`
   result (up to ten minutes) before merging it; a result which is replaced
   while it settles is judged again. Merge commits keep the QA-tested
