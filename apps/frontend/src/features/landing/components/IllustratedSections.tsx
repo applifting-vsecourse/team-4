@@ -49,7 +49,8 @@ function IllustratedSection({
           loading="lazy"
           decoding="async"
           className={cn(
-            "order-2 h-auto w-full object-contain",
+            // The paper-coloured illustrations are dimmed in the dark so they don't glare.
+            "order-2 h-auto w-full object-contain dark:brightness-90",
             isImageRegular ? "max-h-80" : "max-h-96",
             isImageOnLeft && "md:order-1",
           )}
