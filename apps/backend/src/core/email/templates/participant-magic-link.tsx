@@ -11,7 +11,6 @@ import {
   Tailwind,
   Text,
 } from 'react-email';
-import { LOGO_CID } from '../brand-logo';
 import { EmailBrand } from './email-brand';
 import * as React from 'react';
 
@@ -28,7 +27,7 @@ export const ParticipantMagicLink = ({
     <Tailwind>
       <Body className="bg-gray-50 font-sans py-10">
         <Container className="bg-white rounded-lg mx-auto p-8 max-w-xl">
-          <EmailBrand url={url} logoSrc={`cid:${LOGO_CID}`} />
+          <EmailBrand />
           <Heading className="text-2xl font-bold text-gray-900 mt-6 mb-0">
             Vaše přihlášky v akc.io
           </Heading>

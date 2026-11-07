@@ -34,12 +34,15 @@ export class SMTPAdapter implements EmailService {
       to,
       subject,
       html,
-      attachments: inlineImages.map((image) => ({
-        filename: image.filename,
-        content: image.content,
-        contentType: image.contentType,
-        cid: image.cid,
-      })),
+      attachments:
+        inlineImages.length === 0
+          ? undefined
+          : inlineImages.map((image) => ({
+              filename: image.filename,
+              content: image.content,
+              contentType: image.contentType,
+              cid: image.cid,
+            })),
     });
     return { sent: true, messageId: info.messageId ?? null };
   }

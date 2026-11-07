@@ -27,12 +27,15 @@ export class ResendAdapter implements EmailService {
       to,
       subject,
       html,
-      attachments: inlineImages.map((image) => ({
-        filename: image.filename,
-        content: image.content,
-        contentType: image.contentType,
-        contentId: image.cid,
-      })),
+      attachments:
+        inlineImages.length === 0
+          ? undefined
+          : inlineImages.map((image) => ({
+              filename: image.filename,
+              content: image.content,
+              contentType: image.contentType,
+              contentId: image.cid,
+            })),
     });
 
     if (error) {
