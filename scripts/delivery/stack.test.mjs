@@ -269,3 +269,46 @@ test('the trailing newline of the diff is not a line', () => {
     sliceFingerprint(body + '\r\n'.slice(1)),
   );
 });
+
+test('PRs sharing a head branch are ambiguous and never join a stack', () => {
+  // #1 and #3 both come from branch a; #2 is stacked on a; #9 is unrelated.
+  const { stacks, problems } = buildStacks([
+    pr(1, 'a', 'main'),
+    pr(2, 'b', 'a'),
+    pr(3, 'a', 'release'),
+    pr(9, 'z', 'main'),
+  ]);
+  assert.deepEqual(
+    stacks.map((s) => s.prs.map((p) => p.number)),
+    [[9]],
+  );
+  assert.ok(
+    problems.some((p) =>
+      /branch a is the head of several open PRs/.test(p.reason),
+    ),
+  );
+  assert.ok(problems.some((p) => p.prs.includes(2)));
+});
+
+test('a PR stacked on an ambiguous branch pulls its own descendants out too', () => {
+  const { stacks } = buildStacks([
+    pr(1, 'a', 'main'),
+    pr(3, 'a', 'other'),
+    pr(2, 'b', 'a'),
+    pr(4, 'c', 'b'),
+  ]);
+  assert.deepEqual(stacks, []);
+});
+
+test('the same branch in two PRs does not stop an unrelated stack from forming', () => {
+  const { stacks } = buildStacks([
+    pr(1, 'a', 'main'),
+    pr(2, 'a', 'x'),
+    pr(5, 'p', 'main'),
+    pr(6, 'q', 'p'),
+  ]);
+  assert.deepEqual(
+    stacks.map((s) => s.prs.map((p) => p.number)),
+    [[5, 6]],
+  );
+});

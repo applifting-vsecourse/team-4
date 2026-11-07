@@ -23,7 +23,39 @@ export function buildStacks(prs) {
     (!pr.head?.repo?.full_name ||
       !pr.base?.repo?.full_name ||
       pr.head.repo.full_name === pr.base.repo.full_name);
-  const local = open;
+  // GitHub allows several open PRs from one branch to different bases, so a
+  // branch name does not identify a PR. Those PRs, and everything stacked on
+  // their branch, are left out rather than guessed at.
+  const problems = [];
+  const onBranch = new Map();
+  for (const pr of open)
+    if (sameRepo(pr))
+      onBranch.set(pr.head.ref, [...(onBranch.get(pr.head.ref) ?? []), pr]);
+  const excluded = new Set();
+  for (const [ref, group] of onBranch)
+    if (group.length > 1) {
+      for (const pr of group) excluded.add(pr.number);
+      problems.push({
+        prs: group.map((pr) => pr.number),
+        reason: `branch ${ref} is the head of several open PRs`,
+      });
+    }
+  for (let grew = true; grew;) {
+    grew = false;
+    const heads = new Set(
+      open.filter((pr) => excluded.has(pr.number)).map((pr) => pr.head.ref),
+    );
+    for (const pr of open)
+      if (!excluded.has(pr.number) && sameRepo(pr) && heads.has(pr.base.ref)) {
+        excluded.add(pr.number);
+        grew = true;
+        problems.push({
+          prs: [pr.number],
+          reason: `PR #${pr.number} is stacked on a branch shared by several PRs`,
+        });
+      }
+  }
+  const local = open.filter((pr) => !excluded.has(pr.number));
   const byHead = new Map();
   for (const pr of local) if (sameRepo(pr)) byHead.set(pr.head.ref, pr);
   const children = new Map();
@@ -36,7 +68,6 @@ export function buildStacks(prs) {
   }
 
   const stacks = [];
-  const problems = [];
   const seen = new Set();
   const roots = local.filter(
     (pr) =>

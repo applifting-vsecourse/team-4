@@ -164,8 +164,8 @@ implementation commits even when GitHub dismisses the old native PR review.
 A stack is a linear chain of open PRs in one repository where each PR targets the
 branch of the PR below it and the bottom PR targets `main`. The workflow judges a
 stack as one change: each slice is reviewed on its own, QA happens once on the
-tip, and the whole stack merges with one command. Two PRs on one base, a cycle or
-a fork-based PR are not stacks; they keep the per-PR behaviour above, so a PR
+tip, and the whole stack merges with one command. Two PRs on one base, two open PRs from one
+branch, a cycle or a fork-based PR are not stacks; they keep the per-PR behaviour above, so a PR
 whose base is not main and not part of a plain stack waits for its prerequisite.
 
 All PRs of a stack have one author, so one QA owner covers it, and are linked to
