@@ -5,7 +5,7 @@ import { formatPragueDateTime } from "@/lib/date"
 
 import { registrationAccommodationQueryOptions } from "@/features/accommodation/api/evaluationQueryOptions"
 import { EvaluationHistory } from "@/features/accommodation/components/EvaluationHistory"
-import { valueLabel } from "@/features/accommodation/lib/evaluationView"
+import { toHistoryMove, valueLabel } from "@/features/accommodation/lib/evaluationView"
 
 type RegistrationEvaluationHistoryProps = {
   organizationId: string
@@ -15,8 +15,8 @@ type RegistrationEvaluationHistoryProps = {
 }
 
 // Detail přihlášky → Historie vyhodnocení (F39-1): the immutable record of the
-// determinations of this registration, newest first. Decisions join it with
-// a later slice.
+// determinations of this registration and its moves in the terms' orders
+// (S3-03), newest first. Decisions join it with slice 2.
 export function RegistrationEvaluationHistory({
   organizationId,
   eventId,
@@ -35,22 +35,33 @@ export function RegistrationEvaluationHistory({
       />
     )
   }
-  const attribute = accommodation.data?.hardAttribute?.attribute ?? "gender"
+  const hard = accommodation.data?.hardAttribute ?? null
+  const attribute = hard?.attribute ?? "gender"
+  const determinations = (accommodation.data?.history ?? []).map((record) => ({
+    time: Date.parse(record.createdAt),
+    entry: {
+      kind: "determination" as const,
+      id: record.id,
+      at: formatPragueDateTime(record.createdAt),
+      author: record.actor.name,
+      person,
+      answer: valueLabel(attribute, record.answer),
+      value: valueLabel(attribute, record.value),
+      reason: record.reason,
+    },
+  }))
+  const moves = (accommodation.data?.moves ?? []).map((move) => ({
+    time: Date.parse(move.createdAt),
+    entry: toHistoryMove(move, hard?.attribute ?? null),
+  }))
   return (
     <EvaluationHistory
       title="Historie vyhodnocení"
       isLoadFailed={accommodation.isError}
       onRetry={() => void accommodation.refetch()}
-      entries={(accommodation.data?.history ?? []).map((record) => ({
-        kind: "determination",
-        id: record.id,
-        at: formatPragueDateTime(record.createdAt),
-        author: record.actor.name,
-        person,
-        answer: valueLabel(attribute, record.answer),
-        value: valueLabel(attribute, record.value),
-        reason: record.reason,
-      }))}
+      entries={[...determinations, ...moves]
+        .sort((a, b) => b.time - a.time)
+        .map(({ entry }) => entry)}
     />
   )
 }

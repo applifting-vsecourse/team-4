@@ -1,8 +1,12 @@
+import { z } from "zod"
+
 import {
+  moveRecordSchema,
   registrationAccommodationSchema,
   runEvidenceSchema,
   runListSchema,
   termEvaluationSchema,
+  type MoveRecord,
   type RegistrationAccommodation,
   type RunEvidence,
   type RunListItem,
@@ -92,6 +96,8 @@ export function makeTermEvaluation(
       answer,
       determinedValue: null,
       effectiveValue: answer === "undisclosed" ? null : answer,
+      // Anna was placed before Lucie by hand (see makeMoves).
+      isMovedByHand: n === 604,
       ...RESULTS[n],
     })),
     ...overrides,
@@ -136,6 +142,27 @@ export function makeRuns(): RunListItem[] {
       },
     ],
   }).runs
+}
+
+/** Anna placed right before Lucie in the queue Žena, before the last run. */
+export function makeMoves(): MoveRecord[] {
+  return z.array(moveRecordSchema).parse([
+    {
+      id: uuid(951),
+      createdAt: "2027-03-10T13:20:00.000Z",
+      actor: OWNER,
+      reason: "Sestra potvrzené účastnice, rodina žádá společný turnus.",
+      termId: EVALUATED_TERM.id,
+      termLabel: EVALUATED_TERM.label,
+      person: { registrationId: uuid(604), firstName: "Anna", lastName: "Procházková" },
+      queue: "female",
+      placement: "before",
+      target: { registrationId: uuid(605), firstName: "Lucie", lastName: "Sedláčková" },
+      fromPosition: 5,
+      toPosition: 4,
+      inputVersion: 3,
+    },
+  ])
 }
 
 export function makeRunEvidence(): RunEvidence {
@@ -196,6 +223,7 @@ export function makeRegistrationAccommodation(
         value: "female",
       },
     ],
+    moves: [],
     ...overrides,
   })
 }

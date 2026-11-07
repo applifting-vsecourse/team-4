@@ -1,11 +1,15 @@
 import { formatCalendarRange, formatPragueDateTime } from "@/lib/date"
 
 import {
+  type MoveRecord,
   type RunEvidence,
   type RunListItem,
   type TermEvaluationData,
 } from "@/features/accommodation/api/evaluationSchemas"
-import { type HistoryRun } from "@/features/accommodation/components/EvaluationHistory"
+import {
+  type HistoryMove,
+  type HistoryRun,
+} from "@/features/accommodation/components/EvaluationHistory"
 import { type EvidencePerson } from "@/features/accommodation/components/RunEvidenceSheet"
 import { type TermCapacity } from "@/features/accommodation/components/TermCapacitySummary"
 import {
@@ -70,6 +74,7 @@ export function toOrderPeople(data: TermEvaluationData): OrderPerson[] {
     state: entry.status,
     result: entry.result,
     reason: entry.reason,
+    isMovedByHand: entry.isMovedByHand,
   }))
 }
 
@@ -121,6 +126,26 @@ export const toHistoryRun = (run: RunListItem, termLabel: string): HistoryRun =>
   termLabel,
   status: run.status,
   summary: runSummary(run),
+})
+
+/** E.g. "1. turnus · fronta Žena"; "fronta všech" without a hard attribute. */
+export function queueLabel(termLabel: string, attribute: string | null, queue: string | null) {
+  return `${termLabel} · ${
+    attribute && queue !== null ? `fronta ${valueLabel(attribute, queue)}` : "fronta všech"
+  }`
+}
+
+/** A manual change of the order (F39-1); the attribute of the term's rules, if any. */
+export const toHistoryMove = (move: MoveRecord, attribute: string | null): HistoryMove => ({
+  kind: "move",
+  id: move.id,
+  at: formatPragueDateTime(move.createdAt),
+  author: move.actor.name,
+  person: `${move.person.firstName} ${move.person.lastName}`,
+  queueLabel: queueLabel(move.termLabel, attribute, move.queue),
+  fromPosition: move.fromPosition,
+  toPosition: move.toPosition,
+  reason: move.reason,
 })
 
 /** The evidence sheet's content, with the run's own answers and determinations. */

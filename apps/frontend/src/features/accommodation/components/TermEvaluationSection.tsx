@@ -10,6 +10,7 @@ import {
   evaluationKeys,
   runEvidenceQueryOptions,
   termEvaluationQueryOptions,
+  termMovesQueryOptions,
   termRunsQueryOptions,
 } from "@/features/accommodation/api/evaluationQueryOptions"
 import {
@@ -17,6 +18,7 @@ import {
   type DeterminationTarget,
 } from "@/features/accommodation/components/DeterminationDialog"
 import { EvaluationHistory } from "@/features/accommodation/components/EvaluationHistory"
+import { isMovable, MoveInQueueDialog } from "@/features/accommodation/components/MoveInQueueDialog"
 import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
 import { RunEvidenceSheet } from "@/features/accommodation/components/RunEvidenceSheet"
 import {
@@ -30,6 +32,7 @@ import {
   toConflict,
   toEvaluationTerm,
   toEvidence,
+  toHistoryMove,
   toHistoryRun,
   toOrderPeople,
   toQueues,
@@ -54,10 +57,10 @@ const RECALCULATE_FAILED = "Zkuste to prosím znovu."
 
 // Přihlášky → Vyhodnocení (S3-01): the proposal of the selected term, its
 // queues and order, the history of its runs with their evidence, and the
-// determination of the accommodation of whoever needs one. Reading never
-// evaluates; "Přepočítat" queues a run and the term is read again until it is
-// stored. Confirming, waitlisting and moving come with later slices, so they
-// are not offered.
+// determination of the accommodation of whoever needs one, and the manual
+// order of a queue (S3-03). Reading never evaluates; "Přepočítat" queues a run
+// and the term is read again until it is stored. Confirming and waitlisting
+// come with slice 2, so they are not offered.
 export function TermEvaluationSection({
   organizationId,
   eventId,
@@ -77,6 +80,10 @@ export function TermEvaluationSection({
     ...termRunsQueryOptions(organizationId, eventId, termId),
     enabled: hasTerm,
   })
+  const moves = useQuery({
+    ...termMovesQueryOptions(organizationId, eventId, termId),
+    enabled: hasTerm,
+  })
   // A run stored while the term was polled belongs into the history.
   const settled = `${evaluation.data?.status}/${evaluation.data?.proposalRun?.id}`
   useEffect(() => {
@@ -87,6 +94,7 @@ export function TermEvaluationSection({
   const recalculate = useRecalculate(organizationId, eventId, termId)
   const [openRunId, setOpenRunId] = useState<string | null>(null)
   const [determining, setDetermining] = useState<DeterminationTarget | null>(null)
+  const [movingId, setMovingId] = useState<string | null>(null)
   const evidence = useQuery({
     ...runEvidenceQueryOptions(organizationId, eventId, openRunId ?? ""),
     enabled: openRunId !== null,
@@ -154,6 +162,20 @@ export function TermEvaluationSection({
     ...(data.manualCount > 0 ? ["manual"] : []),
   ])
   const shownQueue = queueIds.has(queue) ? queue : "all"
+  // Runs and order changes, newest first: the moves a run used come before it.
+  const termLabel = selectedTerm?.label ?? data.term.label
+  const history = [
+    ...(runs.data ?? []).map((run) => ({
+      time: Date.parse(run.finishedAt),
+      entry: toHistoryRun(run, termLabel),
+    })),
+    ...(moves.data ?? []).map((move) => ({
+      time: Date.parse(move.createdAt),
+      entry: toHistoryMove(move, data.hardAttribute?.attribute ?? null),
+    })),
+  ]
+    .sort((a, b) => b.time - a.time)
+    .map(({ entry }) => entry)
   const recalculateError = recalculate.isError
     ? (readApiError(recalculate.error).message ?? RECALCULATE_FAILED)
     : undefined
@@ -177,10 +199,10 @@ export function TermEvaluationSection({
         recalculateError={recalculateError}
         renderName={renderName}
         selectedQueue={shownQueue}
-        decisions={
-          data.hardAttribute
+        decisions={{
+          ...(data.hardAttribute
             ? {
-                onDetermine: (person) => {
+                onDetermine: (person: OrderPerson) => {
                   const entry = data.order.find((e) => e.registrationId === person.id)
                   if (!entry) return
                   setDetermining({
@@ -191,16 +213,20 @@ export function TermEvaluationSection({
                   })
                 },
               }
-            : undefined
-        }
+            : {}),
+          // Only someone who can stand next to another person of the queue.
+          canMove: (person) => isMovable(data, person.id),
+          onMove: (person) => setMovingId(person.id),
+        }}
       >
         <EvaluationHistory
           title="Historie termínu"
-          entries={(runs.data ?? []).map((run) =>
-            toHistoryRun(run, selectedTerm?.label ?? data.term.label),
-          )}
-          isLoadFailed={runs.isError}
-          onRetry={() => void runs.refetch()}
+          entries={history}
+          isLoadFailed={runs.isError || moves.isError}
+          onRetry={() => {
+            if (runs.isError) void runs.refetch()
+            if (moves.isError) void moves.refetch()
+          }}
           onOpenRun={setOpenRunId}
         />
         {evidence.isError ? (
@@ -210,6 +236,15 @@ export function TermEvaluationSection({
           />
         ) : null}
       </TermEvaluation>
+      {movingId ? (
+        <MoveInQueueDialog
+          organizationId={organizationId}
+          eventId={eventId}
+          term={data}
+          registrationId={movingId}
+          onClose={() => setMovingId(null)}
+        />
+      ) : null}
       {determining && data.hardAttribute ? (
         <DeterminationDialog
           organizationId={organizationId}
