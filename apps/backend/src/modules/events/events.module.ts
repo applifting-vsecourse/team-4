@@ -1,5 +1,4 @@
 import { PrismaModule } from '@/core/prisma/prisma.module';
-import { StorageModule } from '@/core/storage/storage.module';
 import { AuthModule } from '@/shared/auth/auth.module';
 import { Module } from '@nestjs/common';
 import { EventChangeApprovalController } from './controllers/event-change-approval.controller';
@@ -15,7 +14,7 @@ import { EventPhotosService } from './services/event-photos.service';
 import { EventsService } from './services/events.service';
 
 @Module({
-  imports: [AuthModule, PrismaModule, StorageModule],
+  imports: [AuthModule, PrismaModule],
   controllers: [
     EventsController,
     EventTermsController,

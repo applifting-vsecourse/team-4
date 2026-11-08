@@ -4,8 +4,8 @@
 //   node apps/backend/prisma/demo/demo-photos.mjs upload   # replace the photos with ./photos
 //   node apps/backend/prisma/demo/demo-photos.mjs delete   # remove every photo of the demo events
 //
-// It signs in as the demo organizer and goes through the public API, so the
-// application's own validation and storage handling apply. `upload` first
+// It signs in as the demo organizer and goes through the API, so the
+// application's own validation and limits apply. `upload` first
 // removes the event's current photos, so every run ends in the same state.
 //
 // Environment (optional): DEMO_URL (default: production), DEMO_EMAIL,

@@ -203,14 +203,13 @@ model Event {
   @@map("event")
 }
 
-// A photo of the public presentation (F55); the bytes live in object storage
-// under `objectKey`.
+// A photo of the public presentation (F55); the bytes are stored in `data`.
 model EventPhoto {
   id          String   @id @default(uuid(7)) @db.Uuid
   eventId     String   @db.Uuid
-  objectKey   String   @unique @db.VarChar(200)
   contentType String   @db.VarChar(50)
   byteSize    Int
+  data        Bytes
   createdAt   DateTime @default(now()) @db.Timestamptz(3)
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Restrict)

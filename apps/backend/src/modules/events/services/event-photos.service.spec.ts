@@ -1,4 +1,3 @@
-import { ObjectStorage } from '@/core/storage/object-storage.service';
 import { EventDetailModel } from '@/modules/events/domain/event';
 import { MAX_PHOTO_BYTES } from '@/modules/events/domain/presentation';
 import {
@@ -27,15 +26,13 @@ describe('EventPhotosService', () => {
   };
   const repository = {
     withLockedEvent: jest.fn(),
-    findPhotoKey: jest.fn(),
-    findPublishedPhotoKey: jest.fn(),
+    findPhoto: jest.fn(),
+    findPublishedPhoto: jest.fn(),
   };
   const events = { get: jest.fn() };
-  const storage = { put: jest.fn(), get: jest.fn(), delete: jest.fn() };
   const service = new EventPhotosService(
     repository as unknown as EventsRepository,
     events as unknown as EventsService,
-    storage as unknown as ObjectStorage,
   );
 
   beforeEach(() => {
@@ -50,76 +47,63 @@ describe('EventPhotosService', () => {
     );
   });
 
-  it('stores a PNG with its detected type and records it', async () => {
+  it('stores a PNG with its detected type', async () => {
     await service.add(scope, PNG);
-    const [key, body, type] = storage.put.mock.calls[0] as [
-      string,
-      Uint8Array,
-      string,
-    ];
-    expect(key).toMatch(/^events\/event\/photos\/[0-9a-f-]{36}$/);
-    expect(body).toBe(PNG);
-    expect(type).toBe('image/png');
     expect(event.insertPhoto).toHaveBeenCalledWith({
-      objectKey: key,
       contentType: 'image/png',
-      byteSize: PNG.byteLength,
+      data: PNG,
     });
   });
 
-  it('rejects a file that is not a JPEG, PNG or WebP before storing it', async () => {
+  it('rejects a file that is not a JPEG, PNG or WebP', async () => {
     await expect(
       service.add(scope, new TextEncoder().encode('<svg/>')),
     ).rejects.toMatchObject({ response: { code: 'photo_type' } });
-    expect(storage.put).not.toHaveBeenCalled();
+    expect(event.insertPhoto).not.toHaveBeenCalled();
   });
 
-  it('rejects a photo over 5 MB before storing it', async () => {
+  it('rejects a photo over 5 MB', async () => {
     const large = new Uint8Array(MAX_PHOTO_BYTES + 1);
     large.set(PNG);
     await expect(service.add(scope, large)).rejects.toMatchObject({
       response: { code: 'photo_too_large' },
     });
-    expect(storage.put).not.toHaveBeenCalled();
+    expect(event.insertPhoto).not.toHaveBeenCalled();
   });
 
-  it('rejects a fifth photo without storing it', async () => {
+  it('rejects a fifth photo', async () => {
     events.get.mockResolvedValue(detailWithPhotos(4));
     await expect(service.add(scope, PNG)).rejects.toMatchObject({
       response: { code: 'photo_limit' },
     });
-    expect(storage.put).not.toHaveBeenCalled();
+    expect(event.insertPhoto).not.toHaveBeenCalled();
   });
 
-  it('removes the stored object when a concurrent upload reached the limit', async () => {
+  it('rejects a photo when a concurrent upload reached the limit', async () => {
     event.photoCount.mockResolvedValue(4);
     await expect(service.add(scope, PNG)).rejects.toMatchObject({
       response: { code: 'photo_limit' },
     });
-    const [key] = storage.put.mock.calls[0] as [string];
-    expect(storage.delete).toHaveBeenCalledWith(key);
     expect(event.insertPhoto).not.toHaveBeenCalled();
   });
 
-  it('removes a photo and its stored object', async () => {
-    event.deletePhoto.mockResolvedValue('events/event/photos/a');
+  it('removes a photo', async () => {
+    event.deletePhoto.mockResolvedValue(true);
     await service.remove(scope, 'photo-1');
-    expect(storage.delete).toHaveBeenCalledWith('events/event/photos/a');
+    expect(event.deletePhoto).toHaveBeenCalledWith('photo-1');
   });
 
   it('gives a photo of another event the same 404', async () => {
-    event.deletePhoto.mockResolvedValue(null);
+    event.deletePhoto.mockResolvedValue(false);
     await expect(service.remove(scope, 'photo-1')).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    expect(storage.delete).not.toHaveBeenCalled();
   });
 
   it('serves no photo of an unpublished or unknown event', async () => {
-    repository.findPublishedPhotoKey.mockResolvedValue(null);
+    repository.findPublishedPhoto.mockResolvedValue(null);
     await expect(
       service.readPublished('abc', 'photo-1'),
     ).rejects.toBeInstanceOf(NotFoundException);
-    expect(storage.get).not.toHaveBeenCalled();
   });
 });

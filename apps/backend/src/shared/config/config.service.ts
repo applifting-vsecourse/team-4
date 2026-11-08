@@ -93,30 +93,4 @@ export class Config {
   @Env('SMTP_PASSWORD')
   @IsOptional()
   readonly smtpPassword?: string;
-
-  // Object storage for event photos (F55). The defaults match the MinIO of
-  // the local docker-compose.yml; deployments set their own.
-  @Env('S3_ENDPOINT', {
-    defaultValue: 'http://localhost:9000',
-    expose: true,
-    removeTrailingSlash: true,
-  })
-  @IsUrl({ require_tld: false })
-  readonly s3Endpoint!: string;
-
-  @Env('S3_REGION', { defaultValue: 'us-east-1', expose: true })
-  @IsNotEmpty()
-  readonly s3Region!: string;
-
-  @Env('S3_BUCKET', { defaultValue: 'akcio-photos', expose: true })
-  @IsNotEmpty()
-  readonly s3Bucket!: string;
-
-  @Env('S3_ACCESS_KEY_ID', { defaultValue: 'akcio' })
-  @IsNotEmpty()
-  readonly s3AccessKeyId!: string;
-
-  @Env('S3_SECRET_ACCESS_KEY', { defaultValue: 'akcio-secret' })
-  @IsNotEmpty()
-  readonly s3SecretAccessKey!: string;
 }
