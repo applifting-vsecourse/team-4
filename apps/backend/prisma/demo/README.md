@@ -33,9 +33,10 @@ Nic není vyhodnocené. Vyhodnocení termínu se na demu spouští poprvé.
 
 ## Fotky akcí
 
-SQL skripty fotky nenahrávají, protože soubory leží v objektovém úložišti. Fotky ze složky
+SQL skripty fotky nenahrávají, aby nemusely obsahovat jejich binární data. Fotky ze složky
 `photos/` nahraje nebo smaže skript `demo-photos.mjs` (Node 24, bez závislostí). Přihlásí se
-jako demo organizátor a použije API aplikace:
+jako demo organizátor a použije API aplikace, takže platí stejná kontrola formátu a limitů
+jako při nahrání v administraci:
 
 ```sh
 node apps/backend/prisma/demo/demo-photos.mjs upload   # nahradí fotky demo akcí fotkami z photos/
@@ -48,9 +49,8 @@ Výchozí cíl je produkce. Jinou instanci zvolíte proměnnou `DEMO_URL`, např
 Každá akce dostane tři fotky, takže na demu jde živě nahrát čtvrtou (limit jsou čtyři).
 První fotka ve složce je náhled akce v katalogu.
 
-Pořadí při obnově dema: `demo-photos.mjs delete` → `demo-create.sql` → `demo-photos.mjs upload`.
-Při úplném odstranění: `demo-photos.mjs delete` → `demo-delete.sql`. SQL maže jen záznamy fotek,
-ne soubory, takže bez kroku `delete` zůstanou soubory v úložišti.
+Fotky jsou uložené v databázi, takže je `demo-create.sql` i `demo-delete.sql` smažou spolu
+s akcemi. Po každém `demo-create.sql` proto znovu spusťte `demo-photos.mjs upload`.
 
 Všechny fotky jsou CC0 (volné dílo, bez nutnosti uvádět autora). Zdroje:
 
