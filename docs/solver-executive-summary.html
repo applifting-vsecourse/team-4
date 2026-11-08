@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solver ubytování akc.io</title>
+<style>
+  :root {
+    --bg: #f7efd9;
+    --surface: #fffbef;
+    --text: #1c130b;
+    --muted: #6b5f50;
+    --border: #1c130b;
+    --hairline: #ddd2b8;
+    --accent: #b7ea2a;
+    --ok: #1f7a3d;
+    --ok-bg: #dff1e3;
+    --warn: #9a5b00;
+    --warn-bg: #fcebc9;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1c130b;
+      --surface: #261b11;
+      --text: #f7efd9;
+      --muted: #b7a98f;
+      --border: #5c4d3b;
+      --hairline: #3d3022;
+      --ok: #7fd69a;
+      --ok-bg: #16301e;
+      --warn: #f5b74a;
+      --warn-bg: #3a2a10;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1c130b;
+    --surface: #261b11;
+    --text: #f7efd9;
+    --muted: #b7a98f;
+    --border: #5c4d3b;
+    --hairline: #3d3022;
+    --ok: #7fd69a;
+    --ok-bg: #16301e;
+    --warn: #f5b74a;
+    --warn-bg: #3a2a10;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1040px; margin: 0 auto; padding: 40px 16px 80px; }
+  .kicker { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: clamp(28px, 5vw, 44px); line-height: 1.1; margin: 8px 0 12px; }
+  h1 mark { background: var(--accent); color: #1c130b; padding: 0 .2em; }
+  h2 { font-size: 24px; margin: 48px 0 16px; }
+  h3 { font-size: 17px; margin: 0 0 6px; }
+  p { margin: 0 0 12px; }
+  .lead { color: var(--muted); max-width: 72ch; font-size: 18px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; box-shadow: 3px 3px 0 var(--border); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 28px 0 8px; }
+  .stats b { display: block; font-size: 32px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .stats span { color: var(--muted); font-size: 14px; }
+  .flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; counter-reset: step; padding: 0; margin: 0; list-style: none; }
+  .flow li { counter-increment: step; }
+  .flow li::before { content: counter(step); display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #1c130b; font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+  .flow p, .grid p, .levels p { color: var(--muted); font-size: 15px; margin: 0; }
+  .levels { display: grid; gap: 10px; }
+  .level { display: grid; grid-template-columns: 44px 1fr auto; gap: 14px; align-items: center; }
+  .level .n { font-size: 26px; font-weight: 700; text-align: center; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .tag.ok { color: var(--ok); background: var(--ok-bg); }
+  .tag.warn { color: var(--warn); background: var(--warn-bg); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+  .grid .card h3::before { content: "✓ "; color: var(--ok); }
+  .grid.limits .card h3::before { content: "! "; color: var(--warn); }
+  .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); }
+  table { width: 100%; min-width: 520px; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  th { font-size: 13px; color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  td.code { font-weight: 700; font-size: 18px; width: 3em; }
+  code { font: 14px ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+  .example { margin-top: 12px; }
+  .example ol { margin: 8px 0 0; padding-left: 20px; color: var(--muted); }
+  footer { margin-top: 56px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--hairline); padding-top: 16px; }
+  footer a { color: inherit; }
+  .after { margin-top: 12px; }
+  @media (max-width: 560px) {
+    .level { grid-template-columns: 32px 1fr; }
+    .level .tag { grid-column: 2; justify-self: start; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="kicker">akc.io · shrnutí pro vedení · solver ubytování</div>
+    <h1>Jak akc.io rozhoduje, <mark>kdo se vejde</mark></h1>
+    <p class="lead">Solver u každého termínu akce spočítá, koho z čekajících a náhradníků lze potvrdit tak, aby se všichni vešli do pokojů a dodržela se pravidla. U ostatních řekne proč. Sám nikoho nepotvrdí, nepřesune ani mu nepřidělí pokoj: dává návrh, o kterém rozhoduje organizátor.</p>
+  </header>
+
+  <section class="stats" aria-label="Klíčová čísla">
+    <div class="card"><b>≤ 0,1 s</b><span>samotný výpočet termínu s 200 přihlášenými a 40 pokoji</span></div>
+    <div class="card"><b>30 s</b><span>pevný časový limit na jeden termín</span></div>
+    <div class="card"><b>přesně</b><span>optimální výběr lidí, ne odhad ani heuristika</span></div>
+    <div class="card"><b>0</b><span>domýšlených údajů: kde chybí podklad, rozhoduje člověk</span></div>
+  </section>
+
+  <h2>Jak to probíhá</h2>
+  <ol class="flow">
+    <li class="card"><h3>Změna v termínu</h3><p>Nová přihláška nebo její změna, storno, rozhodnutí o účasti, ruční určení, změna pokojů, lůžek nebo pořadí.</p></li>
+    <li class="card"><h3>10 s bez změn</h3><p>V automatickém režimu (výchozí) výpočet počká, dokud 10 s nepřijde další změna. V ručním režimu ho organizátor spustí sám.</p></li>
+    <li class="card"><h3>Výpočet na pozadí</h3><p>Běží v samostatném vlákně, aplikace mezitím normálně odpovídá.</p></li>
+    <li class="card"><h3>Uložený návrh</h3><p>Výsledek se uloží i se snímkem všech vstupů a už se nemění.</p></li>
+    <li class="card"><h3>Rozhodnutí organizátora</h3><p>Potvrdí celý návrh, nebo jednotlivce; těsně předtím se ověří, že návrh platí.</p></li>
+  </ol>
+
+  <h2>Co je uvnitř</h2>
+  <div class="card">
+    <p>Úloha je zapsaná jako <strong>celočíselné lineární programování</strong> (MILP): proměnné říkají, kolik lidí a pokojů dostane které místo, a podmínky hlídají lůžka a pravidla. Řeší ji <strong>HiGHS</strong>, uznávaný open-source optimalizační solver, který běží přímo v backendu (WebAssembly). Žádná externí služba ani placená licence nejsou potřeba.</p>
+    <p>Rychlost přináší <strong>agregovaný model</strong>: pokoje se stejným počtem lůžek jsou zaměnitelné a stejně tak lidé se stejnou hodnotou pevného pravidla (např. pohlaví). Solver tedy nerozhoduje „Jana do pokoje 12“, ale „kolik pokojů typu 4+1 (4 lůžka + 1 přistýlka) dostanou ženy“. Z toho pak plyne, že ženy obsadí svá místa podle pořadí. Místo tisíců kombinací řeší desítky čísel.</p>
+    <p>Že agregovaný model vybírá stejné lidi se stejnými důvody jako podrobný model po jednotlivých pokojích, ověřuje automatický test na 40 malých náhodných termínech.</p>
+  </div>
+
+  <h2>Jak rozhoduje</h2>
+  <p>Cíle mají pevné pořadí důležitosti. Solver vyřeší první úroveň, její nejlepší výsledek zamkne a teprve v jeho rámci hledá další. Nižší cíl tak nikdy nemůže přebít vyšší.</p>
+  <div class="levels">
+    <div class="card level"><div class="n">1</div><div><h3>Ubytovat co nejvíc lidí</h3><p>Maximální počet potvrditelných v rámci lůžek a pravidel.</p></div><span class="tag ok">přesně, v provozu</span></div>
+    <div class="card level"><div class="n">2</div><div><h3>Respektovat pořadí</h3><p>Prochází pořadí termínu shora a každého bere, pokud tím neklesne počet z úrovně 1. Kdo se přihlásil dřív (nebo ho organizátor posunul výš), má přednost.</p></div><span class="tag ok">přesně, v provozu</span></div>
+    <div class="card level"><div class="n">3</div><div><h3>Nejdřív stálá lůžka, pak přistýlky</h3><p>Přistýlky se použijí jen tam, kde je to nutné.</p></div><span class="tag ok">v provozu</span></div>
+    <div class="card level"><div class="n">4</div><div><h3>Co nejméně pokojů</h3><p>Lidé se soustředí do menšího počtu pokojů.</p></div><span class="tag warn">fáze 2</span></div>
+    <div class="card level"><div class="n">5</div><div><h3>Měkká přání podle priority</h3><p>Např. věk nebo skupina; důležitější přání váží víc.</p></div><span class="tag warn">fáze 2</span></div>
+  </div>
+  <div class="card example">
+    <h3>Proč úrovně, a ne jedno „skóre“?</h3>
+    <p>Vyzkoušeli jsme i jeden vážený součet všech cílů. V jednom termínu pak solver vybral 76 lidí místo 120 a ještě běžel celých 30 s. Váhy, které by od sebe spolehlivě oddělily 200 pořadí, jsou pro výpočet v plovoucí čárce příliš velké. Postup po úrovních je přesný a výrazně rychlejší.</p>
+  </div>
+
+  <h2>Pevná pravidla, která neporuší nikdy</h2>
+  <div class="grid">
+    <div class="card"><h3>Kapacita pokojů</h3><p>V každém pokoji nejvýš tolik lidí, kolik má v termínu lůžek a přistýlek.</p></div>
+    <div class="card"><h3>Jedna hodnota na pokoj</h3><p>Je-li nastavené pevné pravidlo (dnes pohlaví), pokoj nikdy nesmíchá dvě hodnoty.</p></div>
+    <div class="card"><h3>Potvrzení zůstávají</h3><p>Kdo je potvrzený, toho solver nikdy nevyřadí. Když se potvrzení přestanou vejít (např. po snížení kapacity), výsledek je „nesplnitelné“ a zobrazí se konkrétní lidé, kterých se to týká.</p></div>
+  </div>
+
+  <h2>Proč někdo místo nedostal</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Kód</th><th>Důvod</th><th>Co s tím organizátor může udělat</th></tr></thead>
+      <tbody>
+        <tr><td class="code">A</td><td>Kapacitu zaplnili potvrzení a lidé výš v pořadí.</td><td>Přidat lůžka, nebo posunout osobu v pořadí.</td></tr>
+        <tr><td class="code">B</td><td>Volná lůžka zbývají jen v pokojích s jinou hodnotou pevného pravidla.</td><td>Upravit pokoje (nebo pravidla, až půjdou nastavit).</td></tr>
+        <tr><td class="code">C</td><td>Termín je plný. S touto osobou by se celkem ubytovalo méně lidí, proto místo dostali lidé níž v pořadí, kteří se do pokojů vejdou lépe.</td><td>Rozhodnout ručně, zda je přednost důležitější než počet.</td></tr>
+        <tr><td class="code">N</td><td>Termín nemá žádnou dostupnou kapacitu.</td><td>Nastavit pokoje a lůžka termínu.</td></tr>
+        <tr><td class="code">R</td><td>Chybí údaj pro pevné pravidlo; solver ho nedomýšlí.</td><td>Určit hodnotu ručně s uvedením důvodu.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Co zaručuje</h2>
+  <div class="grid">
+    <div class="card"><h3>Optimální, ne „dost dobrý“ výběr</h3><p>Výběr vhodných osob je vždy matematicky dokázané optimum úrovní 1–2. Když se nestihne do 30 s, výsledek je „vypršel čas“, nikdy polovičatý seznam.</p></div>
+    <div class="card"><h3>Férové pořadí</h3><p>Člověk níž v pořadí dostane přednost jen tehdy, když by se jinak ubytovalo méně lidí. Takové přeskočení je vidět jako důvod C, případně B, když volná lůžka zbývají jen v pokojích s jinou hodnotou.</p></div>
+    <div class="card"><h3>Nic nedomýšlí</h3><p>Platí-li pevné pravidlo, osobu bez určující odpovědi (i „Nechci uvést“) nebo ručního určení nehodnotí (R). U potvrzeného bez údaje ohlásí konflikt, místo aby hodnotu odhadl.</p></div>
+    <div class="card"><h3>Zpětná dohledatelnost</h3><p>Každý výpočet se uloží se snímkem pokojů, pravidel, odpovědí a pořadí. Databáze jeho úpravu nedovolí, takže se vždy dá zjistit, z čeho návrh vzešel.</p></div>
+    <div class="card"><h3>Žádné potvrzení ze zastaralého návrhu</h3><p>Pokud se od výpočtu návrhu změnily jeho podklady (přihlášky, rozhodnutí, pokoje, pořadí), potvrzení se odmítne celé a nikdo není potvrzen. Jednotlivé potvrzení solver znovu ověří proti aktuální kapacitě a pravidlům.</p></div>
+    <div class="card"><h3>Ohraničený čas a stabilní aplikace</h3><p>Limit 30 s na termín; výpočet běží mimo hlavní vlákno a pojistka ho ukončí 2 s po limitu. Chyba výpočtu se uloží jako neúspěšný běh a platné účasti nemění.</p></div>
+  </div>
+
+  <h2>Hranice a otevřené body</h2>
+  <div class="grid limits">
+    <div class="card"><h3>Rozmístění do pokojů (fáze 2)</h3><p>Návrh konkrétních pokojů s měkkými přáními zatím není v provozu. Podrobný model v benchmarku nedosáhl za 30 s dokázaného optima a v přeplněném termínu nestihl ani výběr lidí. Fáze 2 proto má převzít lidi vybrané ve fázi 1 a jen je rozmístit; specifikace pro ni přidává ještě stejný pokoj napříč termíny a co nejméně přesunů.</p></div>
+    <div class="card"><h3>Pevná pravidla jen z pohlaví</h3><p>Dnes se z přihlášky čte jen pohlaví a pravidlo zatím nejde nastavit v aplikaci (nastavení pravidel je samostatný příběh). Další kategorie přibudou s příběhem kategorických otázek.</p></div>
+    <div class="card"><h3>Přesah limitu o pár sekund</h3><p>HiGHS kontroluje hodiny jen občas, proto existuje 2s pojistka. Uživatel v nejhorším případě uvidí „vypršel čas“.</p></div>
+  </div>
+
+  <h2>Naměřeno</h2>
+  <p>Benchmark (<code>pnpm backend solver:benchmark</code>): 200 přihlášených ve třech překrývajících se termínech, 40 pokojů, pohlaví jako pevné pravidlo.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Případ</th><th>Výběr lidí (v provozu)</th><th>Podrobný model po pokojích</th></tr></thead>
+      <tbody>
+        <tr><td>3 termíny, 109–133 kandidátů, 134–162 lůžek</td><td>11–91 ms, přesně</td><td>stejní lidé, rozmístění za 30 s nedokázáno jako optimální</td></tr>
+        <tr><td>Přeplněný termín: 200 kandidátů na 134 lůžek</td><td>97 ms, přesně</td><td>nestihne 30 s</td></tr>
+        <tr><td>Přepočet s 60 už potvrzenými</td><td>12 ms</td><td>neměřeno</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="after">Závěr: pro výběr lidí má HiGHS ve vlákně velkou rezervu a samostatná optimalizační služba (např. CP-SAT) není potřeba. O ní má smysl uvažovat až u rozmísťování do pokojů.</p>
+
+  <footer>
+    Zdroj: specifikace v4 (<a href="https://github.com/applifting-vsecourse/team-4/issues/181">#181</a>, varianta M) a kód v <code>apps/backend/src/modules/accommodation/solver/</code>, technické detaily v jeho <code>README.md</code>. Stav k 8. 11. 2026.
+  </footer>
+</main>
+</body>
+</html>
