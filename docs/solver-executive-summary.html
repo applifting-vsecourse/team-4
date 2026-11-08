@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solver ubytování akc.io</title>
+<style>
+  :root {
+    --bg: #f7efd9;
+    --surface: #fffbef;
+    --text: #1c130b;
+    --muted: #6b5f50;
+    --border: #1c130b;
+    --hairline: #ddd2b8;
+    --accent: #b7ea2a;
+    --bar: #5c8a00;
+    --bar-off: #9a8f80;
+    --ok: #1f7a3d;
+    --warn: #9a5b00;
+    --warn-bg: #fcebc9;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1c130b;
+      --surface: #261b11;
+      --text: #f7efd9;
+      --muted: #b7a98f;
+      --border: #5c4d3b;
+      --hairline: #3d3022;
+      --bar: #a6d84a;
+      --bar-off: #8a7f70;
+      --ok: #7fd69a;
+      --warn: #f5b74a;
+      --warn-bg: #3a2a10;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1c130b;
+    --surface: #261b11;
+    --text: #f7efd9;
+    --muted: #b7a98f;
+    --border: #5c4d3b;
+    --hairline: #3d3022;
+    --bar: #a6d84a;
+    --bar-off: #8a7f70;
+    --ok: #7fd69a;
+    --warn: #f5b74a;
+    --warn-bg: #3a2a10;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1040px; margin: 0 auto; padding: 40px 16px 64px; }
+  .kicker { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: clamp(28px, 5vw, 44px); line-height: 1.1; margin: 8px 0 12px; }
+  h1 mark { background: var(--accent); color: #1c130b; padding: 0 .2em; }
+  h2 { font-size: 22px; margin: 44px 0 14px; }
+  p { margin: 0; }
+  .lead { color: var(--muted); font-size: 18px; max-width: 60ch; }
+  .note { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
+  .note.center { text-align: center; margin: 10px 0 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: 3px 3px 0 var(--border); }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 24px; }
+  .stats b { display: block; font-size: 32px; line-height: 1.1; }
+  .stats span { color: var(--muted); font-size: 14px; }
+
+  /* Flow chart: a row of steps with arrows, vertical on narrow screens. */
+  .flow { display: flex; align-items: stretch; }
+  .node { flex: 1; text-align: center; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+  .node b { font-size: 15px; }
+  .node span { color: var(--muted); font-size: 13px; }
+  .arrow { flex: 0 0 28px; display: grid; place-items: center; color: var(--muted); font-size: 20px; }
+  .arrow::before { content: "→"; }
+  .decision { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0 0 auto; max-width: 420px; }
+  .question { grid-column: 1 / -1; text-align: center; font-size: 14px; color: var(--muted); }
+  .question::before { content: "↓ "; }
+  .outcome { border-radius: 999px; padding: 6px 12px; font-size: 14px; text-align: center; border: 1px solid; background: var(--surface); }
+  .outcome.yes { color: var(--ok); }
+  .outcome.no { color: var(--warn); }
+
+  .pipeline { display: flex; align-items: center; flex-wrap: wrap; justify-content: center; row-gap: 8px; }
+  .pill { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; font-size: 15px; white-space: nowrap; }
+  .pill.hi { background: var(--accent); color: #1c130b; font-weight: 600; }
+
+  /* Decision levels as a narrowing funnel. */
+  .funnel { display: grid; gap: 6px; }
+  .tier { margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; display: flex; gap: 10px; align-items: center; justify-content: space-between; font-weight: 600; font-size: 15px; }
+  .tier .n { color: var(--muted); margin-right: 8px; }
+  .tier.later { border-style: dashed; color: var(--muted); font-weight: 400; }
+  .w1 { width: 100%; } .w2 { width: 88%; } .w3 { width: 76%; } .w4 { width: 64%; } .w5 { width: 52%; }
+  .tag { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; color: var(--warn); background: var(--warn-bg); }
+
+  .reasons { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+  .reasons .card { display: flex; gap: 12px; align-items: center; padding: 10px 14px; }
+  .reasons .code { font-size: 26px; font-weight: 700; width: 1.2em; text-align: center; }
+
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .tiles .card { display: flex; gap: 10px; align-items: center; padding: 12px 14px; font-weight: 600; }
+  .tiles .card::before { content: "✓"; color: var(--ok); font-size: 20px; }
+  .tiles.limits .card { font-weight: 400; }
+  .tiles.limits .card::before { content: "!"; color: var(--warn); font-weight: 700; }
+
+  /* Bar chart: seconds on one linear axis up to the 30 s limit. */
+  .chart { display: grid; gap: 16px; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+  .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--bar); }
+  .swatch.off { background: var(--bar-off); }
+  .group h3 { font-size: 15px; margin: 0 0 6px; font-weight: 600; }
+  .row { display: grid; grid-template-columns: 1fr 76px; gap: 10px; align-items: center; margin-bottom: 4px; }
+  .track { height: 14px; position: relative; border-left: 1px solid var(--muted); }
+  .track::after { content: ""; position: absolute; right: 0; top: -4px; bottom: -4px; border-right: 1px dashed var(--muted); }
+  .fill { height: 100%; width: 4px; border-radius: 0 4px 4px 0; background: var(--bar); }
+  .fill.off { width: 100%; background: var(--bar-off); }
+  .row span { font-size: 14px; font-variant-numeric: tabular-nums; }
+  .axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-right: 86px; }
+
+  footer { margin-top: 48px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--hairline); padding-top: 14px; }
+  footer a { color: inherit; }
+  code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+
+  @media (max-width: 720px) {
+    .flow { flex-direction: column; }
+    .flow .arrow { flex-basis: 24px; }
+    .flow .arrow::before { content: "↓"; }
+    .decision { margin: 12px auto 0; }
+    .tier { width: 100%; }
+    .tiles { grid-template-columns: 1fr; }
+    .pipeline { flex-direction: column; }
+    .pipeline .arrow::before { content: "↓"; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="kicker">akc.io · solver ubytování · shrnutí</div>
+    <h1>Kdo se vejde, <mark>spočítá solver</mark>. Rozhodne organizátor.</h1>
+    <p class="lead">Navrhne, koho v termínu potvrdit, a u ostatních řekne proč. Sám nic nepotvrdí.</p>
+  </header>
+
+  <section class="stats" aria-label="Klíčová čísla">
+    <div class="card"><b>≤ 0,1 s</b><span>výpočet pro 200 lidí a 40 pokojů</span></div>
+    <div class="card"><b>30 s</b><span>pevný limit na termín</span></div>
+    <div class="card"><b>přesně</b><span>matematické optimum, ne odhad</span></div>
+    <div class="card"><b>0</b><span>domýšlených údajů</span></div>
+  </section>
+
+  <h2>Jak to probíhá</h2>
+  <div class="flow" role="list">
+    <div class="card node" role="listitem"><b>Změna</b><span>přihláška, storno, pokoje, pořadí</span></div>
+    <div class="arrow" aria-hidden="true"></div>
+    <div class="card node" role="listitem"><b>10 s bez změn</b><span>nebo ruční spuštění</span></div>
+    <div class="arrow" aria-hidden="true"></div>
+    <div class="card node" role="listitem"><b>Výpočet</b><span>na pozadí, ≤ 30 s</span></div>
+    <div class="arrow" aria-hidden="true"></div>
+    <div class="card node" role="listitem"><b>Návrh</b><span>uložený i se vstupy</span></div>
+    <div class="arrow" aria-hidden="true"></div>
+    <div class="card node" role="listitem"><b>Organizátor</b><span>potvrdí vše nebo jednotlivce</span></div>
+  </div>
+  <div class="decision">
+    <div class="question">Změnily se mezitím podklady?</div>
+    <div class="outcome yes">ne → potvrzeno</div>
+    <div class="outcome no">ano → nikdo, nový návrh</div>
+  </div>
+
+  <h2>Co je uvnitř</h2>
+  <div class="pipeline">
+    <span class="pill">200 lidí × 40 pokojů</span>
+    <span class="arrow" aria-hidden="true"></span>
+    <span class="pill">desítky čísel</span>
+    <span class="arrow" aria-hidden="true"></span>
+    <span class="pill">HiGHS (MILP)</span>
+    <span class="arrow" aria-hidden="true"></span>
+    <span class="pill hi">přesné optimum</span>
+  </div>
+  <p class="note center">Stejné pokoje i lidé ze stejné skupiny jsou zaměnitelní, takže solver řeší „kolik“, ne „kdo kam“.</p>
+
+  <h2>Jak rozhoduje</h2>
+  <p class="note">Shora dolů; každá úroveň zamkne výsledek té předchozí.</p>
+  <div class="funnel">
+    <div class="tier w1"><span><span class="n">1</span>Co nejvíc ubytovaných</span></div>
+    <div class="tier w2"><span><span class="n">2</span>Podle pořadí v termínu</span></div>
+    <div class="tier w3"><span><span class="n">3</span>Lůžka před přistýlkami</span></div>
+    <div class="tier later w4"><span><span class="n">4</span>Co nejméně pokojů</span><span class="tag">fáze 2</span></div>
+    <div class="tier later w5"><span><span class="n">5</span>Měkká přání</span><span class="tag">fáze 2</span></div>
+  </div>
+
+  <h2>Proč někdo místo nedostal</h2>
+  <div class="reasons">
+    <div class="card"><span class="code">A</span><span>Plno, přednost měli vyšší v pořadí</span></div>
+    <div class="card"><span class="code">B</span><span>Volno jen v pokojích jiné skupiny</span></div>
+    <div class="card"><span class="code">C</span><span>Celkem by se vešlo méně lidí</span></div>
+    <div class="card"><span class="code">N</span><span>Termín nemá kapacitu</span></div>
+    <div class="card"><span class="code">R</span><span>Chybí údaj, určí organizátor</span></div>
+  </div>
+
+  <h2>Co zaručuje</h2>
+  <div class="tiles">
+    <div class="card">Přesný výběr, nebo „vypršel čas“</div>
+    <div class="card">Pořadí platí, výjimky vysvětlí</div>
+    <div class="card">Potvrzené nikdy nevyřadí</div>
+    <div class="card">Nic si nedomýšlí</div>
+    <div class="card">Každý výpočet dohledatelný</div>
+    <div class="card">Nepotvrdí ze starého návrhu</div>
+  </div>
+
+  <h2>Rychlost</h2>
+  <div class="card chart" role="figure" aria-label="Doba výpočtu: náš model do 0,1 s, model po pokojích přes limit 30 s">
+    <div class="legend">
+      <span><span class="swatch"></span>náš model (v provozu)</span>
+      <span><span class="swatch off"></span>model po jednotlivých pokojích</span>
+    </div>
+    <div class="group">
+      <h3>Běžný termín (do 133 lidí)</h3>
+      <div class="row" title="Náš model: 11–91 ms"><div class="track"><div class="fill"></div></div><span>0,09 s</span></div>
+      <div class="row" title="Model po pokojích: 30 s, optimum nedokázáno"><div class="track"><div class="fill off"></div></div><span>30 s+</span></div>
+    </div>
+    <div class="group">
+      <h3>Přeplněný termín (200 lidí na 134 lůžek)</h3>
+      <div class="row" title="Náš model: 97 ms"><div class="track"><div class="fill"></div></div><span>0,1 s</span></div>
+      <div class="row" title="Model po pokojích: nestihne limit 30 s"><div class="track"><div class="fill off"></div></div><span>nestihne</span></div>
+    </div>
+    <div class="axis"><span>0 s</span><span>limit 30 s</span></div>
+  </div>
+
+  <h2>Zatím chybí</h2>
+  <div class="tiles limits">
+    <div class="card">Rozmístění do konkrétních pokojů (fáze 2)</div>
+    <div class="card">Pevné pravidlo jen pohlaví, bez nastavení v aplikaci</div>
+    <div class="card">Limit může přetéct o pár sekund (pojistka 2 s)</div>
+  </div>
+
+  <footer>
+    Zdroj: specifikace v4 (<a href="https://github.com/applifting-vsecourse/team-4/issues/181">#181</a>), kód a <code>README.md</code> v <code>apps/backend/src/modules/accommodation/solver/</code>, benchmark <code>pnpm backend solver:benchmark</code>. Stav k 8. 11. 2026.
+  </footer>
+</main>
+</body>
+</html>
