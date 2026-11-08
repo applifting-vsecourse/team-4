@@ -1,0 +1,39 @@
+name: Security audit
+
+# Vulnerability monitoring of the dependencies (#166): a change to them is
+# checked when proposed, and the whole tree weekly, because advisories appear
+# without any change here. Dependabot alerts list the same findings on GitHub.
+on:
+  pull_request:
+    paths:
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - '**/package.json'
+  push:
+    branches: [main]
+    paths:
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - '**/package.json'
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+
+      # Reads the lockfile only; nothing is installed or run.
+      - name: Audit dependencies
+        run: pnpm audit --audit-level=high
