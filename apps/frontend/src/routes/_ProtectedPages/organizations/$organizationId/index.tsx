@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
+import { WorkspacePage } from "@/components/WorkspacePage"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventsQueryOptions } from "@/features/events/api/eventQueryOptions"
@@ -33,7 +34,7 @@ function OrganizationEventsPage() {
   const { data: events } = useSuspenseQuery(eventsQueryOptions(organizationId))
 
   return (
-    <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <Seo title={`Akce a turnusy · ${organization.name}`} />
       <PageHeader
         breadcrumb={
@@ -65,7 +66,7 @@ function OrganizationEventsPage() {
       ) : (
         <EventsEmptyState organizationId={organizationId} />
       )}
-    </section>
+    </WorkspacePage>
   )
 }
 
@@ -74,7 +75,7 @@ function OrganizationUnavailable() {
   const { organizationId } = Route.useParams()
   const { user } = useSession()
   return (
-    <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <PageHeader title="Akce a turnusy" />
       <RecordUnavailable
         action={
@@ -84,6 +85,6 @@ function OrganizationUnavailable() {
           />
         }
       />
-    </section>
+    </WorkspacePage>
   )
 }

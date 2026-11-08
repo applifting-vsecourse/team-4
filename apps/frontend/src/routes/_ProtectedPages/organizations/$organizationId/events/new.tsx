@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Card, CardContent } from "@/components/ui/card"
+import { WorkspacePage } from "@/components/WorkspacePage"
 import { readApiError } from "@/lib/apiError"
 
 import { useSession } from "@/features/auth/hooks/useSession"
@@ -47,7 +48,7 @@ function NewEventPage() {
   }
 
   return (
-    <section className="mx-auto w-full max-w-xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <Seo title="Nová akce" />
       <PageHeader
         breadcrumb={
@@ -60,18 +61,21 @@ function NewEventPage() {
         title="Nová akce"
         description="Termíny přidáte po uložení akce."
       />
-      <Card>
-        <CardContent>
-          <EventForm
-            submitLabel="Vytvořit akci"
-            isLoading={createEvent.isPending}
-            errorMessage={errorMessage}
-            onSubmit={handleSubmit}
-            onCancel={() => navigate({ to: ROUTES.organization, params: { organizationId } })}
-          />
-        </CardContent>
-      </Card>
-    </section>
+      {/* The form stays narrow; the page keeps the workspace's margins. */}
+      <div className="max-w-xl">
+        <Card>
+          <CardContent>
+            <EventForm
+              submitLabel="Vytvořit akci"
+              isLoading={createEvent.isPending}
+              errorMessage={errorMessage}
+              onSubmit={handleSubmit}
+              onCancel={() => navigate({ to: ROUTES.organization, params: { organizationId } })}
+            />
+          </CardContent>
+        </Card>
+      </div>
+    </WorkspacePage>
   )
 }
 
@@ -79,7 +83,7 @@ function Unavailable() {
   const { organizationId } = Route.useParams()
   const { user } = useSession()
   return (
-    <section className="mx-auto w-full max-w-xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <PageHeader title="Nová akce" />
       <RecordUnavailable
         action={
@@ -89,6 +93,6 @@ function Unavailable() {
           />
         }
       />
-    </section>
+    </WorkspacePage>
   )
 }

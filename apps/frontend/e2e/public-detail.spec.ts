@@ -85,7 +85,7 @@ test("the organizer's presentation is shown on the public detail, which leads to
   await expect(visitor.getByRole("checkbox", { name: /2\. turnus/ })).toBeChecked()
 
   await visitor.goto(`/e/${event.publicId}`)
-  await visitor.getByRole("link", { name: "Katalog akcí" }).click()
+  await visitor.getByRole("main").getByRole("link", { name: "Katalog akcí" }).click()
   await expect(visitor).toHaveURL(/\/events$/)
   await visitorContext.close()
 })

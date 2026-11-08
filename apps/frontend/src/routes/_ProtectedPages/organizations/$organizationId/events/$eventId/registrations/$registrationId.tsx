@@ -8,6 +8,7 @@ import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { WorkspacePage } from "@/components/WorkspacePage"
 import { HTTPError } from "@/lib/api-client"
 
 import { evaluationKeys } from "@/features/accommodation/api/evaluationQueryOptions"
@@ -61,7 +62,7 @@ function RegistrationPage() {
   const name = `${registration.data.firstName} ${registration.data.lastName}`
 
   return (
-    <section className="mx-auto w-full max-w-5xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <Seo title={`${name} – ${event.name}`} />
       <PageHeader
         breadcrumb={
@@ -156,7 +157,7 @@ function RegistrationPage() {
           />
         }
       />
-    </section>
+    </WorkspacePage>
   )
 }
 
@@ -169,7 +170,7 @@ function LoadError({ error, reset }: ErrorComponentProps) {
   const isGone = error instanceof HTTPError && [403, 404].includes(error.response.status)
 
   return (
-    <section className="mx-auto w-full max-w-5xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <PageHeader
         breadcrumb={
           <EventBreadcrumb
@@ -223,6 +224,6 @@ function LoadError({ error, reset }: ErrorComponentProps) {
           </AlertDescription>
         </Alert>
       )}
-    </section>
+    </WorkspacePage>
   )
 }

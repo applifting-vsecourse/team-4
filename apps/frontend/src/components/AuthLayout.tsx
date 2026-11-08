@@ -12,13 +12,12 @@ type AuthLayoutProps = {
 /**
  * Sign-in / sign-up pages keep the app chrome — they are pages of this app,
  * not a separate island. No card: the form sits on the page like any content.
- * The header omits the auth menu here; offering "Sign in" on the sign-in page
- * would be noise.
+ * The header has no account action here: nobody is signed in yet.
  */
 export function AuthLayout({ title, description, children, footer }: AuthLayoutProps) {
   return (
     <>
-      <Header userMenu={null} />
+      <Header />
       <main className="min-h-svh">
         <section className="mx-auto w-full max-w-sm px-4 py-16">
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>

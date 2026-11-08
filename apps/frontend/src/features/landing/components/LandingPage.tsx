@@ -5,7 +5,6 @@ import {
   BedDouble,
   CalendarCog,
   MailCheck,
-  Menu,
   Search,
   WalletCards,
   type LucideIcon,
@@ -13,12 +12,11 @@ import {
 
 import { ROUTES } from "@/app/routes"
 import { BrandMark } from "@/components/BrandMark"
-import { ThemeSwitcher } from "@/components/Header/ThemeSwitcher"
+import { Header } from "@/components/Header/Header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 
 import { IllustratedSections } from "./IllustratedSections"
@@ -93,44 +91,7 @@ export function LandingPage({ catalogPreview }: { catalogPreview: ReactNode }) {
         <a href="#obsah">Přeskočit na obsah</a>
       </Button>
 
-      <header className="sticky top-0 z-40 border-b border-border bg-background">
-        <div className={cn(WRAP, "flex items-center justify-between gap-3 py-4")}>
-          <Link
-            to={ROUTES.home}
-            className="rounded-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <BrandMark isLarge />
-          </Link>
-          <nav
-            aria-label="Vstup do aplikace"
-            className="hidden items-center gap-2 md:flex"
-          >
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-            >
-              <Link to={ROUTES.catalog}>Katalog akcí</Link>
-            </Button>
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-            >
-              <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
-            </Button>
-            <Button
-              asChild
-              size="sm"
-            >
-              {/* Login offers organizer signup too. */}
-              <Link to={ROUTES.login}>Organizátor</Link>
-            </Button>
-            <ThemeSwitcher />
-          </nav>
-          <MobileMenu />
-        </div>
-      </header>
+      <Header />
 
       <main
         id="obsah"
@@ -233,7 +194,7 @@ export function LandingPage({ catalogPreview }: { catalogPreview: ReactNode }) {
             <div className="grid items-start gap-6 md:grid-cols-12">
               <article
                 aria-labelledby="pro-poradatele"
-                className="flex flex-col gap-7 rounded-xl border-2 border-background bg-foreground p-6 text-background md:col-span-7 md:p-8"
+                className="flex flex-col gap-7 rounded-xl border-2 border-background bg-foreground p-6 text-background md:col-span-7 md:p-8 dark:border-border dark:bg-card dark:text-card-foreground"
               >
                 <p className={LABEL}>Pro pořadatele</p>
                 <h3
@@ -266,7 +227,7 @@ export function LandingPage({ catalogPreview }: { catalogPreview: ReactNode }) {
 
               <article
                 aria-labelledby="pro-ucastniky"
-                className="flex flex-col gap-7 rounded-xl border-2 border-input bg-card p-6 md:col-span-5 md:p-8"
+                className="flex flex-col gap-7 rounded-xl border-2 border-input bg-card p-6 md:col-span-5 md:p-8 dark:border-border"
               >
                 <p className={cn(LABEL, "text-muted-foreground")}>Pro účastníky</p>
                 <h3
@@ -379,7 +340,7 @@ export function LandingPage({ catalogPreview }: { catalogPreview: ReactNode }) {
           className="pb-12 md:pb-20"
         >
           <div className={WRAP}>
-            <div className="flex flex-col items-center gap-6 rounded-xl bg-foreground px-6 py-10 text-center text-background md:px-12 md:py-14">
+            <div className="flex flex-col items-center gap-6 rounded-xl bg-foreground px-6 py-10 text-center text-background md:px-12 md:py-14 dark:border-2 dark:border-border dark:bg-card dark:text-card-foreground">
               <h2
                 id="cta-nadpis"
                 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance md:text-5xl"
@@ -483,55 +444,5 @@ function AudiencePoints({
         </li>
       ))}
     </ul>
-  )
-}
-
-// Below md the header entries collapse into one menu button (PR #117 review).
-function MobileMenu() {
-  return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Otevřít menu"
-          className="md:hidden"
-        >
-          <Menu aria-hidden />
-        </Button>
-      </SheetTrigger>
-      <SheetContent
-        lang="cs"
-        aria-describedby={undefined}
-      >
-        <SheetHeader>
-          <SheetTitle>Menu</SheetTitle>
-        </SheetHeader>
-        <nav
-          aria-label="Vstup do aplikace"
-          className="flex flex-col gap-2 px-4"
-        >
-          <Button asChild>
-            <Link to={ROUTES.login}>Organizátor</Link>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-          >
-            <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-          >
-            <Link to={ROUTES.catalog}>Katalog akcí</Link>
-          </Button>
-        </nav>
-        <div className="flex items-center justify-between px-4">
-          <span className="text-sm text-muted-foreground">Motiv</span>
-          <ThemeSwitcher />
-        </div>
-      </SheetContent>
-    </Sheet>
   )
 }

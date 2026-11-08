@@ -1,4 +1,3 @@
-import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 
 /** What the proposal of the term decided; counts are the solver's, never a bed sum. */
@@ -99,9 +98,7 @@ export function TermCapacitySummary({ term }: { term: TermCapacity }) {
               />
             </dl>
           ) : (
-            <Alert>
-              <AlertTitle>Ubytovací kapacita není evidovaná</AlertTitle>
-            </Alert>
+            <p className="text-sm text-muted-foreground">Ubytovací kapacita není evidovaná</p>
           )}
         </div>
 

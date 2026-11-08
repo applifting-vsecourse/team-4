@@ -25,7 +25,7 @@ type RegistrationChangeDecisionProps = {
 
 const DECISION_FAILED = "Rozhodnutí se nepodařilo uložit. Zkuste to prosím znovu."
 
-// Správa akce → Přihlášky → Detail přihlášky (F35-2a): the newest request that
+// Správa akce → Přihlášky → Detail přihlášky (F35-2a): the unresolved request that
 // needed the organizer with its original and proposed values, the decision, and
 // the history of changes. The valid registration stays below until approval.
 export function RegistrationChangeDecision({
@@ -36,9 +36,8 @@ export function RegistrationChangeDecision({
   const query = useQuery(registrationChangesQueryOptions(organizationId, eventId, registrationId))
   const decide = useDecideChange(organizationId, eventId, registrationId)
   const changes = query.data ?? []
-  const request = changes.find((change) => change.status !== "applied")
-  // Only the newest one is decided here; an older decided one is history.
-  const shown = request && request.id === changes[0]?.id ? request : undefined
+  // Only an unresolved request is shown on top; a decided one is history only.
+  const shown = changes.find((change) => change.status === "pending")
   const failure = decide.isError ? readApiError(decide.error) : null
   // A legacy move without the participant's consent can never be approved.
   const isConsentMissing = failure?.code === "release_consent_required"
@@ -63,19 +62,12 @@ export function RegistrationChangeDecision({
 
       {shown ? (
         <ChangeRequestCard
-          status={
-            shown.status === "pending"
-              ? "pending"
-              : shown.status === "approved"
-                ? "approved"
-                : "rejected"
-          }
+          status="pending"
           kind={describeKinds(shown.kinds)}
           submittedAt={formatChangeTime(shown.createdAt)}
-          decidedAt={shown.decidedAt ? formatChangeTime(shown.decidedAt) : undefined}
           summary={toSummaryProps(shown.summary)}
           notice={
-            shown.status === "pending" && shown.isStale ? (
+            shown.isStale ? (
               <Alert>
                 <AlertTitle>
                   Přihláška se po odeslání žádosti změnila, žádost proto nelze schválit. Můžete ji
@@ -97,25 +89,23 @@ export function RegistrationChangeDecision({
             ) : undefined
           }
           actions={
-            shown.status === "pending" ? (
-              <>
-                <Button
-                  variant="outline"
-                  disabled={decide.isPending}
-                  onClick={() => decide.mutate({ changeId: shown.id, decision: "reject" })}
-                >
-                  <X />
-                  Zamítnout
-                </Button>
-                <Button
-                  disabled={decide.isPending || shown.isStale || isConsentMissing}
-                  onClick={() => decide.mutate({ changeId: shown.id, decision: "approve" })}
-                >
-                  <Check />
-                  Schválit
-                </Button>
-              </>
-            ) : undefined
+            <>
+              <Button
+                variant="outline"
+                disabled={decide.isPending}
+                onClick={() => decide.mutate({ changeId: shown.id, decision: "reject" })}
+              >
+                <X />
+                Zamítnout
+              </Button>
+              <Button
+                disabled={decide.isPending || shown.isStale || isConsentMissing}
+                onClick={() => decide.mutate({ changeId: shown.id, decision: "approve" })}
+              >
+                <Check />
+                Schválit
+              </Button>
+            </>
           }
         />
       ) : null}

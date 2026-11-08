@@ -7,7 +7,7 @@ import {
   Outlet,
   RouterProvider,
 } from "@tanstack/react-router"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -80,11 +80,13 @@ describe("EventNavigation", () => {
     )
   })
 
-  it("keeps unfinished destinations disabled instead of creating links", async () => {
+  it("shows unfinished destinations as plain tiles instead of links", async () => {
     await renderNavigation()
     for (const name of ["Platby", "Komunikace"]) {
-      expect(screen.getByRole("button", { name: `${name} Připravujeme` })).toBeDisabled()
-      expect(screen.queryByRole("link", { name })).not.toBeInTheDocument()
+      const tile = screen.getByText(name).closest("li")!
+      expect(within(tile).getByText("Připravujeme")).toBeInTheDocument()
+      expect(within(tile).queryByRole("link")).not.toBeInTheDocument()
+      expect(within(tile).queryByRole("button")).not.toBeInTheDocument()
     }
   })
 

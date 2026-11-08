@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
+import { WorkspacePage } from "@/components/WorkspacePage"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
@@ -39,7 +40,7 @@ function RoomsPage() {
   const refreshEvent = useRefreshEvent(organizationId, eventId)
 
   return (
-    <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <Seo title={`Ubytování – ${event.name}`} />
       <PageHeader
         breadcrumb={
@@ -71,7 +72,7 @@ function RoomsPage() {
           onChanged={refreshEvent}
         />
       </div>
-    </section>
+    </WorkspacePage>
   )
 }
 
@@ -81,7 +82,7 @@ function Unavailable() {
   const { organizationId } = Route.useParams()
   const { data: organization } = useQuery(organizationQueryOptions(organizationId))
   return (
-    <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <PageHeader
         breadcrumb={
           <EventBreadcrumb
@@ -99,6 +100,6 @@ function Unavailable() {
           />
         }
       />
-    </section>
+    </WorkspacePage>
   )
 }

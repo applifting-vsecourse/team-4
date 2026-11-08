@@ -5,6 +5,7 @@ import { Plus } from "lucide-react"
 import { PageHeader } from "@/components/PageHeader"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
+import { WorkspacePage } from "@/components/WorkspacePage"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
@@ -37,7 +38,7 @@ function EventPage() {
   const { data: event } = useSuspenseQuery(eventQueryOptions(organizationId, eventId))
 
   return (
-    <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <Seo title={event.name} />
       <PageHeader
         breadcrumb={
@@ -83,7 +84,7 @@ function EventPage() {
           eventId={eventId}
         />
       </div>
-    </section>
+    </WorkspacePage>
   )
 }
 

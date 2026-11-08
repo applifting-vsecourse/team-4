@@ -11,8 +11,9 @@ import {
 
 import { ROUTES } from "@/app/routes"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 
 const sections = [
   { label: "Přehled", icon: LayoutDashboard, to: ROUTES.event },
@@ -82,59 +83,50 @@ export function EventNavigation({ organizationId, eventId, isSidebar = false }: 
           </SidebarMenuItem>
         )
       }
-      const tileContent = (
-        <span className="flex min-h-28 w-full flex-col justify-between gap-6">
-          <span className="flex w-full items-start justify-between gap-4">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted">
-              <section.icon
-                aria-hidden="true"
-                className="size-6 text-muted-foreground"
-              />
-            </span>
-            {to ? (
-              <ArrowUpRight
-                aria-hidden="true"
-                className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transition-none"
-              />
-            ) : (
-              <Badge variant="secondary">Připravujeme</Badge>
-            )}
-          </span>
-          <span className="block w-full min-w-0 text-base font-semibold break-words">
-            {section.label}
-          </span>
-        </span>
-      )
+      // A tile is a card like the summary above it; the whole card is the link
+      // (stretched over it). An unfinished section is a faded card, like the
+      // disabled entries in the sidebar.
       return (
         <li
           key={section.label}
-          className="flex"
+          aria-disabled={to ? undefined : true}
+          className={cn("flex", !to && "opacity-50 select-none")}
         >
-          {to ? (
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="group h-auto min-h-40 w-full flex-col text-left whitespace-normal"
-            >
-              <Link
-                to={to}
-                params={params}
-              >
-                {tileContent}
-              </Link>
-            </Button>
-          ) : (
-            <Button
-              disabled
-              aria-label={`${section.label} Připravujeme`}
-              variant="outline"
-              size="lg"
-              className="h-auto min-h-40 w-full flex-col text-left whitespace-normal"
-            >
-              {tileContent}
-            </Button>
-          )}
+          <Card className="group relative min-h-40 w-full justify-between">
+            <CardHeader>
+              <span className="flex size-12 items-center justify-center rounded-lg bg-muted">
+                <section.icon
+                  aria-hidden="true"
+                  className="size-6 text-muted-foreground"
+                />
+              </span>
+              <CardAction>
+                {to ? (
+                  <ArrowUpRight
+                    aria-hidden="true"
+                    className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transition-none"
+                  />
+                ) : (
+                  <Badge variant="secondary">Připravujeme</Badge>
+                )}
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="wrap-break-word">
+                {to ? (
+                  <Link
+                    to={to}
+                    params={params}
+                    className="outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-3 focus-visible:after:ring-ring/50"
+                  >
+                    {section.label}
+                  </Link>
+                ) : (
+                  section.label
+                )}
+              </CardTitle>
+            </CardContent>
+          </Card>
         </li>
       )
     })

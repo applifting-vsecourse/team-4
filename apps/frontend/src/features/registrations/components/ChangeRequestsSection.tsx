@@ -28,7 +28,7 @@ export function ChangeRequestsSection({ organizationId, eventId }: ChangeRequest
     <section
       aria-labelledby="approvals-heading"
       aria-busy={query.isFetching}
-      className="space-y-4 pt-4"
+      className="space-y-4"
     >
       <div className="flex min-h-9 items-center justify-between gap-4">
         <h2

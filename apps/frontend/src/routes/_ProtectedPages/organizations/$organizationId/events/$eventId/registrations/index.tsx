@@ -9,6 +9,7 @@ import { Seo } from "@/components/Seo"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { WorkspacePage } from "@/components/WorkspacePage"
 
 import { TermEvaluationSection } from "@/features/accommodation/components/TermEvaluationSection"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
@@ -76,7 +77,7 @@ function RegistrationsPage() {
     })
 
   return (
-    <section className="mx-auto w-full max-w-5xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <Seo title={`Přihlášky – ${event.name}`} />
       <PageHeader
         breadcrumb={
@@ -147,7 +148,7 @@ function RegistrationsPage() {
           ) : null}
         </TabsContent>
       </Tabs>
-    </section>
+    </WorkspacePage>
   )
 }
 
@@ -156,7 +157,7 @@ function Unavailable() {
   const { organizationId } = Route.useParams()
   const { data: organization } = useQuery(organizationQueryOptions(organizationId))
   return (
-    <section className="mx-auto w-full max-w-5xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <PageHeader
         breadcrumb={
           <EventBreadcrumb
@@ -178,6 +179,6 @@ function Unavailable() {
           </Button>
         }
       />
-    </section>
+    </WorkspacePage>
   )
 }

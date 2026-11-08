@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Badge } from "@/components/ui/badge"
+import { WorkspacePage } from "@/components/WorkspacePage"
 import { formatCalendarRange } from "@/lib/date"
 
 import { useSession } from "@/features/auth/hooks/useSession"
@@ -40,7 +41,7 @@ function TermProgrammePage() {
   if (!term) return <Unavailable />
 
   return (
-    <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <Seo title={`Program – ${term.label}`} />
       <PageHeader
         breadcrumb={
@@ -71,7 +72,7 @@ function TermProgrammePage() {
         term={term}
         onChanged={refreshEvent}
       />
-    </section>
+    </WorkspacePage>
   )
 }
 
@@ -81,7 +82,7 @@ function Unavailable() {
   const { organizationId } = Route.useParams()
   const { data: organization } = useQuery(organizationQueryOptions(organizationId))
   return (
-    <section className="mx-auto w-full max-w-4xl px-4 py-8 md:py-12">
+    <WorkspacePage>
       <PageHeader
         breadcrumb={
           <EventBreadcrumb
@@ -99,6 +100,6 @@ function Unavailable() {
           />
         }
       />
-    </section>
+    </WorkspacePage>
   )
 }
