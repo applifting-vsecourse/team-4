@@ -125,6 +125,8 @@ and requires
 his approval on the current commit before QA handoff and
 merge until that review is recorded. Once applied, removing the label does not
 remove the approval requirement; Bogdan's current-commit approval satisfies it.
+PRs Bogdan authors are exempt from the technical approval (he cannot approve his
+own PR); still label them, and every other gate applies.
 Before opening a non-draft PR, launch a fresh independent agent with no access to
 the implementation conversation or plan to review the final diff. Give it the
 issue description and acceptance criteria, the diff, and only the repository

@@ -37,6 +37,14 @@ The technical-review requirement is recorded by the PR's label history. Removing
 the label after it was applied does not clear the requirement; a current-commit
 approval from `rmnskb` does. Low severity cannot be combined with this label.
 
+A PR that `rmnskb` authored needs no technical approval: GitHub does not let an
+author approve their own PR, and the technical reviewer's own change already
+carries his technical sign-off. The workflow does not request him and the gate
+records the exemption; Copilot review, requirements approval and QA still apply.
+Keep the label on such PRs so the classification stays visible. The exemption
+follows the PR's author, not each commit's pusher: commits another collaborator
+pushes to a PR `rmnskb` opened are covered by the other gates only.
+
 ### Storybook design-preview PRs
 
 A PR may use the `design:storybook-preview` label only when it delivers an
@@ -267,7 +275,8 @@ trigger reconciliation; scheduled polling remains the fallback.
 Matej is not automatically requested at PR creation. For a non-draft PR,
 technical review is requested from `rmnskb` as soon as the PR is opened with the
 label or the label is added, so it can happen alongside CI and agent review.
-Approval is still required on the current commit before QA handoff. CODEOWNERS lists David
+Approval is still required on the current commit before QA handoff, except on
+PRs `rmnskb` authored. CODEOWNERS lists David
 for workflow/enforcement paths; GitHub does not request an author to review their own PR. The bot's
 Ready for Testing comment identifies the QA owner, then the bot sends that person
 a GitHub review request: MatejKrones, or darebakdavca on Matej-authored PRs.

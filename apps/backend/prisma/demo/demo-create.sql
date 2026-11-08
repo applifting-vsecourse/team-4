@@ -22,7 +22,16 @@ DECLARE
   v_regs uuid[];
   v_accounts uuid[];
 BEGIN
-  SELECT id INTO v_owner FROM "user" WHERE email = 'team4vse@seznam.cz';
+  -- The mailbox is shared: an account with the same e-mail that the demo
+  -- did not create is never deleted; the run stops instead.
+  IF EXISTS (
+    SELECT 1 FROM "user"
+    WHERE email = 'team4vse@seznam.cz' AND id <> 'akcio-demo-organizer'
+  ) THEN
+    RAISE EXCEPTION 'team4vse@seznam.cz belongs to an account the demo did not create; nothing was changed.';
+  END IF;
+
+  SELECT id INTO v_owner FROM "user" WHERE id = 'akcio-demo-organizer';
   IF v_owner IS NULL THEN
     RETURN;
   END IF;
@@ -38,10 +47,14 @@ BEGIN
 
   ALTER TABLE accommodation_run DISABLE TRIGGER accommodation_run_immutable;
   ALTER TABLE accommodation_intervention DISABLE TRIGGER accommodation_intervention_immutable;
+  ALTER TABLE accommodation_decision DISABLE TRIGGER accommodation_decision_immutable;
   DELETE FROM accommodation_run WHERE "eventId" = ANY (v_events);
   DELETE FROM accommodation_intervention WHERE "eventId" = ANY (v_events);
+  DELETE FROM accommodation_decision WHERE "eventId" = ANY (v_events);
   ALTER TABLE accommodation_run ENABLE TRIGGER accommodation_run_immutable;
   ALTER TABLE accommodation_intervention ENABLE TRIGGER accommodation_intervention_immutable;
+  ALTER TABLE accommodation_decision ENABLE TRIGGER accommodation_decision_immutable;
+  DELETE FROM registration_result_event WHERE "eventId" = ANY (v_events);
 
   DELETE FROM accommodation_manual_value WHERE "eventId" = ANY (v_events);
   DELETE FROM accommodation_term_state WHERE "eventId" = ANY (v_events);
