@@ -827,6 +827,12 @@ test('PR label event requests technical review before agent review or QA handoff
   assert.ok(!r.calls.includes('handoff:12'));
   assert.equal(r.status, 'Ready for Code Review');
 });
+test("the technical reviewer's own PR is handed to QA without a technical review request", () => {
+  const r = run({ technicalReview: true, authors: ['rmnskb'], eventPr: 12 });
+  assert.ok(!r.calls.includes('technical-request:12'));
+  assert.ok(r.calls.includes('handoff:12'), JSON.stringify(r));
+  assert.equal(r.status, 'Ready for Testing');
+});
 test('an existing current-commit technical approval allows QA handoff', () => {
   const r = run({
     technicalReview: true,

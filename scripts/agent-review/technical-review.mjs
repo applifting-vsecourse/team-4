@@ -40,13 +40,14 @@ export async function ensureTechnicalReviewRequest({
   if (!requiredByHistory && !technicalReviewRequired(current, timeline))
     return 'not-required';
   const reviews = await list(`${path}/reviews`);
-  if (technicalReviewApproval(current, reviews)) return 'approved';
-  if (current.user.login.toLowerCase() === TECHNICAL_REVIEWER.toLowerCase()) {
+  const approval = technicalReviewApproval(current, reviews);
+  if (approval?.exempt) {
     log(
-      `Technical review for #${pr.number} is blocked: @${TECHNICAL_REVIEWER} authored the PR`,
+      `Technical review for #${pr.number} not requested: @${TECHNICAL_REVIEWER} authored the PR`,
     );
-    return 'self-authored';
+    return 'exempt';
   }
+  if (approval) return 'approved';
   if (dryRun) {
     log(
       `[dry-run] would request technical review from @${TECHNICAL_REVIEWER} on #${pr.number}`,

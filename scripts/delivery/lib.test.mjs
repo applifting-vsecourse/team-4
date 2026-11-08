@@ -103,14 +103,25 @@ test('technical-review remains required after its label is removed', () => {
   f.pr.technicalReviewRequired = true;
   assert.equal(evaluate(f).pass, false);
 });
-test('the technical reviewer cannot approve their own PR or use a stale approval', () => {
+test('a stale technical approval does not count', () => {
   const f = fixture();
   f.pr.labels.push({ name: 'technical-review' });
   f.reviews.push(review(TECHNICAL_REVIEWER, 5, 'APPROVED', 'b'.repeat(40)));
   assert.equal(technicalReviewApproval(f.pr, f.reviews), null);
+  assert.equal(evaluate(f).pass, false);
+});
+test("the technical reviewer's own PR needs no technical approval, but still every other gate", () => {
+  const f = fixture();
+  f.pr.labels.push({ name: 'technical-review' });
   f.pr.user.login = TECHNICAL_REVIEWER;
-  f.reviews.push(review(TECHNICAL_REVIEWER, 6));
-  assert.equal(technicalReviewApproval(f.pr, f.reviews), null);
+  assert.equal(technicalReviewApproval(f.pr, f.reviews).exempt, true);
+  assert.equal(evaluate(f).pass, true);
+  f.reviews = [review(PM, 1)];
+  assert.equal(evaluate(f).pass, false);
+  f.reviews = [review(QA, 4)];
+  assert.equal(evaluate(f).pass, false);
+  f.reviews = [review(PM, 1), review(QA, 4)];
+  f.pr.head.sha = 'b'.repeat(40);
   assert.equal(evaluate(f).pass, false);
 });
 test('forged handoffs and verdicts are rejected', () => {

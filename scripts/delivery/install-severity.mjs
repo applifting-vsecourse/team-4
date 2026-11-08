@@ -91,7 +91,7 @@ if (!existingLabels.some((label) => label.name === TECHNICAL_REVIEW_LABEL))
       name: TECHNICAL_REVIEW_LABEL,
       color: '1d76db',
       description:
-        'Requires current-commit technical approval from rmnskb before QA or merge.',
+        'Requires current-commit technical approval from rmnskb before QA or merge; his own PRs are exempt.',
     }),
   );
 gh(['api', path, '--method', 'PUT', '--input', '-'], JSON.stringify(proposed));
