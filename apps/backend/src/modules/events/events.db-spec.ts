@@ -1,6 +1,5 @@
 import { PrismaModule } from '@/core/prisma/prisma.module';
 import { PrismaService } from '@/core/prisma/prisma.service';
-import { ObjectStorage } from '@/core/storage/object-storage.service';
 import { Prisma } from '@/generated/prisma/client';
 import { EventChangeApprovalController } from '@/modules/events/controllers/event-change-approval.controller';
 import { EventPaymentSettingsController } from '@/modules/events/controllers/event-payment-settings.controller';
@@ -50,21 +49,6 @@ jest.mock('@/shared/auth/guards/authenticated-user.guard', () => ({
   },
 }));
 
-const stored = new Map<string, { body: Uint8Array; contentType: string }>();
-const memoryStorage = {
-  put: async (key: string, body: Uint8Array, contentType: string) => {
-    stored.set(key, { body, contentType });
-  },
-  get: async (key: string) => {
-    const object = stored.get(key);
-    if (!object) throw new Error(`No object ${key}`);
-    return object;
-  },
-  delete: async (key: string) => {
-    stored.delete(key);
-  },
-};
-
 let app: INestApplication;
 let baseUrl: string;
 let prisma: PrismaService;
@@ -82,13 +66,7 @@ beforeAll(async () => {
       EventPhotosController,
       PublicCatalogController,
     ],
-    providers: [
-      EventsService,
-      EventPhotosService,
-      EventsRepository,
-      // Object storage is MinIO outside tests; the database is what is under test here.
-      { provide: ObjectStorage, useValue: memoryStorage },
-    ],
+    providers: [EventsService, EventPhotosService, EventsRepository],
   }).compile();
   app = moduleRef.createNestApplication();
   await app.listen(0);

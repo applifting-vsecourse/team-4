@@ -1,10 +1,10 @@
-import { StoredObject } from '@/core/storage/object-storage.service';
+import { StoredPhoto } from '@/modules/events/repositories/events.repository';
 import { StreamableFile } from '@nestjs/common';
 import type { Response } from 'express';
 
 /** Serves a stored photo with the type detected at upload, never sniffed. */
 export const photoResponse = (
-  photo: StoredObject,
+  photo: StoredPhoto,
   response: Response,
   cacheControl: string,
 ): StreamableFile => {
