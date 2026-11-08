@@ -8,7 +8,9 @@ Dva SQL skripty pro produkční databázi akc.io. Spouštějí se ručně v Admi
 | `demo-create.sql` | Smaže předchozí demo sadu a vytvoří ji znovu. Celé proběhne v jedné transakci, takže ho jde pustit kdykoli, třeba před každou zkouškou dema. |
 | `demo-delete.sql` | Smaže organizátora `team4vse@seznam.cz`, jeho organizaci, všechny akce, přihlášky, platby, změny i výsledky vyhodnocení a demo účastníky.    |
 
-Data mimo organizace demo organizátora skripty nemění. Termíny se počítají od data spuštění.
+Data mimo organizace demo organizátora skripty nemění. Demo organizátora poznají podle pevného id
+`akcio-demo-organizer`, ne podle e-mailu. Pokud `team4vse@seznam.cz` patří jinému účtu, `demo-create.sql`
+skončí chybou a nic nezmění. Termíny se počítají od data spuštění.
 
 ## Účty
 
@@ -47,8 +49,8 @@ Každá akce dostane tři fotky, takže na demu jde živě nahrát čtvrtou (lim
 První fotka ve složce je náhled akce v katalogu.
 
 Pořadí při obnově dema: `demo-photos.mjs delete` → `demo-create.sql` → `demo-photos.mjs upload`.
-SQL maže jen záznamy fotek, ne soubory, takže bez prvního kroku zůstanou staré soubory
-v úložišti.
+Při úplném odstranění: `demo-photos.mjs delete` → `demo-delete.sql`. SQL maže jen záznamy fotek,
+ne soubory, takže bez kroku `delete` zůstanou soubory v úložišti.
 
 Všechny fotky jsou CC0 (volné dílo, bez nutnosti uvádět autora). Zdroje:
 
