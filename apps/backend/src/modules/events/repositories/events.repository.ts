@@ -31,10 +31,11 @@ export type EventScope = {
 };
 
 export type NewPhoto = {
-  objectKey: string;
   contentType: string;
-  byteSize: number;
+  data: Uint8Array<ArrayBuffer>;
 };
+
+export type StoredPhoto = { body: Uint8Array; contentType: string };
 
 export type StoredTerm = {
   id: string;
@@ -153,19 +154,21 @@ export class LockedEvent {
 
   async insertPhoto(photo: NewPhoto): Promise<void> {
     await this.tx.eventPhoto.create({
-      data: { eventId: this.eventId, ...photo },
+      data: {
+        eventId: this.eventId,
+        contentType: photo.contentType,
+        byteSize: photo.data.byteLength,
+        data: photo.data,
+      },
     });
   }
 
-  /** The removed photo's object key; null when it does not belong to this event. */
-  async deletePhoto(photoId: string): Promise<string | null> {
-    const photo = await this.tx.eventPhoto.findFirst({
+  /** False when the photo does not belong to this event. */
+  async deletePhoto(photoId: string): Promise<boolean> {
+    const { count } = await this.tx.eventPhoto.deleteMany({
       where: { id: photoId, eventId: this.eventId },
-      select: { objectKey: true },
     });
-    if (!photo) return null;
-    await this.tx.eventPhoto.delete({ where: { id: photoId } });
-    return photo.objectKey;
+    return count > 0;
   }
 
   async updatePaymentSettings(settings: PaymentSettings): Promise<void> {
@@ -394,11 +397,11 @@ export class EventsRepository {
     );
   }
 
-  /** The object key of a photo of the caller's event; null otherwise. */
-  async findPhotoKey(
+  /** A photo of the caller's event; null otherwise. */
+  async findPhoto(
     scope: EventScope,
     photoId: string,
-  ): Promise<string | null> {
+  ): Promise<StoredPhoto | null> {
     const photo = await this.prisma.eventPhoto.findFirst({
       where: {
         id: photoId,
@@ -408,9 +411,9 @@ export class EventsRepository {
           organization: { ownerId: scope.ownerId },
         },
       },
-      select: { objectKey: true },
+      select: { data: true, contentType: true },
     });
-    return photo?.objectKey ?? null;
+    return photo && { body: photo.data, contentType: photo.contentType };
   }
 
   /** A new event is a draft. Null when the organization is not the caller's. */
@@ -561,15 +564,15 @@ export class EventsRepository {
       );
   }
 
-  /** The object key of a photo of a published event; null otherwise. */
-  async findPublishedPhotoKey(
+  /** A photo of a published event; null otherwise. */
+  async findPublishedPhoto(
     publicId: string,
     photoId: string,
-  ): Promise<string | null> {
+  ): Promise<StoredPhoto | null> {
     const photo = await this.prisma.eventPhoto.findFirst({
       where: { id: photoId, event: { publicId, isPublished: true } },
-      select: { objectKey: true },
+      select: { data: true, contentType: true },
     });
-    return photo?.objectKey ?? null;
+    return photo && { body: photo.data, contentType: photo.contentType };
   }
 }
