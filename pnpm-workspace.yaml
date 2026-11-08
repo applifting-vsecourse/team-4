@@ -7,7 +7,7 @@ catalogs:
     prettier: ^3.9.6
     react-hook-form: ^7.85.0
     typescript: ^5.9.3
-    zod: ^4.4.3
+    zod: ^4.6.7
   lint:
     '@eslint/compat': ^2.1.0
     '@eslint/js': ^10.0.1
@@ -31,3 +31,25 @@ catalogs:
     '@types/react-dom': ^19.2.4
     react: ^19.2.8
     react-dom: ^19.2.8
+
+# Security audit (#166): patched versions of transitive dependencies that their
+# parents don't require yet. Remove an entry once its parent requires the fix.
+overrides:
+  # Optional peers of better-auth; akc.io uses neither Next.js nor MySQL.
+  'better-auth>next': '-'
+  'better-auth>mysql2': '-'
+  '@nestjs/platform-express>multer': ^2.5.0
+  'body-parser@>=2.0.0 <2.4.0': ^2.4.0
+  'proxy-addr@>=1.1.0 <2.0.8': ^2.0.8
+  'qs@<6.16.1': ^6.16.1
+  'engine.io@>=6.6.0 <6.6.10': ^6.6.10
+  'source-map-js@>=1.0.0 <1.2.2': ^1.2.2
+  # Mostly dev tooling (Nest CLI, Jest, ESLint, npm-run-all); glob also reaches
+  # rimraf and react-email. These majors are API-compatible for their consumers.
+  'glob@>=9.0.0 <14.0.2': ^14.0.2
+  'minimatch@>=7.0.0 <11.0.1': ^11.0.1
+  'fast-uri@>=3.0.0 <3.1.9': ^3.1.9
+  'js-yaml@>=3.0.0 <3.15.2': ^3.15.2
+  'js-yaml@>=4.0.0 <4.3.2': ^4.3.2
+  'brace-expansion@<1.1.21': ^1.1.21
+  'shell-quote@>=1.8.4 <1.11.0': ^1.11.0
