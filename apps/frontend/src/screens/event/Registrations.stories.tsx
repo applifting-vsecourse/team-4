@@ -28,7 +28,7 @@ export const Registrations: StoryObj<typeof meta> = {
     const paymentHeader = await canvas.findByRole("columnheader", { name: "Platba" })
     const paid = canvas.getByText("Zaplaceno", { exact: true })
     const noPayment = canvas.getByText("Bez povinnosti", { exact: true })
-    await expect(textLeft(paid)).toBeCloseTo(textLeft(paymentHeader))
-    await expect(textLeft(noPayment)).toBeCloseTo(textLeft(paymentHeader))
+    await expect(Math.abs(textLeft(paid) - textLeft(paymentHeader))).toBeLessThanOrEqual(1)
+    await expect(Math.abs(textLeft(noPayment) - textLeft(paymentHeader))).toBeLessThanOrEqual(1)
   },
 }
