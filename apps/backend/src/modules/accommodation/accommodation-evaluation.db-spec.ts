@@ -19,6 +19,9 @@ import {
 } from '@/testing/factories';
 import { Test } from '@nestjs/testing';
 
+// Several cases perform three worker-thread solves plus real database writes.
+jest.setTimeout(15_000);
+
 // S3-T4 against a real database: the evaluation of one term reads its rooms,
 // beds and participations as they are now, applies the rules, the organizer's
 // determinations and a manual order, and stores an immutable run. Examples
