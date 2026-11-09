@@ -57,7 +57,7 @@ export function GenderField({ id, value, onChange, isDisabled }: GenderFieldProp
         // only where the options stand in two columns.
         <div className="@container pl-6">
           <Field className="@md:w-1/2">
-            <FieldLabel htmlFor={otherId}>Vlastní odpověď</FieldLabel>
+            <FieldLabel htmlFor={otherId}>Vlastní odpověď (nepovinné)</FieldLabel>
             <Input
               id={otherId}
               value={value.genderOther ?? ""}

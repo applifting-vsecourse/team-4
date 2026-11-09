@@ -320,7 +320,7 @@ describe("the gender answer (F64)", () => {
     renderForm()
     await user.click(screen.getByLabelText(/1\. turnus/))
     await fillContact()
-    const wordsField = { name: "Vlastní odpověď" }
+    const wordsField = { name: "Vlastní odpověď (nepovinné)" }
     expect(screen.queryByRole("textbox", wordsField)).not.toBeInTheDocument()
 
     await user.click(screen.getByRole("radio", { name: "Jiná odpověď" }))
@@ -338,9 +338,9 @@ describe("the gender answer (F64)", () => {
     await fillContact()
 
     await user.click(screen.getByRole("radio", { name: "Jiná odpověď" }))
-    await user.type(screen.getByRole("textbox", { name: "Vlastní odpověď" }), "nebinární")
+    await user.type(screen.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" }), "nebinární")
     await user.click(screen.getByRole("radio", { name: "Žena" }))
-    expect(screen.queryByRole("textbox", { name: "Vlastní odpověď" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("textbox", { name: "Vlastní odpověď (nepovinné)" })).not.toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
 
     expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()

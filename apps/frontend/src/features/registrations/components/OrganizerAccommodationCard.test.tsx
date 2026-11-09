@@ -110,11 +110,11 @@ describe("OrganizerAccommodationCard", () => {
     })
     put.mockReturnValue(respondWith({ ...registration, genderOther: "agender" }))
     renderCard(registration)
-    expect(screen.getByText("Vlastní odpověď")).toBeInTheDocument()
+    expect(screen.getByText("Vlastní odpověď (nepovinné)")).toBeInTheDocument()
     expect(screen.getByText("nebinární")).toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Opravit" }))
-    const words = screen.getByRole("textbox", { name: "Vlastní odpověď" })
+    const words = screen.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" })
     expect(words).toHaveValue("nebinární")
     await user.clear(words)
     await user.type(words, " agender ")
