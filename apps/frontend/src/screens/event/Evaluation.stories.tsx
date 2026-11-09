@@ -32,9 +32,7 @@ export const Evaluation: StoryObj<typeof meta> = {
       Math.abs(textLeft(status) - textLeft(canvas.getByRole("columnheader", { name: "Stav" }))),
     ).toBeLessThanOrEqual(1)
     await expect(
-      Math.abs(
-        textLeft(proposal) - textLeft(canvas.getByRole("columnheader", { name: "Návrh" })),
-      ),
+      Math.abs(textLeft(proposal) - textLeft(canvas.getByRole("columnheader", { name: "Návrh" }))),
     ).toBeLessThanOrEqual(1)
 
     const rank = canvas.getByRole("columnheader", { name: "Pořadí" })
