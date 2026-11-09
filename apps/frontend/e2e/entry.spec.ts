@@ -41,13 +41,17 @@ test("the landing page leads to the organizer and participant pages, which survi
   page,
 }) => {
   await page.goto("/")
-  await page.getByRole("link", { name: "Více pro organizátory" }).click()
+  const audience = page.getByRole("navigation", { name: "Informace o akc.io" })
+  await audience.getByRole("link", { name: "Pro organizátory" }).click()
   await expect(page).toHaveURL(/\/for-organizers$/)
   await page.reload()
   await expect(page.getByRole("heading", { name: "Pro organizátory", level: 1 })).toBeVisible()
 
   const other = page.getByRole("navigation", { name: "Další stránky" })
-  await other.getByRole("link", { name: "Pro účastníky" }).click()
+  await page.setViewportSize({ width: 360, height: 800 })
+  await page.getByRole("button", { name: "Otevřít menu" }).click()
+  await audience.getByRole("link", { name: "Pro účastníky" }).click()
+  await expect(page.getByRole("dialog", { name: "Menu" })).toBeHidden()
   await expect(page).toHaveURL(/\/for-participants$/)
   await page.reload()
   await expect(page.getByRole("heading", { name: "Pro účastníky", level: 1 })).toBeVisible()

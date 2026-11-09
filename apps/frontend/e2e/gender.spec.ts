@@ -69,7 +69,7 @@ test("the answer from the form is shown to both sides, changed and corrected", a
 
   await page.getByRole("button", { name: "Opravit" }).click()
   await page.getByRole("radio", { name: "Jiná odpověď" }).check()
-  await page.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" }).fill("nebinární")
+  await page.getByRole("textbox", { name: "Vlastní odpověď" }).fill("nebinární")
   await page.getByRole("button", { name: "Uložit" }).click()
   await expect(definition(page, ANSWER)).toHaveText("Jiná odpověď")
   await expect(definition(page, OWN_WORDS)).toHaveText("nebinární")
@@ -100,7 +100,7 @@ test("the own words of Jiná odpověď are sent from the form and changed in the
   await participant.getByLabel("E-mail").fill(eva.email)
   await participant.getByLabel("Telefon").fill("+420 777 123 456")
   await participant.getByRole("radio", { name: "Jiná odpověď" }).check()
-  await participant.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" }).fill("nebinární")
+  await participant.getByRole("textbox", { name: "Vlastní odpověď" }).fill("nebinární")
   await participant.getByRole("button", { name: "Odeslat přihlášku" }).click()
   await expect(participant.getByRole("region", { name: "Přihláška je uložená" })).toBeVisible()
 
@@ -112,7 +112,7 @@ test("the own words of Jiná odpověď are sent from the form and changed in the
   await expect(definition(participant, OWN_WORDS)).toHaveText("nebinární")
 
   await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
-  const words = participant.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" })
+  const words = participant.getByRole("textbox", { name: "Vlastní odpověď" })
   await expect(words).toHaveValue("nebinární")
   await words.fill("agender")
   await participant.getByRole("button", { name: "Zkontrolovat změny" }).click()

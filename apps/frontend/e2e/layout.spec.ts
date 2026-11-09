@@ -54,16 +54,15 @@ test("a page scrollbar that appears or disappears does not move the layout", asy
 
 // Where a Přihlášky view puts its heading and the content below the heading row.
 async function viewTop(page: Page) {
-  const heading = page.getByRole("tabpanel").getByRole("heading", { level: 2 }).first()
+  const panel = page.locator('[role="tabpanel"][data-state="active"]').first()
+  const heading = panel.getByRole("heading", { level: 2 }).first()
   await expect(heading).toBeVisible()
   const box = (await heading.boundingBox())!
-  const below = page
-    .getByRole("tabpanel")
-    .locator("section")
-    .first()
-    .locator(":scope > :nth-child(2)")
+  const below = panel.locator("section").first().locator(":scope > :nth-child(2)")
   await expect(below).toBeVisible()
-  const content = (await below.boundingBox())!
+  await expect.poll(async () => (await below.boundingBox()) !== null).toBe(true)
+  const content = await below.boundingBox()
+  if (!content) throw new Error("The active registrations view has no measurable content box")
   return { headingMiddle: Math.round(box.y + box.height / 2), contentTop: Math.round(content.y) }
 }
 
