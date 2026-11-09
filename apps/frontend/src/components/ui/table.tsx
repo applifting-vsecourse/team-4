@@ -4,11 +4,22 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+type TableProps = React.ComponentProps<"table"> & {
+  /** Names the scrollable table region for keyboard and screen-reader users. */
+  containerLabel?: string
+}
+
+function Table({ className, containerLabel, ...props }: TableProps) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      role={containerLabel ? "region" : undefined}
+      aria-label={containerLabel}
+      tabIndex={containerLabel ? 0 : undefined}
+      className={cn(
+        "relative w-full overflow-x-auto",
+        containerLabel && "rounded-sm focus-visible:outline-2 focus-visible:outline-ring",
+      )}
     >
       <table
         data-slot="table"

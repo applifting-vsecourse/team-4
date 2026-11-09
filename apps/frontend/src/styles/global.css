@@ -253,8 +253,7 @@
 ):not(:focus-visible, [aria-invalid="true"]) {
   box-shadow: none;
 }
-/* In light mode form fields take the card surface, so they stand out from the paper page the way
-   the filled fields of the dark theme do. On a card they keep its surface. */
+/* In light mode form fields use the muted surface so they stay distinct on both the page and cards. */
 :root:not(.dark)
   :is(
     [data-slot="input"],
@@ -267,7 +266,7 @@
     textarea[data-slot="form-control"],
     button[data-slot="form-control"]:not([role="checkbox"][data-state="checked"])
   ) {
-  background-color: var(--card);
+  background-color: var(--muted);
 }
 [data-variant][data-size]:not(
     [data-variant="ghost"],
@@ -281,6 +280,11 @@
 [data-slot="table-head"] {
   font-weight: 700;
   color: var(--foreground);
+}
+/* Let a leading status badge's fill extend into the gutter while its text lines up with the column. */
+[data-slot="table-cell"]:not(.text-right, .text-center, .text-end)
+  > [data-slot="badge"]:first-child {
+  margin-inline-start: calc(-2 * var(--spacing) - 1px);
 }
 :is(h1, h2, h3, [data-slot="card-title"]) {
   font-weight: 800;

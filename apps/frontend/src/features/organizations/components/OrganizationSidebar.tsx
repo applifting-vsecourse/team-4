@@ -47,43 +47,45 @@ export function OrganizationSidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Organizace</SidebarGroupLabel>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isEventsActive}
-              >
-                <Link
-                  to={ROUTES.organization}
-                  params={{ organizationId }}
-                >
-                  <CalendarCog />
-                  <span>Akce a turnusy</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton disabled>
-                <BarChart3 aria-hidden />
-                <span>Reporty</span>
-                <Badge
-                  variant="secondary"
-                  className="ml-auto"
-                >
-                  Připravujeme
-                </Badge>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-        {eventId ? (
+        <nav aria-label="Navigace organizace a akce">
           <SidebarGroup>
-            <SidebarGroupLabel>Akce</SidebarGroupLabel>
-            {eventNavigation}
+            <SidebarGroupLabel>Organizace</SidebarGroupLabel>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isEventsActive}
+                >
+                  <Link
+                    to={ROUTES.organization}
+                    params={{ organizationId }}
+                  >
+                    <CalendarCog />
+                    <span>Akce a turnusy</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton disabled>
+                  <BarChart3 aria-hidden />
+                  <span>Reporty</span>
+                  <Badge
+                    variant="secondary"
+                    className="ml-auto"
+                  >
+                    Připravujeme
+                  </Badge>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
           </SidebarGroup>
-        ) : null}
+          {eventId ? (
+            <SidebarGroup>
+              <SidebarGroupLabel>Akce</SidebarGroupLabel>
+              {eventNavigation}
+            </SidebarGroup>
+          ) : null}
+        </nav>
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">{footer}</SidebarFooter>

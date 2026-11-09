@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { LogOut, Pencil } from "lucide-react"
+import { CalendarX, Pencil } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
@@ -18,16 +18,12 @@ export function RegistrationChangeActions({
   onCancelRegistration,
 }: RegistrationChangeActionsProps) {
   return (
-    <div className="flex flex-wrap gap-2">
-      <Button
-        variant="outline"
-        onClick={onCancelRegistration}
-      >
-        <LogOut />
-        Odhlásit se z akce
-      </Button>
+    <div className="flex flex-col gap-2 sm:flex-row">
       {registrationId ? (
-        <Button asChild>
+        <Button
+          asChild
+          className="w-full sm:w-auto"
+        >
           <Link
             to={ROUTES.myRegistrationEdit}
             params={{ registrationId }}
@@ -42,6 +38,14 @@ export function RegistrationChangeActions({
           Upravit přihlášku
         </Button>
       )}
+      <Button
+        variant="outline"
+        className="w-full sm:w-auto"
+        onClick={onCancelRegistration}
+      >
+        <CalendarX />
+        Zrušit účast
+      </Button>
     </div>
   )
 }

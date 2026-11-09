@@ -62,7 +62,8 @@ function Submitted() {
               Přihláška je uložená
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Tereza Nováková, tereza.novakova@seznam.cz. Přijato 3. 3. 2027 9:14 (Europe/Prague).
+              Tereza Nováková, tereza.novakova@seznam.cz. Přihláška přijata 3. 3. 2027 9:14 (čas v
+              ČR).
             </p>
           </div>
         </div>

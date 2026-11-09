@@ -252,9 +252,9 @@ describe("usability (S4-C03)", () => {
     expect(screen.getByRole("combobox", { name: "Země a předvolba" })).toHaveTextContent("+420")
   })
 
-  it("marks required fields and explains the mark", () => {
+  it("marks required fields without a redundant form-wide note", () => {
     renderForm()
-    expect(screen.getByText(/Pole označená hvězdičkou/)).toBeInTheDocument()
+    expect(screen.queryByText(/Pole označená hvězdičkou/)).not.toBeInTheDocument()
     expect(screen.getByLabelText(/^Jméno/)).toBeRequired()
     expect(screen.getByLabelText(/^E-mail/)).toBeRequired()
     expect(screen.getByLabelText(/^Telefon/)).toBeRequired()
@@ -280,7 +280,7 @@ describe("the gender answer (F64)", () => {
   it("is voluntary: the form is sent without it as not answered", async () => {
     post.mockReturnValue(respondWith(RESULT))
     renderForm()
-    expect(screen.getByRole("group", { name: "Pohlaví pro ubytování (nepovinné)" })).toBeVisible()
+    expect(screen.getByRole("group", { name: "Pohlaví pro ubytování" })).toBeVisible()
     await user.click(screen.getByLabelText(/1\. turnus/))
     await fillContact()
 
@@ -320,7 +320,7 @@ describe("the gender answer (F64)", () => {
     renderForm()
     await user.click(screen.getByLabelText(/1\. turnus/))
     await fillContact()
-    const wordsField = { name: "Vlastní odpověď (nepovinné)" }
+    const wordsField = { name: "Vlastní odpověď" }
     expect(screen.queryByRole("textbox", wordsField)).not.toBeInTheDocument()
 
     await user.click(screen.getByRole("radio", { name: "Jiná odpověď" }))
@@ -338,14 +338,9 @@ describe("the gender answer (F64)", () => {
     await fillContact()
 
     await user.click(screen.getByRole("radio", { name: "Jiná odpověď" }))
-    await user.type(
-      screen.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" }),
-      "nebinární",
-    )
+    await user.type(screen.getByRole("textbox", { name: "Vlastní odpověď" }), "nebinární")
     await user.click(screen.getByRole("radio", { name: "Žena" }))
-    expect(
-      screen.queryByRole("textbox", { name: "Vlastní odpověď (nepovinné)" }),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByRole("textbox", { name: "Vlastní odpověď" })).not.toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
 
     expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
@@ -395,7 +390,7 @@ describe("submitting", () => {
     expect(valueOf("K úhradě za potvrzené termíny")).toBe("4 500,50 Kč")
     expect(valueOf("Zaplaceno")).toBe("0 Kč")
     expect(valueOf("Zbývá zaplatit")).toBe("4 500,50 Kč")
-    expect(valueOf("Datum připomenutí platby")).toBe("28. 6. 2027 (Europe/Prague)")
+    expect(valueOf("Datum připomenutí platby")).toBe("28. 6. 2027")
     expect(valueOf("Číslo účtu")).toBe("2501234567/2010")
     expect(valueOf("Variabilní symbol")).toBe("2027094")
     expect(screen.queryByText(/splatnost/i)).not.toBeInTheDocument()

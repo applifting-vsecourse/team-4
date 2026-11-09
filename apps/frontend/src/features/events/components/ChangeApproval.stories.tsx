@@ -26,7 +26,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import {
   Sidebar,
   SidebarContent,
@@ -62,8 +61,7 @@ const eventSections = [
   { label: "Nastavení", icon: Settings, isActive: true },
 ]
 
-// The organization shell of the Nastavení page, showing the Přihlašování
-// card: its state and public link stay as they are, the new block follows.
+// The Nastavení page with separate registration and change approval cards.
 function SettingsPage(props: ChangeApprovalSettingsProps) {
   return (
     <SidebarProvider style={SIDEBAR_STYLE}>
@@ -125,7 +123,10 @@ function SettingsPage(props: ChangeApprovalSettingsProps) {
             title="Nastavení"
             badge={<Badge variant="secondary">Přihlašování otevřeno</Badge>}
           />
-          <section aria-labelledby="registration-heading">
+          <section
+            aria-labelledby="registration-heading"
+            className="mb-10"
+          >
             <h2
               id="registration-heading"
               className="mb-4 text-h4"
@@ -157,12 +158,11 @@ function SettingsPage(props: ChangeApprovalSettingsProps) {
                       </Button>
                     </div>
                   </div>
-                  <Separator />
-                  <ChangeApprovalSettings {...props} />
                 </div>
               </CardContent>
             </Card>
           </section>
+          <ChangeApprovalSettings {...props} />
         </section>
       </SidebarInset>
     </SidebarProvider>

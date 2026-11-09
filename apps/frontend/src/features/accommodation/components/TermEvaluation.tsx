@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { CircleAlert, CircleCheck, ClipboardList, Ellipsis, Loader2, RefreshCw } from "lucide-react"
 
+import { HorizontalOverflowViewport } from "@/components/HorizontalOverflowViewport"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -206,7 +207,7 @@ function OrderTable({ people, attribute, decisions, renderName }: OrderTableProp
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-right">Pořadí</TableHead>
+              <TableHead className="w-0 text-right">Pořadí</TableHead>
               <TableHead>Účastník</TableHead>
               {attribute ? <TableHead>{attribute}</TableHead> : null}
               <TableHead className="hidden @2xl:table-cell">Stav</TableHead>
@@ -247,16 +248,16 @@ function OrderTable({ people, attribute, decisions, renderName }: OrderTableProp
                 </TableCell>
                 <TableCell className="whitespace-normal">
                   {person.result ? (
-                    <div className="space-y-1">
+                    <>
                       <Badge variant={RESULT_BADGE[person.result].variant}>
                         {RESULT_BADGE[person.result].label}
                       </Badge>
                       {person.reason ? (
-                        <p className="text-muted-foreground">
+                        <p className="mt-1 text-muted-foreground">
                           {reasonText(person.reason, attribute ?? "")}
                         </p>
                       ) : null}
-                    </div>
+                    </>
                   ) : (
                     "—"
                   )}
@@ -281,8 +282,9 @@ function OrderTable({ people, attribute, decisions, renderName }: OrderTableProp
 function StatusAlert({
   status,
   conflict,
+  mode,
   onRecalculate,
-}: Pick<TermEvaluationProps, "status" | "conflict" | "onRecalculate">) {
+}: Pick<TermEvaluationProps, "status" | "conflict" | "mode" | "onRecalculate">) {
   switch (status) {
     case "stale":
       return (
@@ -316,6 +318,11 @@ function StatusAlert({
         <Alert>
           <CircleAlert />
           <AlertTitle>Termín zatím nebyl vyhodnocen</AlertTitle>
+          <AlertDescription id="evaluation-not-ready-reason">
+            {mode === "automatic"
+              ? "Návrh vznikne automaticky; můžete ho vytvořit hned tlačítkem Přepočítat. Hromadné potvrzení bude dostupné po výpočtu."
+              : "V ručním režimu vytvořte návrh tlačítkem Přepočítat. Hromadné potvrzení bude dostupné po výpočtu."}
+          </AlertDescription>
         </Alert>
       )
     default:
@@ -365,8 +372,11 @@ export function TermEvaluation({
         onValueChange={onSelectTerm}
       >
         {/* Many terms scroll inside their row, never the page (360 px). */}
-        <div className="max-w-full overflow-x-auto pb-1">
-          <TabsList aria-label="Termín">
+        <HorizontalOverflowViewport>
+          <TabsList
+            aria-label="Termín"
+            className="w-max min-w-full"
+          >
             {terms.map((term) => (
               <TabsTrigger
                 key={term.id}
@@ -376,7 +386,7 @@ export function TermEvaluation({
               </TabsTrigger>
             ))}
           </TabsList>
-        </div>
+        </HorizontalOverflowViewport>
 
         <TabsContent value={selectedTermId}>
           {isLoadFailed ? (
@@ -394,16 +404,20 @@ export function TermEvaluation({
                         <p className="font-medium">
                           {selectedTerm?.label}, {selectedTerm?.dates}
                         </p>
-                        <Badge variant={badge.variant}>{badge.label}</Badge>
+                        {status === "none" ? null : (
+                          <Badge variant={badge.variant}>{badge.label}</Badge>
+                        )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {evaluatedAt
-                          ? `Návrh z ${evaluatedAt}${isConfirmable(status) ? "" : " (neaktuální)"} · `
-                          : ""}
-                        {mode === "automatic"
-                          ? "Aktualizuje se automaticky"
-                          : "Aktualizuje se ručně"}
-                      </p>
+                      {status === "none" ? null : (
+                        <p className="text-sm text-muted-foreground">
+                          {evaluatedAt
+                            ? `Návrh z ${evaluatedAt}${isConfirmable(status) ? "" : " (neaktuální)"} · `
+                            : ""}
+                          {mode === "automatic"
+                            ? "Aktualizuje se automaticky"
+                            : "Aktualizuje se ručně"}
+                        </p>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -417,6 +431,11 @@ export function TermEvaluation({
                       {onConfirmAll ? (
                         <Button
                           disabled={!canConfirm}
+                          aria-describedby={
+                            !canConfirm && status === "none"
+                              ? "evaluation-not-ready-reason"
+                              : undefined
+                          }
                           onClick={onConfirmAll}
                         >
                           Potvrdit všechny vhodné{canConfirm ? ` (${suitable})` : ""}
@@ -437,6 +456,7 @@ export function TermEvaluation({
               <StatusAlert
                 status={status}
                 conflict={conflict}
+                mode={mode}
                 onRecalculate={onRecalculate}
               />
 

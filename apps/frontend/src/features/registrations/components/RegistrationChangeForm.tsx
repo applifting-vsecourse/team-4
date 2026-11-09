@@ -231,8 +231,11 @@ export function RegistrationChangeForm({
                           disabled={chosen[term.id]?.isCancelled}
                           onValueChange={(selectedTermId) => choose(term.id, { selectedTermId })}
                         >
-                          <SelectTrigger id={`change-term-${term.id}`}>
-                            <SelectValue />
+                          <SelectTrigger
+                            id={`change-term-${term.id}`}
+                            className="w-full min-w-0"
+                          >
+                            <SelectValue className="min-w-0 flex-1" />
                           </SelectTrigger>
                           <SelectContent>
                             {term.options.map((option) => (

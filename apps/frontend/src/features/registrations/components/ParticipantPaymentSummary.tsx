@@ -87,9 +87,7 @@ export function ParticipantPaymentSummary({
 
       {instructions ? (
         <dl className="space-y-2 border-t border-border pt-3 text-sm">
-          <Row label="Datum připomenutí platby">
-            {formatPragueDate(instructions.reminderAt)} (Europe/Prague)
-          </Row>
+          <Row label="Datum připomenutí platby">{formatPragueDate(instructions.reminderAt)}</Row>
           {shouldShowAccount ? (
             <>
               <Row label="Číslo účtu">
@@ -116,5 +114,5 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function Amount({ minor, className }: { minor: number; className?: string }) {
-  return <span className={cn("font-mono", className)}>{formatCzk(minor)}</span>
+  return <span className={cn("font-mono tabular-nums", className)}>{formatCzk(minor)}</span>
 }

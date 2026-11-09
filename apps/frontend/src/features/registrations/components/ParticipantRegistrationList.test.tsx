@@ -146,7 +146,7 @@ describe("ParticipantRegistrationList", () => {
     expect(value("K úhradě za potvrzené termíny")).toBe("4 500 Kč")
     expect(value("Zaplaceno")).toBe("0 Kč")
     expect(value("Zbývá zaplatit")).toBe("4 500 Kč")
-    expect(value("Datum připomenutí platby")).toBe("28. 6. 2027 (Europe/Prague)")
+    expect(value("Datum připomenutí platby")).toBe("28. 6. 2027")
     expect(within(mixed).getByRole("link", { name: /Detail přihlášky/ })).toHaveAttribute(
       "href",
       `/my-registrations/${MIXED.id}`,

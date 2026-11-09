@@ -77,7 +77,7 @@ export function EvaluationModeSettings({
             ) : null}
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="justify-end">
           <Button
             disabled={isSaving}
             onClick={() => onSave?.(selected)}

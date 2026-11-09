@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
+import { expect, within } from "storybook/test"
 
 import { eventUrl, organizerBackend, screenMeta, showsHeading } from "@/screens/screenMeta"
 
@@ -13,5 +14,29 @@ const meta = {
 
 export default meta
 
+function textLeft(element: HTMLElement) {
+  const range = document.createRange()
+  range.selectNodeContents(element)
+  return range.getBoundingClientRect().left
+}
+
 /** Přihlášky → Vyhodnocení: the current proposal of Turnus 1 with its queues and order (S3-01). */
-export const Evaluation: StoryObj<typeof meta> = { play: showsHeading("Pořadí") }
+export const Evaluation: StoryObj<typeof meta> = {
+  play: async (context) => {
+    await showsHeading("Pořadí")(context)
+    const { canvas } = context
+    const row = within(canvas.getByRole("row", { name: /Anna Procházková/ }))
+    const status = within(row.getByRole("cell", { name: /^Náhradník$/ })).getByText("Náhradník")
+    const proposal = within(row.getByRole("cell", { name: /^Vhodný$/ })).getByText("Vhodný")
+    await expect(textLeft(status)).toBeCloseTo(
+      textLeft(canvas.getByRole("columnheader", { name: "Stav" })),
+    )
+    await expect(textLeft(proposal)).toBeCloseTo(
+      textLeft(canvas.getByRole("columnheader", { name: "Návrh" })),
+    )
+
+    const rank = canvas.getByRole("columnheader", { name: "Pořadí" })
+    const inset = textLeft(rank) - rank.getBoundingClientRect().left
+    await expect(inset).toBeCloseTo(parseFloat(getComputedStyle(rank).paddingLeft))
+  },
+}

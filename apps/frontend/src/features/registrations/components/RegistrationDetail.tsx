@@ -3,7 +3,7 @@ import { Loader2, RefreshCw } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   formatCalendarDate,
   formatCalendarRange,
@@ -59,7 +59,7 @@ export function RegistrationDetail({
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <p className="text-sm text-muted-foreground">
-          Přijato {formatPragueDateTime(registration.receivedAt)}
+          obdržena {formatPragueDateTime(registration.receivedAt)}
           {hasRefreshFailed ? null : ` · aktualizováno ${updated}`}
         </p>
         <Button
@@ -172,17 +172,31 @@ function PaymentSummary({ registration }: { registration: Detail }) {
     <Card>
       <CardHeader>
         <CardTitle>Platba</CardTitle>
+        <CardAction>
+          <PaymentStateBadge state={registration.paymentState} />
+        </CardAction>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <PaymentStateBadge state={registration.paymentState} />
           <dl className="space-y-2 text-sm">
-            <Row label="Cena vybraných termínů">{formatCzk(registration.selectedPriceMinor)}</Row>
-            <Row label="Částka za potvrzené termíny">{formatCzk(registration.amountDueMinor)}</Row>
-            <Row label="Přijato">{formatCzk(registration.paidMinor)}</Row>
+            <Row label="Cena vybraných termínů">
+              <span className="font-mono tabular-nums">
+                {formatCzk(registration.selectedPriceMinor)}
+              </span>
+            </Row>
+            <Row label="Částka za potvrzené termíny">
+              <span className="font-mono tabular-nums">
+                {formatCzk(registration.amountDueMinor)}
+              </span>
+            </Row>
+            <Row label="Zaplaceno">
+              <span className="font-mono tabular-nums">{formatCzk(registration.paidMinor)}</span>
+            </Row>
             {hasNoObligation ? null : (
               <Row label={balance.label}>
-                <span className="font-medium">{balance.amount ?? formatCzk(0)}</span>
+                <span className="font-mono font-medium tabular-nums">
+                  {balance.amount ?? formatCzk(0)}
+                </span>
               </Row>
             )}
             {registration.reminderAt ? (

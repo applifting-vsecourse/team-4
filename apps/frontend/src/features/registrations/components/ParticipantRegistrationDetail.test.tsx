@@ -130,7 +130,7 @@ describe("ParticipantRegistrationDetail", () => {
     expect(value("Zbývá zaplatit")).toBe("2 500 Kč")
     expect(value("Číslo účtu")).toBe("2501234567/2010")
     expect(value("Variabilní symbol")).toBe("2610190042")
-    expect(value("Datum připomenutí platby")).toBe("28. 6. 2027 (Europe/Prague)")
+    expect(value("Datum připomenutí platby")).toBe("28. 6. 2027")
 
     const history = screen.getByText("Přijaté platby").closest<HTMLElement>("[data-slot=card]")!
     expect(within(history).getByText("15. 10. 2026")).toBeInTheDocument()

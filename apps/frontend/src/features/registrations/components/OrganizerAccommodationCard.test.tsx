@@ -114,7 +114,7 @@ describe("OrganizerAccommodationCard", () => {
     expect(screen.getByText("nebinární")).toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Opravit" }))
-    const words = screen.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" })
+    const words = screen.getByRole("textbox", { name: "Vlastní odpověď" })
     expect(words).toHaveValue("nebinární")
     await user.clear(words)
     await user.type(words, " agender ")
