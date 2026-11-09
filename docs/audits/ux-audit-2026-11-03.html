@@ -6,13 +6,14 @@
 <title>UX audit akc.io</title>
 <style>
   :root {
-    --bg: #f7efd9;
-    --surface: #fffbef;
-    --text: #1c130b;
-    --muted: #6b5f50;
-    --border: #1c130b;
-    --hairline: #ddd2b8;
-    --accent: #b7ea2a;
+    --bg: oklch(0.955 0.035 95);
+    --surface: oklch(0.99 0.018 95);
+    --text: oklch(0.17 0.03 60);
+    --muted: oklch(0.42 0.04 60);
+    --border: oklch(0.78 0.04 85);
+    --hairline: oklch(0.78 0.04 85 / 0.55);
+    --accent: oklch(0.87 0.21 125);
+    --accent-text: oklch(0.17 0.03 60);
     --high: #b42318;
     --high-bg: #fde3df;
     --medium: #9a5b00;
@@ -22,23 +23,23 @@
     --ok: #1f7a3d;
     color-scheme: light;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #1c130b;
-      --surface: #261b11;
-      --text: #f7efd9;
-      --muted: #b7a98f;
-      --border: #5c4d3b;
-      --hairline: #3d3022;
-      --high: #ff8a7a;
-      --high-bg: #3b1a14;
-      --medium: #f5b74a;
-      --medium-bg: #3a2a10;
-      --low: #8ec0e6;
-      --low-bg: #16283a;
-      --ok: #7fd69a;
-      color-scheme: dark;
-    }
+  :root[data-theme="dark"] {
+    --bg: oklch(0.175 0.012 262);
+    --surface: oklch(0.212 0.014 262);
+    --text: oklch(0.93 0.006 262);
+    --muted: oklch(0.74 0.015 262);
+    --border: oklch(0.33 0.014 262);
+    --hairline: oklch(0.33 0.014 262);
+    --accent: oklch(0.88 0.19 128);
+    --accent-text: oklch(0.21 0.035 135);
+    --high: oklch(0.81 0.11 23);
+    --high-bg: oklch(0.285 0.07 23);
+    --medium: oklch(0.82 0.14 72);
+    --medium-bg: oklch(0.3 0.06 65);
+    --low: oklch(0.78 0.09 240);
+    --low-bg: oklch(0.27 0.035 250);
+    --ok: oklch(0.8 0.15 152);
+    color-scheme: dark;
   }
   * { box-sizing: border-box; }
   body {
@@ -49,6 +50,9 @@
   }
   main { max-width: 1040px; margin: 0 auto; padding: 40px 16px 80px; }
   header .kicker { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .theme-toggle { float: right; margin: 0 0 12px 16px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .theme-toggle:hover { background: var(--accent); color: var(--accent-text); }
+  .theme-toggle:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
   h1 { font-size: clamp(28px, 5vw, 44px); line-height: 1.1; margin: 8px 0 12px; }
   h1 mark { background: var(--accent); color: #1c130b; padding: 0 .2em; }
   h2 { font-size: 24px; margin: 48px 0 16px; }
@@ -86,6 +90,13 @@
   .figs { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
   ul.clean { padding-left: 1.2em; margin: 0 0 12px; }
   .ok { color: var(--ok); font-weight: 600; }
+  .fix-status { color: var(--ok); font-weight: 700; margin: 16px 0 4px; }
+  .scope-status { color: var(--medium); font-weight: 700; margin: 16px 0 4px; }
+  .followup { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 24px 0; }
+  .followup h2 { margin: 0 0 8px; }
+  .evidence-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: start; margin-top: 12px; }
+  .evidence-grid figure { min-width: 0; margin: 0; }
+  .evidence-grid img { width: 100%; max-width: 100%; }
   footer { margin-top: 56px; color: var(--muted); font-size: 14px; }
   @media (max-width: 560px) {
     .finding dl { grid-template-columns: 1fr; }
@@ -101,16 +112,23 @@
 <body>
 <main>
   <header>
+    <button class="theme-toggle" type="button" aria-pressed="false">Tmavý režim</button>
     <div class="kicker">akc.io · UX audit · Sprint 3 (#166)</div>
     <h1>UX audit <mark>akc.io</mark></h1>
     <p class="lead">Průchod veřejným webem, účastnickou částí a organizátorským dashboardem z pohledu PO: co uživatele zdrží, zmate nebo mu na telefonu zůstane skryté. Každý nález má místo výskytu, dopad a doporučení.</p>
   </header>
 
+  <section class="followup" aria-label="Stav zapracování UX auditu">
+    <h2>Stav po zapracování · 8. 11. 2026</h2>
+    <p><strong>10 nálezů zapracováno</strong> (#1, #3–10, #12), <strong>#13 již bylo vyřešeno</strong>. Nález #2 je mimo dohodnutý scope.</p>
+    <p>Nové snímky zachycují aktuální aplikaci nad lokálními demonstračními daty: mobil 360 × 800 px, desktop 1440 × 900 px. Původní snímky z auditu zůstávají jako výchozí stav; níže jsou doplněny snímky po úpravách.</p>
+  </section>
+
   <section class="stats" aria-label="Souhrn nálezů">
-    <div class="stat"><b>13</b><span>nálezů celkem</span></div>
+    <div class="stat"><b>12</b><span>nálezů celkem</span></div>
     <div class="stat high"><b>2</b><span>vysoká závažnost</span></div>
     <div class="stat medium"><b>6</b><span>střední závažnost</span></div>
-    <div class="stat low"><b>5</b><span>nízká závažnost</span></div>
+    <div class="stat low"><b>4</b><span>nízká závažnost</span></div>
   </section>
 
   <h2>Přehled nálezů</h2>
@@ -128,7 +146,6 @@
         <tr><td>8</td><td><span class="badge medium">Střední</span></td><td><a href="#f8">Šířka obsahu skáče mezi sekcemi akce</a></td><td>Sekce akce</td></tr>
         <tr><td>9</td><td><span class="badge low">Nízká</span></td><td><a href="#f9">Částky střídají dvě písma</a></td><td>Přihlášky, detail, Moje přihlášky</td></tr>
         <tr><td>10</td><td><span class="badge low">Nízká</span></td><td><a href="#f10">„Přijato“ ve dvou významech</a></td><td>Detail přihlášky</td></tr>
-        <tr><td>11</td><td><span class="badge low">Nízká</span></td><td><a href="#f11">Nerovnoměrné mezery ve veřejném formuláři</a></td><td>Veřejná přihláška</td></tr>
         <tr><td>12</td><td><span class="badge low">Nízká</span></td><td><a href="#f12">Rozcestník opakuje menu</a></td><td>Přehled akce</td></tr>
         <tr><td>13</td><td><span class="badge low">Nízká</span></td><td><a href="#f13">Zamčená úprava akce je slepá stránka</a></td><td>Nastavení → Upravit akci</td></tr>
       </tbody>
@@ -143,9 +160,16 @@
     <dl>
       <dt>Problém</dt><dd>Přepínač „Seznam přihlášek / Ke schválení / Vyhodnocení“ je širší než obrazovka. Třetí záložka končí uprostřed slova a nic nenaznačuje, že se dá posunout.</dd>
       <dt>Dopad</dt><dd>Organizátor na telefonu nenajde vyhodnocení termínu, tedy nejnovější funkci sprintu.</dd>
-      <dt>Doporučení</dt><dd>Záložky na úzkém displeji zalomit nebo zobrazit jako výběr (select), případně zkrátit popisky. Ověřit i stejný přepínač termínů ve vyhodnocení.</dd>
+      <dt>Doporučení</dt><dd>Na mobilu zachovat záložky v jednom řádku a dát zřetelně najevo posun do strany. Pás záložek má lícovat s pravým okrajem telefonu. Stejný vzor použít pro přepínač termínů ve vyhodnocení.</dd>
     </dl>
     <figure><img class="phone" src="ux-audit-2026-11-03/m-registrations-tabs-table.png" alt="Přihlášky na šířce 360 px: třetí záložka je useknutá na „Vyhodnoce“ a tabulka přihlášek končí uprostřed sloupce Termíny."><figcaption>Přihlášky na 360 px: „Vyhodnoce…“ a useknutá tabulka.</figcaption></figure>
+    <p class="fix-status">✓ Zapracováno · záložky zůstávají v jednom řádku a lze je posouvat do strany. Pravý okraj řádku lícuje s hranou telefonu a šipka ukazuje, že pokračují další záložky.</p>
+    <figure><img class="phone" src="ux-audit-2026-11-03/evidence-tabs-mobile.png" alt="Přihlášky na mobilu po úpravě: záložky zůstávají v jednom řádku a pravý okraj až k hraně obrazovky zobrazuje šipku pro posun do strany."><figcaption>Po úpravě · jeden řádek záložek s pravostranným posuvným vodítkem.</figcaption></figure>
+    <p>Filtry přihlášek navíc využívají celou šířku řádku; na širší obrazovce jsou přehledně vedle sebe.</p>
+    <div class="figs">
+      <figure><img class="phone" src="ux-audit-2026-11-03/evidence-registration-filters-mobile.png" alt="Filtry přihlášek na mobilu: každé výběrové pole vyplňuje dostupnou šířku řádku."><figcaption>Mobil · filtry přes celou šířku.</figcaption></figure>
+      <figure><img src="ux-audit-2026-11-03/evidence-registration-filters-desktop.png" alt="Filtry přihlášek na desktopu: tři výběrová pole jsou v jednom řádku a vyplňují dostupnou šířku."><figcaption>Desktop · tři filtry vedle sebe.</figcaption></figure>
+    </div>
   </article>
 
   <article class="finding" id="f2">
@@ -160,6 +184,7 @@
       <figure><img class="phone" src="ux-audit-2026-11-03/m-events-table.png" alt="Seznam akcí na 360 px: sloupec Místo je useknutý a další sloupce nejsou vidět."><figcaption>Akce a turnusy: z místa zbylo „Sokolovna…“.</figcaption></figure>
       <figure><img class="phone" src="ux-audit-2026-11-03/m-rooms-table.png" alt="Obsazenost po termínech na 360 px: sloupec Volná lůžka je useknutý."><figcaption>Ubytování: „Volná lů…“.</figcaption></figure>
     </div>
+    <p class="scope-status">Mimo scope · mobilní tabulky v tomto scope neupravujeme a nepřidáváme k nim nápovědu. Pojmenované oblasti přístupné klávesnicí zůstávají zachované. Pokud bude mobilní práce s tabulkami prioritou, navrhneme pro ně karty v některém z dalších sprintů.</p>
   </article>
 
   <article class="finding" id="f3">
@@ -168,9 +193,11 @@
     <dl>
       <dt>Problém</dt><dd>Nevratná akce „Odhlásit se z akce“ (zrušení účasti) je první tlačítko stránky. Hned nad ní je v hlavičce „Odhlásit se“, které jen ukončí přihlášení do aplikace. Stejné sloveso popisuje dvě zcela odlišné věci.</dd>
       <dt>Dopad</dt><dd>Účastník, který se chce jen odhlásit z aplikace, může omylem otevřít zrušení účasti, nebo naopak hledat zrušení účasti v hlavičce.</dd>
-      <dt>Doporučení</dt><dd>Přejmenovat na „Zrušit účast“ a přesunout až za „Upravit přihlášku“, ideálně na konec stránky.</dd>
+      <dt>Doporučení</dt><dd>Přejmenovat na „Zrušit účast“ a umístit obě akce na začátek detailu před přehled přihlášky; na telefonu mohou tlačítka zabrat celou šířku.</dd>
     </dl>
     <figure><img class="phone" src="ux-audit-2026-11-03/m-participant-actions.png" alt="Detail přihlášky účastníka: v hlavičce tlačítko Odhlásit se, pod ním první tlačítko Odhlásit se z akce, potom Upravit přihlášku a Aktualizovat."><figcaption>„Odhlásit se“ v hlavičce a „Odhlásit se z akce“ hned pod ní.</figcaption></figure>
+    <p class="fix-status">✓ Zapracováno · obě akce jsou nahoře pod názvem akce; „Zrušit účast“ je jasně pojmenované a na telefonu mají tlačítka celou šířku.</p>
+    <figure><img class="phone" src="ux-audit-2026-11-03/evidence-participant-actions-mobile.png" alt="Horní část detailu účastníka: tlačítka Upravit přihlášku a Zrušit účast jsou hned pod názvem akce a zabírají celou šířku."><figcaption>Po úpravě · akce před přehledem přihlášky, přehled začíná hned pod nimi.</figcaption></figure>
   </article>
 
   <article class="finding" id="f4">
@@ -178,20 +205,27 @@
     <div class="where">Moje přihlášky (seznam i detail) → Platba → Datum připomenutí platby · potvrzení po odeslání veřejné přihlášky („Přijato … (Europe/Prague)“)</div>
     <dl>
       <dt>Problém</dt><dd>Datum se zobrazuje jako „16. 9. 2026 (Europe/Prague)“, stejně tak čas přijetí na potvrzení přihlášky. Identifikátor z databáze časových pásem nic neříká běžnému účastníkovi.</dd>
-      <dt>Doporučení</dt><dd>Zobrazit jen datum. Pokud je pásmo potřeba, použít srozumitelný tvar, např. „(čas v ČR)“. Stejně jako v organizátorském detailu, kde pásmo uvedené není.</dd>
+      <dt>Doporučení</dt><dd>Čas zobrazit místně, bez technického názvu pásma a bez doplňujícího štítku o místním čase.</dd>
     </dl>
     <figure><img class="phone" src="ux-audit-2026-11-03/m-participant-payment.png" alt="Karta Platba v detailu přihlášky účastníka s textem 16. 9. 2026 (Europe/Prague)."><figcaption>„16. 9. 2026 (Europe/Prague)“.</figcaption></figure>
+    <p class="fix-status">✓ Zapracováno · čas se zobrazuje místně bez technického názvu pásma i bez dovysvětlujícího štítku.</p>
+    <div class="figs">
+      <figure><img class="phone" src="ux-audit-2026-11-03/evidence-participant-payment-mobile.png" alt="Detail účastníka po úpravě: datum připomenutí platby je uvedeno jako 16. 9. 2026 bez názvu časového pásma."><figcaption>Detail přihlášky · datum bez identifikátoru pásma.</figcaption></figure>
+      <figure><img class="phone" src="ux-audit-2026-11-03/evidence-registration-confirmation-mobile.png" alt="Potvrzení veřejné přihlášky: přihláška přijata 8. 11. 2026 v místním čase bez štítku časového pásma."><figcaption>Potvrzení přihlášky · místní čas bez štítku.</figcaption></figure>
+    </div>
   </article>
 
   <article class="finding" id="f5">
     <header><span class="num">5</span><h3>Nevyhodnocený termín hlásí čtyři stavy najednou</h3><span class="badge medium">Střední</span></header>
-    <div class="where">Přihlášky → Vyhodnocení · termín bez proběhlého vyhodnocení</div>
+    <div class="where">Přihlášky → Vyhodnocení · termín bez proběhlého vyhodnocení · desktopový viewport 1440 × 900 px</div>
     <dl>
       <dt>Problém</dt><dd>Současně je vidět „Bez návrhu“, „Aktualizuje se automaticky“, „Termín zatím nebyl vyhodnocen“ a „Bez platného návrhu“. „Potvrdit všechny vhodné“ je zakázané bez vysvětlení.</dd>
       <dt>Dopad</dt><dd>Není jasné, jestli má organizátor čekat na automatické vyhodnocení, nebo kliknout na „Přepočítat“.</dd>
       <dt>Doporučení</dt><dd>Jedno hlášení s dalším krokem, např. „Termín zatím nebyl vyhodnocen. Návrh vznikne automaticky, nebo ho spusťte tlačítkem Přepočítat.“ U zakázaného tlačítka uvést důvod.</dd>
     </dl>
-    <figure><img src="ux-audit-2026-11-03/d-evaluation-states.png" alt="Vyhodnocení termínu: štítek Bez návrhu, text Aktualizuje se automaticky, hlášení Termín zatím nebyl vyhodnocen, sloupec Podle návrhu s textem Bez platného návrhu a zakázané tlačítko Potvrdit všechny vhodné."><figcaption>Čtyři varianty téhož stavu a zakázané tlačítko.</figcaption></figure>
+    <figure><img src="ux-audit-2026-11-03/d-evaluation-states.png" alt="Vyhodnocení termínu: štítek Bez návrhu, text Aktualizuje se automaticky, hlášení Termín zatím nebyl vyhodnocen, sloupec Podle návrhu s textem Bez platného návrhu a zakázané tlačítko Potvrdit všechny vhodné."><figcaption>Před úpravou · desktopový viewport 1440 × 900 px, čtyři varianty téhož stavu a zakázané tlačítko.</figcaption></figure>
+    <p class="fix-status">✓ Zapracováno · jeden stavový popis vysvětluje další krok i proč hromadné potvrzení zatím není dostupné.</p>
+    <figure><img src="ux-audit-2026-11-03/evidence-evaluation-empty-desktop.png" alt="Vyhodnocení na desktopu po úpravě: jedno hlášení vysvětluje automatické vytvoření návrhu, tlačítko Přepočítat a podmínku hromadného potvrzení."><figcaption>Po úpravě · desktopový viewport 1440 × 900 px, panel nevyhodnoceného termínu s vysvětlením dalšího kroku.</figcaption></figure>
   </article>
 
   <article class="finding" id="f6">
@@ -202,6 +236,8 @@
       <dt>Doporučení</dt><dd>Povolit zkrácení popisku položky, nebo štítek nahradit ikonou s popiskem. Hlídat i delší názvy budoucích sekcí.</dd>
     </dl>
     <figure><img src="ux-audit-2026-11-03/d-sidebar-badge.png" alt="Postranní menu: štítek Připravujeme u položky Komunikace je na pravém okraji useknutý." style="max-width:240px"><figcaption>„Komunikace · Připravujem…“.</figcaption></figure>
+    <p class="fix-status">✓ Zapracováno · celý štítek „Připravujeme“ se vejde do postranního panelu.</p>
+    <figure><img src="ux-audit-2026-11-03/evidence-organizer-nav-desktop.png" alt="Postranní menu po úpravě: štítek Připravujeme vedle Komunikace je celý viditelný."><figcaption>Po úpravě · celé štítky v navigaci.</figcaption></figure>
   </article>
 
   <article class="finding" id="f7">
@@ -212,6 +248,8 @@
       <dt>Dopad</dt><dd>Uživatel čtečky obrazovky nemůže přeskočit mezi menu a obsahem pomocí oblastí; musí procházet prvek po prvku.</dd>
       <dt>Doporučení</dt><dd>Postranní panel obalit do <code>&lt;nav aria-label="Navigace akce"&gt;</code> a obsah stránky do <code>&lt;main&gt;</code>.</dd>
     </dl>
+    <p class="fix-status">✓ Zapracováno · navigace organizace má přístupný název a obsah dashboardu je v oblasti main.</p>
+    <figure><img src="ux-audit-2026-11-03/evidence-dashboard-main-desktop.png" alt="Aktuální přehled akce v organizátorském dashboardu s navigací organizace a hlavní oblastí obsahu."><figcaption>Aktuální UI · přehled akce s pojmenovanou navigací a oblastí main.</figcaption></figure>
   </article>
 
   <article class="finding" id="f8">
@@ -221,6 +259,13 @@
       <dt>Problém</dt><dd>Každá sekce téže akce má jinou šířku a levý okraj obsahu: Přihlášky začínají u 336 px, Přehled a Nastavení u 400 px, Upravit akci u 560 px. Drobečková navigace a nadpis při přepínání sekcí „skáčou“.</dd>
       <dt>Doporučení</dt><dd>Sjednotit kontejner stránky: stejný levý okraj pro všechny sekce, užší sloupec jen uvnitř formulářů.</dd>
     </dl>
+    <p class="fix-status">✓ Zapracováno · přehled, přihlášky, nastavení i úprava akce sdílejí stejný levý okraj obsahu.</p>
+    <div class="evidence-grid">
+      <figure><img src="ux-audit-2026-11-03/evidence-overview-desktop.png" alt="Přehled akce po sjednocení šířky obsahu."><figcaption>Přehled</figcaption></figure>
+      <figure><img src="ux-audit-2026-11-03/evidence-registrations-desktop.png" alt="Přihlášky po sjednocení šířky obsahu."><figcaption>Přihlášky</figcaption></figure>
+      <figure><img src="ux-audit-2026-11-03/evidence-settings-desktop.png" alt="Nastavení po sjednocení šířky obsahu."><figcaption>Nastavení</figcaption></figure>
+      <figure><img src="ux-audit-2026-11-03/evidence-edit-event-desktop.png" alt="Uzamčená stránka Upravit akci: upozornění nyní vyplňuje společnou šířku obsahu; formuláře zůstávají úzké pouze při editaci."><figcaption>Upravit akci · upozornění na šířku obsahu, úzký sloupec vyhrazený pro formulář.</figcaption></figure>
+    </div>
   </article>
 
   <article class="finding" id="f9">
@@ -228,9 +273,18 @@
     <div class="where">Seznam přihlášek (Dluh, Přeplatek), Přijaté platby, Moje přihlášky → Platba</div>
     <dl>
       <dt>Problém</dt><dd>Stejné údaje o penězích jsou jednou v neproporcionálním písmu („Dluh 2 500 Kč“, „2 000 Kč“ v Přijatých platbách, celá karta Platba u účastníka), jinde proporcionální (karta Platba u organizátora).</dd>
-      <dt>Doporučení</dt><dd>Pro částky použít jedno písmo s tabulkovými číslicemi (<code>tabular-nums</code>). Neproporcionální písmo ponechat jen pro variabilní symbol a číslo účtu.</dd>
+      <dt>Doporučení</dt><dd>Částky zobrazovat jednotně monospace s tabulárními číslicemi napříč seznamem přihlášek, organizátorským i účastnickým detailem a historií plateb. Písmo monospace ponechat také pro variabilní symbol a číslo účtu.</dd>
     </dl>
-    <figure><img src="ux-audit-2026-11-03/d-registrations-amounts.png" alt="Seznam přihlášek: částky Dluh a Přeplatek ve sloupci Platba jsou v neproporcionálním písmu, ostatní text proporcionálně."><figcaption>Sloupec Platba v seznamu přihlášek.</figcaption></figure>
+    <p>Před úpravou</p>
+    <div class="evidence-grid">
+      <figure><img src="ux-audit-2026-11-03/d-registrations-amounts.png" alt="Před úpravou: částky Dluh a Přeplatek v tabulce jsou monospace."><figcaption>Seznam přihlášek · částky monospace.</figcaption></figure>
+      <figure><img src="ux-audit-2026-11-03/evidence-registration-payment-font-before-desktop.png" alt="Před úpravou: částky v organizátorském detailu přihlášky jsou proporcionálním písmem."><figcaption>Organizátorský detail · částky běžným písmem.</figcaption></figure>
+    </div>
+    <p class="fix-status">✓ Zapracováno · částky v seznamu, organizátorském a účastnickém detailu i historii plateb používají monospace s tabulárními číslicemi.</p>
+    <div class="evidence-grid">
+      <figure><img src="ux-audit-2026-11-03/evidence-registration-amounts-current-desktop.png" alt="Po úpravě: částky Dluh a Přeplatek v tabulce používají monospace s tabulárními číslicemi."><figcaption>Po úpravě · seznam přihlášek.</figcaption></figure>
+      <figure><img src="ux-audit-2026-11-03/evidence-registration-detail-desktop.png" alt="Po úpravě: částky v organizátorském detailu i historii plateb používají stejné monospace písmo s tabulárními číslicemi."><figcaption>Po úpravě · organizátorský detail a přijaté platby (desktop, 1440 × 900 px).</figcaption></figure>
+    </div>
   </article>
 
   <article class="finding" id="f10">
@@ -238,19 +292,11 @@
     <div class="where">Správa akce → Přihlášky → detail přihlášky</div>
     <dl>
       <dt>Problém</dt><dd>„Přijato 2. 9. 2026 9:15“ v hlavičce znamená přijetí přihlášky, „Přijato 2 000 Kč“ v kartě Platba přijaté peníze. Účastník pro tutéž částku vidí „Zaplaceno“.</dd>
-      <dt>Doporučení</dt><dd>V hlavičce „Přihláška přijata 2. 9. 2026 9:15“, v platbě „Zaplaceno“, jednotně pro organizátora i účastníka.</dd>
+      <dt>Doporučení</dt><dd>V hlavičce jednoslovně „obdržena 2. 9. 2026 9:15“ ve stejné velikosti jako údaj o aktualizaci, v platbě „Zaplaceno“, jednotně pro organizátora i účastníka.</dd>
     </dl>
     <figure><img src="ux-audit-2026-11-03/d-registration-detail-received.png" alt="Detail přihlášky: v hlavičce Přijato 2. 9. 2026 9:15, v kartě Platba řádek Přijato 2 000 Kč."><figcaption>Dvakrát „Přijato“ na jedné obrazovce.</figcaption></figure>
-  </article>
-
-  <article class="finding" id="f11">
-    <header><span class="num">11</span><h3>Nerovnoměrné mezery ve veřejném formuláři</h3><span class="badge low">Nízká</span></header>
-    <div class="where">Veřejná přihláška na akci · nejvýraznější na mobilu</div>
-    <dl>
-      <dt>Problém</dt><dd>Mezi poli zůstává místo vyhrazené pro chybové hlášky, takže mezery jsou větší než mezi souvisejícími prvky a mezi termíny a cenou je prázdný pruh. Povinná pole jsou označená hvězdičkou, nepovinné pohlaví navíc textem „(nepovinné)“.</dd>
-      <dt>Doporučení</dt><dd>Místo pro chybu nevyhrazovat předem a mezery řídit tokeny z <code>DESIGN.md</code>. Držet jednu konvenci: buď hvězdička u povinných, nebo „nepovinné“ u nepovinných.</dd>
-    </dl>
-    <figure><img class="phone" src="ux-audit-2026-11-03/m-registration-form-spacing.png" alt="Veřejný formulář na 360 px: velká prázdná mezera mezi termíny a cenou a velké mezery mezi poli Jméno, Příjmení a E-mail."><figcaption>Prázdný pruh pod termíny a široké mezery mezi poli.</figcaption></figure>
+    <p class="fix-status">✓ Zapracováno · hlavička používá jednoslovné „obdržena“ ve stejné malé velikosti jako údaj o aktualizaci; karta platby používá „Zaplaceno“.</p>
+    <figure><img src="ux-audit-2026-11-03/evidence-registration-detail-desktop.png" alt="Detail přihlášky po úpravě: stav Částečně zaplaceno, řádek Zaplaceno u přijaté částky a malým písmem obdržena."><figcaption>Aktuální desktop · „obdržena“ malým písmem na stejné úrovni jako údaj o aktualizaci.</figcaption></figure>
   </article>
 
   <article class="finding" id="f12">
@@ -261,6 +307,8 @@
       <dt>Doporučení</dt><dd>Dlaždice odstranit, nebo je nahradit informacemi, které jinde nejsou (např. co čeká na schválení).</dd>
     </dl>
     <figure><img src="ux-audit-2026-11-03/d-overview.png" alt="Přehled akce na desktopu: tři karty souhrnu s tlačítky a pod nimi velké dlaždice Nastavení, Přihlášky, Platby a Ubytování."><figcaption>Dlaždice pod souhrnem akce.</figcaption></figure>
+    <p class="fix-status">✓ Zapracováno · opakující se dlaždice byly nahrazeny kompaktním panelem „Vyžaduje vaši pozornost“, který ukáže čekající žádosti o změnu přihlášky a vede přímo na jejich schválení. Pokud žádné žádosti nečekají, přehled to stručně potvrdí. Postranní menu zůstává hlavní navigací; souhrn si ponechává kontextové odkazy na přihlášky a ubytování.</p>
+    <figure><img src="ux-audit-2026-11-03/evidence-overview-priority-desktop.png" alt="Přehled otevřené akce na desktopu po úpravě: panel Vyžaduje vaši pozornost ukazuje jednu čekající žádost, nejstarší účastnici a tlačítko Vyřídit žádosti."><figcaption>Po úpravě · desktop 1440 × 900 px, otevřená akce s jednou čekající žádostí o změnu.</figcaption></figure>
   </article>
 
   <article class="finding" id="f13">
@@ -270,7 +318,14 @@
       <dt>Problém</dt><dd>Po otevření přihlašování vede „Upravit akci“ na stránku, která obsahuje jen hlášení o zamčení a tlačítko zpět. Totéž hlášení už je v Nastavení.</dd>
       <dt>Doporučení</dt><dd>Odkaz na úpravu u zamčené akce nenabízet, nebo ho zakázat s vysvětlením přímo v Nastavení.</dd>
     </dl>
+    <p class="fix-status">✓ Již vyřešeno · nastavení vysvětluje uzamčení a nenabízí slepý odkaz „Upravit akci“.</p>
+    <figure><img src="ux-audit-2026-11-03/evidence-settings-desktop.png" alt="Nastavení uzamčené akce vysvětluje, že po otevření přihlašování jsou název, popis, místo, termíny a ceny zamčené; odkaz na slepou úpravu není nabízen."><figcaption>Aktuální Nastavení · důvod uzamčení je vysvětlen přímo na stránce.</figcaption></figure>
   </article>
+
+  <section class="followup" aria-label="Odložené nálezy">
+    <h2>Odložené nálezy</h2>
+    <p>#2 Tabulky na 360 px skrývají klíčové sloupce zůstává mimo dohodnutý scope.</p>
+  </section>
 
   <h2>Zkontrolováno bez nálezu</h2>
   <p>Na šířce 1440 px i 360 px, ve světlém i tmavém režimu: bez vodorovného posouvání stránky a bez dalších nálezů kromě obecného nálezu 7 (orientační oblasti dashboardu):</p>
@@ -292,7 +347,16 @@
     <li>Nebyla posouzena stránka programu termínu a interaktivní stavy dialogů (otevřené, chybové, fokus). Patří do vizuální kontroly dashboardů v #242.</li>
   </ul>
 
-  <footer>akc.io · UX audit k issue #166 · průchod proveden 7. 11. 2026</footer>
+  <footer>akc.io · UX audit k issue #166 · původní průchod 7. 11. 2026 · doplnění výsledků a důkazů 8. 11. 2026</footer>
 </main>
+<script>
+  const themeToggle = document.querySelector(".theme-toggle");
+  themeToggle.addEventListener("click", () => {
+    const isDark = document.documentElement.dataset.theme !== "dark";
+    document.documentElement.dataset.theme = isDark ? "dark" : "light";
+    themeToggle.textContent = isDark ? "Světlý režim" : "Tmavý režim";
+    themeToggle.setAttribute("aria-pressed", String(isDark));
+  });
+</script>
 </body>
 </html>
