@@ -338,9 +338,14 @@ describe("the gender answer (F64)", () => {
     await fillContact()
 
     await user.click(screen.getByRole("radio", { name: "Jiná odpověď" }))
-    await user.type(screen.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" }), "nebinární")
+    await user.type(
+      screen.getByRole("textbox", { name: "Vlastní odpověď (nepovinné)" }),
+      "nebinární",
+    )
     await user.click(screen.getByRole("radio", { name: "Žena" }))
-    expect(screen.queryByRole("textbox", { name: "Vlastní odpověď (nepovinné)" })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("textbox", { name: "Vlastní odpověď (nepovinné)" }),
+    ).not.toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
 
     expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
