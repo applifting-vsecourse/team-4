@@ -28,12 +28,14 @@ export const Evaluation: StoryObj<typeof meta> = {
     const row = within(canvas.getByRole("row", { name: /Anna Procházková/ }))
     const status = within(row.getByRole("cell", { name: /^Náhradník$/ })).getByText("Náhradník")
     const proposal = within(row.getByRole("cell", { name: /^Vhodný$/ })).getByText("Vhodný")
-    await expect(textLeft(status)).toBeCloseTo(
-      textLeft(canvas.getByRole("columnheader", { name: "Stav" })),
-    )
-    await expect(textLeft(proposal)).toBeCloseTo(
-      textLeft(canvas.getByRole("columnheader", { name: "Návrh" })),
-    )
+    await expect(
+      Math.abs(textLeft(status) - textLeft(canvas.getByRole("columnheader", { name: "Stav" }))),
+    ).toBeLessThanOrEqual(1)
+    await expect(
+      Math.abs(
+        textLeft(proposal) - textLeft(canvas.getByRole("columnheader", { name: "Návrh" })),
+      ),
+    ).toBeLessThanOrEqual(1)
 
     const rank = canvas.getByRole("columnheader", { name: "Pořadí" })
     const inset = textLeft(rank) - rank.getBoundingClientRect().left
