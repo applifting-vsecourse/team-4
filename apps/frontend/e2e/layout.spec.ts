@@ -38,12 +38,12 @@ test("a page scrollbar that appears or disappears does not move the layout", asy
   // The term evaluation is taller than the window.
   await page.getByRole("tab", { name: "Vyhodnocení" }).click()
   await expect(page.getByRole("heading", { name: "Vyhodnocení termínu" })).toBeVisible()
-  const isScrollable = await page.evaluate(
-    () => document.documentElement.scrollHeight > window.innerHeight,
-  )
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight))
+    .toBe(true)
   const gutter = await page.evaluate(() => window.innerWidth - document.documentElement.clientWidth)
-  expect(isScrollable).toBe(true)
-  expect(gutter).toBeGreaterThan(0)
+  // macOS uses overlay scrollbars, which occupy no layout width.
+  if (process.platform !== "darwin") expect(gutter).toBeGreaterThan(0)
   expect(await headingLeft(page)).toBe(short)
 
   // A menu locks the page scroll; the locked page stays in place too.
@@ -54,17 +54,29 @@ test("a page scrollbar that appears or disappears does not move the layout", asy
 
 // Where a Přihlášky view puts its heading and the content below the heading row.
 async function viewTop(page: Page) {
-  const heading = page.getByRole("tabpanel").getByRole("heading", { level: 2 }).first()
-  await expect(heading).toBeVisible()
-  const box = (await heading.boundingBox())!
-  const below = page
-    .getByRole("tabpanel")
-    .locator("section")
-    .first()
-    .locator(":scope > :nth-child(2)")
-  await expect(below).toBeVisible()
-  const content = (await below.boundingBox())!
-  return { headingMiddle: Math.round(box.y + box.height / 2), contentTop: Math.round(content.y) }
+  let position: { headingMiddle: number; contentTop: number } | null = null
+  await expect
+    .poll(async () => {
+      position = await page
+        .getByRole("tabpanel")
+        .first()
+        .evaluate((panel) => {
+          const heading = Array.from(panel.querySelectorAll("h2")).find(
+            (element) => element.getClientRects().length > 0,
+          )
+          const content = panel.querySelector("section")?.children.item(1)
+          if (!heading || !content || content.getClientRects().length === 0) return null
+          const box = heading.getBoundingClientRect()
+          const below = content.getBoundingClientRect()
+          return {
+            headingMiddle: Math.round(box.y + box.height / 2),
+            contentTop: Math.round(below.y),
+          }
+        })
+      return position
+    })
+    .not.toBeNull()
+  return position!
 }
 
 test("switching the Přihlášky views keeps the heading and content in place", async ({ page }) => {

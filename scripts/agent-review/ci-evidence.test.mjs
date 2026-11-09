@@ -115,3 +115,60 @@ test('E2E execution and versioned report upload are included with their actual c
   );
   assert.deepEqual(result.steps, steps);
 });
+
+test('parallel CI lanes provide only their own recognised execution steps', async () => {
+  const step = (name) => ({
+    name,
+    status: 'completed',
+    conclusion: 'success',
+    log: 'untrusted log',
+  });
+  const result = await evidence(
+    [base],
+    [
+      {
+        name: 'checks',
+        head_sha: sha,
+        steps: [step('Test frontend'), step('Test database constraints')],
+      },
+      {
+        name: 'database',
+        head_sha: sha,
+        steps: [
+          step('Apply migrations to clean database'),
+          step('Test database constraints'),
+        ],
+      },
+      {
+        name: 'stories',
+        head_sha: sha,
+        steps: [step('Test frontend stories')],
+      },
+      {
+        name: 'e2e',
+        head_sha: sha,
+        steps: [step('End-to-end tests'), step('Upload Playwright report')],
+      },
+      { name: 'verify', head_sha: sha, steps: [step('Require every CI lane')] },
+      {
+        name: 'database',
+        head_sha: 'b'.repeat(40),
+        steps: [step('Test database constraints')],
+      },
+      { name: 'unknown', head_sha: sha, steps: [step('Test frontend')] },
+      { name: 'constructor', head_sha: sha, steps: [step('Test frontend')] },
+    ],
+  );
+  assert.deepEqual(
+    result.steps.map(({ name }) => name),
+    [
+      'Test frontend',
+      'Apply migrations to clean database',
+      'Test database constraints',
+      'Test frontend stories',
+      'End-to-end tests',
+      'Upload Playwright report',
+    ],
+  );
+  assert.ok(!JSON.stringify(result).includes('untrusted log'));
+});
