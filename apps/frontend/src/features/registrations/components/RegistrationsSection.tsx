@@ -224,7 +224,7 @@ function RegistrationsResult({
                   <TableCell className="whitespace-nowrap">
                     {formatPragueDateTime(registration.receivedAt)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <PaymentStateBadge state={registration.paymentState} />
                     {balance.amount ? (
                       <p className="mt-1 font-mono text-xs text-muted-foreground tabular-nums">
