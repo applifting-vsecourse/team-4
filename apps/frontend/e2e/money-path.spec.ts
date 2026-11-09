@@ -52,7 +52,7 @@ test("an organizer opens an event, participants register and payments settle the
       .getByRole("navigation", { name: "Navigace organizace a akce" })
       .getByRole("link", { name: "Nastavení" })
       .click()
-    // The overview has its own "Přidat termín"; wait until the settings page replaced it.
+    // Both pages offer "Přidat termín", so wait for and target the settings section.
     await expect(page.getByRole("heading", { name: "Termíny a ceny" })).toBeVisible()
     await page
       .getByRole("region", { name: "Termíny a ceny" })
