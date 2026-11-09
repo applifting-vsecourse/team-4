@@ -36,18 +36,18 @@ pnpm frontend test:e2e:ui     # Playwright UI mode: steps, time travel, watch
 pnpm frontend demo            # walkthrough for the PO: pauses after every step (→ continues)
 pnpm frontend demo:autoplay   # the same walkthrough without pauses
 pnpm frontend demo:record     # autoplay, recorded to video
-pnpm frontend demo:v2         # demo V2: every Sprint 2 story, pauses after every step
+pnpm frontend demo:v2         # guided sprint review: organizer on desktop, participant on mobile
 pnpm frontend demo:v2:autoplay
 ```
 
-`demo` opens a visible, slowed-down browser that fills the screen, captions each step in the page, types visibly and smoothly scrolls whatever it clicks or checks into the middle of the window. Each step first shows its caption and waits, with the page already loaded: press → or PageDown (what slide clickers send) or click "Spustit" in the caption to run it. The Playwright Inspector does not open. Desktop windows go fullscreen and a phone window is centred; when the next step belongs to another window, the demo switches to it only after "Spustit". Every page it opens stays on screen for at least four times `DEMO_SLOWMO` before it acts or moves on. `demo:autoplay` runs at half that speed. `demo`, `demo:autoplay` and `demo:record` run only the money path (`e2e/money-path.spec.ts`); `demo:v2` and `demo:v2:autoplay` run demo V2 (`e2e/demo-v2.spec.ts`), whose captions name the stories each step shows (S2-01 … S2-17 except S2-15, the e-mail). `DEMO_SLOWMO=<ms per action>` sets the pace for either (default 350, autoplay 700). Scenarios mark their steps with `step()` and fill fields with `type()` from `e2e/support/demo.ts`.
+`demo` opens a visible, slowed-down browser that fills the screen, captions each step in the page, types visibly and smoothly scrolls whatever it clicks or checks into the middle of the window. Each step first shows its caption and waits, with the page already loaded: press → or PageDown (what slide clickers send) or click "Spustit" in the caption to run it. The Playwright Inspector does not open. Desktop windows go fullscreen and a phone window is centred; when the next step belongs to another window, the demo switches to it only after "Spustit". Every page it opens stays on screen for at least four times `DEMO_SLOWMO` before it acts or moves on. `demo:autoplay` runs at half that speed. `demo`, `demo:autoplay` and `demo:record` run the money path (`e2e/money-path.spec.ts`); `demo:v2` and `demo:v2:autoplay` run the shorter sprint-review presentation (`e2e/sprint-review.spec.ts`). `DEMO_SLOWMO=<ms per action>` sets the pace for either (default 350, autoplay 700). Scenarios mark their steps with `step()` and fill fields with `type()` from `e2e/support/demo.ts`.
 
 `demo:record` renders at 1920×1080 and saves one video per browser window: the organizer's in `test-results/<test>/video.webm`, the participant's in `test-results/videos/`. The next run overwrites them.
 
 Specs besides the demo set up their data through the API (`e2e/support/api.ts`) and check only what the browser shows:
 
 - `money-path.spec.ts`: the PO demo, from organizer sign-up to a settled debt
-- `demo-v2.spec.ts`: demo V2, the Sprint 2 stories in one walkthrough; the participant uses a 360 px phone window; no e-mail is sent or read, the magic link comes from the database
+- `sprint-review.spec.ts`: guided organizer and participant presentation, with the participant in a 360 px phone viewport
 - `mixed-terms.spec.ts`: a registration confirmed in one term and waitlisted in another, and occupancy per term
 - `payments.spec.ts`: overpayments and the registration list catching up after a payment
 - `participant-access.spec.ts`: the participant's own view after a magic link, a used or expired link, logout

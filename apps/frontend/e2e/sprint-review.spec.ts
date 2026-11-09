@@ -15,7 +15,7 @@ import { createMobileStage, MOBILE_VIEWPORT, openMobileSignInLink } from "./supp
 import { isRecording } from "./support/recording"
 import { definition, pickDate } from "./support/ui"
 
-// Presentation path; exhaustive validations remain in demo-v2.spec.ts.
+// Focused presentation path; regression coverage lives in the dedicated E2E specs.
 const run = Date.now().toString(36)
 const organizer = {
   name: "Alena Novotná",

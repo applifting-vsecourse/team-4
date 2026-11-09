@@ -19,13 +19,9 @@ pnpm frontend demo:v2
 ```bash
 # Souvislá zkouška bez zastavení
 pnpm frontend demo:v2:autoplay
-# Původní podrobná ukázka včetně negativních scénářů
-pnpm frontend demo:v2:full
 # Rychlé funkční ověření proti již běžící lokální aplikaci
 pnpm frontend exec playwright test e2e/sprint-review.spec.ts
 ```
-
-`demo:v2:record` nadále nahrává původní podrobný scénář s jeho časovou osou. Krátký scénář vlastní sestřih videí zatím nemá.
 
 Pro nasazenou aplikaci nastav její skutečnou URL a přístupnou demo schránku:
 
