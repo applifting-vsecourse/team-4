@@ -123,7 +123,7 @@ test("a change inside the threshold waits for the organizer, who approves it", a
 test("a rejected request leaves the registration as it was", async ({ page, browser }) => {
   const { event, registration, participant, context } = await setUp(browser, page)
 
-  await participant.getByRole("button", { name: "Odhlásit se z akce" }).click()
+  await participant.getByRole("button", { name: "Zrušit účast" }).click()
   const review = participant.getByRole("dialog", { name: "Odhlášení" })
   await review.getByRole("button", { name: "Odeslat žádost o schválení" }).click()
   await expect(participant.getByText("Čeká na schválení")).toBeVisible()
