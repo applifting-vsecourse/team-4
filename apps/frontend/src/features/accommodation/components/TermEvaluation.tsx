@@ -244,7 +244,9 @@ function OrderTable({ people, attribute, decisions, renderName }: OrderTableProp
                   </TableCell>
                 ) : null}
                 <TableCell className="hidden @2xl:table-cell">
-                  <StateBadge state={person.state} />
+                  <div className="-ml-2">
+                    <StateBadge state={person.state} />
+                  </div>
                 </TableCell>
                 <TableCell className="whitespace-normal">
                   {person.result ? (
