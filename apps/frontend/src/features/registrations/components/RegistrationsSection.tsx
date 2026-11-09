@@ -186,7 +186,7 @@ function RegistrationsResult({
               <TableHead>Účastník</TableHead>
               <TableHead>Termíny</TableHead>
               <TableHead className="whitespace-nowrap">Přijato</TableHead>
-              <TableHead className="text-right">Platba</TableHead>
+              <TableHead>Platba</TableHead>
               <TableHead>
                 <span className="sr-only">Otevřít</span>
               </TableHead>
@@ -224,7 +224,7 @@ function RegistrationsResult({
                   <TableCell className="whitespace-nowrap">
                     {formatPragueDateTime(registration.receivedAt)}
                   </TableCell>
-                  <TableCell className="text-right whitespace-nowrap">
+                  <TableCell className="whitespace-nowrap">
                     <PaymentStateBadge state={registration.paymentState} />
                     {balance.amount ? (
                       <p className="mt-1 font-mono text-xs text-muted-foreground tabular-nums">
