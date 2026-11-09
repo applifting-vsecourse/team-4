@@ -251,9 +251,11 @@ function OrderTable({ people, attribute, decisions, renderName }: OrderTableProp
                 <TableCell className="whitespace-normal">
                   {person.result ? (
                     <>
-                      <Badge variant={RESULT_BADGE[person.result].variant}>
-                        {RESULT_BADGE[person.result].label}
-                      </Badge>
+                      <div className="-ml-2">
+                        <Badge variant={RESULT_BADGE[person.result].variant}>
+                          {RESULT_BADGE[person.result].label}
+                        </Badge>
+                      </div>
                       {person.reason ? (
                         <p className="mt-1 text-muted-foreground">
                           {reasonText(person.reason, attribute ?? "")}
