@@ -74,22 +74,23 @@ export function ChangeRequestsSection({ organizationId, eventId }: ChangeRequest
             terms: describeTerms(change),
             submittedAt: formatChangeTime(change.createdAt),
           }))}
-          renderOpen={(request) => {
+          renderRowLink={(request, isPrimary) => {
             const change = data.find(({ id }) => id === request.id)
             return change ? (
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
+              <Link
+                to={ROUTES.registration}
+                params={{ organizationId, eventId, registrationId: change.registrationId }}
+                aria-label={isPrimary ? `Přihláška ${request.participant}` : undefined}
+                aria-hidden={isPrimary ? undefined : true}
+                tabIndex={isPrimary ? undefined : -1}
+                className={
+                  isPrimary
+                    ? "block font-medium text-foreground after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
+                    : "absolute inset-0"
+                }
               >
-                <Link
-                  to={ROUTES.registration}
-                  params={{ organizationId, eventId, registrationId: change.registrationId }}
-                  aria-label={`Otevřít žádost ${request.participant}`}
-                >
-                  Otevřít
-                </Link>
-              </Button>
+                {isPrimary ? request.participant : null}
+              </Link>
             ) : null
           }}
         />

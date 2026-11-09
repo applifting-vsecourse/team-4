@@ -142,7 +142,7 @@ test("an organizer opens an event, participants register and payments settle the
     await expect(occupancy.getByRole("row", { name: /1\. turnus .* 1 1 0 1$/ })).toBeVisible()
 
     await page.getByRole("link", { name: "Přihlášky" }).first().click()
-    await expect(page.getByRole("link", { name: /^Otevřít přihlášku/ })).toHaveCount(2)
+    await expect(page.getByRole("link", { name: /^Přihláška/ })).toHaveCount(2)
     await expect(page.getByRole("row", { name: /Anna Nováková/ })).toContainText("Nezaplaceno")
   })
 
@@ -155,7 +155,7 @@ test("an organizer opens an event, participants register and payments settle the
   }
 
   await step(page, "11 · Zapíše Anně zálohu 2 000 Kč", async () => {
-    await page.getByRole("link", { name: "Otevřít přihlášku Anna Nováková" }).click()
+    await page.getByRole("link", { name: "Přihláška Anna Nováková" }).click()
     await recordPayment("2000")
     await expect(page.getByText("Částečně zaplaceno")).toBeVisible()
     await expect(definition(page, "Dluh")).toHaveText("2 500 Kč")

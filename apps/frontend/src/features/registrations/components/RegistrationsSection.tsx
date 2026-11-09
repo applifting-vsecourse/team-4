@@ -187,9 +187,6 @@ function RegistrationsResult({
               <TableHead>Termíny</TableHead>
               <TableHead className="whitespace-nowrap">Přijato</TableHead>
               <TableHead>Platba</TableHead>
-              <TableHead>
-                <span className="sr-only">Otevřít</span>
-              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -197,18 +194,19 @@ function RegistrationsResult({
               const balance = describeBalance(registration.balanceMinor)
               return (
                 <TableRow key={registration.id}>
-                  <TableCell>
+                  <TableCell className="relative">
                     <Link
                       to={ROUTES.registration}
                       params={{ organizationId, eventId, registrationId: registration.id }}
-                      className="font-medium text-foreground underline-offset-4 hover:underline"
+                      aria-label={`Přihláška ${registration.firstName} ${registration.lastName}`}
+                      className="block font-medium text-foreground after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
                     >
                       {registration.firstName} {registration.lastName}
                     </Link>
                     <p className="text-xs text-muted-foreground">{registration.email}</p>
                     <p className="text-xs text-muted-foreground">{registration.phone}</p>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="relative">
                     <ul className="space-y-1">
                       {registration.terms.map((term) => (
                         <li
@@ -220,11 +218,25 @@ function RegistrationsResult({
                         </li>
                       ))}
                     </ul>
+                    <Link
+                      to={ROUTES.registration}
+                      params={{ organizationId, eventId, registrationId: registration.id }}
+                      aria-hidden="true"
+                      tabIndex={-1}
+                      className="absolute inset-0"
+                    />
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
+                  <TableCell className="relative whitespace-nowrap">
                     {formatPragueDateTime(registration.receivedAt)}
+                    <Link
+                      to={ROUTES.registration}
+                      params={{ organizationId, eventId, registrationId: registration.id }}
+                      aria-hidden="true"
+                      tabIndex={-1}
+                      className="absolute inset-0"
+                    />
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
+                  <TableCell className="relative whitespace-nowrap">
                     <div className="-ml-2">
                       <PaymentStateBadge state={registration.paymentState} />
                     </div>
@@ -233,21 +245,13 @@ function RegistrationsResult({
                         {balance.label} {balance.amount}
                       </p>
                     ) : null}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="sm"
-                    >
-                      <Link
-                        to={ROUTES.registration}
-                        params={{ organizationId, eventId, registrationId: registration.id }}
-                        aria-label={`Otevřít přihlášku ${registration.firstName} ${registration.lastName}`}
-                      >
-                        Otevřít
-                      </Link>
-                    </Button>
+                    <Link
+                      to={ROUTES.registration}
+                      params={{ organizationId, eventId, registrationId: registration.id }}
+                      aria-hidden="true"
+                      tabIndex={-1}
+                      className="absolute inset-0"
+                    />
                   </TableCell>
                 </TableRow>
               )
