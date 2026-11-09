@@ -45,7 +45,7 @@ function EventCell({ link, children }: { link: EventLink; children: ReactNode })
 export function EventsTable({ organizationId, events }: EventsTableProps) {
   return (
     <Card className="p-0">
-      <Table>
+      <Table containerLabel="Akce a turnusy">
         <TableHeader>
           <TableRow>
             <TableHead>Akce</TableHead>

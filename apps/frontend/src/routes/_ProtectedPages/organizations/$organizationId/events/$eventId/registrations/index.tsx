@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { z } from "zod"
 
 import { ROUTES } from "@/app/routes"
+import { HorizontalOverflowViewport } from "@/components/HorizontalOverflowViewport"
 import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
@@ -96,8 +97,11 @@ function RegistrationsPage() {
         value={view}
         onValueChange={setView}
       >
-        <div className="max-w-full overflow-x-auto pb-1">
-          <TabsList>
+        <HorizontalOverflowViewport>
+          <TabsList
+            aria-label="Sekce přihlášek"
+            className="w-max min-w-full"
+          >
             <TabsTrigger value="list">Seznam přihlášek</TabsTrigger>
             <TabsTrigger value="approvals">
               Ke schválení
@@ -107,7 +111,7 @@ function RegistrationsPage() {
             </TabsTrigger>
             <TabsTrigger value="evaluation">Vyhodnocení</TabsTrigger>
           </TabsList>
-        </div>
+        </HorizontalOverflowViewport>
         <TabsContent value="list">
           <RegistrationsSection
             organizationId={organizationId}

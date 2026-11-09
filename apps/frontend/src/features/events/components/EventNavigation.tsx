@@ -40,11 +40,11 @@ export function EventNavigation({ organizationId, eventId, isSidebar = false }: 
             className="size-4 shrink-0"
             aria-hidden
           />
-          <span>{section.label}</span>
+          <span className="min-w-0 flex-1 truncate">{section.label}</span>
           {!to && (
             <Badge
               variant="secondary"
-              className="ml-auto"
+              className="ml-auto shrink-0"
             >
               Připravujeme
             </Badge>
@@ -100,31 +100,39 @@ export function EventNavigation({ organizationId, eventId, isSidebar = false }: 
                   className="size-6 text-muted-foreground"
                 />
               </span>
-              <CardAction>
-                {to ? (
+              {to ? (
+                <CardAction>
                   <ArrowUpRight
                     aria-hidden="true"
                     className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transition-none"
                   />
-                ) : (
-                  <Badge variant="secondary">Připravujeme</Badge>
-                )}
-              </CardAction>
+                </CardAction>
+              ) : null}
             </CardHeader>
             <CardContent>
-              <CardTitle className="wrap-break-word">
-                {to ? (
-                  <Link
-                    to={to}
-                    params={params}
-                    className="outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-3 focus-visible:after:ring-ring/50"
+              <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+                <CardTitle className="min-w-0 flex-1 wrap-break-word">
+                  {to ? (
+                    <Link
+                      to={to}
+                      params={params}
+                      className="outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-3 focus-visible:after:ring-ring/50"
+                    >
+                      {section.label}
+                    </Link>
+                  ) : (
+                    section.label
+                  )}
+                </CardTitle>
+                {!to ? (
+                  <Badge
+                    className="shrink-0"
+                    variant="secondary"
                   >
-                    {section.label}
-                  </Link>
-                ) : (
-                  section.label
-                )}
-              </CardTitle>
+                    Připravujeme
+                  </Badge>
+                ) : null}
+              </div>
             </CardContent>
           </Card>
         </li>

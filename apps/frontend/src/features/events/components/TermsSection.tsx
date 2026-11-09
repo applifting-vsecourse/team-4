@@ -4,7 +4,7 @@ import { CalendarCog, ListChecks, Pencil, Plus, Trash2 } from "lucide-react"
 import { ROUTES } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import {
   Table,
   TableBody,
@@ -53,14 +53,14 @@ export function TermsSection({ organizationId, event }: TermsSectionProps) {
 
   return (
     <section aria-labelledby="terms-heading">
-      <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
+      <div className="mb-4 flex min-h-9 flex-wrap items-center gap-4">
         <h2
           id="terms-heading"
           className="text-h4"
         >
           Termíny a ceny
         </h2>
-        {canEdit && event.terms.length > 0 ? addButton : null}
+        {canEdit ? <div className="ml-auto">{addButton}</div> : null}
       </div>
 
       {event.terms.length === 0 ? (
@@ -71,7 +71,6 @@ export function TermsSection({ organizationId, event }: TermsSectionProps) {
             </EmptyMedia>
             <EmptyTitle>Zatím žádné termíny</EmptyTitle>
           </EmptyHeader>
-          {canEdit ? <EmptyContent>{addButton}</EmptyContent> : null}
         </Empty>
       ) : (
         <Card className="p-0">

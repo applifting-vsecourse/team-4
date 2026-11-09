@@ -13,14 +13,13 @@ const WITHOUT_ROOMS = {
 }
 
 describe("TermCapacitySummary", () => {
-  it("shows untracked capacity as the same plain text as a missing proposal", () => {
+  it("omits the proposal section until a proposal exists", () => {
     render(<TermCapacitySummary term={WITHOUT_ROOMS} />)
 
     const untracked = screen.getByText("Ubytovací kapacita není evidovaná")
-    const noProposal = screen.getByText("Bez platného návrhu")
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
-    expect(untracked.tagName).toBe(noProposal.tagName)
-    expect(untracked.className).toBe(noProposal.className)
+    expect(screen.queryByRole("heading", { name: "Podle návrhu" })).not.toBeInTheDocument()
+    expect(untracked).toBeInTheDocument()
   })
 })

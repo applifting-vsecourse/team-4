@@ -61,20 +61,17 @@ function NewEventPage() {
         title="Nová akce"
         description="Termíny přidáte po uložení akce."
       />
-      {/* The form stays narrow; the page keeps the workspace's margins. */}
-      <div className="max-w-xl">
-        <Card>
-          <CardContent>
-            <EventForm
-              submitLabel="Vytvořit akci"
-              isLoading={createEvent.isPending}
-              errorMessage={errorMessage}
-              onSubmit={handleSubmit}
-              onCancel={() => navigate({ to: ROUTES.organization, params: { organizationId } })}
-            />
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardContent>
+          <EventForm
+            submitLabel="Vytvořit akci"
+            isLoading={createEvent.isPending}
+            errorMessage={errorMessage}
+            onSubmit={handleSubmit}
+            onCancel={() => navigate({ to: ROUTES.organization, params: { organizationId } })}
+          />
+        </CardContent>
+      </Card>
     </WorkspacePage>
   )
 }

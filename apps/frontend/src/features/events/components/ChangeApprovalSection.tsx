@@ -18,7 +18,7 @@ type ChangeApprovalSectionProps = {
   event: EventDetail
 }
 
-// Block of the Přihlašování card (F35-1a). Stays editable after registration
+// Stays editable after registration
 // has been opened. A failed save keeps the saved setting and the entered text.
 export function ChangeApprovalSection({ organizationId, event }: ChangeApprovalSectionProps) {
   const update = useUpdateChangeApproval(organizationId, event.id)

@@ -104,7 +104,7 @@ export function OccupancySection({
 
           <Card>
             <div className="-my-6">
-              <Table>
+              <Table containerLabel="Tabulka obsazenosti po termínech">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Termín</TableHead>
