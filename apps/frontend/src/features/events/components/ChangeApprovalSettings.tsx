@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from "react"
-import { ChevronDown, Info, Loader2 } from "lucide-react"
+import { Info, Loader2 } from "lucide-react"
 
 import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Card, CardContent } from "@/components/ui/card"
+import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import {
   Dialog,
   DialogClose,
@@ -32,10 +33,8 @@ export type ChangeApprovalSettingsProps = {
   onDismissError?: () => void
 }
 
-// Správa akce → Nastavení → Přihlašování (F35-1a): the number of days before
-// each term's start from which the organizer approves registration changes.
-// Placed in the existing Přihlašování card. The entered text stays in the field
-// after a failed save; validation and saving belong to the owner.
+// Správa akce → Nastavení: the number of days before each term's start
+// from which the organizer approves registration changes.
 export function ChangeApprovalSettings({
   savedSetting,
   days = "",
@@ -46,7 +45,6 @@ export function ChangeApprovalSettings({
   onDismissError,
 }: ChangeApprovalSettingsProps) {
   const [value, setValue] = useState(days)
-  const [isOpen, setIsOpen] = useState(true)
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -54,83 +52,10 @@ export function ChangeApprovalSettings({
   }
 
   return (
-    <Collapsible
-      asChild
-      open={isOpen}
-      onOpenChange={setIsOpen}
-    >
-      <section
-        aria-labelledby="change-approval-heading"
-        className="space-y-4"
-      >
-        <h3
-          id="change-approval-heading"
-          className="text-base font-semibold"
-        >
-          <CollapsibleTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              className="h-auto w-full justify-between text-left whitespace-normal"
-            >
-              <span>
-                Schvalování změn přihlášek
-                <span className="block text-sm font-normal text-muted-foreground">
-                  Od kolika dní před začátkem termínu schvalujete změny přihlášek.
-                </span>
-              </span>
-              <ChevronDown
-                aria-hidden
-                className={isOpen ? "rotate-180" : undefined}
-              />
-            </Button>
-          </CollapsibleTrigger>
-        </h3>
-
-        <CollapsibleContent>
-          <div className="space-y-4">
-            <Alert>
-              <Info />
-              <AlertTitle>{savedSetting}</AlertTitle>
-            </Alert>
-
-            <form
-              noValidate
-              className="space-y-4"
-              onSubmit={handleSubmit}
-            >
-              <Field
-                className="sm:max-w-sm"
-                data-invalid={daysError ? true : undefined}
-              >
-                <FieldLabel htmlFor="change-approval-days">
-                  Počet dní před začátkem termínu
-                </FieldLabel>
-                <Input
-                  id="change-approval-days"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  placeholder="např. 14 dní"
-                  value={value}
-                  onChange={(event) => setValue(event.target.value)}
-                  aria-invalid={daysError ? true : undefined}
-                />
-                {daysError ? <FieldError>{daysError}</FieldError> : null}
-              </Field>
-
-              <div className="flex justify-end">
-                <Button
-                  type="submit"
-                  disabled={isSaving}
-                >
-                  {isSaving ? <Loader2 className="size-4 animate-spin" /> : null}
-                  Uložit schvalování změn
-                </Button>
-              </div>
-            </form>
-          </div>
-        </CollapsibleContent>
-
+    <CollapsibleSection
+      headingId="change-approval-heading"
+      title="Schvalování změn přihlášek"
+      afterContent={
         <Dialog
           open={Boolean(errorMessage)}
           onOpenChange={(isOpen) => {
@@ -154,7 +79,51 @@ export function ChangeApprovalSettings({
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </section>
-    </Collapsible>
+      }
+    >
+      <Card>
+        <CardContent>
+          <Alert>
+            <Info />
+            <AlertTitle>{savedSetting}</AlertTitle>
+          </Alert>
+
+          <form
+            noValidate
+            className="mt-4 space-y-4"
+            onSubmit={handleSubmit}
+          >
+            <Field
+              className="sm:max-w-sm"
+              data-invalid={daysError ? true : undefined}
+            >
+              <FieldLabel htmlFor="change-approval-days">
+                Počet dní před začátkem termínu
+              </FieldLabel>
+              <Input
+                id="change-approval-days"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="např. 14"
+                value={value}
+                onChange={(event) => setValue(event.target.value)}
+                aria-invalid={daysError ? true : undefined}
+              />
+              {daysError ? <FieldError>{daysError}</FieldError> : null}
+            </Field>
+
+            <div className="flex justify-end">
+              <Button
+                type="submit"
+                disabled={isSaving}
+              >
+                {isSaving ? <Loader2 className="size-4 animate-spin" /> : null}
+                Uložit schvalování změn
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </CollapsibleSection>
   )
 }

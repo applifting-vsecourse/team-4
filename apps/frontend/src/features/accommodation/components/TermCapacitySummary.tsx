@@ -1,4 +1,5 @@
 import { Progress } from "@/components/ui/progress"
+import { cn } from "@/lib/utils"
 
 /** What the proposal of the term decided; counts are the solver's, never a bed sum. */
 export type CapacityProposal = {
@@ -61,7 +62,7 @@ export function TermCapacitySummary({ term }: { term: TermCapacity }) {
   // sidebar a wide viewport still leaves a narrow card.
   return (
     <div className="@container">
-      <div className="grid gap-6 @3xl:grid-cols-3">
+      <div className={cn("grid gap-6", term.proposal ? "@3xl:grid-cols-3" : "@3xl:grid-cols-2")}>
         <div className="space-y-3">
           <h3 className="text-sm font-medium">Účast</h3>
           <dl className="grid grid-cols-3 gap-3 @3xl:grid-cols-1">
@@ -102,43 +103,39 @@ export function TermCapacitySummary({ term }: { term: TermCapacity }) {
           )}
         </div>
 
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium">Podle návrhu</h3>
-          {term.proposal ? (
-            <>
-              <dl className="grid grid-cols-3 gap-3 @3xl:grid-cols-1">
-                <Stat
-                  label="Vhodní"
-                  value={term.proposal.suitable}
+        {term.proposal ? (
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium">Podle návrhu</h3>
+            <dl className="grid grid-cols-3 gap-3 @3xl:grid-cols-1">
+              <Stat
+                label="Vhodní"
+                value={term.proposal.suitable}
+              />
+              <Stat
+                label="Neubytovatelní"
+                value={term.proposal.unsuitable}
+              />
+              <Stat
+                label="Ruční určení"
+                value={term.proposal.manual}
+              />
+            </dl>
+            {capacity > 0 ? (
+              <div className="space-y-3">
+                <BedUse
+                  label="Obsazená lůžka"
+                  used={term.proposal.baseUsed}
+                  total={term.baseBeds}
                 />
-                <Stat
-                  label="Neubytovatelní"
-                  value={term.proposal.unsuitable}
+                <BedUse
+                  label="Obsazené přistýlky"
+                  used={term.proposal.extraUsed}
+                  total={term.extraBeds}
                 />
-                <Stat
-                  label="Ruční určení"
-                  value={term.proposal.manual}
-                />
-              </dl>
-              {capacity > 0 ? (
-                <div className="space-y-3">
-                  <BedUse
-                    label="Obsazená lůžka"
-                    used={term.proposal.baseUsed}
-                    total={term.baseBeds}
-                  />
-                  <BedUse
-                    label="Obsazené přistýlky"
-                    used={term.proposal.extraUsed}
-                    total={term.extraBeds}
-                  />
-                </div>
-              ) : null}
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">Bez platného návrhu</p>
-          )}
-        </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   )

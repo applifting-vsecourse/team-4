@@ -28,7 +28,7 @@ export function GenderField({ id, value, onChange, isDisabled }: GenderFieldProp
   const otherId = `${id}-other-words`
   return (
     <FieldSet>
-      <FieldLegend>Pohlaví pro ubytování (nepovinné)</FieldLegend>
+      <FieldLegend>Pohlaví pro ubytování</FieldLegend>
       <RadioGroup
         value={value.gender ?? ""}
         onValueChange={(next) => {

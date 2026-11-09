@@ -180,13 +180,13 @@ function RegistrationsResult({
         Zobrazeno {registrations.length} z {total} · od nejstarší přihlášky
       </p>
       <Card padding="none">
-        <Table>
+        <Table containerLabel="Tabulka přihlášek">
           <TableHeader>
             <TableRow>
               <TableHead>Účastník</TableHead>
               <TableHead>Termíny</TableHead>
               <TableHead className="whitespace-nowrap">Přijato</TableHead>
-              <TableHead className="text-right">Platba</TableHead>
+              <TableHead>Platba</TableHead>
               <TableHead>
                 <span className="sr-only">Otevřít</span>
               </TableHead>
@@ -224,8 +224,10 @@ function RegistrationsResult({
                   <TableCell className="whitespace-nowrap">
                     {formatPragueDateTime(registration.receivedAt)}
                   </TableCell>
-                  <TableCell className="text-right whitespace-nowrap">
-                    <PaymentStateBadge state={registration.paymentState} />
+                  <TableCell className="whitespace-nowrap">
+                    <div className="-ml-2">
+                      <PaymentStateBadge state={registration.paymentState} />
+                    </div>
                     {balance.amount ? (
                       <p className="mt-1 font-mono text-xs text-muted-foreground tabular-nums">
                         {balance.label} {balance.amount}

@@ -26,6 +26,7 @@ type TermDialogProps = {
   /** All terms of the event; the others' days are marked in the pickers. */
   allTerms?: EventTerm[]
   trigger: ReactNode
+  onSaved?: () => void
 }
 
 // "Zrušit" and closing discard the changes: the form is mounted only while
@@ -36,6 +37,7 @@ export function TermDialog({
   term,
   allTerms = [],
   trigger,
+  onSaved,
 }: TermDialogProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [failure, setFailure] = useState<TermSaveError | null>(null)
@@ -60,8 +62,6 @@ export function TermDialog({
     setFailure(null)
     try {
       await saveTerm.mutateAsync({ termId: term?.id, input })
-      setIsOpen(false)
-      toast.success(term ? "Termín byl upraven." : "Termín byl přidán.")
     } catch (error) {
       const described = describeTermError(
         error,
@@ -69,7 +69,11 @@ export function TermDialog({
       )
       setFailure(described)
       if (described.shouldRefresh) await refreshEvent()
+      return
     }
+    setIsOpen(false)
+    toast.success(term ? "Termín byl upraven." : "Termín byl přidán.", { richColors: false })
+    onSaved?.()
   }
 
   return (

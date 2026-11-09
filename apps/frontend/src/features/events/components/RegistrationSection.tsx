@@ -1,52 +1,21 @@
 import { useState } from "react"
-import { Link } from "@tanstack/react-router"
 import { Check, CircleCheck, Copy, Lock, TriangleAlert } from "lucide-react"
 import { toast } from "sonner"
 
-import { ROUTES } from "@/app/routes"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { readApiError } from "@/lib/apiError"
 
-import { type EventDetail, type OpeningBlocker } from "@/features/events/api/eventSchemas"
-import { ChangeApprovalSection } from "@/features/events/components/ChangeApprovalSection"
+import { type EventDetail } from "@/features/events/api/eventSchemas"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
+import { OpeningConditions } from "@/features/events/components/OpeningReadiness"
 import { useRefreshEvent } from "@/features/events/hooks/useEventMutations"
 import { useOpenRegistration } from "@/features/events/hooks/useOpenRegistration"
 import { publicRegistrationUrl } from "@/features/events/lib/publicLink"
-
-type Condition = { blocker: OpeningBlocker; label: string; fixIn: "edit" | "terms" | "payments" }
-
-const CONDITIONS: Condition[] = [
-  { blocker: "name", label: "Název akce", fixIn: "edit" },
-  { blocker: "description", label: "Popis akce", fixIn: "edit" },
-  { blocker: "location", label: "Místo konání", fixIn: "edit" },
-  { blocker: "terms", label: "Alespoň jeden termín", fixIn: "terms" },
-  {
-    blocker: "paymentSettings",
-    label: "Číslo účtu a počet dní do připomenutí platby",
-    fixIn: "payments",
-  },
-]
-
-// Every term costs 0 Kč: no bank account or reminder is needed (S3-C04).
-const FREE_PAYMENT_CONDITION: Condition = {
-  blocker: "paymentSettings",
-  label: "Platební údaje nejsou potřeba, všechny termíny jsou zdarma",
-  fixIn: "payments",
-}
-
-// With only 0 Kč terms "s cenou" would mislead, and no payment data is needed.
-const freeCondition = (condition: Condition): Condition =>
-  condition.blocker === "paymentSettings"
-    ? FREE_PAYMENT_CONDITION
-    : condition.blocker === "terms"
-      ? { ...condition, label: "Alespoň jeden termín (zdarma)" }
-      : condition
 
 type RegistrationSectionProps = {
   organizationId: string
@@ -65,7 +34,6 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
 
   const link = publicRegistrationUrl(event.publicId)
   const isDraft = event.status === "draft"
-  const isFree = event.terms.length > 0 && event.terms.every((term) => term.priceMinor === 0)
   const canOpen = isDraft && event.openingBlockers.length === 0
 
   const handleOpen = async () => {
@@ -101,13 +69,10 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
   }
 
   return (
-    <section aria-labelledby="registration-heading">
-      <h2
-        id="registration-heading"
-        className="mb-4 text-h4"
-      >
-        Přihlašování
-      </h2>
+    <CollapsibleSection
+      headingId="registration-heading"
+      title="Přihlašování"
+    >
       <Card>
         <CardContent className="space-y-6">
           <div className="flex flex-wrap items-center gap-3">
@@ -134,10 +99,11 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
                 {isCopied ? "Zkopírováno" : "Kopírovat"}
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Odkaz je stále stejný. Do otevření přihlašování návštěvníkům ukáže, že akce není
-              dostupná.
-            </p>
+            {isDraft ? (
+              <p className="text-sm text-muted-foreground">
+                Odkaz začne fungovat po otevření přihlašování.
+              </p>
+            ) : null}
             {hasCopyFailed ? (
               <p
                 role="alert"
@@ -150,20 +116,10 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
 
           {isDraft ? (
             <div className="space-y-4">
-              <div>
-                <h3 className="mb-2 text-sm font-medium">Podmínky otevření</h3>
-                <ul className="space-y-1">
-                  {CONDITIONS.map((condition) => (
-                    <ConditionRow
-                      key={condition.blocker}
-                      condition={isFree ? freeCondition(condition) : condition}
-                      isMissing={event.openingBlockers.includes(condition.blocker)}
-                      organizationId={organizationId}
-                      eventId={event.id}
-                    />
-                  ))}
-                </ul>
-              </div>
+              <OpeningConditions
+                organizationId={organizationId}
+                event={event}
+              />
 
               <Alert>
                 <Lock />
@@ -179,85 +135,24 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
                 </Alert>
               ) : null}
 
-              <Button
-                type="button"
-                disabled={!canOpen || open.isPending}
-                onClick={handleOpen}
-              >
-                Otevřít přihlašování
-              </Button>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  disabled={!canOpen || open.isPending}
+                  onClick={handleOpen}
+                >
+                  Otevřít přihlašování
+                </Button>
+              </div>
             </div>
           ) : (
             <Alert>
               <CircleCheck />
               <AlertTitle>Přihlašování je otevřené</AlertTitle>
-              <AlertDescription>
-                Kdokoli s odkazem uvidí údaje akce, termíny a ceny.
-              </AlertDescription>
             </Alert>
           )}
-
-          <Separator />
-          <ChangeApprovalSection
-            organizationId={organizationId}
-            event={event}
-          />
         </CardContent>
       </Card>
-    </section>
-  )
-}
-
-type ConditionRowProps = {
-  condition: Condition
-  isMissing: boolean
-  organizationId: string
-  eventId: string
-}
-
-function ConditionRow({ condition, isMissing, organizationId, eventId }: ConditionRowProps) {
-  return (
-    <li className="flex min-h-9 items-center gap-2 text-sm">
-      {isMissing ? (
-        <TriangleAlert
-          aria-hidden
-          className="size-4 shrink-0 text-warning"
-        />
-      ) : (
-        <CircleCheck
-          aria-hidden
-          className="size-4 shrink-0 text-success"
-        />
-      )}
-      <span>
-        {condition.label}
-        <span className="sr-only">{isMissing ? " – chybí" : " – splněno"}</span>
-      </span>
-      {isMissing ? (
-        <Button
-          asChild
-          variant="link"
-          size="sm"
-          className="ml-auto"
-        >
-          {condition.fixIn === "edit" ? (
-            <Link
-              to={ROUTES.editEvent}
-              params={{ organizationId, eventId }}
-            >
-              Doplnit
-            </Link>
-          ) : (
-            <Link
-              to={ROUTES.eventSettings}
-              params={{ organizationId, eventId }}
-              hash={condition.fixIn === "terms" ? "terms-heading" : "payments-heading"}
-            >
-              Doplnit
-            </Link>
-          )}
-        </Button>
-      ) : null}
-    </li>
+    </CollapsibleSection>
   )
 }

@@ -37,8 +37,8 @@ export function RegistrationResult({ result }: { result: Result }) {
             Přihláška je uložená
           </h2>
           <p className="mt-2 text-sm break-words text-muted-foreground">
-            {result.firstName} {result.lastName}, {result.email}. Přijato{" "}
-            {formatPragueDateTime(result.receivedAt)} (Europe/Prague).
+            {result.firstName} {result.lastName}, {result.email}. Přihláška přijata{" "}
+            {formatPragueDateTime(result.receivedAt)}.
           </p>
         </div>
       </div>

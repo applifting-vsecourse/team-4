@@ -6,7 +6,14 @@ import { ROUTES } from "@/app/routes"
 import { HeaderLogo } from "@/components/Header/HeaderLogo"
 import { ThemeSwitcher } from "@/components/Header/ThemeSwitcher"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 
 type HeaderProps = {
   /**
@@ -17,20 +24,22 @@ type HeaderProps = {
 }
 
 /**
- * The one header of every page outside the organization's administration
- * (BUG 279): the same entries in the same places on every page. The logo is
- * on the left; the entries and the theme sit on the right, followed by the
- * page's account action, if any, at the very end.
+ * The one header of every page outside the organization's administration.
+ * The logo and audience links sit on the left. Entry buttons, theme and
+ * account actions sit on the right.
  */
 export function Header({ account }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background">
       <div className="mx-auto flex w-full max-w-280 items-center justify-between gap-3 px-4 py-4 md:px-8">
-        <HeaderLogo />
+        <div className="flex items-center gap-3">
+          <HeaderLogo />
+          <AudienceLinks />
+        </div>
         <div className="flex items-center gap-2">
           <nav
             aria-label="Vstup do aplikace"
-            className="hidden items-center gap-2 md:flex"
+            className="hidden items-center gap-2 lg:flex"
           >
             <Button
               asChild
@@ -54,7 +63,7 @@ export function Header({ account }: HeaderProps) {
               <Link to={ROUTES.login}>Organizátor</Link>
             </Button>
           </nav>
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <ThemeSwitcher />
           </div>
           {account}
@@ -62,6 +71,34 @@ export function Header({ account }: HeaderProps) {
         </div>
       </div>
     </header>
+  )
+}
+
+const AUDIENCES = [
+  { to: ROUTES.forParticipants, label: "Pro účastníky" },
+  { to: ROUTES.forOrganizers, label: "Pro organizátory" },
+] as const
+
+function AudienceLinks({ isInMenu = false }: { isInMenu?: boolean }) {
+  return (
+    <nav
+      aria-label="Informace o akc.io"
+      className={isInMenu ? "flex flex-col gap-2 px-4" : "hidden items-center gap-2 lg:flex"}
+    >
+      {AUDIENCES.map(({ to, label }) => {
+        const link = <Link to={to}>{label}</Link>
+        return (
+          <Button
+            asChild
+            variant={isInMenu ? "outline" : "ghost"}
+            size={isInMenu ? "default" : "sm"}
+            key={to}
+          >
+            {isInMenu ? <SheetClose asChild>{link}</SheetClose> : link}
+          </Button>
+        )
+      })}
+    </nav>
   )
 }
 
@@ -73,7 +110,7 @@ function MobileMenu() {
           variant="ghost"
           size="icon"
           aria-label="Otevřít menu"
-          className="md:hidden"
+          className="lg:hidden"
         >
           <Menu aria-hidden />
         </Button>
@@ -85,12 +122,16 @@ function MobileMenu() {
         <SheetHeader>
           <SheetTitle>Menu</SheetTitle>
         </SheetHeader>
+        <AudienceLinks isInMenu />
         <nav
           aria-label="Vstup do aplikace"
           className="flex flex-col gap-2 px-4"
         >
-          <Button asChild>
-            <Link to={ROUTES.login}>Organizátor</Link>
+          <Button
+            asChild
+            variant="outline"
+          >
+            <Link to={ROUTES.catalog}>Katalog akcí</Link>
           </Button>
           <Button
             asChild
@@ -98,13 +139,15 @@ function MobileMenu() {
           >
             <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
           </Button>
+        </nav>
+        <div className="px-4">
           <Button
             asChild
-            variant="outline"
+            className="w-full"
           >
-            <Link to={ROUTES.catalog}>Katalog akcí</Link>
+            <Link to={ROUTES.login}>Organizátor</Link>
           </Button>
-        </nav>
+        </div>
         <div className="flex items-center justify-between px-4">
           <span className="text-sm text-muted-foreground">Motiv</span>
           <ThemeSwitcher />

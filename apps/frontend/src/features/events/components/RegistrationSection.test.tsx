@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query"
+import type * as ReactRouter from "@tanstack/react-router"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -15,7 +16,8 @@ vi.mock("@/lib/api-client", () => ({
 }))
 
 // Render route destinations so prerequisite links are covered without mounting the router.
-vi.mock("@tanstack/react-router", () => ({
+vi.mock("@tanstack/react-router", async (importOriginal) => ({
+  ...(await importOriginal<typeof ReactRouter>()),
   Link: ({
     children,
     to,
@@ -89,13 +91,10 @@ describe("RegistrationSection", () => {
 
     expect(screen.getByRole("button", { name: "Otevřít přihlašování" })).toBeDisabled()
     expect(screen.getByText(/Alespoň jeden termín/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Přidat termín" })).toBeInTheDocument()
     const links = screen.getAllByRole("link", { name: "Doplnit" })
-    expect(links).toHaveLength(2)
+    expect(links).toHaveLength(1)
     expect(links[0]).toHaveAttribute(
-      "href",
-      `/organizations/${ORGANIZATION_ID}/events/${EVENT_ID}/settings#terms-heading`,
-    )
-    expect(links[1]).toHaveAttribute(
       "href",
       `/organizations/${ORGANIZATION_ID}/events/${EVENT_ID}/settings#payments-heading`,
     )

@@ -13,7 +13,7 @@ export function BalanceAmount({ amount, isSettled }: BalanceAmountProps) {
   return (
     <span
       className={cn(
-        "font-mono text-lg font-semibold",
+        "font-mono text-lg font-semibold tabular-nums",
         isSettled ? "text-success" : "text-destructive",
       )}
     >

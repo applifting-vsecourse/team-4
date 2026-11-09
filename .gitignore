@@ -23,6 +23,7 @@ yarn-error.log*
 
 # Playwright MCP traces from local browser walkthroughs
 .playwright-mcp/
+.playwright-cli/
 
 # Local env (root, used by docker-compose)
 .env

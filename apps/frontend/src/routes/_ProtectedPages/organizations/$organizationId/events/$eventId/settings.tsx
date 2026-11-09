@@ -13,6 +13,7 @@ import { WorkspacePage } from "@/components/WorkspacePage"
 import { EvaluationModeSection } from "@/features/accommodation/components/EvaluationModeSection"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
+import { ChangeApprovalSection } from "@/features/events/components/ChangeApprovalSection"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventLockedAlert } from "@/features/events/components/EventLockedAlert"
 import { EventPublication } from "@/features/events/components/EventPublication"
@@ -112,6 +113,10 @@ function EventPage() {
           event={event}
         />
         <RegistrationSection
+          organizationId={organizationId}
+          event={event}
+        />
+        <ChangeApprovalSection
           organizationId={organizationId}
           event={event}
         />

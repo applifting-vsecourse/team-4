@@ -53,7 +53,7 @@ export function PhoneField({ value, onChange, ...rest }: PhoneFieldProps) {
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex min-w-0 gap-2">
       <Select
         value={country}
         onValueChange={changeCountry}
@@ -79,6 +79,7 @@ export function PhoneField({ value, onChange, ...rest }: PhoneFieldProps) {
       </Select>
       <Input
         {...rest}
+        className={`min-w-0 ${rest.className ?? ""}`}
         aria-required
         type="tel"
         autoComplete="tel-national"

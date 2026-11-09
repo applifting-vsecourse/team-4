@@ -58,7 +58,7 @@ async function viewTop(page: Page) {
   await expect
     .poll(async () => {
       position = await page
-        .getByRole("tabpanel")
+        .locator('[role="tabpanel"][data-state="active"]')
         .first()
         .evaluate((panel) => {
           const heading = Array.from(panel.querySelectorAll("h2")).find(

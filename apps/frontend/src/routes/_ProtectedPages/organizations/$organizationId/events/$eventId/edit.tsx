@@ -83,38 +83,35 @@ function EditEventPage() {
         }
         title="Upravit akci"
       />
-      {/* The form stays narrow; the page keeps the workspace's margins. */}
-      <div className="max-w-xl">
-        {event.isLocked ? (
-          <div className="space-y-4">
-            <EventLockedAlert status={event.status} />
-            <Button
-              asChild
-              variant="outline"
+      {event.isLocked ? (
+        <div className="space-y-4">
+          <EventLockedAlert status={event.status} />
+          <Button
+            asChild
+            variant="outline"
+          >
+            <Link
+              to={ROUTES.eventSettings}
+              params={{ organizationId, eventId }}
             >
-              <Link
-                to={ROUTES.eventSettings}
-                params={{ organizationId, eventId }}
-              >
-                Zpět na nastavení
-              </Link>
-            </Button>
-          </div>
-        ) : (
-          <Card>
-            <CardContent>
-              <EventForm
-                initialValues={initialValues}
-                submitLabel="Uložit změny"
-                isLoading={updateEvent.isPending}
-                errorMessage={errorMessage}
-                onSubmit={handleSubmit}
-                onCancel={backToSettings}
-              />
-            </CardContent>
-          </Card>
-        )}
-      </div>
+              Zpět na nastavení
+            </Link>
+          </Button>
+        </div>
+      ) : (
+        <Card>
+          <CardContent>
+            <EventForm
+              initialValues={initialValues}
+              submitLabel="Uložit změny"
+              isLoading={updateEvent.isPending}
+              errorMessage={errorMessage}
+              onSubmit={handleSubmit}
+              onCancel={backToSettings}
+            />
+          </CardContent>
+        </Card>
+      )}
     </WorkspacePage>
   )
 }

@@ -55,7 +55,9 @@ test("the manual mode evaluates a term only on request, with queues, reasons and
 
   await page.goto(evaluationUrl(event))
   await expect(page.getByText("Termín zatím nebyl vyhodnocen")).toBeVisible()
-  await expect(page.getByText("Aktualizuje se ručně")).toBeVisible()
+  await expect(page.getByRole("alert")).toContainText(
+    "V ručním režimu vytvořte návrh tlačítkem Přepočítat",
+  )
 
   await page.getByRole("button", { name: "Přepočítat" }).click()
   await expect(page.getByText("Aktuální návrh", { exact: true })).toBeVisible({ timeout: 20_000 })

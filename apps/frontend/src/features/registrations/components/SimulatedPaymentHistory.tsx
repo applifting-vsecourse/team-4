@@ -27,7 +27,7 @@ export function SimulatedPaymentHistory({ payments }: { payments: HistoryPayment
             <span className="text-muted-foreground">{payment.date}</span>
             {payment.isSimulated ? <Badge variant="secondary">QR platba</Badge> : null}
           </span>
-          <span className="font-mono">{payment.amount}</span>
+          <span className="font-mono tabular-nums">{payment.amount}</span>
         </li>
       ))}
     </ul>

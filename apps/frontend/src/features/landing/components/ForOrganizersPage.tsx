@@ -91,7 +91,7 @@ function OrganizerDemo() {
               aria-label="Obsazenost 42 ze 48 míst"
             />
           </div>
-          <Table>
+          <Table containerLabel="Ukázka přihlášek účastníků">
             <TableHeader>
               <TableRow>
                 <TableHead>Účastník</TableHead>

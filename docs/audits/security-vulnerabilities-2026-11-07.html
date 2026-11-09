@@ -6,30 +6,32 @@
 <title>Zranitelnosti závislostí akc.io</title>
 <style>
   :root {
-    --bg: #f7efd9; --surface: #fffbef; --text: #1c130b; --muted: #6b5f50;
-    --border: #1c130b; --hairline: #ddd2b8; --accent: #b7ea2a;
+    --bg: oklch(0.955 0.035 95); --surface: oklch(0.99 0.018 95); --text: oklch(0.17 0.03 60); --muted: oklch(0.42 0.04 60);
+    --border: oklch(0.78 0.04 85); --hairline: oklch(0.78 0.04 85 / 0.55); --accent: oklch(0.87 0.21 125); --accent-text: oklch(0.17 0.03 60);
     --critical: #fff; --critical-bg: #8a1c12;
     --high: #b42318; --high-bg: #fde3df;
     --moderate: #9a5b00; --moderate-bg: #fcebc9;
     --low: #33658a; --low-bg: #e1ecf4;
     --ok: #1f7a3d; color-scheme: light;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #1c130b; --surface: #261b11; --text: #f7efd9; --muted: #b7a98f;
-      --border: #5c4d3b; --hairline: #3d3022;
-      --critical: #1c130b; --critical-bg: #ff8a7a;
-      --high: #ff8a7a; --high-bg: #3b1a14;
-      --moderate: #f5b74a; --moderate-bg: #3a2a10;
-      --low: #8ec0e6; --low-bg: #16283a; --ok: #7fd69a; color-scheme: dark;
-    }
+  :root[data-theme="dark"] {
+    --bg: oklch(0.175 0.012 262); --surface: oklch(0.212 0.014 262); --text: oklch(0.93 0.006 262); --muted: oklch(0.74 0.015 262);
+    --border: oklch(0.33 0.014 262); --hairline: oklch(0.33 0.014 262); --accent: oklch(0.88 0.19 128); --accent-text: oklch(0.21 0.035 135);
+    --critical: oklch(0.81 0.11 23); --critical-bg: oklch(0.285 0.07 23);
+    --high: oklch(0.81 0.11 23); --high-bg: oklch(0.285 0.07 23);
+    --moderate: oklch(0.82 0.14 72); --moderate-bg: oklch(0.3 0.06 65);
+    --low: oklch(0.78 0.09 240); --low-bg: oklch(0.27 0.035 250);
+    --ok: oklch(0.8 0.15 152); color-scheme: dark;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   main { max-width: 1080px; margin: 0 auto; padding: 40px 16px 80px; }
+  .theme-toggle { float: right; margin: 0 0 12px 16px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .theme-toggle:hover { background: var(--accent); color: var(--accent-text); }
+  .theme-toggle:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
   .kicker { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   h1 { font-size: clamp(28px, 5vw, 42px); line-height: 1.1; margin: 8px 0 12px; }
-  h1 mark { background: var(--accent); color: #1c130b; padding: 0 .2em; }
+  h1 mark { background: var(--accent); color: var(--accent-text); padding: 0 .2em; }
   h2 { font-size: 22px; margin: 44px 0 14px; }
   h3 { font-size: 17px; margin: 0; }
   p { margin: 0 0 10px; }
@@ -73,11 +75,12 @@
     .pkg td:nth-child(2) { grid-row: 2; grid-column: 1 / -1; }
     .pkg td:last-child { text-align: right; }
   }
-  @media print { body { background: #fff; } .stat { box-shadow: none; } .pkg { break-inside: avoid; } }
+  @media print { body { background: #fff; } .theme-toggle { display: none; } .stat { box-shadow: none; } .pkg { break-inside: avoid; } }
 </style>
 </head>
 <body>
 <main>
+  <button class="theme-toggle" type="button" aria-pressed="false">Tmavý režim</button>
   <div class="kicker">akc.io · security audit · Sprint 3 (#166)</div>
   <h1>Zranitelnosti závislostí <mark>akc.io</mark></h1>
   <p class="lead">Všechny zranitelnosti, které <code>pnpm audit</code> (databáze GitHub Advisory) našel v závislostech obou aplikací před aktualizací, a u každé, kterým PR a jakým způsobem byla odstraněna. Shrnutí a sledování zranitelností popisuje <a href="security-report-2026-11-07.md">security report</a>.</p>
@@ -508,5 +511,14 @@
 
   <footer>Zdroj: <code>pnpm audit --json</code> nad lockfilem <code>main</code> před aktualizací a nad lockfilem každého PR ze stacku #289–#292, 7. 11. 2026. Jedna zranitelnost je uvedena jednou, i když ji pnpm hlásí pro více nainstalovaných verzí (proto pnpm uvádí 147 nálezů). „Produkce“ znamená, že balíček je v řetězci běhových závislostí backendu nebo frontendu.</footer>
 </main>
+<script>
+  const themeToggle = document.querySelector(".theme-toggle");
+  themeToggle.addEventListener("click", () => {
+    const isDark = document.documentElement.dataset.theme !== "dark";
+    document.documentElement.dataset.theme = isDark ? "dark" : "light";
+    themeToggle.textContent = isDark ? "Světlý režim" : "Tmavý režim";
+    themeToggle.setAttribute("aria-pressed", String(isDark));
+  });
+</script>
 </body>
 </html>

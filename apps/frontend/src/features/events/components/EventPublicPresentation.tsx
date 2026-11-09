@@ -7,6 +7,7 @@ import { z } from "zod"
 import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import {
   Form,
   FormControl,
@@ -149,13 +150,10 @@ export function EventPublicPresentation({
   const canAddPhoto = photos.length < MAX_PHOTOS && !isUploading
 
   return (
-    <section aria-labelledby="public-presentation-heading">
-      <h2
-        id="public-presentation-heading"
-        className="mb-4 text-h4"
-      >
-        Veřejná prezentace
-      </h2>
+    <CollapsibleSection
+      headingId="public-presentation-heading"
+      title="Veřejná prezentace"
+    >
       <Card>
         <CardContent>
           <div className="space-y-8">
@@ -352,19 +350,21 @@ export function EventPublicPresentation({
                     <AlertTitle>{errorMessage}</AlertTitle>
                   </Alert>
                 ) : null}
-                <Button
-                  type="submit"
-                  disabled={isSaving}
-                >
-                  {isSaving ? <Loader2 className="animate-spin" /> : null}
-                  {isSaving ? "Ukládám…" : "Uložit"}
-                </Button>
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? <Loader2 className="animate-spin" /> : null}
+                    {isSaving ? "Ukládám…" : "Uložit"}
+                  </Button>
+                </div>
               </form>
             </Form>
           </div>
         </CardContent>
       </Card>
-    </section>
+    </CollapsibleSection>
   )
 }
 

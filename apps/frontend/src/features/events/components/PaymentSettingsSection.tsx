@@ -4,6 +4,7 @@ import { toast } from "sonner"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardContent } from "@/components/ui/card"
+import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { readApiError } from "@/lib/apiError"
 
 import { type EventDetail } from "@/features/events/api/eventSchemas"
@@ -58,13 +59,10 @@ export function PaymentSettingsSection({ organizationId, event }: PaymentSetting
   }
 
   return (
-    <section aria-labelledby="payments-heading">
-      <h2
-        id="payments-heading"
-        className="mb-4 text-h4"
-      >
-        Platební údaje
-      </h2>
+    <CollapsibleSection
+      headingId="payments-heading"
+      title="Platební údaje"
+    >
       <Card>
         <CardContent className="space-y-4">
           {event.paymentSettings === null ? (
@@ -101,6 +99,6 @@ export function PaymentSettingsSection({ organizationId, event }: PaymentSetting
           </Alert>
         </CardContent>
       </Card>
-    </section>
+    </CollapsibleSection>
   )
 }

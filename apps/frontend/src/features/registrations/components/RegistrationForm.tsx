@@ -6,6 +6,7 @@ import { z } from "zod"
 
 import { ROUTES } from "@/app/routes"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
@@ -173,84 +174,90 @@ export function RegistrationForm({
         noValidate
         aria-label="Přihláška na akci"
         onSubmit={submit}
-        className="space-y-8"
+        className="space-y-10"
       >
-        <p className="text-sm text-muted-foreground">
-          Pole označená hvězdičkou <RequiredMark /> je nutné vyplnit.
-        </p>
-        <FormField
-          control={form.control}
-          name="termIds"
-          render={({ field, fieldState }) => (
-            <FormItem>
-              <fieldset className="space-y-3">
-                <legend className="mb-3 text-h4">
-                  Termíny <RequiredMark />
-                </legend>
-                {terms.map((term) => {
-                  const id = `registration-term-${term.id}`
-                  return (
-                    <div
-                      key={term.id}
-                      className="relative flex items-center gap-3 rounded-lg border border-border bg-card p-3 has-data-[state=checked]:border-foreground"
-                    >
-                      <Checkbox
-                        id={id}
-                        aria-invalid={fieldState.error ? true : undefined}
-                        checked={field.value.includes(term.id)}
-                        onCheckedChange={(checked) =>
-                          field.onChange(
-                            checked === true
-                              ? [...field.value, term.id]
-                              : field.value.filter((termId) => termId !== term.id),
-                          )
-                        }
-                      />
-                      <Label
-                        htmlFor={id}
-                        className="relative min-w-0 flex-1 after:absolute after:inset-0"
+        <section
+          aria-label="Výběr termínů"
+          className="space-y-5"
+        >
+          <FormField
+            control={form.control}
+            name="termIds"
+            render={({ field, fieldState }) => (
+              <FormItem>
+                <fieldset className="space-y-3">
+                  <legend className="mb-3 flex w-full flex-wrap items-center gap-3 text-h4">
+                    <span>Termíny</span>
+                    <Badge variant="outline">Povinné</Badge>
+                  </legend>
+                  {terms.map((term) => {
+                    const id = `registration-term-${term.id}`
+                    return (
+                      <div
+                        key={term.id}
+                        className="relative flex items-center gap-3 rounded-lg border border-border bg-card p-3 has-data-[state=checked]:border-foreground"
                       >
-                        <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                          <span className="min-w-0 break-words">
-                            {term.label}
-                            <span className="mt-2 block font-normal text-muted-foreground">
-                              {formatCalendarRange(term.startDate, term.endDate)}
+                        <Checkbox
+                          id={id}
+                          aria-invalid={fieldState.error ? true : undefined}
+                          checked={field.value.includes(term.id)}
+                          onCheckedChange={(checked) =>
+                            field.onChange(
+                              checked === true
+                                ? [...field.value, term.id]
+                                : field.value.filter((termId) => termId !== term.id),
+                            )
+                          }
+                        />
+                        <Label
+                          htmlFor={id}
+                          className="relative min-w-0 flex-1 after:absolute after:inset-0"
+                        >
+                          <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                            <span className="min-w-0 break-words">
+                              {term.label}
+                              <span className="mt-2 block font-normal text-muted-foreground">
+                                {formatCalendarRange(term.startDate, term.endDate)}
+                              </span>
                             </span>
+                            <span className="tabular-nums">{formatCzk(term.priceMinor)}</span>
                           </span>
-                          <span className="tabular-nums">{formatCzk(term.priceMinor)}</span>
-                        </span>
-                      </Label>
-                    </div>
-                  )
-                })}
-              </fieldset>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                        </Label>
+                      </div>
+                    )
+                  })}
+                </fieldset>
+                <FormMessage className="min-h-0" />
+              </FormItem>
+            )}
+          />
 
-        <div className="space-y-2">
-          <section
-            aria-labelledby="registration-total-heading"
-            aria-live="polite"
-            className="flex items-center gap-3 rounded-lg bg-muted p-3"
-          >
-            <p
-              id="registration-total-heading"
-              className="min-w-0 flex-1 text-sm font-medium"
+          <div className="space-y-2">
+            <section
+              aria-labelledby="registration-total-heading"
+              aria-live="polite"
+              className="flex items-center gap-3 rounded-lg bg-muted p-3"
             >
-              Cena vybraných termínů
+              <p
+                id="registration-total-heading"
+                className="min-w-0 flex-1 text-sm font-medium"
+              >
+                Cena vybraných termínů
+              </p>
+              <span className="text-base font-semibold tabular-nums">{formatCzk(totalMinor)}</span>
+            </section>
+            <p className="text-sm text-muted-foreground">
+              Nejde o částku k úhradě. Potvrzení účasti v jednotlivých termínech a částku k úhradě
+              uvidíte po odeslání.
             </p>
-            <span className="text-base font-semibold tabular-nums">{formatCzk(totalMinor)}</span>
-          </section>
-          <p className="text-sm text-muted-foreground">
-            Nejde o částku k úhradě. Potvrzení účasti v jednotlivých termínech a částku k úhradě
-            uvidíte po odeslání.
-          </p>
-        </div>
+          </div>
+        </section>
 
         <fieldset className="space-y-5">
-          <legend className="mb-5 text-h4">Kontaktní údaje</legend>
+          <legend className="mb-5 flex w-full flex-wrap items-center gap-3 text-h4">
+            <span>Kontaktní údaje</span>
+            <Badge variant="outline">Povinné</Badge>
+          </legend>
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
               control={form.control}
@@ -267,7 +274,7 @@ export function RegistrationForm({
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="min-h-0" />
                 </FormItem>
               )}
             />
@@ -286,7 +293,7 @@ export function RegistrationForm({
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="min-h-0" />
                 </FormItem>
               )}
             />
@@ -307,7 +314,7 @@ export function RegistrationForm({
                     {...field}
                   />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="min-h-0" />
               </FormItem>
             )}
           />
@@ -322,46 +329,56 @@ export function RegistrationForm({
                 <FormControl>
                   <PhoneField {...field} />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="min-h-0" />
               </FormItem>
             )}
           />
         </fieldset>
 
-        <FormField
-          control={form.control}
-          name="gender"
-          render={({ field }) => (
-            <GenderField
-              id="registration-gender"
-              value={{ gender: field.value, genderOther: typed.genderOther ?? null }}
-              onChange={(answer) => {
-                field.onChange(answer.gender)
-                form.setValue("genderOther", answer.genderOther)
-              }}
-            />
-          )}
-        />
+        <section
+          aria-label="Doplňující údaje"
+          className="space-y-6 rounded-lg border border-border bg-card p-4 sm:p-6"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-h4">Doplňující údaje</h2>
+            <Badge variant="secondary">Nepovinné</Badge>
+          </div>
 
-        <fieldset className="space-y-4">
-          <legend className="mb-4 text-h4">Doprava, strava a zdraví</legend>
           <FormField
             control={form.control}
-            name="needs"
+            name="gender"
             render={({ field }) => (
-              <RegistrationNeedsFields
-                defaultValue={field.value}
-                onChange={field.onChange}
-                errors={{
-                  transportNote: needsErrors?.transportNote?.message,
-                  diet: needsErrors?.diet?.message,
-                  dietNote: needsErrors?.dietNote?.message,
-                  health: needsErrors?.health?.message,
+              <GenderField
+                id="registration-gender"
+                value={{ gender: field.value, genderOther: typed.genderOther ?? null }}
+                onChange={(answer) => {
+                  field.onChange(answer.gender)
+                  form.setValue("genderOther", answer.genderOther)
                 }}
               />
             )}
           />
-        </fieldset>
+
+          <fieldset className="space-y-4">
+            <legend className="sr-only">Doprava, strava a zdraví</legend>
+            <FormField
+              control={form.control}
+              name="needs"
+              render={({ field }) => (
+                <RegistrationNeedsFields
+                  defaultValue={field.value}
+                  onChange={field.onChange}
+                  errors={{
+                    transportNote: needsErrors?.transportNote?.message,
+                    diet: needsErrors?.diet?.message,
+                    dietNote: needsErrors?.dietNote?.message,
+                    health: needsErrors?.health?.message,
+                  }}
+                />
+              )}
+            />
+          </fieldset>
+        </section>
 
         {submitError ? <SubmitErrorAlert error={submitError} /> : null}
 

@@ -55,6 +55,7 @@ export function EventOverviewSummary({
     return (
       <div
         className="grid gap-4 md:grid-cols-3"
+        role="group"
         aria-label="Načítání souhrnu"
         aria-busy
       >

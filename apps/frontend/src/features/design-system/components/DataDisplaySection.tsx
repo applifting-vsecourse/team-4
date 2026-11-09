@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import {
   Empty,
   EmptyContent,
@@ -64,6 +65,21 @@ const APPLICATIONS = [
 export function DataDisplaySection() {
   return (
     <>
+      <ShowcaseSection
+        id="collapsible-section"
+        title="Sbalitelná sekce"
+        description="Celý nadpis ovládá obsah; otevření i zavření plynule přechází podle výšky obsahu."
+      >
+        <CollapsibleSection
+          headingId="design-system-collapsible-section"
+          title="Nastavení účasti"
+        >
+          <p className="text-sm text-muted-foreground">
+            Sdílená sekce zachovává obsah při sbalení a animuje změnu výšky.
+          </p>
+        </CollapsibleSection>
+      </ShowcaseSection>
+
       <ShowcaseSection
         id="badges"
         title="Štítky stavu"
