@@ -49,12 +49,15 @@ test("an organizer opens an event, participants register and payments settle the
 
   await step(page, "3 · Přidá turnus s cenou", async () => {
     await page
-      .getByRole("navigation", { name: "Části akce" })
+      .getByRole("navigation", { name: "Navigace organizace a akce" })
       .getByRole("link", { name: "Nastavení" })
       .click()
     // The overview has its own "Přidat termín"; wait until the settings page replaced it.
     await expect(page.getByRole("heading", { name: "Termíny a ceny" })).toBeVisible()
-    await page.getByRole("button", { name: "Přidat termín" }).click()
+    await page
+      .getByRole("region", { name: "Termíny a ceny" })
+      .getByRole("button", { name: "Přidat termín" })
+      .click()
     const dialog = page.getByRole("dialog", { name: "Nový termín" })
     await type(dialog.getByLabel("Označení"), "1. turnus")
     await pickDate(page, dialog.getByLabel("Začátek"), "2027-07-04")
