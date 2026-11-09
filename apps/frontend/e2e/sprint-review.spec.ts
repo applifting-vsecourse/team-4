@@ -229,7 +229,7 @@ test(sprintReviewTitle, async ({ page, browser }) => {
       // Leave time to explain both occupancy rows before switching screens.
       if (isDemo) await page.waitForTimeout(5_000)
       await nav("Přihlášky").click()
-      const janaRegistration = page.getByRole("link", { name: /Otevřít přihlášku Jana Nováková/ })
+      const janaRegistration = page.getByRole("link", { name: /Přihláška Jana Nováková/ })
       await expect(janaRegistration).toBeVisible()
       if (isDemo) await page.waitForTimeout(4_000)
       await janaRegistration.click()

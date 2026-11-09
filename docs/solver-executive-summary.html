@@ -6,48 +6,56 @@
 <title>Solver ubytování akc.io</title>
 <style>
   :root {
-    --bg: #f7efd9;
-    --surface: #fffbef;
-    --text: #1c130b;
-    --muted: #6b5f50;
-    --border: #1c130b;
-    --hairline: #ddd2b8;
-    --accent: #b7ea2a;
-    --bar: #5c8a00;
-    --bar-off: #9a8f80;
-    --ok: #1f7a3d;
-    --warn: #9a5b00;
-    --warn-bg: #fcebc9;
+    --bg: oklch(0.955 0.035 95);
+    --surface: oklch(0.99 0.018 95);
+    --text: oklch(0.17 0.03 60);
+    --muted: oklch(0.42 0.04 60);
+    --border: oklch(0.78 0.04 85);
+    --hairline: oklch(0.78 0.04 85);
+    --accent: oklch(0.87 0.21 125);
+    --accent-text: oklch(0.17 0.03 60);
+    --bar: oklch(0.49 0.16 135);
+    --bar-off: oklch(0.58 0.035 70);
+    --ok: oklch(0.42 0.13 150);
+    --warn: oklch(0.48 0.14 55);
+    --warn-bg: oklch(0.94 0.06 85);
+    --shadow: 3px 3px 0 var(--border);
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #1c130b;
-      --surface: #261b11;
-      --text: #f7efd9;
-      --muted: #b7a98f;
-      --border: #5c4d3b;
-      --hairline: #3d3022;
-      --bar: #a6d84a;
-      --bar-off: #8a7f70;
-      --ok: #7fd69a;
-      --warn: #f5b74a;
-      --warn-bg: #3a2a10;
+      --bg: oklch(0.175 0.012 262);
+      --surface: oklch(0.212 0.014 262);
+      --text: oklch(0.93 0.006 262);
+      --muted: oklch(0.74 0.015 262);
+      --border: oklch(0.33 0.014 262);
+      --hairline: oklch(0.33 0.014 262);
+      --accent: oklch(0.88 0.19 128);
+      --accent-text: oklch(0.21 0.035 135);
+      --bar: oklch(0.75 0.16 130);
+      --bar-off: oklch(0.52 0.025 262);
+      --ok: oklch(0.8 0.15 152);
+      --warn: oklch(0.82 0.14 72);
+      --warn-bg: oklch(0.3 0.06 65);
+      --shadow: none;
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #1c130b;
-    --surface: #261b11;
-    --text: #f7efd9;
-    --muted: #b7a98f;
-    --border: #5c4d3b;
-    --hairline: #3d3022;
-    --bar: #a6d84a;
-    --bar-off: #8a7f70;
-    --ok: #7fd69a;
-    --warn: #f5b74a;
-    --warn-bg: #3a2a10;
+    --bg: oklch(0.175 0.012 262);
+    --surface: oklch(0.212 0.014 262);
+    --text: oklch(0.93 0.006 262);
+    --muted: oklch(0.74 0.015 262);
+    --border: oklch(0.33 0.014 262);
+    --hairline: oklch(0.33 0.014 262);
+    --accent: oklch(0.88 0.19 128);
+    --accent-text: oklch(0.21 0.035 135);
+    --bar: oklch(0.75 0.16 130);
+    --bar-off: oklch(0.52 0.025 262);
+    --ok: oklch(0.8 0.15 152);
+    --warn: oklch(0.82 0.14 72);
+    --warn-bg: oklch(0.3 0.06 65);
+    --shadow: none;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -60,13 +68,17 @@
   main { max-width: 1040px; margin: 0 auto; padding: 40px 16px 64px; }
   .kicker { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   h1 { font-size: clamp(28px, 5vw, 44px); line-height: 1.1; margin: 8px 0 12px; }
-  h1 mark { background: var(--accent); color: #1c130b; padding: 0 .2em; }
+  h1 mark { background: var(--accent); color: var(--accent-text); padding: 0 .2em; }
   h2 { font-size: 22px; margin: 44px 0 14px; }
   p { margin: 0; }
   .lead { color: var(--muted); font-size: 18px; max-width: 60ch; }
   .note { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
   .note.center { text-align: center; margin: 10px 0 0; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: 3px 3px 0 var(--border); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+  .theme-toggle { flex: 0 0 auto; margin-top: 2px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; background: var(--surface); color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+  .theme-toggle:hover { background: var(--accent); color: var(--accent-text); }
+  .theme-toggle:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
 
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 24px; }
   .stats b { display: block; font-size: 32px; line-height: 1.1; }
@@ -127,6 +139,9 @@
   code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
 
   @media (max-width: 720px) {
+    .page-header { flex-direction: column; align-items: flex-end; }
+    .page-header > div { align-self: stretch; }
+    .theme-toggle { font-size: 13px; padding: 6px 9px; }
     .flow { flex-direction: column; }
     .flow .arrow { flex-basis: 24px; }
     .flow .arrow::before { content: "↓"; }
@@ -140,10 +155,13 @@
 </head>
 <body>
 <main>
-  <header>
-    <div class="kicker">akc.io · solver ubytování · shrnutí</div>
-    <h1>Kdo se vejde, <mark>spočítá solver</mark>. Rozhodne organizátor.</h1>
-    <p class="lead">Navrhne, koho v termínu potvrdit, a u ostatních řekne proč. Sám nic nepotvrdí.</p>
+  <header class="page-header">
+    <div>
+      <div class="kicker">akc.io · solver ubytování · shrnutí</div>
+      <h1>Kdo se vejde, <mark>spočítá solver</mark>. Rozhodne organizátor.</h1>
+      <p class="lead">Navrhne, koho v termínu potvrdit, a u ostatních řekne proč. Sám nic nepotvrdí.</p>
+    </div>
+    <button class="theme-toggle" type="button" aria-label="Přepnout na tmavý režim" aria-pressed="false">Tmavý režim</button>
   </header>
 
   <section class="stats" aria-label="Klíčová čísla">
@@ -242,5 +260,31 @@
     Zdroj: specifikace v4 (<a href="https://github.com/applifting-vsecourse/team-4/issues/181">#181</a>), kód a <code>README.md</code> v <code>apps/backend/src/modules/accommodation/solver/</code>, benchmark <code>pnpm backend solver:benchmark</code>. Stav k 8. 11. 2026.
   </footer>
 </main>
+<script>
+  const root = document.documentElement
+  const toggle = document.querySelector(".theme-toggle")
+  const storedTheme = localStorage.getItem("solver-theme")
+  if (storedTheme === "light" || storedTheme === "dark") root.dataset.theme = storedTheme
+
+  function updateThemeControl() {
+    const dark = root.dataset.theme
+      ? root.dataset.theme === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches
+    toggle.setAttribute("aria-pressed", String(dark))
+    toggle.setAttribute("aria-label", `Přepnout na ${dark ? "světlý" : "tmavý"} režim`)
+    toggle.textContent = `${dark ? "Světlý" : "Tmavý"} režim`
+  }
+
+  toggle.addEventListener("click", () => {
+    const dark = root.dataset.theme
+      ? root.dataset.theme === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches
+    root.dataset.theme = dark ? "light" : "dark"
+    localStorage.setItem("solver-theme", root.dataset.theme)
+    updateThemeControl()
+  })
+
+  updateThemeControl()
+</script>
 </body>
 </html>

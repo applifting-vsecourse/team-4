@@ -1,7 +1,6 @@
 import type { ReactNode } from "react"
 import { ClipboardCheck } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import {
@@ -30,11 +29,11 @@ export type PendingChangeRequest = {
 // Design only: every value is passed in.
 type ChangeRequestsTableProps = {
   requests: PendingChangeRequest[]
-  /** The way into the request, e.g. a link to the registration detail. */
-  renderOpen?: (request: PendingChangeRequest) => ReactNode
+  /** One accessible link stretched across the row, e.g. to the registration detail. */
+  renderRowLink?: (request: PendingChangeRequest, isPrimary: boolean) => ReactNode
 }
 
-export function ChangeRequestsTable({ requests, renderOpen }: ChangeRequestsTableProps) {
+export function ChangeRequestsTable({ requests, renderRowLink }: ChangeRequestsTableProps) {
   if (requests.length === 0) {
     return (
       <Empty>
@@ -57,33 +56,30 @@ export function ChangeRequestsTable({ requests, renderOpen }: ChangeRequestsTabl
             <TableHead>Změna</TableHead>
             <TableHead>Termíny</TableHead>
             <TableHead>Odesláno</TableHead>
-            <TableHead>
-              <span className="sr-only">Otevřít</span>
-            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {requests.map((request) => (
             <TableRow key={request.id}>
-              <TableCell>
-                <p className="font-medium">{request.participant}</p>
+              <TableCell className={renderRowLink ? "relative" : undefined}>
+                {renderRowLink ? (
+                  renderRowLink(request, true)
+                ) : (
+                  <p className="font-medium">{request.participant}</p>
+                )}
                 <p className="text-xs text-muted-foreground">{request.email}</p>
               </TableCell>
-              <TableCell>{request.kind}</TableCell>
-              <TableCell>{request.terms}</TableCell>
-              <TableCell>{request.submittedAt}</TableCell>
-              <TableCell className="text-right">
-                {renderOpen ? (
-                  renderOpen(request)
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`Otevřít žádost ${request.participant}`}
-                  >
-                    Otevřít
-                  </Button>
-                )}
+              <TableCell className={renderRowLink ? "relative" : undefined}>
+                {request.kind}
+                {renderRowLink?.(request, false)}
+              </TableCell>
+              <TableCell className={renderRowLink ? "relative" : undefined}>
+                {request.terms}
+                {renderRowLink?.(request, false)}
+              </TableCell>
+              <TableCell className={renderRowLink ? "relative" : undefined}>
+                {request.submittedAt}
+                {renderRowLink?.(request, false)}
               </TableCell>
             </TableRow>
           ))}

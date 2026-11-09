@@ -134,12 +134,12 @@ describe("RegistrationsSection", () => {
     expect(screen.getByText("Zobrazeno 1 z 1 · od nejstarší přihlášky")).toBeInTheDocument()
   })
 
-  it("gives every registration a clear button to its detail", async () => {
+  it("links each registration row to its detail", async () => {
     responses.push({ total: 1, registrations: [registration()] })
     renderSection()
 
-    const button = await screen.findByRole("link", { name: "Otevřít přihlášku Eliška Svobodová" })
-    expect(button).toHaveTextContent("Otevřít")
+    const link = await screen.findByRole("link", { name: "Přihláška Eliška Svobodová" })
+    expect(link).toHaveTextContent("Eliška Svobodová")
   })
 
   it("tells an event without registrations from filters without a match", async () => {

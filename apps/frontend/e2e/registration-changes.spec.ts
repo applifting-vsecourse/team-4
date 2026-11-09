@@ -59,7 +59,7 @@ async function openOrganizerRequest(page: Page, event: OpenEvent, registrationId
     "data-state",
     "active",
   )
-  await page.getByRole("link", { name: "Otevřít žádost Jana Nováková" }).click()
+  await page.getByRole("link", { name: "Přihláška Jana Nováková" }).click()
   await expect(page).toHaveURL(new RegExp(registrationId))
 }
 
