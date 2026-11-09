@@ -31,7 +31,7 @@ export const OwnGenderAnswer: StoryObj<typeof meta> = {
   play: async (context) => {
     await showsHeading("Letní tábor Modrá Hora 2027")(context)
     const canvas = within(context.canvasElement)
-    const words = { name: "Vlastní odpověď" }
+    const words = { name: "Vlastní odpověď (nepovinné)" }
     await expect(canvas.queryByRole("textbox", words)).not.toBeInTheDocument()
     await userEvent.click(canvas.getByRole("radio", { name: "Jiná odpověď" }))
     await userEvent.type(canvas.getByRole("textbox", words), "nebinární")
