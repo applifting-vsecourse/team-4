@@ -104,19 +104,6 @@ export function ParticipantRegistrationDetail({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <BackToList />
         <div className="flex flex-wrap items-center gap-2">
-          {data?.canChange ? (
-            <RegistrationChangeActions
-              registrationId={registrationId}
-              onCancelRegistration={() =>
-                setCancelProposal({
-                  moves: [],
-                  cancelledTermIds: data.terms
-                    .filter((term) => term.status !== "cancelled")
-                    .map((term) => term.termId),
-                })
-              }
-            />
-          ) : null}
           <RefreshButton
             isRefreshing={query.isFetching || changesQuery.isFetching}
             onRefresh={() => {
@@ -150,6 +137,25 @@ export function ParticipantRegistrationDetail({
               <span className="wrap-break-word">{data.event.location}</span>
             </p>
           </div>
+
+          {data.canChange ? (
+            <section
+              aria-label="Akce s přihláškou"
+              className="-mt-2"
+            >
+              <RegistrationChangeActions
+                registrationId={registrationId}
+                onCancelRegistration={() =>
+                  setCancelProposal({
+                    moves: [],
+                    cancelledTermIds: data.terms
+                      .filter((term) => term.status !== "cancelled")
+                      .map((term) => term.termId),
+                  })
+                }
+              />
+            </section>
+          ) : null}
 
           {changesQuery.isError ? (
             <Alert variant="destructive">

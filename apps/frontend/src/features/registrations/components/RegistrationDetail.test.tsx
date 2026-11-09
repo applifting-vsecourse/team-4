@@ -109,7 +109,7 @@ describe("RegistrationDetail", () => {
     renderDetail(MIXED)
     expect(valueOf("Cena vybraných termínů")).toBe("11 800 Kč")
     expect(valueOf("Částka za potvrzené termíny")).toBe("7 900 Kč")
-    expect(valueOf("Přijato")).toBe("1 900 Kč")
+    expect(valueOf("Zaplaceno")).toBe("1 900 Kč")
     expect(valueOf("Dluh")).toBe("6 000 Kč")
     expect(valueOf("Datum připomenutí platby")).toBe("28. 6. 2027")
     expect(valueOf("Variabilní symbol")).toBe("2027094")

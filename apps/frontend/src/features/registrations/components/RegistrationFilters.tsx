@@ -34,37 +34,39 @@ export function RegistrationFilters({ terms, filter, onChange }: RegistrationFil
     onChange({ ...filter, [key]: value === ALL ? undefined : value })
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <FilterSelect
-        id="filter-term"
-        label="Termín"
-        value={filter.termId}
-        onValueChange={(value) => set("termId", value)}
-        options={terms.map((term) => ({ value: term.id, label: term.label }))}
-        allLabel="Všechny termíny"
-      />
-      <FilterSelect
-        id="filter-status"
-        label="Stav účasti"
-        value={filter.status}
-        onValueChange={(value) => set("status", value)}
-        options={activeParticipationStatusSchema.options.map((status) => ({
-          value: status,
-          label: PARTICIPATION_LABELS[status],
-        }))}
-        allLabel="Všechny stavy"
-      />
-      <FilterSelect
-        id="filter-payment"
-        label="Platba"
-        value={filter.payment}
-        onValueChange={(value) => set("payment", value)}
-        options={paymentStateSchema.options.map((state) => ({
-          value: state,
-          label: PAYMENT_STATE_LABELS[state],
-        }))}
-        allLabel="Všechny platby"
-      />
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <FilterSelect
+          id="filter-term"
+          label="Termín"
+          value={filter.termId}
+          onValueChange={(value) => set("termId", value)}
+          options={terms.map((term) => ({ value: term.id, label: term.label }))}
+          allLabel="Všechny termíny"
+        />
+        <FilterSelect
+          id="filter-status"
+          label="Stav účasti"
+          value={filter.status}
+          onValueChange={(value) => set("status", value)}
+          options={activeParticipationStatusSchema.options.map((status) => ({
+            value: status,
+            label: PARTICIPATION_LABELS[status],
+          }))}
+          allLabel="Všechny stavy"
+        />
+        <FilterSelect
+          id="filter-payment"
+          label="Platba"
+          value={filter.payment}
+          onValueChange={(value) => set("payment", value)}
+          options={paymentStateSchema.options.map((state) => ({
+            value: state,
+            label: PAYMENT_STATE_LABELS[state],
+          }))}
+          allLabel="Všechny platby"
+        />
+      </div>
       {isFiltered ? (
         <Button
           variant="ghost"
@@ -89,13 +91,16 @@ type FilterSelectProps = {
 
 function FilterSelect({ id, label, value, onValueChange, options, allLabel }: FilterSelectProps) {
   return (
-    <div className="grid gap-1.5">
+    <div className="grid min-w-0 gap-1.5">
       <Label htmlFor={id}>{label}</Label>
       <Select
         value={value ?? ALL}
         onValueChange={onValueChange}
       >
-        <SelectTrigger id={id}>
+        <SelectTrigger
+          id={id}
+          className="w-full"
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
