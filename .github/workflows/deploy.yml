@@ -1,20 +1,56 @@
 name: Build & Deploy
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: deploy
+  cancel-in-progress: false
 env:
   COURSE_DOMAIN: vsepractical.applifting.dev
   REGISTRY: registry.vsepractical.applifting.dev
 jobs:
   build-and-deploy:
+    # Deploy only after CI succeeded for a push to main; manual runs always proceed.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     env:
       COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
       COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
     steps:
+      - name: Skip if a newer commit was already deployed
+        id: stale
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          # Runs are serialized, so an older commit whose CI finished late must not
+          # overwrite the images of a newer commit that was already deployed.
+          for other in $(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml/runs?status=success&event=workflow_run&per_page=50" --jq '.workflow_runs[].head_sha' | sort -u); do
+            [ "$other" = "$SHA" ] && continue
+            status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$SHA...$other" --jq .status)
+            if [ "$status" = "ahead" ]; then
+              echo "Newer commit $other is already deployed; skipping $SHA."
+              echo "stale=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
       - uses: actions/checkout@v4
+        if: steps.stale.outputs.stale != 'true'
+        with:
+          # Build exactly the commit CI verified, even if main has moved on.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - name: Determine slug
+        if: steps.stale.outputs.stale != 'true'
         id: slug
         run: |
           REPO_NAME="${GITHUB_REPOSITORY##*/}"
@@ -22,12 +58,14 @@ jobs:
           echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
           echo "url=https://$SLUG.$COURSE_DOMAIN" >> "$GITHUB_OUTPUT"
       - name: Login to registry
+        if: steps.stale.outputs.stale != 'true'
         uses: docker/login-action@v3
         with:
           registry: registry.vsepractical.applifting.dev
           username: ${{ secrets.REGISTRY_USER }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
       - name: Build & push backend
+        if: steps.stale.outputs.stale != 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -38,6 +76,7 @@ jobs:
             EMAIL_ALLOWED_RECIPIENT=${{ vars.EMAIL_ALLOWED_RECIPIENT }}
           tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend:latest
       - name: Build & push frontend
+        if: steps.stale.outputs.stale != 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -48,6 +87,6 @@ jobs:
             VITE_BETTER_AUTH_URL=${{ steps.slug.outputs.url }}
           tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-frontend:latest
       - name: Trigger Coolify deploy
-        if: env.COOLIFY_WEBHOOK != ''
+        if: steps.stale.outputs.stale != 'true' && env.COOLIFY_WEBHOOK != ''
         run: |
           curl -fsS -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK"

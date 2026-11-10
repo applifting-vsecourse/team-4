@@ -331,8 +331,9 @@ job results or weaken protection. New workflow runs use the distinct job name.
 ## Releases and the stage
 
 https://team-4.vsepractical.applifting.dev is the stage; there is no separate
-production. Every push to `main` deploys it (`deploy.yml`); once CI passes on
-that commit, `release.yml` publishes a GitHub Release. The release bumps the
+production. Every push to `main` deploys it (`deploy.yml`) once CI has passed on
+that commit, building exactly the commit CI verified. Also once CI passes,
+`release.yml` publishes a GitHub Release. The release bumps the
 patch of the highest `vX.Y.Z` tag, lists the issues the merged PR closes and links the Build & Deploy
 workflow. To put any released version on the stage, run that workflow with
 **Use workflow from → Tags → vX.Y.Z**. To bump minor or major, publish the
