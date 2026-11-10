@@ -5,6 +5,9 @@ on:
     types: [completed]
     branches: [main]
   workflow_dispatch: {}
+concurrency:
+  group: deploy
+  cancel-in-progress: false
 env:
   COURSE_DOMAIN: vsepractical.applifting.dev
   REGISTRY: registry.vsepractical.applifting.dev
