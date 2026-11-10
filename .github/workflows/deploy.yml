@@ -1,6 +1,8 @@
 name: Build & Deploy
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch: {}
 env:
@@ -8,12 +10,20 @@ env:
   REGISTRY: registry.vsepractical.applifting.dev
 jobs:
   build-and-deploy:
+    # Deploy only after CI succeeded for a push to main; manual runs always proceed.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     env:
       COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
       COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Build exactly the commit CI verified, even if main has moved on.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - name: Determine slug
         id: slug
         run: |
