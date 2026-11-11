@@ -47,6 +47,7 @@ import {
   sliceFingerprint,
 } from '../delivery/stack.mjs';
 import { ciEvidence } from './ci-evidence.mjs';
+import { isIntegrationBranch } from '../delivery/feature.mjs';
 import { planReview, executeReview } from './batches.mjs';
 import { ensureQaReviewRequest } from './qa-review.mjs';
 import { ensureTechnicalReviewRequest } from './technical-review.mjs';
@@ -619,7 +620,12 @@ async function processIssue(board, item) {
           cfg.githubToken,
           `/repos/${cfg.repo}/pulls?state=open&base=${encodeURIComponent(stack.tip.head.ref)}&per_page=100`,
         )
-      ).filter((p) => !prNumbers.includes(p.number));
+      )
+        // A child PR into the parent PR's integration branch is not stacked on it.
+        .filter(
+          (p) =>
+            !prNumbers.includes(p.number) && !isIntegrationBranch(p.base?.ref),
+        );
       const lows = stack.prs.filter((p) => severityFor(p) === 'low');
       const reason = above.length
         ? `${above.map((p) => `#${p.number}`).join(', ')} is stacked on #${stack.tip.number} but not linked to this issue; link every PR of a stack to the same issue.`

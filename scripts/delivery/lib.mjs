@@ -131,6 +131,28 @@ export function readyMarker(pr, sha, issue) {
   return `<!-- delivery-ready pr=${pr} sha=${sha} issue=${issue} -->`;
 }
 
+const verdictPrefix = ({ pr, sha, issue }) =>
+  `<!-- agent-review-scope issue=${issue} -->\n<!-- agent-review pr=${pr} sha=${sha} result=`;
+
+/** The latest bot-authored agent review verdict for this PR commit and issue. */
+export function agentVerdict({ comments, pr, sha, issue }) {
+  const prefix = verdictPrefix({ pr, sha, issue });
+  return comments
+    .filter(
+      (c) =>
+        c.user?.login === 'github-actions[bot]' &&
+        (c.body ?? '').startsWith(prefix),
+    )
+    .at(-1);
+}
+
+/** Whether that latest verdict is a pass. */
+export function agentReviewPassed({ comments, pr, sha, issue }) {
+  return (agentVerdict({ comments, pr, sha, issue })?.body ?? '').startsWith(
+    verdictPrefix({ pr, sha, issue }) + 'pass ',
+  );
+}
+
 // `qaFrom` ({ review, sha, number }) lets a stacked PR take its QA from the
 // stack tip: the tip contains this PR, so one approval of the tip commit covers
 // the whole stack. Everything else is still judged on this PR's own head.
@@ -224,27 +246,24 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
           ),
       )
       .at(-1);
-    const verdict = comments
-      .filter(
-        (c) =>
-          c.user?.login === 'github-actions[bot]' &&
-          (c.body ?? '').startsWith(
-            `<!-- agent-review-scope issue=${issue.number} -->\n<!-- agent-review pr=${pr.number} sha=${sha} result=`,
-          ) &&
-          (c.body ?? '').includes(
-            `<!-- agent-review pr=${pr.number} sha=${sha} result=`,
-          ),
-      )
-      .at(-1);
+    const verdict = agentVerdict({
+      comments,
+      pr: pr.number,
+      sha,
+      issue: issue.number,
+    });
     if (
       !waiver &&
       (!verdict ||
         (requirement &&
           Date.parse(verdict.created_at) <
             Date.parse(requirement.created_at)) ||
-        !(verdict.body ?? '').startsWith(
-          `<!-- agent-review-scope issue=${issue.number} -->\n<!-- agent-review pr=${pr.number} sha=${sha} result=pass `,
-        ))
+        !agentReviewPassed({
+          comments,
+          pr: pr.number,
+          sha,
+          issue: issue.number,
+        }))
     ) {
       reasons.push(
         `Independent agent review has not passed for issue #${issue.number} on this commit.`,

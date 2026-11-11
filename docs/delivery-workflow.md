@@ -235,6 +235,50 @@ tested.
   provided the stack still contains the merged PR's head (a reused branch name is
   not enough).
 
+## Feature integration branches
+
+A feature built as separate frontend and backend slices has a parent issue that
+owns the end-to-end scope and links its branch `integration/<parent>-<slug>`
+(GitHub's linked branch in this repository, from the issue's Development section). The `integration/`
+prefix is reserved for these branches. The parent issue has native sub-issues
+labeled `area:frontend` and `area:backend`.
+
+PRs into an integration branch link exactly one open issue, with `Closes #N` or
+`Refs #N`. GitHub closes issues only for merges into `main`, so a merged child
+does not close its sub-issue by itself; the parent PR waits until it is closed.
+
+- **Child PR:** links the sub-issue. It needs exactly one `area:` label, and its
+  parent issue must be open and link the PR's base branch.
+- **Integration PR:** `Refs #<parent>`, for integrating both sides and refining
+  the UI. The parent issue may itself be a sub-issue of an epic.
+
+For these PRs Delivery stages requires a non-draft PR and a passing agent review
+(or manual Copilot waiver) on the current commit. It does not require requirements
+approval, technical review, QA or any other human review: those gates apply to the
+parent PR, which contains the whole feature. The severity label still has to be
+valid. Changes to review and merge enforcement paths are refused; they go
+through their own PR into `main`. These PRs are not stacks: a PR into an integration branch is never a
+slice on top of the parent PR. Its head must be its own: commit statuses belong
+to the commit, so the PR is refused while another open PR has the same head
+commit or branch.
+
+The `child-verify` status is published only on PRs into an integration branch. It
+passes when the latest CI run made for this PR into its current base (the latest
+attempt of each job) passed the lanes for the PR's role:
+`checks` and `stories` for frontend, `checks` and `database` for backend, and
+`checks`, `database` and `stories` for integration PRs. E2E does not run on these
+PRs. Any other link fails it. CI does not re-run on a retarget, so a run from
+before the PR's latest base change never counts: push a commit, or close and
+reopen the PR. PRs from forks are not supported, because GitHub does not
+associate their CI runs with the PR.
+
+The parent PR goes from the integration branch to `main` and runs the normal
+gates for its severity, with full `verify` and QA. It is blocked until the parent
+issue has a frontend and a backend sub-issue closed as completed, every sub-issue
+is closed and no PR into the integration branch is still open. Sub-issue and
+label changes reach the parent PR's status through the five-minute
+reconciliation.
+
 ## Manual Copilot waiver
 
 Only David (`darebakdavca`) can waive Copilot review, on any PR, by posting a

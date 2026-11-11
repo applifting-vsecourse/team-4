@@ -16,6 +16,13 @@ import {
 import { issueRequirements, scopeHash } from './requirements.mjs';
 import { copilotWaiver } from './copilot-waiver.mjs';
 import { referencedIssueNumbers } from '../automation/issue-links.mjs';
+import {
+  childVerify,
+  integrationRole,
+  integrationStages,
+  isIntegrationBranch,
+  parentReasons,
+} from './feature.mjs';
 
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
@@ -83,6 +90,126 @@ async function issuesFor(pr) {
   if (issues.some((i) => i.repository.nameWithOwner !== repo))
     throw new Error('Cross-repository issue links are not supported');
   return issues;
+}
+
+// Labels, linked branches, parent and sub-issues of one issue, normalised for
+// feature.mjs. Anything truncated fails closed instead of being guessed at.
+async function issueDetails(number) {
+  const page = 'pageInfo{hasNextPage}';
+  const branches = `linkedBranches(first:50){nodes{ref{name repository{nameWithOwner}}} ${page}}`;
+  const labels = `labels(first:50){nodes{name} ${page}}`;
+  const response = await api('/graphql', 'POST', {
+    query: `query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){issue(number:$number){number state ${labels} ${branches} parent{number state repository{nameWithOwner} ${branches}} subIssues(first:50){nodes{number state stateReason ${labels}} ${page}}}}}`,
+    variables: {
+      owner: repo.split('/')[0],
+      repo: repo.split('/')[1],
+      number,
+    },
+  });
+  const issue = response.data?.repository?.issue;
+  if (response.errors || !issue)
+    throw new Error(`Cannot read issue #${number} details`);
+  const complete = (connection, what) => {
+    if (connection.pageInfo.hasNextPage)
+      throw new Error(`Issue #${number} has too many ${what}`);
+    return connection.nodes;
+  };
+  // The Development section can link a same-named branch in another repository.
+  const refs = (connection) =>
+    complete(connection, 'linked branches')
+      .filter((node) => node.ref?.repository?.nameWithOwner === repo)
+      .map((node) => node.ref.name);
+  const names = (connection) =>
+    complete(connection, 'labels').map((label) => label.name);
+  return {
+    number: issue.number,
+    state: issue.state,
+    labels: names(issue.labels),
+    branches: refs(issue.linkedBranches),
+    // A parent in another repository cannot link one of our branches.
+    parent: issue.parent && {
+      number: issue.parent.number,
+      state: issue.parent.state,
+      branches:
+        issue.parent.repository.nameWithOwner === repo
+          ? refs(issue.parent.linkedBranches)
+          : [],
+    },
+    subIssues: complete(issue.subIssues, 'sub-issues').map((sub) => ({
+      number: sub.number,
+      state: sub.state,
+      stateReason: sub.stateReason,
+      labels: names(sub.labels),
+    })),
+  };
+}
+
+// Job results of the latest CI run made for this PR into its current base;
+// null before CI started. A run for another PR from the same branch, or from
+// before a retarget, tested a different merge and does not count. A run's
+// pull_requests show the PR's current base, so the retarget time decides.
+async function ciJobs(pr) {
+  const retargeted = Math.max(
+    0,
+    ...(await list(`/repos/${repo}/issues/${pr.number}/timeline`))
+      .filter((event) => event.event === 'base_ref_changed')
+      .map((event) => Date.parse(event.created_at)),
+  );
+  const runs = [];
+  for (let page = 1; ; page++) {
+    const batch = await api(
+      `/repos/${repo}/actions/runs?head_sha=${pr.head.sha}&event=pull_request&per_page=100&page=${page}`,
+    );
+    runs.push(...batch.workflow_runs);
+    if (batch.workflow_runs.length < 100) break;
+  }
+  const run = runs
+    .filter(
+      (r) =>
+        r.head_sha === pr.head.sha &&
+        r.path === '.github/workflows/ci.yml' &&
+        r.repository?.full_name === repo &&
+        r.head_repository?.full_name === pr.head.repo?.full_name &&
+        r.head_branch === pr.head.ref &&
+        r.pull_requests?.some(
+          (p) => p.number === pr.number && p.base?.ref === pr.base.ref,
+        ) &&
+        Date.parse(r.created_at) > retargeted,
+    )
+    .sort((a, b) => b.id - a.id)[0];
+  if (!run) return null;
+  // The latest attempt of every job, so re-running only failed jobs keeps the
+  // lanes which passed before.
+  const jobs = [];
+  for (let page = 1; ; page++) {
+    const batch = await api(
+      `/repos/${repo}/actions/runs/${run.id}/jobs?filter=latest&per_page=100&page=${page}`,
+    );
+    jobs.push(...batch.jobs);
+    if (batch.jobs.length < 100) break;
+  }
+  return jobs
+    .filter((job) => job.head_sha === pr.head.sha)
+    .map(({ name, status, conclusion }) => ({ name, status, conclusion }));
+}
+
+// Other open PRs whose head is this PR's head commit or branch. Statuses
+// belong to the commit, so a lenient integration-branch pass would also count
+// for them, for instance for a PR into main.
+async function sharedHead(pr) {
+  const owner = repo.split('/')[0];
+  const others = [
+    ...(await list(`/repos/${repo}/commits/${pr.head.sha}/pulls`)),
+    ...(await list(
+      `/repos/${repo}/pulls?state=open&head=${encodeURIComponent(`${owner}:${pr.head.ref}`)}`,
+    )),
+  ].filter(
+    (other) =>
+      other.number !== pr.number &&
+      other.state === 'open' &&
+      (other.head.sha === pr.head.sha || other.head.ref === pr.head.ref),
+  );
+  return [...new Map(others.map((other) => [other.number, other])).values()];
 }
 
 // GitHub requires both a status and a check run when they share a name.
@@ -174,13 +301,18 @@ for (let pr of candidates) {
   if (pr.state !== 'open') continue;
   // Commit statuses do not become synthetic jobs in an unrelated Actions suite.
   // Start blocked so an API error cannot leave a previous passing verdict current.
-  const publish = (state, description) =>
+  const status = (context) => (state, description) =>
     api(`/repos/${repo}/statuses/${pr.head.sha}`, 'POST', {
-      context: 'Delivery stages',
+      context,
       state,
       description: description.slice(0, 140),
       target_url: runUrl,
     });
+  const publish = status('Delivery stages');
+  // child-verify is published only on PRs into an integration branch, where
+  // the integration branch ruleset requires it: a missing status blocks.
+  const publishChild = status('child-verify');
+  const intoIntegration = isIntegrationBranch(pr.base.ref);
   try {
     // The list-pulls endpoint returns summaries without changed_files.
     // Load the full PR before comparing the paginated file list with its count.
@@ -194,6 +326,77 @@ for (let pr of candidates) {
         continue;
     }
     await publish('pending', 'Checking requirements, agent review and QA');
+    if (intoIntegration) {
+      await publishChild('pending', 'Checking the required CI lanes');
+      const linked = linkedIssues ?? (await issuesFor(pr));
+      const details = () =>
+        Promise.all(linked.map((issue) => issueDetails(issue.number)));
+      const issues = await details();
+      const role = integrationRole({ pr, issues });
+      const files = await list(`/repos/${repo}/pulls/${pr.number}/files`);
+      if (files.length !== pr.changed_files)
+        throw new Error('Incomplete changed-file coverage');
+      // The label still classifies the change; its gates apply to the parent PR.
+      validateSeverity(pr, files);
+      const comments = await list(
+        `/repos/${repo}/issues/${pr.number}/comments`,
+      );
+      const verify = childVerify({ role, jobs: await ciJobs(pr) });
+      const reasons = integrationStages({
+        pr,
+        role,
+        files,
+        comments,
+        waiver: copilotWaiver({ pr, comments }),
+        sharedHead: await sharedHead(pr),
+      });
+      const current = await api(`/repos/${repo}/pulls/${pr.number}`);
+      if (
+        current.head.sha !== pr.head.sha ||
+        current.state !== 'open' ||
+        current.base.ref !== pr.base.ref ||
+        current.draft !== pr.draft ||
+        current.body !== pr.body ||
+        !sameSeverity(current, pr)
+      )
+        throw new Error('PR changed during evaluation');
+      const numbers = (found) => found.map((issue) => issue.number).join();
+      if (
+        numbers(await issuesFor(current)) !== numbers(linked) ||
+        JSON.stringify(await details()) !== JSON.stringify(issues)
+      )
+        throw new Error('Linked issue changed during evaluation');
+      const summary = reasons.length
+        ? reasons.join(' ')
+        : `${role.kind === 'child' ? `Child of #${role.parent}` : `Integration work for #${role.parent}`}: agent review passed; requirements, QA and human review happen on the parent PR.`;
+      await publishChild(verify.state, verify.description);
+      await reconcileChecks(
+        pr,
+        reasons.length ? 'failure' : 'success',
+        summary,
+      );
+      await publish(reasons.length ? 'failure' : 'success', summary);
+      // A PR opened on the same head while this ran would inherit the pass.
+      const late = reasons.length ? [] : await sharedHead(pr);
+      if (late.length) {
+        const note = integrationStages({
+          pr,
+          role,
+          files,
+          comments,
+          waiver: true,
+          sharedHead: late,
+        }).join(' ');
+        await reconcileChecks(pr, 'failure', note);
+        await publish('failure', note);
+        console.log(`#${pr.number}: ${note}`);
+        continue;
+      }
+      console.log(
+        `#${pr.number}: child-verify ${verify.state}; ${reasons.length ? reasons.join(' ') : 'pass'}`,
+      );
+      continue;
+    }
     // A stack is judged as one unit: QA of the tip commit covers every PR the
     // tip contains. Anything that is not a plain chain onto main keeps waiting.
     const stack = stackByPr.get(pr.number);
@@ -283,6 +486,34 @@ for (let pr of candidates) {
       issue.requirementsVersion = scope.version;
     }
     const result = evaluate({ pr, issues, reviews, comments, qaFrom });
+    // A parent PR is eligible only once its integration work is finished.
+    const parentState = async () =>
+      JSON.stringify({
+        issues: await Promise.all(
+          issues.map((issue) => issueDetails(issue.number)),
+        ),
+        openInto: (
+          await list(
+            `/repos/${repo}/pulls?state=open&base=${encodeURIComponent(pr.head.ref)}`,
+          )
+        ).map((other) => other.number),
+      });
+    const parent = isIntegrationBranch(pr.head.ref)
+      ? await parentState()
+      : null;
+    if (parent) {
+      const { issues: details, openInto } = JSON.parse(parent);
+      const blocked = parentReasons({
+        pr,
+        issues: details,
+        openInto: openInto.map((number) => ({ number })),
+      });
+      if (blocked.length) {
+        result.pass = false;
+        // First, so the 140-character status shows what blocks the feature.
+        result.reasons.unshift(...blocked);
+      }
+    }
     // Never report a pass on a head which moved while reading evidence.
     const current = await api(`/repos/${repo}/pulls/${pr.number}`);
     current.technicalReviewRequired = technicalReviewRequired(
@@ -301,6 +532,10 @@ for (let pr of candidates) {
       current.technicalReviewRequired !== pr.technicalReviewRequired
     )
       throw new Error('PR changed during evaluation');
+    if (parent && (await parentState()) !== parent)
+      throw new Error(
+        'Parent issue or its integration PRs changed during evaluation',
+      );
     if (
       qaFrom &&
       (await api(`/repos/${repo}/pulls/${qaFrom.number}`)).head.sha !==
@@ -338,6 +573,7 @@ for (let pr of candidates) {
     for (const report of [
       () => publish('error', summary),
       () => reconcileChecks(pr, 'failure', summary),
+      ...(intoIntegration ? [() => publishChild('error', summary)] : []),
     ]) {
       try {
         await report();
