@@ -244,8 +244,12 @@ prefix is reserved for these branches. The parent issue has native sub-issues
 labeled `area:frontend` and `area:backend`.
 
 PRs into an integration branch link exactly one open issue, with `Closes #N` or
-`Refs #N`. GitHub closes issues only for merges into `main`, so a merged child
-does not close its sub-issue by itself; the parent PR waits until it is closed.
+`Refs #N`. GitHub closes issues only for merges into `main`, so the Integration
+merge workflow closes a merged child's sub-issue as completed, but only when the
+child PR says `Closes #<sub-issue>` and its merged head passed agent review for
+that sub-issue. A child that only `Refs` its sub-issue is partial work and closes
+nothing; neither does integration work. The workflow runs once per merge: if it
+fails, re-run it or close the sub-issue by hand.
 
 - **Child PR:** links the sub-issue. It needs exactly one `area:` label, and its
   parent issue must be open and link the PR's base branch.
@@ -253,7 +257,8 @@ does not close its sub-issue by itself; the parent PR waits until it is closed.
   the UI. The parent issue may itself be a sub-issue of an epic.
 
 For these PRs Delivery stages requires a non-draft PR and a passing agent review
-(or manual Copilot waiver) on the current commit. It does not require requirements
+(or manual Copilot waiver) on the current commit, made after the PR's latest
+retarget. It does not require requirements
 approval, technical review, QA or any other human review: those gates apply to the
 parent PR, which contains the whole feature. The severity label still has to be
 valid. Changes to review and merge enforcement paths are refused; they go
@@ -272,12 +277,42 @@ before the PR's latest base change never counts: push a commit, or close and
 reopen the PR. PRs from forks are not supported, because GitHub does not
 associate their CI runs with the PR.
 
+The agent-review runner reviews these PRs like any other, but records no
+requirements step, posts no QA handoff and requests no QA. A review from before
+the PR's latest retarget was made against another base and is repeated. A sub-issue moves to
+Ready for Code Review once its child PR is ready for review and stays there until
+the merge closes it. Integration PRs never move the parent issue's card. A
+sub-issue is delivered through its child PR: a PR into `main` linked to a
+sub-issue that has a child PR is not reviewed or handed to QA; link it to the
+parent issue instead.
+
 The parent PR goes from the integration branch to `main` and runs the normal
 gates for its severity, with full `verify` and QA. It is blocked until the parent
 issue has a frontend and a backend sub-issue closed as completed, every sub-issue
-is closed and no PR into the integration branch is still open. Sub-issue and
-label changes reach the parent PR's status through the five-minute
+is closed and no PR into the integration branch is still open. Until then the
+parent issue stays In Progress and its PR is neither reviewed nor handed to QA.
+Sub-issue and label changes reach the parent PR's status through the five-minute
 reconciliation.
+
+A parent PR is a PR from an integration branch of this repository; a fork's
+branch with the same name is an ordinary PR. A PR from an integration branch
+into any other branch is refused, so the branch reaches `main` only as the parent
+PR. Eligibility is checked again before the QA handoff.
+
+Once eligible, the parent PR's agent review carries over when the integration
+branch, followed from the PR head down to the history it shares with `main`,
+consists only of GitHub's merge or squash commits of PRs merged into the branch,
+each merging a final head that passed agent review, after its latest retarget,
+under the parent issue or one of its sub-issues. A single-commit rebase merge looks
+like a squash and counts as one. Otherwise the whole PR is reviewed: after a
+direct push, a rewritten branch, a rebase merge of several commits, a merged PR
+with only a manual Copilot waiver, or more than 250 merges. The carry-over
+requires the `integration/**` ruleset (PR-only, no force push or deletion, and
+the `child-verify` and `Delivery stages` checks) to be active on the branch;
+without it the whole PR is reviewed. The carry-over assumes that separately
+reviewed frontend and backend changes do not break each other: integration problems surface only in `verify`
+(including E2E) and QA of the parent PR. QA of the parent commit is still
+required.
 
 ## Manual Copilot waiver
 

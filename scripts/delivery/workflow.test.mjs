@@ -40,3 +40,21 @@ test('both workflows reconcile severity label additions and removals', () => {
     assert.ok(source.includes('        unlabeled,'));
   }
 });
+
+test('merged child PRs close their sub-issue with trusted code from main only', () => {
+  const merge = readFileSync(
+    new URL('../../.github/workflows/integration-merge.yml', import.meta.url),
+    'utf8',
+  );
+  assert.ok(merge.includes('pull_request_target:'));
+  assert.ok(merge.includes('types: [closed]'));
+  assert.ok(merge.includes("branches: ['integration/**']"));
+  assert.ok(merge.includes('if: github.event.pull_request.merged == true'));
+  assert.ok(merge.includes('ref: main'));
+  assert.ok(merge.includes('persist-credentials: false'));
+  assert.ok(merge.includes('node scripts/delivery/close-child.mjs'));
+  // Nothing from the merged PR is checked out, installed or run.
+  assert.ok(!merge.includes('github.event.pull_request.head'));
+  assert.ok(!merge.includes('pnpm install'));
+  assert.ok(!/contents: write|pull-requests: write/.test(merge));
+});

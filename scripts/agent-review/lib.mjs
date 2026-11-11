@@ -261,6 +261,7 @@ export function formatPrComment({
   issue,
   slice,
   carriedFrom,
+  integratedFrom,
 }) {
   const marker = prMarker({ pr, sha, result, attempt, slice });
   const skippedBlock = skipped.length
@@ -272,6 +273,8 @@ export function formatPrComment({
   const notesBlock = notes.length
     ? `\n\n<details><summary>Poznámky (${notes.length}, neblokují)</summary>\n\n**Poznámky (neblokují):**\n${formatFindings(notes)}\n\n</details>`
     : '';
+  if (integratedFrom)
+    return `${marker}\n### Agentní code review: převzato z integrační větve\n\nKaždý commit tohoto PR přišel do \`${integratedFrom.branch.replaceAll('`', "'")}\` přes PR ${integratedFrom.prs.map((n) => `#${n}`).join(', ')}, které prošly review. Review se neopakuje.\n\n${head}`;
   if (carriedFrom)
     return `${marker}\n### Agentní code review: převzato z předchozího commitu\n\nZměna tohoto PR je stejná jako na commitu \`${carriedFrom.slice(0, 7)}\`, který prošel review; tento commit do ní jen přibral novější base větev. Review se neopakuje.\n\n${head}`;
   if (binaryOnly)

@@ -38,11 +38,20 @@ async function scenario(mode) {
     changed_files: 1,
   };
   const parentMode = mode.startsWith('parent');
-  const open = parentMode
-    ? mode === 'parent-child-open'
-      ? [child, parent]
-      : [parent]
-    : [child];
+  // The integration branch stacked on an ordinary PR instead of a parent PR.
+  const detour = {
+    ...parent,
+    number: 51,
+    base: { ref: 'feat/c', repo: repository },
+  };
+  const open =
+    mode === 'detour'
+      ? [detour]
+      : parentMode
+        ? mode === 'parent-child-open'
+          ? [child, parent]
+          : [parent]
+        : [child];
   const subState = mode === 'parent-sub-open' ? 'OPEN' : 'CLOSED';
   const issue = (number) =>
     ({
@@ -337,4 +346,11 @@ test('a parent PR never gets child-verify and waits for open sub-issues and chil
   const done = latest(run('parent').statuses, 'Delivery stages', parentSha);
   assert.equal(done.state, 'failure');
   assert.match(done.description, /^QA approval by MatejKrones is missing/);
+});
+
+test('an integration branch cannot reach main through another branch', () => {
+  const { statuses } = run('detour');
+  const status = latest(statuses, 'Delivery stages', 'e'.repeat(40));
+  assert.equal(status.state, 'failure');
+  assert.match(status.description, /must target main as the parent PR/);
 });

@@ -5,11 +5,13 @@ import {
   integrationRole,
   integrationStages,
   isIntegrationBranch,
+  isParentPr,
   parentReasons,
 } from './feature.mjs';
 import { buildStacks } from './stack.mjs';
 
 const BRANCH = 'integration/400-rooms';
+const REPO = { full_name: 'owner/repo' };
 const sha = 'c'.repeat(40);
 const pr = (overrides = {}) => ({
   number: 41,
@@ -50,6 +52,7 @@ const parentIssue = (overrides = {}) => ({
 });
 const passVerdict = (issue, prNumber = 41) => ({
   user: { login: 'github-actions[bot]' },
+  created_at: '2002-01-01T00:00:00Z',
   body: `<!-- agent-review-scope issue=${issue} -->\n<!-- agent-review pr=${prNumber} sha=${sha} result=pass attempt=1 -->\n`,
 });
 const jobs = (results) =>
@@ -222,6 +225,22 @@ test('integration stages need only a current agent review pass', () => {
   );
 });
 
+test('a verdict from before the latest retarget does not count', () => {
+  const role = integrationRole({ pr: pr(), issues: [sub()] });
+  const args = { pr: pr(), role, files: [], comments: [passVerdict(401)] };
+  assert.deepEqual(
+    integrationStages({ ...args, since: Date.parse('2001-01-01T00:00:00Z') }),
+    [],
+  );
+  assert.match(
+    integrationStages({
+      ...args,
+      since: Date.parse('2003-01-01T00:00:00Z'),
+    }).join(' '),
+    /agent review has not passed/,
+  );
+});
+
 test('integration stages block drafts, enforcement changes and invalid links', () => {
   const role = integrationRole({ pr: pr(), issues: [sub()] });
   const comments = [passVerdict(401)];
@@ -257,8 +276,8 @@ test('integration stages block drafts, enforcement changes and invalid links', (
 test('a parent PR is eligible once both areas exist, all sub-issues closed and nothing is open into the branch', () => {
   const parentPr = pr({
     number: 50,
-    base: { ref: 'main' },
-    head: { ref: BRANCH, sha },
+    base: { ref: 'main', repo: REPO },
+    head: { ref: BRANCH, sha, repo: REPO },
   });
   assert.deepEqual(
     parentReasons({ pr: parentPr, issues: [parentIssue()], openInto: [] }),
@@ -307,8 +326,8 @@ test('a parent PR is eligible once both areas exist, all sub-issues closed and n
 test('a sub-issue closed as not planned does not complete its area', () => {
   const parentPr = pr({
     number: 50,
-    base: { ref: 'main' },
-    head: { ref: BRANCH, sha },
+    base: { ref: 'main', repo: REPO },
+    head: { ref: BRANCH, sha, repo: REPO },
   });
   const issue = parentIssue({
     subIssues: [
@@ -362,6 +381,24 @@ test('a PR sharing its head with another open PR never passes', () => {
       sharedHead: [{ number: 60 }],
     }).join(' '),
     /#60 share this head/,
+  );
+});
+
+test('a fork branch named like an integration branch is not a parent PR', () => {
+  const fork = pr({
+    number: 50,
+    base: { ref: 'main', repo: REPO },
+    head: { ref: BRANCH, sha, repo: { full_name: 'someone/repo' } },
+  });
+  assert.equal(isParentPr(fork), false);
+  // It goes through the ordinary gates, with no parent conditions to meet.
+  assert.deepEqual(
+    parentReasons({
+      pr: fork,
+      issues: [parentIssue()],
+      openInto: [{ number: 41 }],
+    }),
+    [],
   );
 });
 

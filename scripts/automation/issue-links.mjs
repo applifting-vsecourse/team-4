@@ -9,9 +9,9 @@ function addByNumber(map, item) {
   });
 }
 
-/** Explicit issue references, with a fallback for closing keywords on stacked PRs. */
-export function referencedIssueNumbers(body = '', { stacked = false } = {}) {
-  const prose = (body ?? '')
+// PR body prose: comments, code and quotes are not references.
+function prose(body) {
+  return (body ?? '')
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/```[\s\S]*?```/g, '')
     .replace(/~~~[\s\S]*?~~~/g, '')
@@ -19,8 +19,16 @@ export function referencedIssueNumbers(body = '', { stacked = false } = {}) {
     .split('\n')
     .filter((line) => !/^\s*>/.test(line))
     .join('\n');
+}
+
+const CLOSING =
+  /\b(?:clos(?:e|es|ed)|fix(?:es|ed)?|resolv(?:e|es|ed)):?[ \t]+#(\d+)\b/gi;
+
+/** Explicit issue references, with a fallback for closing keywords on stacked PRs. */
+export function referencedIssueNumbers(body = '', { stacked = false } = {}) {
+  const text = prose(body);
   const numbers = new Set();
-  for (const match of prose.matchAll(
+  for (const match of text.matchAll(
     /\b(?:refs?|references?)\s+#(\d+)((?:\s*(?:,|and|&)\s*#\d+)*)/gi,
   )) {
     numbers.add(Number(match[1]));
@@ -28,11 +36,15 @@ export function referencedIssueNumbers(body = '', { stacked = false } = {}) {
       numbers.add(Number(reference[1]));
   }
   if (stacked)
-    for (const match of prose.matchAll(
-      /\b(?:clos(?:e|es|ed)|fix(?:es|ed)?|resolv(?:e|es|ed)):?[ \t]+#(\d+)\b/gi,
-    ))
-      numbers.add(Number(match[1]));
+    for (const match of text.matchAll(CLOSING)) numbers.add(Number(match[1]));
   return [...numbers];
+}
+
+/** Issues the body closes with a closing keyword (Closes #N, Fixes #N, …). */
+export function closingIssueNumbers(body = '') {
+  return [
+    ...new Set([...prose(body).matchAll(CLOSING)].map((m) => Number(m[1]))),
+  ];
 }
 
 /** Pull requests with a native closing link or an explicit reference in their body. */
