@@ -4,23 +4,88 @@
 
 Read this before writing or changing any UI. Everything here applies to `apps/frontend`.
 
+You are extending an existing product, not designing a new one. Most UI rework so far came from screens built in isolation: their own width, button placement, wording and explanations. The rules below exist so new UI fits the app on the first try. Each rule states its reason; when a case is not covered, follow the reason and copy the nearest existing screen.
+
+## Before you build
+
+1. **Find the place.** Look up the area in the table below and the existing page the story belongs to. Extend that page; add a route only when the story names a new destination.
+2. **Copy the neighbours.** Read two or three screens of the same area and match their shell, header, section style, action placement and states.
+3. **Reuse before writing.** Search the feature folder for the domain word (status, amount, term, back link) and use the existing component or helper.
+4. **Build only the acceptance criteria.** No extra explanations, settings, statistics or decorations; propose them to the PM instead.
+
+| Area             | Routes                                                                                     | Shell                                                             | Audience and viewport                                |
+| ---------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- | ---------------------------------------------------- |
+| Public           | `/`, `/for-*`, `/events`, `/e/$publicId`, `/e/$publicId/registration`, `/login`, `/signup` | `PublicShell`; landing pages own layout; `AuthLayout` for sign-in | Anyone; **mobile first**                             |
+| Participant      | `/my-registrations/*`, `/platba/$token`                                                    | `ParticipantLayout`                                               | Event attendee, usually on a phone; **mobile first** |
+| Organization     | `/organizations`, `/organizations/$organizationId`                                         | sidebar + `WorkspacePage` + `PageHeader`                          | Organizer at a desktop                               |
+| Event management | `/organizations/$organizationId/events/$eventId/*`                                         | sidebar + `WorkspacePage` + `PageHeader` with `EventBreadcrumb`   | Organizer at a desktop                               |
+
+**Viewport.** Public and participant screens are designed at 360 px first and must work there without horizontal page scrolling. Organizer screens are desktop screens: they must work from 1024 px up with nothing overlapping, clipped or pushed out of reach (row actions stay visible), but a phone is not a target. Dense organizer views such as Přihlášky are not meant to fit a phone; let their table scroll in its container and do not build mobile card layouts or hide columns unless the story asks.
+
+## Layout and navigation
+
+- **One container per area.** Render pages inside the area's shell and do not add your own `mx-auto max-w-*` page wrapper. A narrow form sits inside the page, left-aligned with the header. _Why: breadcrumbs and titles must not jump when moving between sibling routes._
+- **Fixed page anatomy.** `PageHeader`: breadcrumb, title with status badge, actions on the right. At most one primary (lime) button per view. Actions of a card or row sit at its trailing end; Cancel (`outline`) comes before the confirming button.
+- **A way back from every page.** Event management uses the breadcrumb. Public and participant sub-pages (detail, form, payment) start with a back link above the title: `Button variant="ghost" size="sm"` with `ArrowLeft`, label "Zpět na …" naming the target.
+- **Show the result of an action.** After creating or changing something, land where the result is visible (a term added from Přehled → the term list) and confirm with a toast.
+- **State that should survive refresh or Back/Forward lives in the URL**: tab, view, filters, selected term or queue, sort. Validate it in the route's `validateSearch` (zod, `.catch(undefined)`). Keep only transient UI (open dialog, hover) in component state.
+- **In-page changes keep the scroll position.** Updating search params for a tab, filter or selection navigates with `replace: true, resetScroll: false`. Moving to another route keeps the router default (top of the page; restored on Back). A link to a section uses the router's `hash` and the target element's `id`, so it lands on that content.
+- **Loading never shrinks the page.** Keep tabs and selectors rendered while their content loads. When a parameter changes, show the previous data until the new data arrives (`placeholderData: keepPreviousData`); a first load uses a `Skeleton` about the height of the content it replaces. _Why: a shrinking page jumps the user away from where they were working._
+- **Tab rows and switchers stay on one line.** Wrap them in `HorizontalOverflowViewport`, which scrolls sideways and shows an edge cue. Do not wrap them onto two lines or truncate labels.
+- **Buttons are as wide as their content.** Use full width only on purpose, for a single primary action in a narrow column, and cap it: `w-full max-w-sm`. Do not give buttons fixed widths to line them up.
+
+## Content
+
+- **Write only what the user needs to decide or act.** Headings, labels and the controls explain the UI; do not add a muted paragraph that restates them. Business rules belong in the issue, not on the screen.
+- **One state, one message, with the next step.** Do not stack badges, alerts and paragraphs that describe the same state.
+  - Don't: „Bez návrhu“ + „Termín zatím nebyl vyhodnocen“ + „Bez platného návrhu“ on one screen.
+  - Do: „Termín zatím nebyl vyhodnocen. Návrh vznikne automaticky, nebo ho spusťte tlačítkem Přepočítat.“
+- **A disabled control says why**, in visible text next to it. If an action is never available in the current state, hide it instead of linking to a dead-end page.
+- **Information is text, not a control.** Notices use `Alert` or plain text with an icon, shown in full and wrapped onto more lines when needed; never a disabled button or a badge carrying a sentence.
+- **No implementation details in user copy**: no "simulace", IDs, enum values, error codes or time-zone identifiers ("Europe/Prague"). Times are shown in Prague local time without a zone label.
+- **One word, one meaning.** Before naming something, search the existing labels for the same concept and reuse them. Examples: „Přihláška obdržena“ (date) vs „Zaplaceno“ (money); „Zrušit účast“ (registration) vs „Odhlásit se“ (session).
+- **Buttons name the outcome**: „Vyplnit přihlášku“, not „Přihlásit se“, when the click opens a form.
+- **Make the deciding figure stand out.** When a view shows several numbers, the one the user acts on (remaining balance, free beds) is the most prominent and coloured by state, as in `BalanceAmount`.
+
+## Data display
+
+- **Tables align by column.** Header and cells share alignment. Amounts and counts are right-aligned in `font-mono tabular-nums`; text, statuses and badges are left-aligned. Do not right-align a column without numbers.
+- **A row that opens a detail is one link across the whole row** (hover spans every column, one keyboard stop named by the row's main text). Reuse the row-link pattern of `RegistrationsSection` and `EventsTable`; it works in Safari.
+- **The same value looks the same everywhere.** Amounts use `formatCzk` and mono digits in organizer and participant views alike; dates use the helpers in `src/lib/date.ts`.
+- **Statuses reuse the feature's badge** (`ParticipationBadge`, `PaymentStateBadge`, `EventStatusBadge`, …). The same state has the same label and variant for organizers and participants.
+- **Things on one line align.** Icon and text: `items-center`, icon `shrink-0`. A status badge sits on the line of the title it describes; buttons for that item go below it, aligned to the row end.
+
+## Forms
+
+- **Guide input instead of only rejecting it.** Disable impossible choices (dates that overlap a stored term or end before the start) and reveal a follow-up field as soon as its option is picked (e.g. „Jiná odpověď“ → text input).
+- **Required fields are marked**, and an invalid submit moves focus to the first invalid field without clearing the other values.
+
+## Checklist before handoff
+
+- [ ] The page lives in its area's shell and matches its neighbours' structure.
+- [ ] Public/participant: works at 360 px. Organizer: nothing clipped or overlapping at 1024 px.
+- [ ] Light and dark themes.
+- [ ] Loading, empty, error and disabled states, each with one message and a next step.
+- [ ] No text that repeats the UI or reveals implementation.
+- [ ] Switching tabs, filters or selections keeps the scroll position; refresh and Back restore them.
+- [ ] Columns, numbers, badges and buttons are aligned; each page has a way back; each action shows its result.
+
 ## Sources
 
-| What                                      | Where                                                                                                                |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Tokens, colours, type (canonical)         | `apps/frontend/src/styles/global.css`                                                                                |
-| Components in code                        | `apps/frontend/src/components/ui/`                                                                                   |
-| Live preview of all tokens and components | `/design-system` in the running dev app (`src/routes/design-system.tsx`, dev only, 404 in production builds)         |
-| Screen previews                           | Storybook: `pnpm frontend storybook` → <http://localhost:6006>, one light desktop story per screen with fixture data |
+| What                                      | Where                                                                                                        |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Tokens, colours, type (canonical)         | `apps/frontend/src/styles/global.css`                                                                        |
+| Components in code                        | `apps/frontend/src/components/ui/`                                                                           |
+| Live preview of all tokens and components | `/design-system` in the running dev app (`src/routes/design-system.tsx`, dev only, 404 in production builds) |
+| Screen stories                            | Storybook: `pnpm storybook` → <http://localhost:6006>, one light desktop story per screen with fixture data  |
 
 ## Principles
 
-- **Web app, mobile browser first.** akc.io is a responsive web app, not a native app. Every screen must work in a phone browser at 360 px wide without horizontal page scrolling. Wide content (tables) scrolls inside its own container. Organizer screens may be desktop-oriented but must not break on a phone.
 - **shadcn/ui is the design system.** Every control is a shadcn component from `src/components/ui/`. Nothing is hand-rolled, not even where a native element would do.
 - **Semantic tokens only.** Use classes like `bg-background`, `text-muted-foreground`, `border-border`, `bg-success-subtle`. No hex values, no arbitrary colours (`bg-[#...]`).
 - **Accessible by default.** Keyboard reachable, visible focus, accessible names, errors shown at the field without losing the other values. `eslint-plugin-jsx-a11y` is on.
 - **States are part of the design.** Data views have loading (`Skeleton`), empty (`Empty`) and error (`Alert`) states; controls have disabled and invalid states.
-- **Czech UI copy, brand "akc.io".** Amounts in CZK, times always state Europe/Prague.
+- **Czech UI copy, brand "akc.io".** Amounts in CZK; times in Prague local time.
 - **Light and dark.** Both themes are defined in `global.css` (`.dark` class via `next-themes`). Using tokens makes both work; check new UI in both with the theme switcher.
 
 ## Components
