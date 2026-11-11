@@ -336,7 +336,17 @@ that commit, building exactly the commit CI verified. Also once CI passes,
 `release.yml` publishes a GitHub Release. The release bumps the
 patch of the highest `vX.Y.Z` tag, lists the issues the merged PR closes and links the Build & Deploy
 workflow. To put any released version on the stage, run that workflow with
-**Use workflow from → Tags → vX.Y.Z**. To bump minor or major, publish the
+**Use workflow from → Tags → vX.Y.Z**. The `deploy.yml` on `main` and on new
+tags deploys a manual run only from `main` or a `v*` tag whose commit is already
+on `main` and has a passing `verify`, and stops before building anything
+otherwise. A run from `main` therefore waits until CI has passed on its tip; pick
+a tag to deploy earlier. A manual run uses the workflow file of the ref it starts
+from, and the deploy secrets are repository-wide, so this guard prevents mistakes
+but does not stop a branch with an edited `deploy.yml`.
+
+The `integration/` branch prefix is reserved for feature integration branches.
+PRs into an `integration/` branch skip the E2E lane, so their `verify` fails by
+design; a PR to `main` runs every lane. To bump minor or major, publish the
 higher tag by hand; the next merge continues from it.
 
 Redeploying an older version does not roll back database migrations.

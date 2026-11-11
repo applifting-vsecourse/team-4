@@ -16,16 +16,39 @@ env:
   REGISTRY: registry.vsepractical.applifting.dev
 jobs:
   build-and-deploy:
-    # Deploy only after CI succeeded for a push to main; manual runs always proceed.
+    # Deploy only after CI succeeded for a push to main. Manual runs may only
+    # redeploy main or a release tag, never a feature or other branch.
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push')
+      (github.event_name == 'workflow_dispatch' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) ||
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     env:
       COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
       COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
     steps:
+      - name: Require verify on main for a manual deploy
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        run: |
+          # The commit must already be part of main, so a tag cannot point elsewhere.
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/main...$SHA" --jq .status)
+          if [ "$status" != identical ] && [ "$status" != behind ]; then
+            echo "$SHA is not on main ($status); refusing to deploy."
+            exit 1
+          fi
+          # verify from GitHub Actions (app 15368) must have passed for this commit.
+          passed=$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/check-runs?check_name=verify&filter=latest&per_page=100" \
+            --jq '[.check_runs[] | select(.app.id == 15368 and .conclusion == "success")] | length')
+          if [ "$passed" -lt 1 ]; then
+            echo "verify has not passed for $SHA; refusing to deploy."
+            exit 1
+          fi
       - name: Skip if a newer commit was already deployed
         id: stale
         if: github.event_name == 'workflow_run'
