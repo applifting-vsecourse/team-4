@@ -2,7 +2,6 @@ import { useEffect, useState, type ReactNode } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
-import { Skeleton } from "@/components/ui/skeleton"
 import { readApiError } from "@/lib/apiError"
 import { formatCalendarRange, formatPragueDateTime } from "@/lib/date"
 
@@ -30,6 +29,7 @@ import {
   TermEvaluation,
   TermEvaluationFrame,
   type OrderPerson,
+  type TermEvaluationProps,
 } from "@/features/accommodation/components/TermEvaluation"
 import { useConfirmProposal } from "@/features/accommodation/hooks/useConfirmProposal"
 import { useRecalculate } from "@/features/accommodation/hooks/useRecalculate"
@@ -145,15 +145,30 @@ export function TermEvaluationSection({
     onSelectQueue: (next: string) => onSelect({ termId, queue: next }),
   }
 
+  // Nothing of the term is known yet: only its tabs, so another term can be picked.
+  const unknownTerm = {
+    ...common,
+    mode: "automatic",
+    status: "none",
+    attribute: null,
+    capacity: {
+      confirmed: 0,
+      pending: 0,
+      waitlisted: 0,
+      hasRooms: false,
+      baseBeds: 0,
+      extraBeds: 0,
+    },
+    queues: [],
+    people: [],
+  } satisfies TermEvaluationProps
+
   if (evaluation.isPending) {
     return (
-      <TermEvaluationFrame>
-        <Skeleton
-          className="h-64 w-full"
-          role="status"
-          aria-label="Načítání vyhodnocení termínu"
-        />
-      </TermEvaluationFrame>
+      <TermEvaluation
+        {...unknownTerm}
+        isLoading
+      />
     )
   }
 
@@ -161,20 +176,7 @@ export function TermEvaluationSection({
   if (evaluation.isError && !evaluation.data) {
     return (
       <TermEvaluation
-        {...common}
-        mode="automatic"
-        status="none"
-        attribute={null}
-        capacity={{
-          confirmed: 0,
-          pending: 0,
-          waitlisted: 0,
-          hasRooms: false,
-          baseBeds: 0,
-          extraBeds: 0,
-        }}
-        queues={[]}
-        people={[]}
+        {...unknownTerm}
         isLoadFailed
         onRetryLoad={() => void evaluation.refetch()}
       />

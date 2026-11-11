@@ -56,15 +56,18 @@ function RegistrationsPage() {
 
   const termId =
     event.terms.find((term) => term.id === evaluationTerm)?.id ?? event.terms[0]?.id ?? ""
+  // Switching a view, filter, term or queue stays on the page: the organizer
+  // keeps the place they were working at instead of jumping to the top (S4-01).
+  const inPage = { replace: true, resetScroll: false } as const
   const setFilter = (next: RegistrationFilter) =>
-    void navigate({ search: { ...next, view: view === "list" ? undefined : view }, replace: true })
+    void navigate({ search: { ...next, view: view === "list" ? undefined : view }, ...inPage })
   const setView = (next: string) =>
     void navigate({
       search: {
         ...filter,
         view: next === "approvals" || next === "evaluation" ? next : undefined,
       },
-      replace: true,
+      ...inPage,
     })
   const setEvaluation = (selection: { termId: string; queue: string }) =>
     void navigate({
@@ -74,7 +77,7 @@ function RegistrationsPage() {
         evaluationTerm: selection.termId,
         queue: selection.queue === "all" ? undefined : selection.queue,
       },
-      replace: true,
+      ...inPage,
     })
 
   return (

@@ -83,6 +83,20 @@ beforeEach(() => {
 })
 
 describe("TermEvaluationSection", () => {
+  it("keeps the term tabs while a term loads, so another term can still be picked", async () => {
+    get.mockReturnValue({ json: () => new Promise(() => undefined) })
+    renderSection()
+
+    expect(screen.getByRole("status", { name: "Načítání vyhodnocení termínu" })).toBeInTheDocument()
+    const termTabs = screen.getByRole("tablist", { name: "Termín" })
+    expect(within(termTabs).getByRole("tab", { name: EVALUATED_TERM.label })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+    await userEvent.click(within(termTabs).getByRole("tab", { name: "Turnus 2" }))
+    expect(onSelect).toHaveBeenCalledWith({ termId: SECOND.id, queue: "all" })
+  })
+
   it("shows the current proposal of the term with the results and links to the details", async () => {
     serve()
     renderSection()

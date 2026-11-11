@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -98,6 +99,8 @@ export type TermEvaluationProps = {
   confirmedResult?: string
   /** The term could not be loaded; nothing else is shown as valid. */
   isLoadFailed?: boolean
+  /** The term is loading: the term tabs stay, the content is a placeholder. */
+  isLoading?: boolean
   /** Below the order: the history of the term (F39-1). */
   children?: ReactNode
   onSelectTerm?: (termId: string) => void
@@ -352,6 +355,7 @@ export function TermEvaluation({
   selectedQueue = "all",
   confirmedResult,
   isLoadFailed = false,
+  isLoading = false,
   children,
   onSelectTerm,
   onSelectQueue,
@@ -397,6 +401,14 @@ export function TermEvaluation({
             <RetryAlert
               title="Vyhodnocení termínu se nepodařilo načíst"
               onRetry={onRetryLoad}
+            />
+          ) : isLoading ? (
+            // At least a screen tall, so the page does not shrink under the
+            // term tab just clicked while the term loads (S4-01).
+            <Skeleton
+              className="mt-2 h-svh w-full"
+              role="status"
+              aria-label="Načítání vyhodnocení termínu"
             />
           ) : (
             <div className="mt-2 space-y-6">
@@ -528,8 +540,11 @@ export function TermEvaluation({
                         ? { value: selectedQueue, onValueChange: onSelectQueue }
                         : { defaultValue: selectedQueue })}
                     >
-                      <div className="max-w-full overflow-x-auto pb-1">
-                        <TabsList aria-label="Fronta">
+                      <HorizontalOverflowViewport>
+                        <TabsList
+                          aria-label="Fronta"
+                          className="w-max min-w-full"
+                        >
                           <TabsTrigger value="all">Celý termín ({people.length})</TabsTrigger>
                           {attribute
                             ? queues.map((queue) => (
@@ -545,7 +560,7 @@ export function TermEvaluation({
                             <TabsTrigger value="manual">Ruční určení ({manual.length})</TabsTrigger>
                           ) : null}
                         </TabsList>
-                      </div>
+                      </HorizontalOverflowViewport>
                       <TabsContent value="all">
                         <OrderTable
                           people={people}
