@@ -1,0 +1,32 @@
+name: Integration merge
+
+# A merged child PR completes its sub-issue. GitHub closes issues only for
+# merges into the default branch, so this closes the sub-issue instead.
+on:
+  pull_request_target:
+    types: [closed]
+    branches: ['integration/**']
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+
+jobs:
+  close-child:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Trusted code from main only; the merged PR's code is never run.
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: node scripts/delivery/close-child.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
