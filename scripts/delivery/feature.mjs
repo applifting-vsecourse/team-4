@@ -240,10 +240,15 @@ export function parentReasons({ pr, issues, openInto }) {
   const [parent] = owners;
   const reasons = [];
   for (const area of ['frontend', 'backend']) {
-    const subs = parent.subIssues.filter((sub) => areasOf(sub).includes(area));
+    // A sub-issue with both area labels delivers neither side: like a child
+    // PR's sub-issue, each side needs its own.
+    const subs = parent.subIssues.filter((sub) => {
+      const areas = areasOf(sub);
+      return areas.length === 1 && areas[0] === area;
+    });
     if (!subs.length)
       reasons.push(
-        `Parent issue #${parent.number} needs a sub-issue labeled area:${area}.`,
+        `Parent issue #${parent.number} needs a sub-issue labeled only area:${area}.`,
       );
     // A sub-issue closed as not planned does not deliver its side.
     else if (

@@ -311,10 +311,11 @@ parent issue instead.
 
 The parent PR goes from the integration branch to `main` and runs the normal
 gates for its severity, with full `verify` and QA. It is blocked until the parent
-issue has a frontend and a backend sub-issue closed as completed, every sub-issue
-is closed and no PR into the integration branch is still open. Until then the
-parent issue stays In Progress and its PR is neither reviewed nor handed to QA.
-Sub-issue and label changes reach the parent PR's status through the five-minute
+issue has a frontend and a backend sub-issue (each with only its own `area:`
+label) closed as completed, every sub-issue is closed and no PR into the
+integration branch is still open. Until then the parent issue stays In Progress
+and its PR is neither reviewed nor handed to QA. Sub-issue and label changes
+reach the parent PR's status through the five-minute
 reconciliation.
 
 A parent PR is a PR from an integration branch of this repository; a fork's
