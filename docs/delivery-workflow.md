@@ -274,7 +274,8 @@ associate their CI runs with the PR.
 
 The parent PR goes from the integration branch to `main` and runs the normal
 gates for its severity, with full `verify` and QA. It is blocked until the parent
-issue has a frontend and a backend sub-issue closed as completed, every sub-issue
+issue has a frontend and a backend sub-issue (each with only its own `area:`
+label) closed as completed, every sub-issue
 is closed and no PR into the integration branch is still open. Sub-issue and
 label changes reach the parent PR's status through the five-minute
 reconciliation.
