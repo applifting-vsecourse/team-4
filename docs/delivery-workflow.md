@@ -253,7 +253,8 @@ does not close its sub-issue by itself; the parent PR waits until it is closed.
   the UI. The parent issue may itself be a sub-issue of an epic.
 
 For these PRs Delivery stages requires a non-draft PR and a passing agent review
-(or manual Copilot waiver) on the current commit. It does not require requirements
+(or manual Copilot waiver) on the current commit, made after the PR's latest
+retarget. It does not require requirements
 approval, technical review, QA or any other human review: those gates apply to the
 parent PR, which contains the whole feature. The severity label still has to be
 valid. Changes to review and merge enforcement paths are refused; they go
@@ -271,6 +272,15 @@ PRs. Any other link fails it. CI does not re-run on a retarget, so a run from
 before the PR's latest base change never counts: push a commit, or close and
 reopen the PR. PRs from forks are not supported, because GitHub does not
 associate their CI runs with the PR.
+
+The agent-review runner reviews these PRs like any other, but records no
+requirements step, posts no QA handoff and requests no QA. A review from before
+the PR's latest retarget was made against another base and is repeated. A sub-issue moves to
+Ready for Code Review once its child PR is ready for review and stays there until
+the merge closes it. Integration PRs never move the parent issue's card. A
+sub-issue is delivered through its child PR: a PR into `main` linked to a
+sub-issue that has a child PR is not reviewed or handed to QA; link it to the
+parent issue instead.
 
 The parent PR goes from the integration branch to `main` and runs the normal
 gates for its severity, with full `verify` and QA. It is blocked until the parent

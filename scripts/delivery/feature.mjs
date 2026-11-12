@@ -23,6 +23,18 @@ export const isIntegrationBranch = (ref) =>
   ref.startsWith(INTEGRATION_PREFIX) &&
   ref.length > INTEGRATION_PREFIX.length;
 
+/**
+ * When a PR's base last changed (0 if never), from its issue timeline. Reviews
+ * and CI runs from before it were made against another base.
+ */
+export const retargetedAt = (timeline) =>
+  Math.max(
+    0,
+    ...timeline
+      .filter((event) => event.event === 'base_ref_changed')
+      .map((event) => Date.parse(event.created_at)),
+  );
+
 /** The areas an issue is labelled with, e.g. ['frontend']. */
 export function areasOf(issue) {
   const names = (issue.labels ?? []).map((label) =>
@@ -140,7 +152,8 @@ export function childVerify({ role, jobs }) {
  * requirements approval or QA, but a current-commit agent review (or manual
  * Copilot waiver) and no review or merge enforcement changes, because nobody
  * reviews them before they reach the integration branch. `sharedHead` are the
- * other open PRs with the same head commit or branch.
+ * other open PRs with the same head commit or branch; `since` is when the PR's
+ * base last changed.
  */
 export function integrationStages({
   pr,
@@ -149,6 +162,7 @@ export function integrationStages({
   comments,
   waiver,
   sharedHead = [],
+  since = 0,
 }) {
   if (role.kind === 'invalid') return [role.reason];
   const reasons = [];
@@ -169,7 +183,8 @@ export function integrationStages({
   if (
     !waiver &&
     !agentReviewPassed({
-      comments,
+      // A verdict from before the latest retarget reviewed another base.
+      comments: comments.filter((c) => Date.parse(c.created_at) > since),
       pr: pr.number,
       sha: pr.head.sha,
       issue: role.issue,

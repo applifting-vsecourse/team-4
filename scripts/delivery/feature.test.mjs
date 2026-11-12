@@ -50,6 +50,7 @@ const parentIssue = (overrides = {}) => ({
 });
 const passVerdict = (issue, prNumber = 41) => ({
   user: { login: 'github-actions[bot]' },
+  created_at: '2002-01-01T00:00:00Z',
   body: `<!-- agent-review-scope issue=${issue} -->\n<!-- agent-review pr=${prNumber} sha=${sha} result=pass attempt=1 -->\n`,
 });
 const jobs = (results) =>
@@ -219,6 +220,22 @@ test('integration stages need only a current agent review pass', () => {
       waiver: { at: 'now' },
     }),
     [],
+  );
+});
+
+test('a verdict from before the latest retarget does not count', () => {
+  const role = integrationRole({ pr: pr(), issues: [sub()] });
+  const args = { pr: pr(), role, files: [], comments: [passVerdict(401)] };
+  assert.deepEqual(
+    integrationStages({ ...args, since: Date.parse('2001-01-01T00:00:00Z') }),
+    [],
+  );
+  assert.match(
+    integrationStages({
+      ...args,
+      since: Date.parse('2003-01-01T00:00:00Z'),
+    }).join(' '),
+    /agent review has not passed/,
   );
 });
 

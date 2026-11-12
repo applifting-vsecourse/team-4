@@ -47,7 +47,13 @@ import {
   sliceFingerprint,
 } from '../delivery/stack.mjs';
 import { ciEvidence } from './ci-evidence.mjs';
-import { isIntegrationBranch } from '../delivery/feature.mjs';
+import {
+  integrationRole,
+  isIntegrationBranch,
+  retargetedAt,
+} from '../delivery/feature.mjs';
+import { readIssueDetails } from '../delivery/feature-github.mjs';
+import { referencedIssueNumbers } from '../automation/issue-links.mjs';
 import { planReview, executeReview } from './batches.mjs';
 import { ensureQaReviewRequest } from './qa-review.mjs';
 import { ensureTechnicalReviewRequest } from './technical-review.mjs';
@@ -143,6 +149,17 @@ async function listTimeline(number) {
     if (batch.length < 100) return all;
   }
 }
+
+const issueDetails = (number) =>
+  readIssueDetails({
+    repo: cfg.repo,
+    number,
+    graphql: (query, variables) =>
+      api(cfg.githubToken, '/graphql', {
+        method: 'POST',
+        body: { query, variables },
+      }),
+  });
 
 async function postComment(number, body) {
   if (cfg.dryRun) {
@@ -328,7 +345,15 @@ async function readRules() {
   return rules;
 }
 
-async function reviewPr({ pr, issue, prCount, rules, requirements, stack }) {
+async function reviewPr({
+  pr,
+  issue,
+  prCount,
+  rules,
+  requirements,
+  stack,
+  integration = false,
+}) {
   const meta = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${pr}`);
   const sha = meta.head.sha;
   const currentReviews = [];
@@ -352,12 +377,17 @@ async function reviewPr({ pr, issue, prCount, rules, requirements, stack }) {
   );
   meta.requirements = preflight.approval;
   meta.requirementsVersion = preflight.version;
+  // A PR into an integration branch has no requirements step: its gates are
+  // on the parent PR.
   if (
     meta.state !== 'open' ||
-    (meta.base.ref !== 'main' && !stack) ||
+    (integration
+      ? !isIntegrationBranch(meta.base.ref) || meta.draft
+      : meta.base.ref !== 'main' && !stack) ||
     sha !== requirements.sha ||
     severityFor(meta) !== requirements.severity ||
-    requirementsApproval(meta, currentReviews)?.id !== requirements.reviewId
+    (!integration &&
+      requirementsApproval(meta, currentReviews)?.id !== requirements.reviewId)
   ) {
     return {
       pr,
@@ -448,7 +478,7 @@ async function reviewPr({ pr, issue, prCount, rules, requirements, stack }) {
   const carryFloor = approvalRecords[0] ?? requirements.created_at;
   // Merging the parent branch into a stacked PR changes its head but not its
   // own change: carry an earlier pass over instead of reviewing it again.
-  const slice = stack ? sliceFingerprint(diff) : undefined;
+  const slice = stack || integration ? sliceFingerprint(diff) : undefined;
   const carry =
     !cfg.force && slice
       ? findCarryOver({
@@ -550,6 +580,56 @@ async function reviewPr({ pr, issue, prCount, rules, requirements, stack }) {
   return { pr, sha, url: comment.html_url, ...outcome };
 }
 
+// PRs into an integration branch: agent review only, no requirements step,
+// QA handoff or QA request. A sub-issue whose child PR is ready for review
+// stays in Ready for Code Review until the merge closes it; integration work
+// linked to the parent issue never moves the parent's card.
+async function reviewIntegrationPrs(board, item, prs, { ownsBoard }) {
+  const issue = item.content;
+  const rules = await readRules();
+  let target = null;
+  for (const pr of prs) {
+    const role = integrationRole({
+      pr,
+      issues: await Promise.all(
+        referencedIssueNumbers(pr.body, { stacked: true }).map(issueDetails),
+      ),
+    });
+    if (role.kind === 'invalid' || role.issue !== issue.number) {
+      console.log(
+        `  -> #${pr.number}: not reviewed: ${role.reason ?? `it belongs to #${role.issue}`}`,
+      );
+      continue;
+    }
+    if (role.kind === 'child')
+      target =
+        target === STATUS_REVIEW || !pr.draft ? STATUS_REVIEW : 'In Progress';
+    if (pr.draft) {
+      console.log(`  -> #${pr.number}: draft, not reviewed`);
+      continue;
+    }
+    const result = await reviewPr({
+      pr: pr.number,
+      issue,
+      prCount: prs.length,
+      rules,
+      // A verdict from before the PR's latest retarget reviewed another base.
+      requirements: {
+        sha: pr.head.sha,
+        severity: severityFor(pr),
+        created_at: new Date(
+          retargetedAt(await listTimeline(pr.number)),
+        ).toISOString(),
+      },
+      integration: true,
+    });
+    console.log(
+      `  -> #${pr.number} (${role.kind} of #${role.parent}): ${result.status}${result.reason ? `: ${result.reason}` : ''}`,
+    );
+  }
+  if (ownsBoard && target) await moveStatus(board, item, target);
+}
+
 async function processIssue(board, item) {
   const issue = item.content;
   console.log(`#${issue.number} ${issue.title}`);
@@ -561,11 +641,48 @@ async function processIssue(board, item) {
     throw new Error(
       'More than 100 linked PR references; refusing partial review',
     );
-  const prNumbers = pullRequestsLinkedToIssue(issue)
+  const linkedNumbers = pullRequestsLinkedToIssue(issue)
     .filter(
       (p) => p.state === 'OPEN' && p.repository.nameWithOwner === cfg.repo,
     )
     .map((p) => p.number);
+  // PRs into an integration branch get agent review only; every other PR
+  // goes through the flow below.
+  const prNumbers = [];
+  const integrationPrs = [];
+  for (const number of linkedNumbers) {
+    const pr = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${number}`);
+    if (pr.state === 'open' && isIntegrationBranch(pr.base.ref))
+      integrationPrs.push(pr);
+    else prNumbers.push(number);
+  }
+  if (integrationPrs.length) {
+    // A sub-issue (as opposed to a parent issue, which owns the branch) is
+    // delivered by its child PR, which also owns its card.
+    const details = await issueDetails(issue.number);
+    const subIssue = Boolean(details.parent) && !details.branches.length;
+    await reviewIntegrationPrs(board, item, integrationPrs, {
+      ownsBoard: subIssue,
+    });
+    if (!prNumbers.length) return;
+    // Its work reaches main through the parent PR: a PR into main linked to
+    // it must not take the sub-issue to QA on its own.
+    if (subIssue) {
+      const marker = issueMarker({
+        issue: issue.number,
+        state: `child-and-main|${prNumbers.join(',')}`,
+      });
+      console.log(
+        `  -> sub-issue also has PRs into main: ${prNumbers.join(', ')}`,
+      );
+      if (!hasBotComment(await listComments(issue.number), marker))
+        await postComment(
+          issue.number,
+          `${marker}\nThis sub-issue is delivered by its child PR into the integration branch. PRs ${prNumbers.map((n) => `#${n}`).join(', ')} into main are not reviewed or handed to QA here; link them to the parent issue instead.`,
+        );
+      return;
+    }
+  }
 
   async function snapshots() {
     const all = [];

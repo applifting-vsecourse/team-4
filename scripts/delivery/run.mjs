@@ -22,7 +22,9 @@ import {
   integrationStages,
   isIntegrationBranch,
   parentReasons,
+  retargetedAt,
 } from './feature.mjs';
+import { readIssueDetails } from './feature-github.mjs';
 
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
@@ -92,69 +94,19 @@ async function issuesFor(pr) {
   return issues;
 }
 
-// Labels, linked branches, parent and sub-issues of one issue, normalised for
-// feature.mjs. Anything truncated fails closed instead of being guessed at.
-async function issueDetails(number) {
-  const page = 'pageInfo{hasNextPage}';
-  const branches = `linkedBranches(first:50){nodes{ref{name repository{nameWithOwner}}} ${page}}`;
-  const labels = `labels(first:50){nodes{name} ${page}}`;
-  const response = await api('/graphql', 'POST', {
-    query: `query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){issue(number:$number){number state ${labels} ${branches} parent{number state repository{nameWithOwner} ${branches}} subIssues(first:50){nodes{number state stateReason ${labels}} ${page}}}}}`,
-    variables: {
-      owner: repo.split('/')[0],
-      repo: repo.split('/')[1],
-      number,
-    },
+const issueDetails = (number) =>
+  readIssueDetails({
+    repo,
+    number,
+    graphql: (query, variables) =>
+      api('/graphql', 'POST', { query, variables }),
   });
-  const issue = response.data?.repository?.issue;
-  if (response.errors || !issue)
-    throw new Error(`Cannot read issue #${number} details`);
-  const complete = (connection, what) => {
-    if (connection.pageInfo.hasNextPage)
-      throw new Error(`Issue #${number} has too many ${what}`);
-    return connection.nodes;
-  };
-  // The Development section can link a same-named branch in another repository.
-  const refs = (connection) =>
-    complete(connection, 'linked branches')
-      .filter((node) => node.ref?.repository?.nameWithOwner === repo)
-      .map((node) => node.ref.name);
-  const names = (connection) =>
-    complete(connection, 'labels').map((label) => label.name);
-  return {
-    number: issue.number,
-    state: issue.state,
-    labels: names(issue.labels),
-    branches: refs(issue.linkedBranches),
-    // A parent in another repository cannot link one of our branches.
-    parent: issue.parent && {
-      number: issue.parent.number,
-      state: issue.parent.state,
-      branches:
-        issue.parent.repository.nameWithOwner === repo
-          ? refs(issue.parent.linkedBranches)
-          : [],
-    },
-    subIssues: complete(issue.subIssues, 'sub-issues').map((sub) => ({
-      number: sub.number,
-      state: sub.state,
-      stateReason: sub.stateReason,
-      labels: names(sub.labels),
-    })),
-  };
-}
 
 // Job results of the latest CI run made for this PR into its current base;
 // null before CI started. A run for another PR from the same branch, or from
 // before a retarget, tested a different merge and does not count. A run's
 // pull_requests show the PR's current base, so the retarget time decides.
-async function ciJobs(pr) {
-  const retargeted = Math.max(
-    0,
-    ...(await list(`/repos/${repo}/issues/${pr.number}/timeline`))
-      .filter((event) => event.event === 'base_ref_changed')
-      .map((event) => Date.parse(event.created_at)),
-  );
+async function ciJobs(pr, retargeted) {
   const runs = [];
   for (let page = 1; ; page++) {
     const batch = await api(
@@ -341,7 +293,10 @@ for (let pr of candidates) {
       const comments = await list(
         `/repos/${repo}/issues/${pr.number}/comments`,
       );
-      const verify = childVerify({ role, jobs: await ciJobs(pr) });
+      const since = retargetedAt(
+        await list(`/repos/${repo}/issues/${pr.number}/timeline`),
+      );
+      const verify = childVerify({ role, jobs: await ciJobs(pr, since) });
       const reasons = integrationStages({
         pr,
         role,
@@ -349,6 +304,7 @@ for (let pr of candidates) {
         comments,
         waiver: copilotWaiver({ pr, comments }),
         sharedHead: await sharedHead(pr),
+        since,
       });
       const current = await api(`/repos/${repo}/pulls/${pr.number}`);
       if (
