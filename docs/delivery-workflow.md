@@ -328,6 +328,26 @@ can still block alongside the status. Re-run affected historical enforcement
 runs after installation and verify actual mergeability; do not rewrite native
 job results or weaken protection. New workflow runs use the distinct job name.
 
+## Dependency updates
+
+Dependabot is configured in [`.github/dependabot.yml`](../.github/dependabot.yml)
+for the pnpm workspace. It uses the `npm` ecosystem on the repository root, so it
+covers the root `package.json`, `pnpm-workspace.yaml`, the shared `pnpm-lock.yaml`
+and every package under `apps/*`.
+
+- **Frequency:** weekly, on Monday at 06:00 (Europe/Prague), with at most five
+  open version-update PRs.
+- **Groups:** minor and patch updates are combined into one `minor-and-patch` PR.
+  Major updates get their own PR so breaking changes are reviewed separately.
+- **Security updates:** Dependabot opens these as soon as an advisory applies,
+  independent of the schedule and groups. They require Dependabot alerts and
+  security updates to be enabled in the repository settings.
+- **Labels:** every Dependabot PR gets `dependencies` and `severity:standard`, so
+  it passes the severity gate. Raise the label to `severity:high` by hand when an
+  update touches authentication, permissions, migrations or deployment.
+- **Merging:** nothing is merged automatically. Dependabot PRs go through the
+  normal CI, review and QA gates for their severity.
+
 ## Releases and the stage
 
 https://team-4.vsepractical.applifting.dev is the stage; there is no separate
