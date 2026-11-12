@@ -340,10 +340,11 @@ and every package under `apps/*`.
 - **Groups:** minor and patch updates are combined into one `minor-and-patch` PR.
   Major updates get their own PR so breaking changes are reviewed separately.
 - **Security updates:** Dependabot opens these as soon as an advisory applies,
-  independent of the schedule and groups. They require Dependabot alerts and
+  independent of the schedule. Grouping applies to version updates only, so
+  security PRs are not combined. They require Dependabot alerts and
   security updates to be enabled in the repository settings.
 - **Labels:** every Dependabot PR gets `dependencies` and `severity:standard`, so
-  it passes the severity gate. Raise the label to `severity:high` by hand when an
+  it carries exactly one severity label. Raise the label to `severity:high` by hand when an
   update touches authentication, permissions, migrations or deployment.
 - **Merging:** nothing is merged automatically. Dependabot PRs go through the
   normal CI, review and QA gates for their severity.
