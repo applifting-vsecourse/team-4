@@ -26,7 +26,7 @@ import {
   parentReasons,
   retargetedAt,
 } from './feature.mjs';
-import { readIssueDetails } from './feature-github.mjs';
+import { protectedBranch, readIssueDetails } from './feature-github.mjs';
 
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
@@ -307,6 +307,11 @@ for (let pr of candidates) {
         waiver: copilotWaiver({ pr, comments }),
         sharedHead: await sharedHead(pr),
         since,
+        protectedBase: await protectedBranch(
+          (path) => api(path),
+          repo,
+          pr.base.ref,
+        ),
       });
       const current = await api(`/repos/${repo}/pulls/${pr.number}`);
       if (

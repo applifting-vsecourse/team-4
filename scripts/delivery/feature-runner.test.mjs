@@ -239,6 +239,24 @@ async function scenario(mode) {
           conclusion,
         })),
       };
+    else if (path.startsWith('/repos/owner/repo/rules/branches/'))
+      data =
+        mode === 'unprotected'
+          ? []
+          : [
+              { type: 'deletion' },
+              { type: 'non_fast_forward' },
+              { type: 'pull_request' },
+              {
+                type: 'required_status_checks',
+                parameters: {
+                  required_status_checks: [
+                    'child-verify',
+                    'Delivery stages',
+                  ].map((context) => ({ context, integration_id: 15368 })),
+                },
+              },
+            ];
     else if (path.includes('/check-runs')) data = { check_runs: [] };
     else if (path.includes('/statuses/')) {
       statuses.push({ sha: path.split('/').at(-1), ...body });
@@ -306,6 +324,11 @@ for (const [mode, context, pattern] of [
   ['foreign-branch', 'child-verify', /does not link integration/],
   ['retargeted', 'child-verify', /Waiting for CI/],
   ['late-shared', 'Delivery stages', /#60 share this head/],
+  [
+    'unprotected',
+    'Delivery stages',
+    /not protected by the integration branch ruleset/,
+  ],
   ['shared-sha', 'Delivery stages', /#60 share this head/],
   ['shared-branch', 'Delivery stages', /#60 share this head/],
 ])

@@ -169,7 +169,8 @@ export function childVerify({ role, jobs }) {
  * Copilot waiver) and no review or merge enforcement changes, because nobody
  * reviews them before they reach the integration branch. `sharedHead` are the
  * other open PRs with the same head commit or branch; `since` is when the PR's
- * base last changed.
+ * base last changed; `protectedBase` whether the integration branch ruleset is
+ * in force on the base.
  */
 export function integrationStages({
   pr,
@@ -179,9 +180,16 @@ export function integrationStages({
   waiver,
   sharedHead = [],
   since = 0,
+  protectedBase = true,
 }) {
   if (role.kind === 'invalid') return [role.reason];
   const reasons = [];
+  // Without the ruleset, child-verify and Delivery stages are not required
+  // for the merge, and pushes could bypass review.
+  if (!protectedBase)
+    reasons.push(
+      `${pr.base.ref} is not protected by the integration branch ruleset yet; install it first.`,
+    );
   // The status belongs to the commit: the lenient pass must not reach another
   // PR, for instance one into main, with the same head.
   if (sharedHead.length)

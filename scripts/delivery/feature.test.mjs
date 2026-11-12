@@ -241,6 +241,20 @@ test('a verdict from before the latest retarget does not count', () => {
   );
 });
 
+test('nothing passes into an integration branch without its ruleset', () => {
+  const role = integrationRole({ pr: pr(), issues: [sub()] });
+  assert.match(
+    integrationStages({
+      pr: pr(),
+      role,
+      files: [],
+      comments: [passVerdict(401)],
+      protectedBase: false,
+    }).join(' '),
+    /not protected by the integration branch ruleset/,
+  );
+});
+
 test('integration stages block drafts, enforcement changes and invalid links', () => {
   const role = integrationRole({ pr: pr(), issues: [sub()] });
   const comments = [passVerdict(401)];

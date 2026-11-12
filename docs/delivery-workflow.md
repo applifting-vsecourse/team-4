@@ -243,6 +243,29 @@ owns the end-to-end scope and links its branch `integration/<parent>-<slug>`
 prefix is reserved for these branches. The parent issue has native sub-issues
 labeled `area:frontend` and `area:backend`.
 
+To start a feature:
+
+1. On the parent issue, add a frontend and a backend sub-issue with their
+   `area:` labels.
+2. In the parent issue's Development section, create the branch
+   `integration/<parent>-<slug>` from `main`.
+3. Branch each child from the integration branch, open its PR into it with
+   `Closes #<sub-issue>`, and merge it after Delivery stages and `child-verify`
+   pass. Keep the integration branch current with `main` through an integration
+   PR from a sync branch that merges `main` (never a PR whose head is `main`).
+4. Integrate and refine through integration PRs (`Refs #<parent>`).
+5. Open the parent PR from the integration branch into `main` with
+   `Closes #<parent>` and the feature's severity label; it waits until the
+   integration work is finished.
+
+The `Protect integration branches` ruleset keeps these branches PR-only, with
+`child-verify` and `Delivery stages` required and no force push, deletion or
+rebase merge. Until it is installed, Delivery stages refuses every PR into an
+integration branch. It has no bypass, so integration branches stay after the
+parent PR merges; deleting one needs an administrator to edit the ruleset
+first. Adding a bypass actor or rebase merges to it voids the guarantee the
+parent review carry-over relies on.
+
 PRs into an integration branch link exactly one open issue, with `Closes #N` or
 `Refs #N`. GitHub closes issues only for merges into `main`, so the Integration
 merge workflow closes a merged child's sub-issue as completed, but only when the
@@ -452,6 +475,26 @@ and High blocked until David/Bogdan approves. New policy markers prevent old
 requirements-exemption handoffs from being reused. A severity change during review
 invalidates the in-flight result. Returning to a previous severity may reuse valid
 evidence for the same head and unchanged policy/scope.
+
+## Installing the feature integration flow
+
+Merge the feature integration code through the existing gates first; the
+installer refuses to run until the trusted scripts and workflows on `main` match
+the local checkout. Then run:
+
+```sh
+node scripts/delivery/install-feature-flow.mjs
+node scripts/delivery/install-feature-flow.mjs --apply
+```
+
+The first command is read-only and shows the labels and ruleset it would create.
+Apply creates the `area:frontend` and `area:backend` labels and creates or updates
+the `Protect integration branches` ruleset for `refs/heads/integration/**`, then
+reads it back to verify it. It does not change `Protect main`. It needs `gh` 2.48
+or newer. The ruleset lets new branches be created (status checks are not
+enforced on creation); confirm this when creating the first integration branch
+from a parent issue's Development section. Until the ruleset
+is installed, parent PRs are reviewed as a whole instead of carrying reviews over.
 
 ## Configuration and validation
 

@@ -155,7 +155,8 @@ export const INTEGRATION_RULES = [
   'required_status_checks',
 ];
 export const INTEGRATION_CHECKS = ['child-verify', 'Delivery stages'];
-async function protectedBranch(get, repo, branch) {
+/** Whether the integration ruleset's rules are in force on `branch`. */
+export async function protectedBranch(get, repo, branch) {
   const rules = await listAll(
     get,
     `/repos/${repo}/rules/branches/${encodeURIComponent(branch)}`,
