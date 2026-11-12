@@ -402,6 +402,31 @@ test('a fork branch named like an integration branch is not a parent PR', () => 
   );
 });
 
+test('one sub-issue labeled with both areas does not cover both sides', () => {
+  const parentPr = pr({
+    number: 50,
+    base: { ref: 'main', repo: REPO },
+    head: { ref: BRANCH, sha, repo: REPO },
+  });
+  const both = {
+    number: 401,
+    state: 'CLOSED',
+    stateReason: 'COMPLETED',
+    labels: ['area:frontend', 'area:backend'],
+  };
+  assert.deepEqual(
+    parentReasons({
+      pr: parentPr,
+      issues: [parentIssue({ subIssues: [both] })],
+      openInto: [],
+    }),
+    [
+      'Parent issue #400 needs a sub-issue labeled only area:frontend.',
+      'Parent issue #400 needs a sub-issue labeled only area:backend.',
+    ],
+  );
+});
+
 test('a PR from an ordinary branch has no parent conditions', () => {
   assert.deepEqual(
     parentReasons({
