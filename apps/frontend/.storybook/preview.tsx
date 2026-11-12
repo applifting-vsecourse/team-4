@@ -12,6 +12,12 @@ import { isApiRequest } from "./storybook-config"
 const preview: Preview = {
   // The first decorator is the innermost: theme → query client → router.
   decorators: [withTheme, withQueryClient, withRouter],
+  // Every story starts like a fresh tab: no form draft (sessionStorage) and no
+  // remembered organization (localStorage) left over from the previous story.
+  beforeEach: () => {
+    sessionStorage.clear()
+    localStorage.clear()
+  },
   // Starts the MSW worker; stories add handlers with `msw.use()` in `beforeEach`.
   // An API request without a handler fails instead of reaching the running
   // dev backend, so a story renders the same locally and in CI.
@@ -49,6 +55,18 @@ const preview: Preview = {
     viewport: {
       options: {
         desktop: { name: "Desktop", styles: { width: "1280px", height: "800px" } },
+        // Public and participant screens are designed at 360 px first (DESIGN.md).
+        mobile: { name: "Mobile 360", styles: { width: "360px", height: "740px" } },
+      },
+    },
+    options: {
+      // Real screens first, by access area; designs the app lacks come last.
+      storySort: {
+        order: [
+          "Screens",
+          ["Public", "Participant", "Organization", "Event", "Dev"],
+          "Not implemented",
+        ],
       },
     },
   },

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 
-import { OrganizerEventPage } from "@/screens/designs/OrganizerEventPage"
+import { OrganizerEventPage } from "@/not-implemented/OrganizerEventPage"
 
 import {
   TermOccupancyTable,
@@ -175,7 +175,7 @@ function Occupancy({ terms, rooms, isLoadFailed = false }: OccupancyProps) {
 }
 
 const meta = {
-  title: "Designs/Accommodation evaluation/F17-1 Accommodation occupancy",
+  title: "Not implemented/F17-1 Accommodation occupancy",
   component: Occupancy,
   parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "desktop", isRotated: false } },

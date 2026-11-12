@@ -31,7 +31,7 @@ const T2_WAITLISTED = term("t2", "2. turnus", "11.–18. 7. 2027", "waitlisted")
 const T2_PENDING = term("t2", "2. turnus", "11.–18. 7. 2027", "pending")
 
 const meta = {
-  title: "Designs/F45-1 Participant e-mails",
+  title: "Not implemented/F45-1 Participant e-mails",
   component: ParticipantEmail,
   parameters: { layout: "fullscreen" },
   args: { eventName: EVENT, recipient: RECIPIENT, organizer: ORGANIZER },

@@ -14,11 +14,7 @@ import {
   EventCatalogList,
   type CatalogEventItem,
 } from "@/features/public-events/components/EventCatalogList"
-import {
-  EventCatalogEmpty,
-  EventCatalogError,
-  EventCatalogNoResults,
-} from "@/features/public-events/components/EventCatalogStates"
+import { EventCatalogNoResults } from "@/features/public-events/components/EventCatalogStates"
 import letniTaborImage from "@/features/public-events/fixtures/images/letni-tabor.jpg"
 import podzimniVikendImage from "@/features/public-events/fixtures/images/podzimni-vikend.jpg"
 
@@ -110,7 +106,7 @@ function Filters({
 }
 
 const meta = {
-  title: "Designs/F54-2 Public event catalog",
+  title: "Not implemented/F54-2 Catalog filters",
   parameters: { layout: "fullscreen", viewport: { defaultViewport: "desktop" } },
 } satisfies Meta
 
@@ -160,24 +156,6 @@ export const NoResults: Story = {
       }
     >
       <EventCatalogNoResults onClear={fn()} />
-    </CatalogPage>
-  ),
-}
-
-/** No event is published; the filters have nothing to filter. */
-export const NoPublishedEvents: Story = {
-  render: () => (
-    <CatalogPage filters={null}>
-      <EventCatalogEmpty />
-    </CatalogPage>
-  ),
-}
-
-/** Loading failed: an error with retry, not an empty catalog. */
-export const LoadError: Story = {
-  render: () => (
-    <CatalogPage filters={null}>
-      <EventCatalogError onRetry={fn()} />
     </CatalogPage>
   ),
 }
