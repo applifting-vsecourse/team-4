@@ -49,21 +49,22 @@ const serve = (evaluation = makeTermEvaluation()) =>
 const onSelect = vi.fn()
 
 function renderSection(queue = "all") {
-  render(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const section = (termId: string) => (
+    <QueryClientProvider client={client}>
       <TermEvaluationSection
         organizationId="org"
         eventId="event"
         terms={[EVALUATED_TERM, SECOND]}
-        termId={EVALUATED_TERM.id}
+        termId={termId}
         queue={queue}
         onSelect={onSelect}
         renderName={(person) => <a href={`/detail/${person.id}`}>{person.name}</a>}
       />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   )
+  const { rerender } = render(section(EVALUATED_TERM.id))
+  return { selectTerm: (termId: string) => rerender(section(termId)) }
 }
 
 // Radix Select needs pointer capture and scrolling, which jsdom lacks.
@@ -95,6 +96,23 @@ describe("TermEvaluationSection", () => {
     )
     await userEvent.click(within(termTabs).getByRole("tab", { name: "Turnus 2" }))
     expect(onSelect).toHaveBeenCalledWith({ termId: SECOND.id, queue: "all" })
+  })
+
+  it("keeps the previous term, not to be acted on, while another term loads", async () => {
+    serve()
+    const { selectTerm } = renderSection()
+    const proposal = await screen.findByText("Aktuální návrh")
+
+    get.mockReturnValue({ json: () => new Promise(() => undefined) })
+    selectTerm(SECOND.id)
+
+    // The page keeps its height: no placeholder replaces the shown term.
+    expect(
+      screen.queryByRole("status", { name: "Načítání vyhodnocení termínu" }),
+    ).not.toBeInTheDocument()
+    const content = proposal.closest<HTMLElement>("[aria-busy]")!
+    await waitFor(() => expect(content).toHaveAttribute("aria-busy", "true"))
+    expect(content).toHaveAttribute("inert")
   })
 
   it("shows the current proposal of the term with the results and links to the details", async () => {

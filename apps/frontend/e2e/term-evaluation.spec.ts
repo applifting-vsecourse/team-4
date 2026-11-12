@@ -210,6 +210,26 @@ test("switching the term and the queue keeps the scroll position and the URL res
   await expect(queueTabs).toBeInViewport()
   expect(await scrollY()).toBe(atQueues)
 
+  // Back steps through the selections: the queue, then the term; Forward returns.
+  await page.goBack()
+  await expect(page).not.toHaveURL(/queue=/)
+  await expect(queueTabs.getByRole("tab", { name: /^Celý termín/ })).toHaveAttribute(
+    "data-state",
+    "active",
+  )
+  await page.goBack()
+  await expect(termTabs.getByRole("tab", { name: "1. turnus" })).toHaveAttribute(
+    "data-state",
+    "active",
+  )
+  await page.goForward()
+  await page.goForward()
+  await expect(termTabs.getByRole("tab", { name: "2. turnus" })).toHaveAttribute(
+    "data-state",
+    "active",
+  )
+  await expect(queueTabs.getByRole("tab", { name: /^Muž/ })).toHaveAttribute("data-state", "active")
+
   // A refresh restores the term and the queue.
   await page.reload()
   await expect(termTabs.getByRole("tab", { name: "2. turnus" })).toHaveAttribute(

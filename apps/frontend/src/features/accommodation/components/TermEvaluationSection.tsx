@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { readApiError } from "@/lib/apiError"
@@ -89,17 +89,22 @@ export function TermEvaluationSection({
 }: TermEvaluationSectionProps) {
   const queryClient = useQueryClient()
   const hasTerm = termId !== ""
+  // Another term keeps the previous one on screen until its own data arrive,
+  // so the page does not shrink and move the organizer (S4-01).
   const evaluation = useQuery({
     ...termEvaluationQueryOptions(organizationId, eventId, termId),
     enabled: hasTerm,
+    placeholderData: keepPreviousData,
   })
   const runs = useQuery({
     ...termRunsQueryOptions(organizationId, eventId, termId),
     enabled: hasTerm,
+    placeholderData: keepPreviousData,
   })
   const moves = useQuery({
     ...termMovesQueryOptions(organizationId, eventId, termId),
     enabled: hasTerm,
+    placeholderData: keepPreviousData,
   })
   // A run stored while the term was polled belongs into the history.
   const settled = `${evaluation.data?.status}/${evaluation.data?.proposalRun?.id}`
@@ -252,6 +257,7 @@ export function TermEvaluationSection({
     <>
       <TermEvaluation
         {...common}
+        isSwitching={evaluation.isPlaceholderData}
         mode={data.mode}
         // While the request is on its way the term already reads as running.
         status={recalculate.isPending ? "running" : data.status}

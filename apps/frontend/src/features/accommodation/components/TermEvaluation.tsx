@@ -101,6 +101,11 @@ export type TermEvaluationProps = {
   isLoadFailed?: boolean
   /** The term is loading: the term tabs stay, the content is a placeholder. */
   isLoading?: boolean
+  /**
+   * Another term is loading: the previous one stays shown, so the page keeps
+   * its height, but it cannot be acted on until the new term arrives (S4-01).
+   */
+  isSwitching?: boolean
   /** Below the order: the history of the term (F39-1). */
   children?: ReactNode
   onSelectTerm?: (termId: string) => void
@@ -356,6 +361,7 @@ export function TermEvaluation({
   confirmedResult,
   isLoadFailed = false,
   isLoading = false,
+  isSwitching = false,
   children,
   onSelectTerm,
   onSelectQueue,
@@ -403,15 +409,19 @@ export function TermEvaluation({
               onRetry={onRetryLoad}
             />
           ) : isLoading ? (
-            // At least a screen tall, so the page does not shrink under the
-            // term tab just clicked while the term loads (S4-01).
+            // The first load of the section: at least a screen tall, so the
+            // page does not shrink under the term tabs (S4-01).
             <Skeleton
               className="mt-2 h-svh w-full"
               role="status"
               aria-label="Načítání vyhodnocení termínu"
             />
           ) : (
-            <div className="mt-2 space-y-6">
+            <div
+              className="mt-2 space-y-6"
+              inert={isSwitching}
+              aria-busy={isSwitching}
+            >
               <Card>
                 <CardContent>
                   <div className="flex flex-wrap items-center justify-between gap-4">
