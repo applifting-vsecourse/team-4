@@ -2,19 +2,25 @@
 // and fingerprinting a PR's own slice of the change. No I/O, so the rules can be
 // unit-tested; callers supply GitHub data.
 import { createHash } from 'node:crypto';
+import { isIntegrationBranch } from './feature.mjs';
 
 /**
  * Groups open PRs into linear stacks. A PR is stacked on another when its base
  * branch is the other PR's head branch (same repository only).
  *
  * Returns every chain bottom-to-top (`prs[0]` is the bottom, the last is the
- * tip), so a lone PR is a stack of one. Anything that is not a plain chain is
+ * tip), so a lone PR is a stack of one. PRs into an integration branch are in
+ * neither `stacks` nor `problems`. Anything that is not a plain chain is
  * reported in `problems` and left out of `stacks`, so callers keep today's
  * per-PR behaviour for it.
  */
 export function buildStacks(prs) {
+  // A PR into an integration branch is a child of the feature, not a slice
+  // stacked on the parent PR whose head is that branch: it is left out here.
   const open = prs.filter(
-    (pr) => pr.state === undefined || pr.state === 'open',
+    (pr) =>
+      (pr.state === undefined || pr.state === 'open') &&
+      !isIntegrationBranch(pr.base?.ref),
   );
   // A fork's branch names mean nothing here: it is its own stack of one. A
   // deleted fork reports a null head repository, which is just as foreign.

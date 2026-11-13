@@ -18,6 +18,9 @@ export function severityFor(pr) {
     );
   return selected[0]?.slice('severity:'.length) ?? 'standard';
 }
+// Review and merge enforcement: changes here always need severity:high.
+export const ENFORCEMENT_PATHS =
+  /^(?:\.github\/|scripts\/(?:delivery|agent-review|automation)\/|CLAUDE\.md$|AGENTS\.md$|docs\/delivery-workflow\.md$)/;
 export const sameSeverity = (a, b) => severityFor(a) === severityFor(b);
 
 // Low severity is deliberately limited to files with no application execution.
@@ -32,14 +35,7 @@ export function validateSeverity(pr, files) {
   const paths = files.flatMap((file) =>
     [file.filename, file.previous_filename].filter(Boolean),
   );
-  if (
-    paths.some((path) =>
-      /^(?:\.github\/|scripts\/(?:delivery|agent-review|automation)\/|CLAUDE\.md$|AGENTS\.md$|docs\/delivery-workflow\.md$)/.test(
-        path,
-      ),
-    ) &&
-    severity !== 'high'
-  )
+  if (paths.some((path) => ENFORCEMENT_PATHS.test(path)) && severity !== 'high')
     throw new Error(
       'Review and merge enforcement changes require severity:high.',
     );

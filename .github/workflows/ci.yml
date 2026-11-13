@@ -100,7 +100,10 @@ jobs:
       - name: Test frontend stories
         run: pnpm frontend test:stories
 
+  # Child PRs into an integration/ feature branch integrate FE and BE later, so they skip E2E.
+  # verify then fails for them, which keeps a skipped lane from passing main.
   e2e:
+    if: ${{ !startsWith(github.base_ref, 'integration/') }}
     runs-on: ubuntu-latest
     services:
       postgres:
