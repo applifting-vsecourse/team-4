@@ -15,6 +15,14 @@ Before implementing a story, read the GitHub issue and its sprint decisions. Ide
 
 Reuse the relevant existing page. Report conflicts or proposed structural changes to the PM before changing the navigation structure. GitHub issue titles and bodies are the single source of truth for user stories, including navigation context. Local Markdown copies are private PM working material, ignored by Git; they are not required for implementation and must not override the issue.
 
+## Architecture decisions
+
+Significant architectural decisions are recorded as ADRs in [`docs/adr/`](docs/adr/README.md); its README says when one is needed and how it is accepted.
+
+- Before designing a change, check the accepted ADRs for its area and follow them. A conflict with an accepted ADR is a structural change: report it to the tech lead (architecture) instead of working around it.
+- When your work makes a decision that meets the README's criteria, propose an ADR with status `Proposed` from [`docs/adr/template.md`](docs/adr/template.md), in the PR that introduces the decision or before it, and point the tech lead to it.
+- Never mark an ADR `Accepted` yourself; set that status only after the tech lead's `ADR-NNNN accepted` comment on the PR. Do not rewrite an accepted ADR: supersede it with a new one.
+
 ## Commands
 
 - `pnpm dev` — everything: env files, Postgres (Docker), migrate, run the seed entry point, both dev servers
