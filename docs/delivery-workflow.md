@@ -29,21 +29,21 @@ for a new or replaced Docker Compose service, a newly added package/dependency,
 or comparable shared infrastructure/tooling changes that need technical
 oversight. Routine feature work such as adding a page does not need it. When
 present, the workflow requests an approving review from Bogdan (`rmnskb`) once
-CI and the agent review of the current commit have passed, and requires that approval on the current commit before moving the issue to Ready for
+CI and the agent review of the current commit have passed, and requires an approval from him or David (`darebakdavca`) on the current commit before moving the issue to Ready for
 Testing or allowing merge. The approval is separate from High requirements
-approval and from QA; an `rmnskb` review may satisfy both applicable review gates.
+approval and from QA; an approval from either may satisfy both applicable review gates.
 
 The technical-review requirement is recorded by the PR's label history. Removing
 the label after it was applied does not clear the requirement; a current-commit
-approval from `rmnskb` does. Low severity cannot be combined with this label.
+approval from `rmnskb` or `darebakdavca` does. Low severity cannot be combined with this label.
 
-A PR that `rmnskb` authored needs no technical approval: GitHub does not let an
-author approve their own PR, and the technical reviewer's own change already
-carries his technical sign-off. The workflow does not request him and the gate
-records the exemption; Copilot review, requirements approval and QA still apply.
-Keep the label on such PRs so the classification stays visible. The exemption
-follows the PR's author, not each commit's pusher: commits another collaborator
-pushes to a PR `rmnskb` opened are covered by the other gates only.
+Either David (`darebakdavca`) or Bogdan (`rmnskb`) may give the technical
+approval on the current commit; one approval is enough and nobody approves their
+own PR. The workflow requests only Bogdan, and never David. On a PR `rmnskb`
+authored there is no automatic request: he asks David by hand and David's
+approval of the current commit satisfies the gate. Copilot review, requirements
+approval and QA still apply. The rule follows the PR's author, not each commit's
+pusher.
 
 ### Storybook design-preview PRs
 
@@ -400,8 +400,9 @@ trigger reconciliation; scheduled polling remains the fallback.
 Matej is not automatically requested at PR creation. For a non-draft PR,
 technical review is requested from `rmnskb` only after CI and the agent review
 have passed on the current commit, so it never happens alongside them.
-Approval is still required on the current commit before QA handoff, except on
-PRs `rmnskb` authored. CODEOWNERS lists David
+Approval from `rmnskb` or `darebakdavca` is still required on the current commit
+before QA handoff; David is never requested automatically, and on PRs `rmnskb`
+authored nobody is, because David approves after a manual request. CODEOWNERS lists David
 for workflow/enforcement paths; GitHub does not request an author to review their own PR. The bot's
 Ready for Testing comment identifies the QA owner, then the bot sends that person
 a GitHub review request: MatejKrones, or darebakdavca on Matej-authored PRs.

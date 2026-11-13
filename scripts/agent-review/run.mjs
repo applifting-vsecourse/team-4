@@ -1268,7 +1268,7 @@ async function processIssue(board, item) {
     if (!hasBotComment(await listComments(issue.number), marker)) {
       await postComment(
         issue.number,
-        `${marker}\nAgent review passed; waiting for current-commit technical approval from @rmnskb on PRs ${waitingFor}. QA handoff is paused until approval is recorded.`,
+        `${marker}\nAgent review passed; waiting for current-commit technical approval from @rmnskb or @darebakdavca on PRs ${waitingFor}. QA handoff is paused until approval is recorded.`,
       );
     }
   } else if (item.status.name === STATUS_TESTING) {

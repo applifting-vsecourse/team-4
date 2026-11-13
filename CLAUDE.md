@@ -122,11 +122,11 @@ the PR, or immediately afterward if the creation tool cannot set labels. Routine
 feature work such as adding a page does not need this label. For non-draft PRs,
 the workflow requests `rmnskb` once CI and the agent review of the current
 commit have passed (never earlier), and requires
-his approval on the current commit before QA handoff and
-merge until that review is recorded. Once applied, removing the label does not
-remove the approval requirement; Bogdan's current-commit approval satisfies it.
-PRs Bogdan authors are exempt from the technical approval (he cannot approve his
-own PR); still label them, and every other gate applies.
+an approval from Bogdan or David (`darebakdavca`) on the current commit before QA
+handoff and merge; one is enough and nobody approves their own PR. The workflow
+never requests David automatically. On PRs Bogdan authors, David approves the
+current commit after a manual request. Once applied, removing the label does not
+remove the approval requirement.
 Before opening a non-draft PR, launch a fresh independent agent with no access to
 the implementation conversation or plan to review the final diff. Give it the
 issue description and acceptance criteria, the diff, and only the repository

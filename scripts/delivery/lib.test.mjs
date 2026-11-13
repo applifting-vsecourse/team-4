@@ -109,9 +109,11 @@ test('ordinary comments do not dismiss an approval', () => {
   f.reviews.push(review(PM, 5, 'COMMENTED'));
   assert.equal(evaluate(f).pass, true);
 });
-test('technical-review requires rmnskb approval on the current commit', () => {
+test('technical-review requires rmnskb or darebakdavca approval on the current commit', () => {
   const f = fixture();
   f.pr.labels.push({ name: 'technical-review' });
+  // David's requirements approval is on another commit than the head.
+  f.reviews[0].commit_id = 'c'.repeat(40);
   assert.equal(evaluate(f).pass, false);
   f.reviews.push(review(TECHNICAL_REVIEWER, 5));
   assert.equal(evaluate(f).pass, true);
@@ -126,27 +128,50 @@ test('technical-review remains required after its label is removed', () => {
     true,
   );
   const f = fixture();
+  f.reviews[0].commit_id = 'c'.repeat(40);
   f.pr.technicalReviewRequired = true;
   assert.equal(evaluate(f).pass, false);
 });
 test('a stale technical approval does not count', () => {
   const f = fixture();
   f.pr.labels.push({ name: 'technical-review' });
+  f.reviews[0].commit_id = 'c'.repeat(40);
   f.reviews.push(review(TECHNICAL_REVIEWER, 5, 'APPROVED', 'b'.repeat(40)));
   assert.equal(technicalReviewApproval(f.pr, f.reviews), null);
   assert.equal(evaluate(f).pass, false);
 });
-test("the technical reviewer's own PR needs no technical approval, but still every other gate", () => {
+test('David can give the technical approval; one approval is enough', () => {
+  const f = fixture();
+  f.pr.labels.push({ name: 'technical-review' });
+  f.reviews[0].commit_id = 'c'.repeat(40);
+  assert.equal(evaluate(f).pass, false);
+  f.reviews.push(review(PM, 5));
+  assert.equal(technicalReviewApproval(f.pr, f.reviews).user.login, PM);
+  assert.equal(evaluate(f).pass, true);
+});
+test('nobody approves their own technical review', () => {
+  const f = fixture();
+  f.pr.labels.push({ name: 'technical-review' });
+  f.reviews = [review(PM, 1, 'APPROVED', 'c'.repeat(40)), review(QA, 6)];
+  f.pr.user.login = PM;
+  f.reviews.push(review(PM, 5));
+  assert.equal(technicalReviewApproval(f.pr, f.reviews), null);
+  f.reviews.push(review(TECHNICAL_REVIEWER, 7));
+  assert.ok(technicalReviewApproval(f.pr, f.reviews));
+});
+test("Bogdan's own PR needs David's technical approval and every other gate", () => {
   const f = fixture();
   f.pr.labels.push({ name: 'technical-review' });
   f.pr.user.login = TECHNICAL_REVIEWER;
-  assert.equal(technicalReviewApproval(f.pr, f.reviews).exempt, true);
+  f.reviews[0].commit_id = 'c'.repeat(40);
+  assert.equal(technicalReviewApproval(f.pr, f.reviews), null);
+  assert.equal(evaluate(f).pass, false);
+  f.reviews.push(review(PM, 5));
+  assert.equal(technicalReviewApproval(f.pr, f.reviews).user.login, PM);
   assert.equal(evaluate(f).pass, true);
-  f.reviews = [review(PM, 1)];
+  f.reviews = [review(PM, 5), review(PM, 1)];
   assert.equal(evaluate(f).pass, false);
-  f.reviews = [review(QA, 4)];
-  assert.equal(evaluate(f).pass, false);
-  f.reviews = [review(PM, 1), review(QA, 4)];
+  f.reviews = [review(PM, 1), review(QA, 6)];
   f.pr.head.sha = 'b'.repeat(40);
   assert.equal(evaluate(f).pass, false);
 });

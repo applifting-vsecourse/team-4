@@ -43,18 +43,16 @@ export function technicalReviewRequired(pr, timeline = []) {
   );
 }
 
-// The technical reviewer's own PR needs no technical approval: GitHub doesn't
-// let him approve it, and the change already has his technical sign-off. The
-// other gates (Copilot review, requirements, QA) still apply.
+// David or Bogdan may approve the current commit; one approval is enough and
+// nobody approves their own PR, so on Bogdan's PR it is David's to give.
+export const TECHNICAL_APPROVERS = [PM, TECHNICAL_REVIEWER];
 export function technicalReviewApproval(pr, reviews) {
-  if (pr.user.login.toLowerCase() === TECHNICAL_REVIEWER.toLowerCase())
-    return {
-      id: 'technical-reviewer-author',
-      exempt: true,
-      commit_id: pr.head.sha,
-    };
-  const review = latestReview(reviews, TECHNICAL_REVIEWER);
-  return approved(review, pr.head.sha) ? review : null;
+  const author = pr.user.login.toLowerCase();
+  return (
+    TECHNICAL_APPROVERS.filter((login) => login.toLowerCase() !== author)
+      .map((login) => latestReview(reviews, login))
+      .find((review) => approved(review, pr.head.sha)) ?? null
+  );
 }
 
 export function isStorybookPreview(pr) {
@@ -203,7 +201,7 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
     reasons.push('Link at least one issue with Closes #N or Refs #N.');
   if (needsTechnicalReview && !technicalApproval)
     reasons.push(
-      `Technical review approval by @${TECHNICAL_REVIEWER} is missing for this commit.`,
+      `Technical review approval by ${TECHNICAL_APPROVERS.map((login) => `@${login}`).join(' or ')} is missing for this commit.`,
     );
   if (!storybookPreview && !approved(qa, qaSha))
     reasons.push(
