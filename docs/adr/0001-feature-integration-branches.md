@@ -1,6 +1,6 @@
 # ADR-0001: Integrate FE/BE slices on integration branches
 
-- **Status:** Proposed
+- **Status:** Accepted 2026-11-13 in #361
 - **Proposed:** 2026-11-13
 - **Deciders:** tech lead (`rmnskb`); PM (`darebakdavca`) for the parent review
   carry-over

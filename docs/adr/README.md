@@ -69,4 +69,4 @@ applies or changes an accepted decision mentions the ADR in its description.
 
 | ADR                                          | Title                                          | Status   |
 | -------------------------------------------- | ---------------------------------------------- | -------- |
-| [0001](0001-feature-integration-branches.md) | Integrate FE/BE slices on integration branches | Proposed |
+| [0001](0001-feature-integration-branches.md) | Integrate FE/BE slices on integration branches | Accepted |
