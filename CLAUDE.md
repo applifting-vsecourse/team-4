@@ -120,8 +120,8 @@ service, adds a package/dependency, or makes a comparable shared infrastructure
 or tooling change that needs Bogdan's technical sign-off. Apply it when creating
 the PR, or immediately afterward if the creation tool cannot set labels. Routine
 feature work such as adding a page does not need this label. For non-draft PRs,
-the workflow requests `rmnskb` as soon as the labeled PR is opened or labeled,
-and requires
+the workflow requests `rmnskb` once CI and the agent review of the current
+commit have passed (never earlier), and requires
 his approval on the current commit before QA handoff and
 merge until that review is recorded. Once applied, removing the label does not
 remove the approval requirement; Bogdan's current-commit approval satisfies it.
@@ -142,13 +142,18 @@ requirements approval. An isolated Storybook design-preview PR marked
 `design:storybook-preview` replaces separate QA with current-commit PM approval;
 see the [delivery workflow](docs/delivery-workflow.md) for its scope and rules.
 High additionally requires issue-level scope approval
-from David (`darebakdavca`) or Bogdan (`rmnskb`) before code review, with no
-PR-author exemption. Either may approve via a linked PR review or an explicit
+from David (`darebakdavca`) or Bogdan (`rmnskb`), requested only after CI, agent
+review and any required human code review have passed on the current commit
+(the order is in the delivery workflow), with no PR-author exemption. Either may approve via a linked PR review or an explicit
 `/requirements-approve` issue or linked PR comment. PR commands approve linked
 issues and are recorded on those issues. Collaborators may request fresh scope review
 with `/requirements-rereview`. Requirement/title changes invalidate scope approval;
 checkbox and `Evidence dokončení` updates do not. Implementation commits preserve
 unchanged scope approval but require fresh code review and QA.
+
+A standard Dependabot PR (`dependencies`, `severity:standard`) needs no issue,
+agent review, human approval or QA: it merges automatically once CI passes on the
+current commit.
 
 `MatejKrones` approves QA after the testing handoff; on Matej's PRs, David performs
 QA. Request QA only after independent review passes and the current commit receives

@@ -355,7 +355,25 @@ async function scenario(options) {
       data = { status: options.compareStatus ?? 'ahead' };
     } else if (path.includes('/actions/runs')) {
       if (options.ciUnavailable) throw new Error('CI API unavailable');
-      data = { workflow_runs: [] };
+      if (options.ciPassed && path.endsWith('/jobs')) data = { jobs: [] };
+      else if (options.ciPassed)
+        data = {
+          workflow_runs: [
+            {
+              id: 1,
+              head_sha: sha,
+              event: 'pull_request',
+              path: '.github/workflows/ci.yml',
+              repository: { full_name: 'owner/repo' },
+              pull_requests: [{ number: 12 }],
+              status: 'completed',
+              conclusion: 'success',
+              run_attempt: 1,
+              html_url: 'https://example.test/run',
+            },
+          ],
+        };
+      else data = { workflow_runs: [] };
     } else if (/\/pulls\/\d+$/.test(path)) {
       if (
         options.freshReview &&
@@ -821,11 +839,24 @@ test('fresh review waits for CI without a model verdict or QA handoff', () => {
     ),
   );
 });
-test('PR label event requests technical review before agent review or QA handoff', () => {
-  const r = run({ technicalReview: true, eventPr: 12 });
-  assert.ok(r.calls.includes('technical-request:12'));
+test('technical review is requested after CI and agent review, before QA handoff', () => {
+  const r = run({ technicalReview: true, ciPassed: true, eventPr: 12 });
+  assert.ok(r.calls.includes('technical-request:12'), JSON.stringify(r.calls));
+  const noCi = run({ technicalReview: true, eventPr: 12 });
+  assert.ok(!noCi.calls.includes('technical-request:12'));
   assert.ok(!r.calls.includes('handoff:12'));
   assert.equal(r.status, 'Ready for Code Review');
+});
+test('technical review is not requested while CI or agent review is pending', () => {
+  const r = run({ technicalReview: true, freshReview: true, eventPr: 12 });
+  assert.ok(!r.calls.includes('technical-request:12'), JSON.stringify(r.calls));
+  const unavailable = run({
+    technicalReview: true,
+    freshReview: true,
+    ciUnavailable: true,
+    eventPr: 12,
+  });
+  assert.ok(!unavailable.calls.includes('technical-request:12'));
 });
 test("the technical reviewer's own PR is handed to QA without a technical review request", () => {
   const r = run({ technicalReview: true, authors: ['rmnskb'], eventPr: 12 });

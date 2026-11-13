@@ -98,6 +98,20 @@ export function requirementsApproval(pr, reviews) {
   return ordered.find((r) => r.id > reset && r.state === 'APPROVED') ?? null;
 }
 
+// The record which starts agent review. Standard and Low work needs no scope
+// approval, so it is the requirements record itself. High work is reviewed by
+// the agent and the human code reviewers first and asks for scope approval
+// afterwards, so its review starts under an id which does not wait for it.
+export function reviewStartApproval(pr, reviews) {
+  const approval = requirementsApproval(pr, reviews);
+  if (pr.draft || severityFor(pr) !== 'high') return approval;
+  return {
+    id: `severity-high-review${pr.requirementsVersion ? ':' + pr.requirementsVersion : ''}`,
+    exempt: true,
+    commit_id: pr.head.sha,
+  };
+}
+
 export function requirementsMarker(pr, sha, issue, reviewId) {
   return `<!-- requirements-ready pr=${pr} sha=${sha} issue=${issue} review=${reviewId} -->`;
 }
@@ -111,7 +125,7 @@ export function requirementsTransition(status, prs) {
       review: false,
     };
   const passed = prs.every(({ pr, reviews }) =>
-    requirementsApproval(pr, reviews),
+    reviewStartApproval(pr, reviews),
   );
   if (!passed) return { status: 'In Progress', review: false };
   if (
@@ -202,16 +216,14 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
       `Storybook preview needs current-commit approval by ${REQUIREMENTS_APPROVERS.join(' or ')}.`,
     );
   for (const issue of issues) {
-    const pm = requirementsApproval(
-      Object.hasOwn(issue, 'requirements')
-        ? {
-            ...pr,
-            requirements: issue.requirements,
-            requirementsVersion: issue.requirementsVersion,
-          }
-        : pr,
-      reviews,
-    );
+    const scoped = Object.hasOwn(issue, 'requirements')
+      ? {
+          ...pr,
+          requirements: issue.requirements,
+          requirementsVersion: issue.requirementsVersion,
+        }
+      : pr;
+    const pm = requirementsApproval(scoped, reviews);
     // High severity requires scope approval; Standard records a policy skip.
     if (!pm) {
       reasons.push(
@@ -219,19 +231,25 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
       );
       continue;
     }
-    const requirement = pm
-      ? comments
-          .filter(
-            (c) =>
-              c.user?.login === 'github-actions[bot]' &&
-              (c.body ?? '').startsWith(
-                requirementsMarker(pr.number, sha, issue.number, pm.id) + '\n',
-              ) &&
-              (pm.exempt ||
-                Date.parse(c.created_at) >= Date.parse(pm.submitted_at)),
-          )
-          .at(-1)
-      : null;
+    const markerFor = (approval) =>
+      comments
+        .filter(
+          (c) =>
+            c.user?.login === 'github-actions[bot]' &&
+            (c.body ?? '').startsWith(
+              requirementsMarker(pr.number, sha, issue.number, approval.id) +
+                '\n',
+            ) &&
+            (approval.exempt ||
+              Date.parse(c.created_at) >= Date.parse(approval.submitted_at)),
+        )
+        .at(-1);
+    // Agent review starts from this record; scope approval is recorded after it.
+    const requirement = markerFor(pm);
+    const start =
+      severity === 'high'
+        ? markerFor(reviewStartApproval(scoped, reviews))
+        : requirement;
     const requirementRecordRequired = severity === 'high' || !storybookPreview;
     // A fresh, bot-authored readiness record proves requirements and agent
     // review passed together before QA. A board column alone proves nothing.
@@ -255,9 +273,8 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
     if (
       !waiver &&
       (!verdict ||
-        (requirement &&
-          Date.parse(verdict.created_at) <
-            Date.parse(requirement.created_at)) ||
+        (start &&
+          Date.parse(verdict.created_at) < Date.parse(start.created_at)) ||
         !agentReviewPassed({
           comments,
           pr: pr.number,
@@ -281,16 +298,30 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
       );
     }
     if (
+      severity === 'high' &&
+      requirement &&
+      (waiver || verdict) &&
+      Date.parse(requirement.created_at) <
+        Date.parse(waiver?.at ?? verdict.created_at)
+    ) {
+      reasons.push(
+        `Requirements approval for issue #${issue.number} must be recorded after agent review of this commit.`,
+      );
+    }
+    if (
       requirementRecordRequired &&
-      (!requirement ||
+      (!start ||
+        !requirement ||
         (!storybookPreview &&
           (!ready ||
             Date.parse(ready.created_at) < Date.parse(requirement.created_at))))
     ) {
       reasons.push(
-        !requirement
-          ? `Issue #${issue.number} has not entered code review after current requirements approval.`
-          : `Issue #${issue.number} has not passed requirements and agent review into Ready for Testing.`,
+        !start
+          ? `Issue #${issue.number} has not entered code review.`
+          : !requirement
+            ? `Issue #${issue.number} has not recorded requirements approval after code review.`
+            : `Issue #${issue.number} has not passed requirements and agent review into Ready for Testing.`,
       );
     } else if (!storybookPreview && requirement && pm && approved(qa, qaSha)) {
       if (
