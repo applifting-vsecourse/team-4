@@ -115,6 +115,28 @@ describe("TermEvaluationSection", () => {
     expect(content).toHaveAttribute("inert")
   })
 
+  it("keeps the previous term inert until its history has loaded too", async () => {
+    serve()
+    const { selectTerm } = renderSection()
+    const proposal = await screen.findByText("Aktuální návrh")
+
+    // The new term's evaluation arrives, its runs and moves are still on their way.
+    get.mockImplementation((path: string) =>
+      path.endsWith("/runs") || path.endsWith("/order/moves")
+        ? { json: () => new Promise(() => undefined) }
+        : answer(makeTermEvaluation()),
+    )
+    selectTerm(SECOND.id)
+
+    await waitFor(() => expect(get).toHaveBeenCalledWith(expect.stringContaining(SECOND.id)))
+    const content = proposal.closest<HTMLElement>("[aria-busy]")!
+    await waitFor(() => expect(content).toHaveAttribute("aria-busy", "true"))
+    // Let the evaluation request settle; the history still belongs to the previous term.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(content).toHaveAttribute("aria-busy", "true")
+    expect(content).toHaveAttribute("inert")
+  })
+
   it("shows the current proposal of the term with the results and links to the details", async () => {
     serve()
     renderSection()

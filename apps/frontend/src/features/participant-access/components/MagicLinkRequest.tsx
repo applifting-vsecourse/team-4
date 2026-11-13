@@ -81,7 +81,7 @@ export function MagicLinkRequest({ notice }: MagicLinkRequestProps) {
             <Button
               type="submit"
               size="lg"
-              className="w-full"
+              className="w-full max-w-sm"
               disabled={request.isPending}
             >
               {request.isPending ? <Loader2 className="size-4 animate-spin" /> : null}

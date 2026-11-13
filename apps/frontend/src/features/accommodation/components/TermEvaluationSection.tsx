@@ -211,6 +211,10 @@ export function TermEvaluationSection({
   ]
     .sort((a, b) => b.time - a.time)
     .map(({ entry }) => entry)
+  // The shown term stays inert until all of its data belong to the selected
+  // term, so no action or history entry of the previous term is offered.
+  const isSwitching =
+    evaluation.isPlaceholderData || runs.isPlaceholderData || moves.isPlaceholderData
   const recalculateError = recalculate.isError
     ? (readApiError(recalculate.error).message ?? RECALCULATE_FAILED)
     : undefined
@@ -257,7 +261,7 @@ export function TermEvaluationSection({
     <>
       <TermEvaluation
         {...common}
-        isSwitching={evaluation.isPlaceholderData}
+        isSwitching={isSwitching}
         mode={data.mode}
         // While the request is on its way the term already reads as running.
         status={recalculate.isPending ? "running" : data.status}
