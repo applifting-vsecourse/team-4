@@ -30,8 +30,8 @@ export const NoOrganizations: Story = {
 }
 
 /**
- * The list could not be loaded: the app-wide error page, in English. Known
- * defect kept visible: its <main> sits inside the workspace's <main>
+ * The list could not be loaded: the app-wide error page. Known defect kept
+ * visible: its <main> sits inside the workspace's <main>
  * (landmark-main-is-top-level), so a11y reports it instead of failing.
  */
 export const LoadFailed: Story = {
@@ -39,5 +39,5 @@ export const LoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", "/organizations"))
   },
-  play: () => showsText("Something went wrong"),
+  play: () => showsText("Stránku se nepodařilo načíst"),
 }

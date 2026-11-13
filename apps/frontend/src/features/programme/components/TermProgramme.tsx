@@ -1,16 +1,20 @@
 import { CalendarClock, Plus } from "lucide-react"
 
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import { ProgrammeList, type ProgrammeDay } from "@/features/programme/components/ProgrammeList"
-import { ProgrammeLoadFailed } from "@/features/programme/components/ProgrammeLoadFailed"
 
 type TermProgrammeProps = {
   days: ProgrammeDay[]
   /** The programme could not be loaded; the list is not shown as empty. */
   isLoadFailed?: boolean
+  /** The first load is running; the list is not shown as empty. */
+  isLoading?: boolean
   isRetrying?: boolean
   onAdd?: () => void
   onEdit?: (itemId: string) => void
@@ -23,6 +27,7 @@ type TermProgrammeProps = {
 export function TermProgramme({
   days,
   isLoadFailed = false,
+  isLoading = false,
   isRetrying,
   onAdd,
   onEdit,
@@ -48,14 +53,23 @@ export function TermProgramme({
         >
           Program termínu
         </h2>
-        {!isLoadFailed && days.length > 0 ? addButton : null}
+        {!isLoadFailed && !isLoading && days.length > 0 ? addButton : null}
       </div>
 
       {isLoadFailed ? (
-        <ProgrammeLoadFailed
+        <LoadError
+          title="Program se nepodařilo načíst"
           onRetry={onRetry}
           isRetrying={isRetrying}
         />
+      ) : isLoading ? (
+        <LoadingBlock
+          label="Načítání programu"
+          className="space-y-2"
+        >
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </LoadingBlock>
       ) : days.length === 0 ? (
         <Empty>
           <EmptyHeader>

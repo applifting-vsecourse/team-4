@@ -1,7 +1,7 @@
-import { CalendarX, TriangleAlert } from "lucide-react"
+import { CalendarX } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
@@ -18,8 +18,7 @@ export function CatalogPreview() {
 
   if (isPending) {
     return (
-      <div role="status">
-        <span className="sr-only">Načítáme akce</span>
+      <LoadingBlock label="Načítání akcí">
         <ul
           aria-hidden
           className="grid gap-6 md:grid-cols-3"
@@ -30,27 +29,17 @@ export function CatalogPreview() {
             </li>
           ))}
         </ul>
-      </div>
+      </LoadingBlock>
     )
   }
 
   if (isError) {
     return (
-      <Alert variant="destructive">
-        <TriangleAlert aria-hidden />
-        <AlertTitle>Akce se nepodařilo načíst</AlertTitle>
-        <AlertDescription>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2"
-            disabled={isFetching}
-            onClick={() => void refetch()}
-          >
-            Zkusit znovu
-          </Button>
-        </AlertDescription>
-      </Alert>
+      <LoadError
+        title="Akce se nepodařilo načíst"
+        isRetrying={isFetching}
+        onRetry={() => refetch()}
+      />
     )
   }
 

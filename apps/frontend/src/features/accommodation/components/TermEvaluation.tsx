@@ -1,8 +1,11 @@
 import type { ReactNode } from "react"
-import { CircleAlert, CircleCheck, ClipboardList, Ellipsis, Loader2, RefreshCw } from "lucide-react"
+import { ClipboardList, Ellipsis, Loader2, RefreshCw } from "lucide-react"
 
+import { FormError } from "@/components/FormError"
 import { HorizontalOverflowViewport } from "@/components/HorizontalOverflowViewport"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { Notice } from "@/components/Notice"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -25,8 +28,6 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
-import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
 import {
   TermCapacitySummary,
   type TermCapacity,
@@ -300,42 +301,43 @@ function StatusAlert({
   switch (status) {
     case "stale":
       return (
-        <Alert>
-          <CircleAlert />
-          <AlertTitle>Podklady se od výpočtu změnily</AlertTitle>
-          <AlertDescription>Návrh nelze hromadně potvrdit, dokud se nepřepočítá.</AlertDescription>
-        </Alert>
+        <Notice
+          tone="warning"
+          title="Podklady se od výpočtu změnily"
+        >
+          Návrh nelze hromadně potvrdit, dokud se nepřepočítá.
+        </Notice>
       )
     case "failed":
     case "timeout":
       return (
-        <RetryAlert
+        <LoadError
           title={status === "failed" ? "Výpočet se nezdařil" : "Výpočet nedoběhl v časovém limitu"}
           onRetry={onRecalculate}
         />
       )
     case "infeasible":
       return (
-        <Alert>
-          <CircleAlert />
-          <AlertTitle>Potvrzení účastníci se nevejdou do dostupných pokojů</AlertTitle>
-          <AlertDescription>
-            <p>{conflict?.constraint}</p>
-            <p>Dotčení potvrzení: {conflict?.confirmed.join(", ")}</p>
-          </AlertDescription>
-        </Alert>
+        <Notice
+          tone="warning"
+          title="Potvrzení účastníci se nevejdou do dostupných pokojů"
+        >
+          <p>{conflict?.constraint}</p>
+          <p>Dotčení potvrzení: {conflict?.confirmed.join(", ")}</p>
+        </Notice>
       )
     case "none":
       return (
-        <Alert>
-          <CircleAlert />
-          <AlertTitle>Termín zatím nebyl vyhodnocen</AlertTitle>
-          <AlertDescription id="evaluation-not-ready-reason">
+        <Notice
+          tone="info"
+          title="Termín zatím nebyl vyhodnocen"
+        >
+          <p id="evaluation-not-ready-reason">
             {mode === "automatic"
               ? "Návrh vznikne automaticky; můžete ho vytvořit hned tlačítkem Přepočítat. Hromadné potvrzení bude dostupné po výpočtu."
               : "V ručním režimu vytvořte návrh tlačítkem Přepočítat. Hromadné potvrzení bude dostupné po výpočtu."}
-          </AlertDescription>
-        </Alert>
+          </p>
+        </Notice>
       )
     default:
       return null
@@ -404,18 +406,19 @@ export function TermEvaluation({
 
         <TabsContent value={selectedTermId}>
           {isLoadFailed ? (
-            <RetryAlert
+            <LoadError
               title="Vyhodnocení termínu se nepodařilo načíst"
               onRetry={onRetryLoad}
             />
           ) : isLoading ? (
             // The first load of the section: at least a screen tall, so the
             // page does not shrink under the term tabs (S4-01).
-            <Skeleton
-              className="mt-2 h-svh w-full"
-              role="status"
-              aria-label="Načítání vyhodnocení termínu"
-            />
+            <LoadingBlock
+              label="Načítání vyhodnocení termínu"
+              className="mt-2"
+            >
+              <Skeleton className="h-svh w-full" />
+            </LoadingBlock>
           ) : (
             <div
               className="mt-2 space-y-6"
@@ -473,9 +476,9 @@ export function TermEvaluation({
               </Card>
 
               {recalculateError ? (
-                <ErrorAlert
+                <FormError
                   title="Přepočet se nepodařilo spustit"
-                  detail={recalculateError}
+                  message={recalculateError}
                 />
               ) : null}
 
@@ -487,10 +490,10 @@ export function TermEvaluation({
               />
 
               {confirmedResult ? (
-                <Alert>
-                  <CircleCheck />
-                  <AlertTitle>{confirmedResult}</AlertTitle>
-                </Alert>
+                <Notice
+                  tone="success"
+                  title={confirmedResult}
+                />
               ) : null}
 
               <Card>
@@ -513,10 +516,10 @@ export function TermEvaluation({
               ) : (
                 <>
                   {isConfirmable(status) && suitable === 0 && !confirmedResult ? (
-                    <Alert>
-                      <CircleAlert />
-                      <AlertTitle>Nikdo z čekajících se nyní nevejde</AlertTitle>
-                    </Alert>
+                    <Notice
+                      tone="warning"
+                      title="Nikdo z čekajících se nyní nevejde"
+                    />
                   ) : null}
 
                   <section

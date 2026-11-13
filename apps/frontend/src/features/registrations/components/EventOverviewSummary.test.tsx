@@ -45,7 +45,7 @@ describe("EventOverviewSummary", () => {
   it("offers a retry when loading fails, without showing zeros", async () => {
     get.mockReturnValue({ json: () => Promise.reject(new Error("down")) })
     renderSummary()
-    expect(await screen.findByText("Souhrn se nepodařilo načíst.")).toBeInTheDocument()
+    expect(await screen.findByText("Souhrn se nepodařilo načíst")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Zkusit znovu" })).toBeInTheDocument()
     expect(screen.queryByText("Přihlášky")).not.toBeInTheDocument()
   })

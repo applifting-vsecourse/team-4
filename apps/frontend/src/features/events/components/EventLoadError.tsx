@@ -1,9 +1,8 @@
 import type { ReactNode } from "react"
 
+import { LoadError } from "@/components/LoadError"
 import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
 import { HTTPError } from "@/lib/api-client"
 
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
@@ -42,20 +41,12 @@ export function EventLoadError({
       {isGone ? (
         <RecordUnavailable action={backAction} />
       ) : (
-        <Alert variant="destructive">
-          <AlertTitle>Akci se nepodařilo načíst</AlertTitle>
-          <AlertDescription>
-            <p>Zkontrolujte připojení a zkuste to znovu.</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={onRetry}
-            >
-              Zkusit znovu
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <LoadError
+          variant="page"
+          title="Akci se nepodařilo načíst"
+          description="Zkontrolujte připojení a zkuste to znovu."
+          onRetry={onRetry}
+        />
       )}
     </section>
   )

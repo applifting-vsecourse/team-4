@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 
 type RefreshButtonProps = { isRefreshing: boolean; onRefresh: () => unknown }
 
+// Reloads the data of a list or detail; spins and is disabled while it runs.
 export function RefreshButton({ isRefreshing, onRefresh }: RefreshButtonProps) {
   return (
     <Button

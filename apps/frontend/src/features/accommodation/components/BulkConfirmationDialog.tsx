@@ -1,5 +1,6 @@
 import { Loader2, RefreshCw } from "lucide-react"
 
+import { FormError } from "@/components/FormError"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,8 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-
-import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
 
 /**
  * review: before the one explicit confirmation.
@@ -87,16 +86,16 @@ export function BulkConfirmationDialog({
         )}
 
         {isStale ? (
-          <ErrorAlert
+          <FormError
             title="Návrh je neaktuální, nikdo nebyl potvrzen"
-            detail={staleReason}
+            message={staleReason}
           />
         ) : null}
 
         {state === "failed" ? (
-          <ErrorAlert
+          <FormError
             title="Potvrzení se nepodařilo uložit"
-            detail="Stavy účastí ani platby se nezměnily."
+            message="Stavy účastí ani platby se nezměnily."
           />
         ) : null}
 

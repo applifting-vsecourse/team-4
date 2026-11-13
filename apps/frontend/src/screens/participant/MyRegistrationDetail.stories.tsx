@@ -205,7 +205,7 @@ export const ProgrammeLoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", PROGRAMME))
   },
-  play: () => showsText("Program se nepodařilo načíst."),
+  play: () => showsText("Program se nepodařilo načíst"),
 }
 
 export const ProgrammeNotReady: Story = {
@@ -227,7 +227,7 @@ export const LoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", DETAIL))
   },
-  play: () => showsText("Data se nepodařilo načíst. Zkuste to znovu."),
+  play: () => showsText("Data se nepodařilo načíst"),
 }
 
 export const RefreshFailed: Story = {

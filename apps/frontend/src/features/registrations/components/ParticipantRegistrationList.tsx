@@ -3,6 +3,9 @@ import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { RefreshButton } from "@/components/RefreshButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
@@ -11,10 +14,8 @@ import { formatPragueDateTime } from "@/lib/date"
 
 import { participantRegistrationsQueryOptions } from "@/features/registrations/api/participantRegistrationQueryOptions"
 import { type ParticipantRegistration } from "@/features/registrations/api/participantRegistrationSchemas"
-import { LoadFailedAlert } from "@/features/registrations/components/LoadFailedAlert"
 import { ParticipantPaymentSummary } from "@/features/registrations/components/ParticipantPaymentSummary"
 import { ParticipantTermList } from "@/features/registrations/components/ParticipantTermList"
-import { RefreshButton } from "@/features/registrations/components/RefreshButton"
 import { isSessionRefused } from "@/features/registrations/lib/sessionExpired"
 
 // "Moje přihlášky" (S2-14): every registration of the verified
@@ -51,7 +52,7 @@ export function ParticipantRegistrationList({
       </div>
 
       {query.isError ? (
-        <LoadFailedAlert
+        <LoadError
           shownFrom={data ? query.dataUpdatedAt : undefined}
           isRetrying={query.isFetching}
           onRetry={() => query.refetch()}
@@ -75,14 +76,13 @@ export function ParticipantRegistrationList({
           </ul>
         )
       ) : query.isPending ? (
-        <div
+        <LoadingBlock
+          label="Načítání přihlášek"
           className="space-y-4"
-          role="status"
-          aria-label="Načítání přihlášek"
         >
           <Skeleton className="h-64 w-full" />
           <Skeleton className="h-40 w-full" />
-        </div>
+        </LoadingBlock>
       ) : null}
 
       {data && !query.isError ? (

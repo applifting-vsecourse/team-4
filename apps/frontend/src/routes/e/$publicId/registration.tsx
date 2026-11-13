@@ -1,15 +1,14 @@
 import { useQueryErrorResetBoundary, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, useRouter } from "@tanstack/react-router"
+import { CalendarX } from "lucide-react"
 
+import { LoadError } from "@/components/LoadError"
 import { PublicShell } from "@/components/PublicShell"
+import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 
 import { publicEventQueryOptions } from "@/features/public-events/api/publicEventQueryOptions"
-import {
-  PublicEventLoadError,
-  PublicEventUnavailable,
-  PublicEventView,
-} from "@/features/public-events/components/PublicEventView"
+import { PublicEventView } from "@/features/public-events/components/PublicEventView"
 import { PublicRegistration } from "@/features/registrations/components/PublicRegistration"
 
 // The registration form (S2-06, S2-07): public, no sign-in, governed by the
@@ -40,7 +39,11 @@ function PublicRegistrationPage() {
           }
         />
       ) : (
-        <PublicEventUnavailable />
+        // A draft and an unknown event, with no data of any event.
+        <RecordUnavailable
+          title="Akce není dostupná"
+          icon={CalendarX}
+        />
       )}
     </PublicShell>
   )
@@ -54,7 +57,10 @@ function PublicRegistrationErrorPage() {
   return (
     <PublicShell>
       <Seo title="Akci se nepodařilo načíst" />
-      <PublicEventLoadError
+      <LoadError
+        variant="page"
+        title="Akci se nepodařilo načíst"
+        description="Zkontrolujte připojení a zkuste to znovu."
         onRetry={() => {
           reset()
           void router.invalidate()

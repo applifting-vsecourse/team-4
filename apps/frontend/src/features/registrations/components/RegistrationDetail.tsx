@@ -1,8 +1,7 @@
 import type { ReactNode } from "react"
-import { Loader2, RefreshCw } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+import { LoadError } from "@/components/LoadError"
+import { RefreshButton } from "@/components/RefreshButton"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   formatCalendarDate,
@@ -62,32 +61,18 @@ export function RegistrationDetail({
           obdržena {formatPragueDateTime(registration.receivedAt)}
           {hasRefreshFailed ? null : ` · aktualizováno ${updated}`}
         </p>
-        <Button
-          variant="outline"
-          onClick={() => onRefresh()}
-          disabled={isRefreshing}
-        >
-          {isRefreshing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw />}
-          {isRefreshing ? "Aktualizuji…" : "Aktualizovat"}
-        </Button>
+        <RefreshButton
+          isRefreshing={isRefreshing}
+          onRefresh={onRefresh}
+        />
       </div>
 
       {hasRefreshFailed ? (
-        <Alert variant="destructive">
-          <AlertTitle>Data se nepodařilo načíst. Zkuste to znovu.</AlertTitle>
-          <AlertDescription>
-            <p>Zobrazené údaje jsou z posledního úspěšného načtení ({updated}).</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() => onRefresh()}
-              disabled={isRefreshing}
-            >
-              Zkusit znovu
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <LoadError
+          shownFrom={updatedAt}
+          isRetrying={isRefreshing}
+          onRetry={onRefresh}
+        />
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">

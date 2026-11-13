@@ -1,6 +1,6 @@
 import { Lock } from "lucide-react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Notice } from "@/components/Notice"
 
 import { type EventDetail } from "@/features/events/api/eventSchemas"
 
@@ -14,14 +14,14 @@ export function MissingTermNotice({ event }: MissingTermNoticeProps) {
   if (event.terms.length > 0 || !event.isLocked) return null
 
   return (
-    <Alert className="mb-6">
-      <Lock />
-      <AlertDescription>
-        <div className="grid gap-1">
-          <p>Tato akce zatím nemá žádný termín.</p>
-          <p>Od otevření přihlašování jsou termíny zamčené, nový termín už nelze přidat.</p>
-        </div>
-      </AlertDescription>
-    </Alert>
+    <div className="mb-6">
+      <Notice
+        tone="info"
+        icon={Lock}
+        title="Tato akce zatím nemá žádný termín."
+      >
+        Od otevření přihlašování jsou termíny zamčené, nový termín už nelze přidat.
+      </Notice>
+    </div>
   )
 }

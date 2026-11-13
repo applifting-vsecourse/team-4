@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react"
 import { Loader2 } from "lucide-react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/ui/date-picker"
 import {
@@ -134,11 +134,7 @@ function ProgrammeItemForm({
       className="space-y-4"
       onSubmit={submit}
     >
-      {errorMessage ? (
-        <Alert variant="destructive">
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-      ) : null}
+      {errorMessage ? <FormError message={errorMessage} /> : null}
       <FieldGroup>
         <Field data-invalid={errors.title ? true : undefined}>
           <FieldLabel htmlFor="programme-title">Název</FieldLabel>

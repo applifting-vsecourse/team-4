@@ -1,7 +1,8 @@
 import { useState } from "react"
 import { Loader2, Pencil } from "lucide-react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
+import { Notice } from "@/components/Notice"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { readApiError } from "@/lib/apiError"
@@ -121,26 +122,23 @@ function NeedsEditor({
             errors={errors}
           />
           {isStale ? (
-            <Alert variant="destructive">
-              <AlertDescription>
-                <p>Přihláška se mezitím změnila. Načtěte aktuální údaje a opravu proveďte znovu.</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={onReload}
-                >
-                  Načíst aktuální údaje
-                </Button>
-              </AlertDescription>
-            </Alert>
+            <Notice
+              tone="error"
+              title="Přihláška se mezitím změnila. Načtěte aktuální údaje a opravu proveďte znovu."
+            >
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onReload}
+              >
+                Načíst aktuální údaje
+              </Button>
+            </Notice>
           ) : correct.isError ? (
-            <Alert variant="destructive">
-              <AlertDescription>
-                {apiError?.code === "change_pending" ? CHANGE_PENDING : SAVE_FAILED}
-              </AlertDescription>
-            </Alert>
+            <FormError
+              message={apiError?.code === "change_pending" ? CHANGE_PENDING : SAVE_FAILED}
+            />
           ) : null}
           <div className="flex flex-wrap gap-2">
             <Button

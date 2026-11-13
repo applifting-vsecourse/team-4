@@ -1,46 +1,10 @@
 import type { ReactNode } from "react"
-import { Link } from "@tanstack/react-router"
-import { ArrowLeft, CalendarX, MapPin } from "lucide-react"
+import { MapPin } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { BackLink } from "@/components/BackLink"
 
 import { type PublicEvent } from "@/features/public-events/api/publicEventSchemas"
-
-// A draft and an unknown event, with no data of any event.
-export function PublicEventUnavailable() {
-  return (
-    <Empty className="border border-dashed">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <CalendarX />
-        </EmptyMedia>
-        <EmptyTitle>Akce není dostupná</EmptyTitle>
-      </EmptyHeader>
-    </Empty>
-  )
-}
-
-/** The event could not be loaded; different from an unavailable one. */
-export function PublicEventLoadError({ onRetry }: { onRetry: () => void }) {
-  return (
-    <Alert variant="destructive">
-      <AlertTitle>Akci se nepodařilo načíst</AlertTitle>
-      <AlertDescription>
-        <p>Zkontrolujte připojení a zkuste to znovu.</p>
-        <Button
-          variant="outline"
-          className="mt-3"
-          onClick={onRetry}
-        >
-          Zkusit znovu
-        </Button>
-      </AlertDescription>
-    </Alert>
-  )
-}
 
 // Content of an open event: name, description and place, then the
 // registration form (S2-07) the route puts in. Availability is deliberately
@@ -58,20 +22,13 @@ export function PublicEventView({
   return (
     <article>
       {event.isPublished ? (
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
+        <BackLink
+          to={ROUTES.publicEvent}
+          params={{ publicId }}
           className="mb-6"
         >
-          <Link
-            to={ROUTES.publicEvent}
-            params={{ publicId }}
-          >
-            <ArrowLeft aria-hidden />
-            Zpět na detail akce
-          </Link>
-        </Button>
+          Zpět na detail akce
+        </BackLink>
       ) : null}
       <h1 className="text-h2 break-words">{event.name}</h1>
       <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
