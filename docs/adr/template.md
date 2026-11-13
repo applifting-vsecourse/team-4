@@ -2,7 +2,7 @@
 
 - **Status:** Proposed <!-- Accepted YYYY-MM-DD in #PR · Superseded by ADR-NNNN · Deprecated -->
 - **Proposed:** YYYY-MM-DD
-- **Deciders:** who accepts it (the tech lead) and who else decided parts of it
+- **Deciders:** who accepts it (the tech lead or the PM) and who else decided parts of it
 - **Related:** #issue, #PR, ADR-NNNN
 
 ## Context

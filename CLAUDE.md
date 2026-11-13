@@ -21,7 +21,7 @@ Significant architectural decisions are recorded as ADRs in [`docs/adr/`](docs/a
 
 - Before designing a change, check the accepted ADRs for its area and follow them. A conflict with an accepted ADR is a structural change: report it to the tech lead (architecture) instead of working around it.
 - When your work makes a decision that meets the README's criteria, propose an ADR with status `Proposed` from [`docs/adr/template.md`](docs/adr/template.md), in the PR that introduces the decision or before it, and point the tech lead to it.
-- Never mark an ADR `Accepted` yourself; set that status only after the tech lead's `ADR-NNNN accepted` comment on the PR. Do not rewrite an accepted ADR: supersede it with a new one.
+- Set an ADR to `Accepted` only when its text is final and ready for an `/adr-accept NNNN` Comment review by the tech lead or the PM; never post that review or claim acceptance yourself. Any later change to the file needs a fresh acceptance. Do not rewrite an accepted ADR: supersede it with a new one.
 
 ## Commands
 
@@ -142,7 +142,7 @@ instructions needed to assess them. Resolve its actionable findings or record
 why each finding is not applicable before opening the PR. If you cannot launch
 an independent agent, do not open the non-draft PR; report the blocker.
 Low requires CI but skips linked issues, requirements approval, code review and
-QA. It is limited to documentation/text and isolated test files; executable or
+QA; a changed ADR still needs its `/adr-accept` review. It is limited to documentation/text and isolated test files; executable or
 configuration changes cannot use Low. Enforcement changes always require High.
 Standard requires an issue link (`Closes #N` for completed work or `Refs #N` for
 partial work), independent Copilot review and current-commit QA, without

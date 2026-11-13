@@ -23,6 +23,7 @@ and re-evaluates on label changes, pushes, reviews and scheduled reconciliation.
 | Independent Copilot code review          | Skipped     | Required           | Required                           |
 | Human QA of current commit after handoff | Skipped     | Required           | Required                           |
 | Technical approval                       | Not allowed | If labeled         | If labeled                         |
+| ADR acceptance, if the PR changes an ADR | Required    | Required           | Required                           |
 
 The `technical-review` PR label is an additional gate for Standard and High PRs. Use it
 for a new or replaced Docker Compose service, a newly added package/dependency,
@@ -373,6 +374,26 @@ Repeating workflow runs does not duplicate unchanged handoffs or pending review
 requests. Dry runs make no writes. Native comment creation, edits and deletions
 trigger reconciliation; scheduled polling remains the fallback.
 
+## ADR acceptance
+
+The tech lead (`rmnskb`) or the PM (`darebakdavca`) accepts architecture decision records in
+[`docs/adr/`](adr/README.md) with a PR review of type Comment whose body is
+`/adr-accept NNNN` (several numbers are allowed). Delivery stages checks every
+file a PR adds or changes under `docs/adr/` other than the README and template,
+for any severity, except on PRs into an integration branch, whose ADRs are
+checked on the parent PR. In a stack, the review goes on the PR that contains the
+ADR. Each file must be a regular file named `docs/adr/NNNN-short-title.md`, use a
+number no other record on the PR head or the base branch uses, have the status
+`Accepted`, `Superseded` or `Deprecated`, and have the same blob at the commit
+of an `/adr-accept` review for its number as at the PR head. Anything else
+blocks the PR, including a change after the review. Removing an ADR file is not
+gated. A Comment review is not an approval: it grants no requirements, technical
+or QA approval.
+
+The check compares the PR head, not the merge result. Because required checks
+are not strict, two PRs that each change the same ADR with accepted text could
+both merge cleanly; acceptors should not accept parallel edits of one ADR.
+
 ## Reviewer requests and merge rules
 
 Matej is not automatically requested at PR creation. For a non-draft PR,
@@ -393,7 +414,8 @@ QA evidence. Manually added reviewers are preserved. Dry runs send no requests.
 Disable the native `require_code_owner_review` requirement: otherwise a sole
 code owner authoring a PR can be blocked by a redundant owner-approval gate.
 The named reviewer requirements remain enforced by Delivery stages. GitHub uses zero blanket required approvals and disables last-push/extra
-unattributed-change approval, so Low can merge without reviews. Delivery stages
+unattributed-change approval, so Low can merge without reviews (except the
+`/adr-accept` review of a changed ADR). Delivery stages
 enforces the designated current-commit QA approval for Standard/High. GitHub still
 dismisses stale reviews on pushes, requires resolved review threads and enforces `verify`
 and `Delivery stages` checks from GitHub Actions (app ID 15368). No standing

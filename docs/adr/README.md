@@ -38,14 +38,26 @@ requirements (they belong in the issue), or rules already in `CLAUDE.md` or
    `CLAUDE.md` makes it High.
 3. The team discusses the ADR in the PR. Changes to the proposal are commits to
    the same file.
-4. The tech lead (`rmnskb`) accepts it with a standalone PR comment
-   `ADR-NNNN accepted`. A PR review is not used for this, because on High PRs his
-   approving review also counts as requirements approval. The author then sets
-   the status to `Accepted YYYY-MM-DD in #PR`, here and in the index. If the PR's
-   severity requires code review and QA, request them after this commit, so they
-   check the final text.
-5. If the decision is rejected, close the PR without merging. An ADR on `main`
-   is always `Accepted`, `Superseded` or `Deprecated`.
+4. Once the discussion has settled, the author sets the status to
+   `Accepted YYYY-MM-DD in #PR`, here and in the index, and pushes the final text.
+5. The tech lead (`rmnskb`) or the PM (`darebakdavca`) accepts that text with a PR review of type
+   **Comment** (Files changed → Review changes → Comment) whose body is
+   `/adr-accept NNNN`; one review can accept several ADRs, as in
+   `/adr-accept 0002 0001`. A Comment review records the commit it was made on,
+   so the accepted text is exact, and it does not count as an approval or as
+   requirements approval. It also works on the acceptor's own PRs.
+6. If the PR's severity requires code review and QA, request them after the
+   acceptance.
+7. If the decision is rejected, close the PR without merging.
+
+Delivery stages enforces this on every PR into `main` or a stack, whatever its
+severity: each ADR file the PR adds or changes needs a correct name, an unused
+number, a final status (`Accepted`, `Superseded` or `Deprecated`) and an
+`/adr-accept` review whose commit has the same file content as the PR head. A
+`Proposed` ADR cannot merge, and any later change to the file, even a typo fix,
+needs a fresh `/adr-accept`. In a stack, post the review on the PR that contains
+the ADR. ADRs in PRs into an integration branch are checked on the parent PR.
+The rules are in the [delivery workflow](../delivery-workflow.md#adr-acceptance).
 
 ## Numbering and status
 
@@ -58,7 +70,8 @@ requirements (they belong in the issue), or rules already in `CLAUDE.md` or
 
 An accepted ADR is not rewritten. To change a decision, write a new ADR that
 references the old one and, in the same PR, change only the old ADR's status
-line and its index row. Fixing typos and broken links is fine.
+line and its index row; one review accepts both files. Fixing
+typos and broken links is fine, with a fresh `/adr-accept`.
 
 ## Links
 
