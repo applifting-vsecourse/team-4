@@ -455,7 +455,9 @@ and every package under `apps/*`.
   skip, the independent agent review and the QA handoff on the PR itself, and
   Delivery stages requires them as it does for an issue. The exception does not
   apply to any other author, to a PR without `dependencies`, or to Low and High
-  PRs; those still need a linked issue (and scope approval for High).
+  PRs; those still need a linked issue (and scope approval for High). The
+  exception follows the PR author, so reviewers must check the commits when a
+  person has pushed to a Dependabot branch.
 - **Merging:** nothing is merged automatically. Dependabot PRs go through the
   normal CI, review and QA gates for their severity.
 

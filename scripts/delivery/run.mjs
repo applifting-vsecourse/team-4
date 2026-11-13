@@ -432,8 +432,8 @@ for (let pr of candidates) {
     let issues =
       severityFor(pr) === 'low' ? [] : (linkedIssues ?? (await issuesFor(pr)));
     // A standard Dependabot update needs no issue: the PR is its own scope.
-    if (!issues.length && isDependencyUpdate(pr, repo))
-      issues = [dependencyScope(pr, repo)];
+    const dependencyScoped = !issues.length && isDependencyUpdate(pr, repo);
+    if (dependencyScoped) issues = [dependencyScope(pr, repo)];
     const reviews =
       severityFor(pr) === 'low'
         ? []
@@ -502,6 +502,7 @@ for (let pr of candidates) {
       current.draft !== pr.draft ||
       current.body !== pr.body ||
       !sameSeverity(current, pr) ||
+      (dependencyScoped && !isDependencyUpdate(current, repo)) ||
       current.technicalReviewRequired !== pr.technicalReviewRequired
     )
       throw new Error('PR changed during evaluation');

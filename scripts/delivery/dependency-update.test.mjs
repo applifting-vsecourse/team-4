@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dependencyScope, isDependencyUpdate } from './dependency-update.mjs';
-import { evaluate, readyMarker, requirementsMarker } from './lib.mjs';
+import {
+  evaluate,
+  readyMarker,
+  requirementsApproval,
+  requirementsMarker,
+} from './lib.mjs';
+import { issueRequirements } from './requirements.mjs';
 
 const repo = 'owner/repo';
 const sha = 'b'.repeat(40);
@@ -107,4 +113,51 @@ test('a PR without a linked issue and without the exception is still rejected', 
     }).reasons.join(' '),
     /Link at least one issue/,
   );
+});
+
+test('the requirements id agrees between producer and consumer, also after a rereview comment', () => {
+  const pr = dependabot({
+    title: 'Bump x',
+    body: 'Bumps x.',
+    updated_at: at('00'),
+  });
+  const rereview = {
+    id: 9,
+    user: { login: 'someone' },
+    author_association: 'MEMBER',
+    body: '/requirements-rereview',
+    created_at: at('00'),
+  };
+  for (const comments of [[], [rereview]]) {
+    const found = issueRequirements(pr, comments, []);
+    const withScope = {
+      ...pr,
+      requirements: found.approval,
+      requirementsVersion: found.version,
+    };
+    const id = requirementsApproval(withScope, []).id;
+    assert.match(id, /^severity-standard:/);
+    const n = pr.number;
+    const evidenceComments = [
+      {
+        user: bot,
+        created_at: at('01'),
+        body: `${requirementsMarker(n, sha, n, id)}\nrecord`,
+      },
+      ...evidence(pr).comments.slice(1),
+    ];
+    const result = evaluate({
+      pr: withScope,
+      issues: [
+        {
+          ...dependencyScope(pr, repo),
+          requirements: found.approval,
+          requirementsVersion: found.version,
+        },
+      ],
+      reviews: evidence(pr).reviews,
+      comments: evidenceComments,
+    });
+    assert.deepEqual(result.reasons, []);
+  }
 });

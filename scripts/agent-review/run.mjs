@@ -1285,11 +1285,11 @@ async function processDependencyPr(number) {
       requiredByHistory: true,
       dryRun: cfg.dryRun,
     });
-  const requirementsFor = (snapshot) => {
-    const found = issueRequirements(snapshot, [], []);
-    return { approval: found.approval, version: found.version };
-  };
-  const { approval: scopeApproval, version } = requirementsFor(issue);
+  // Read the PR's own comments, as the review and Delivery stages do: a
+  // /requirements-rereview comment starts a new cycle and changes the id.
+  const found = issueRequirements(pr, await listComments(number), []);
+  const scopeApproval = found.approval;
+  const version = found.version;
   pr.requirements = scopeApproval;
   pr.requirementsVersion = version;
   const approval = requirementsApproval(pr, reviews);
