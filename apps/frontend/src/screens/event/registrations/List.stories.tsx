@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { http, HttpResponse } from "msw"
-import { expect, waitFor } from "storybook/test"
+import { expect } from "storybook/test"
 
 import { apiUrl, failOn, failsOnRefresh, neverAnswer } from "@/screens/msw"
 import { eventUrl, organizerBackend, screenMeta, showsHeading } from "@/screens/screenMeta"
@@ -47,19 +47,12 @@ export const Registrations: StoryObj<typeof meta> = {
 
 type Story = StoryObj<typeof meta>
 
-/**
- * Known defect kept visible: the loading placeholder has an aria-label without a
- * role (aria-prohibited-attr), so a11y reports it instead of failing.
- */
 export const Loading: Story = {
-  parameters: { a11y: { test: "todo" } },
   beforeEach: ({ msw }) => {
     msw.use(...neverAnswer("get", LIST))
   },
-  play: async ({ canvasElement }) => {
-    await waitFor(() =>
-      expect(canvasElement.querySelector('[aria-label="Načítání přihlášek"]')).not.toBeNull(),
-    )
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("status", { name: "Načítání přihlášek" })).toBeVisible()
   },
 }
 
@@ -87,7 +80,7 @@ export const LoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", LIST))
   },
-  play: () => showsText("Data se nepodařilo načíst. Zkuste to znovu."),
+  play: () => showsText("Data se nepodařilo načíst"),
 }
 
 export const RefreshFailed: Story = {
@@ -97,6 +90,6 @@ export const RefreshFailed: Story = {
   play: async (context) => {
     await showsHeading("Seznam přihlášek")(context)
     await refresh(context.canvas)
-    await showsText(/Zobrazený seznam je z posledního úspěšného načtení/)
+    await showsText(/Zobrazené údaje jsou z posledního úspěšného načtení/)
   },
 }

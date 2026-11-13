@@ -162,9 +162,7 @@ describe("RegistrationsSection", () => {
   it("never shows a failed first load as an empty list, and retries it", async () => {
     responses.push(new Error("Failed to fetch"))
     renderSection()
-    expect(
-      await screen.findByText("Data se nepodařilo načíst. Zkuste to znovu."),
-    ).toBeInTheDocument()
+    expect(await screen.findByText("Data se nepodařilo načíst")).toBeInTheDocument()
     expect(screen.queryByText(/nemá žádné přihlášky/)).not.toBeInTheDocument()
     expect(screen.queryByText(/neodpovídá filtrům/)).not.toBeInTheDocument()
 
@@ -181,9 +179,7 @@ describe("RegistrationsSection", () => {
 
     responses.push(new Error("Failed to fetch"))
     await userEvent.click(screen.getByRole("button", { name: "Aktualizovat" }))
-    expect(
-      await screen.findByText("Data se nepodařilo načíst. Zkuste to znovu."),
-    ).toBeInTheDocument()
+    expect(await screen.findByText("Data se nepodařilo načíst")).toBeInTheDocument()
     expect(screen.getByText(/z posledního úspěšného načtení/)).toBeInTheDocument()
     expect(screen.getByText("Eliška Svobodová")).toBeInTheDocument()
     expect(screen.queryByText(/^Aktualizováno/)).not.toBeInTheDocument()

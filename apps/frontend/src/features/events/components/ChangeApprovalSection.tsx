@@ -58,7 +58,6 @@ export function ChangeApprovalSection({ organizationId, event }: ChangeApprovalS
       errorMessage={errorMessage}
       isSaving={update.isPending}
       onSubmit={handleSubmit}
-      onDismissError={() => setErrorMessage(undefined)}
     />
   )
 }

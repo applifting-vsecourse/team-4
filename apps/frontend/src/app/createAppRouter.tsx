@@ -23,7 +23,7 @@ export function createAppRouter({
     defaultPreloadStaleTime: 0,
     scrollRestoration: true,
     defaultNotFoundComponent: NotFound,
-    defaultErrorComponent: ({ error }) => <RootErrorBoundary error={error} />,
+    defaultErrorComponent: RootErrorBoundary,
     defaultPendingComponent: AppLoadingScreen,
   })
 }

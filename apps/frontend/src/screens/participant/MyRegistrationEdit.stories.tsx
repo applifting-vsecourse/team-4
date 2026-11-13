@@ -104,7 +104,9 @@ export const ReviewNeedsApproval: Story = {
     await changePhone(context)
     const dialog = await review()
     await expect(
-      dialog.getByText("Změnu musí schválit organizátor. Do té doby platí současná přihláška."),
+      await dialog.findByText(
+        "Změnu musí schválit organizátor. Do té doby platí současná přihláška.",
+      ),
     ).toBeVisible()
     await expect(dialog.getByRole("button", { name: "Odeslat žádost o schválení" })).toBeVisible()
   },
@@ -252,7 +254,7 @@ export const LoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", DETAIL))
   },
-  play: () => showsText("Data se nepodařilo načíst. Zkuste to znovu."),
+  play: () => showsText("Data se nepodařilo načíst"),
 }
 
 export const SessionEnded: Story = {

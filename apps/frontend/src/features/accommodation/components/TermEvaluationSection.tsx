@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { readApiError } from "@/lib/apiError"
@@ -24,7 +26,6 @@ import {
   ParticipationDecisionDialog,
   type ParticipationDecisionTarget,
 } from "@/features/accommodation/components/ParticipationDecisionDialog"
-import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
 import { RunEvidenceSheet } from "@/features/accommodation/components/RunEvidenceSheet"
 import {
   TermEvaluation,
@@ -148,11 +149,9 @@ export function TermEvaluationSection({
   if (evaluation.isPending) {
     return (
       <TermEvaluationFrame>
-        <Skeleton
-          className="h-64 w-full"
-          role="status"
-          aria-label="Načítání vyhodnocení termínu"
-        />
+        <LoadingBlock label="Načítání vyhodnocení termínu">
+          <Skeleton className="h-64 w-full" />
+        </LoadingBlock>
       </TermEvaluationFrame>
     )
   }
@@ -307,9 +306,10 @@ export function TermEvaluationSection({
           onOpenRun={setOpenRunId}
         />
         {evidence.isError ? (
-          <RetryAlert
+          <LoadError
             title="Doklad se nepodařilo načíst"
-            onRetry={() => void evidence.refetch()}
+            isRetrying={evidence.isFetching}
+            onRetry={() => evidence.refetch()}
           />
         ) : null}
       </TermEvaluation>

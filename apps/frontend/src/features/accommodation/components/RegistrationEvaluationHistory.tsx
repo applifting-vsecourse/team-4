@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 
+import { LoadingBlock } from "@/components/LoadingBlock"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatPragueDateTime } from "@/lib/date"
 
@@ -38,11 +39,9 @@ export function RegistrationEvaluationHistory({
   )
   if (accommodation.isPending) {
     return (
-      <Skeleton
-        className="h-32 w-full"
-        role="status"
-        aria-label="Načítání historie vyhodnocení"
-      />
+      <LoadingBlock label="Načítání historie vyhodnocení">
+        <Skeleton className="h-32 w-full" />
+      </LoadingBlock>
     )
   }
   const hard = accommodation.data?.hardAttribute ?? null
