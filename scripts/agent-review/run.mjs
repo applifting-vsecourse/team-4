@@ -59,6 +59,10 @@ import {
   readIssueDetails,
 } from '../delivery/feature-github.mjs';
 import { referencedIssueNumbers } from '../automation/issue-links.mjs';
+import {
+  dependencyScope,
+  isDependencyUpdate,
+} from '../delivery/dependency-update.mjs';
 import { planReview, executeReview } from './batches.mjs';
 import { ensureQaReviewRequest } from './qa-review.mjs';
 import { ensureTechnicalReviewRequest } from './technical-review.mjs';
@@ -1234,6 +1238,143 @@ async function processIssue(board, item) {
   console.log(`  -> ${decision.outcome}${moved ? ' (moved)' : ''}`);
 }
 
+// A standard Dependabot update has no issue. The PR is its own scope (a pull
+// request is an issue number too), so it gets the same evidence as any other
+// PR: requirements record, agent review, readiness record and QA request.
+async function hasLinkedIssues(pr) {
+  const data = await api(cfg.githubToken, '/graphql', {
+    method: 'POST',
+    body: {
+      query: `query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){closingIssuesReferences(first:1){totalCount}}}}`,
+      variables: {
+        owner: cfg.repo.split('/')[0],
+        repo: cfg.repo.split('/')[1],
+        number: pr.number,
+      },
+    },
+  });
+  if (data.errors) throw new Error('Cannot read closing issues');
+  return (
+    data.data.repository.pullRequest.closingIssuesReferences.totalCount > 0 ||
+    referencedIssueNumbers(pr.body).length > 0
+  );
+}
+
+async function processDependencyPr(number) {
+  let pr = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${number}`);
+  if (
+    pr.state !== 'open' ||
+    pr.draft ||
+    !isDependencyUpdate(pr, cfg.repo) ||
+    (await hasLinkedIssues(pr))
+  )
+    return;
+  console.log(`#${number} ${pr.title} [dependency update]`);
+  const scope = dependencyScope(pr, cfg.repo);
+  const issue = { number, title: pr.title, body: pr.body };
+  const reviews = await pagedGet(`/repos/${cfg.repo}/pulls/${number}/reviews`);
+  pr.technicalReviewRequired = technicalReviewRequired(
+    pr,
+    technicalReviewRequired(pr) ? [] : await listTimeline(number),
+  );
+  if (pr.technicalReviewRequired && runScope.type !== 'pr')
+    await ensureTechnicalReviewRequest({
+      api: (path, options) => api(cfg.githubToken, path, options),
+      repo: cfg.repo,
+      pr,
+      requiredByHistory: true,
+      dryRun: cfg.dryRun,
+    });
+  // Read the PR's own comments, as the review and Delivery stages do: a
+  // /requirements-rereview comment starts a new cycle and changes the id.
+  const found = issueRequirements(pr, await listComments(number), []);
+  const scopeApproval = found.approval;
+  const version = found.version;
+  pr.requirements = scopeApproval;
+  pr.requirementsVersion = version;
+  const approval = requirementsApproval(pr, reviews);
+  const marker = requirementsMarker(number, pr.head.sha, number, approval.id);
+  let record = (await listComments(number))
+    .filter(
+      (c) =>
+        c.user?.login === 'github-actions[bot]' &&
+        (c.body ?? '').startsWith(marker + '\n'),
+    )
+    .at(-1);
+  if (!record)
+    record = await postComment(
+      number,
+      `${marker}\nStandard severity dependency update: no issue or requirements approval is required for commit \`${pr.head.sha}\`. Ready for code review.`,
+    );
+  const result = await reviewPr({
+    pr: number,
+    issue,
+    prCount: 1,
+    rules: await readRules(),
+    requirements: {
+      ...record,
+      created_at: record.created_at ?? new Date().toISOString(),
+      sha: pr.head.sha,
+      reviewId: approval.id,
+      severity: severityFor(pr),
+    },
+  });
+  const now = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${number}`);
+  if (now.head.sha !== result.sha || !isDependencyUpdate(now, cfg.repo)) {
+    console.log('  -> head or classification changed during review');
+    return;
+  }
+  if (!['pass', 'waived'].includes(result.status)) {
+    console.log(
+      `  -> ${result.status}${result.reason ? `: ${result.reason}` : ''}`,
+    );
+    return;
+  }
+  const live = copilotWaiver({ pr: now, comments: await listComments(number) });
+  if (result.status === 'waived' && live?.source !== result.waiver.source)
+    return;
+  now.technicalReviewRequired = pr.technicalReviewRequired;
+  if (
+    now.technicalReviewRequired &&
+    !technicalReviewApproval(
+      now,
+      await pagedGet(`/repos/${cfg.repo}/pulls/${number}/reviews`),
+    )
+  ) {
+    console.log('  -> waiting for technical review approval');
+    return;
+  }
+  const qa = reviewersFor(pr.user.login).qa;
+  const ready =
+    readyMarker(number, result.sha, number) +
+    (result.status === 'waived' ? '\n' + waiverMarker(result.waiver) : '');
+  if (
+    !(await listComments(number)).some(
+      (c) =>
+        c.user?.login === 'github-actions[bot]' &&
+        (c.body ?? '').startsWith(ready + '\n') &&
+        Date.parse(c.created_at) >= Date.parse(record.created_at ?? 0),
+    )
+  )
+    await postComment(
+      number,
+      `${ready}\nReady for QA · dependency update · \`${result.sha}\`.\n${result.status === 'waived' ? `Copilot waived ([reason](${result.waiver.url})). ` : ''}@${qa}: test this commit, then approve.`,
+    );
+  await ensureQaReviewRequest({
+    api: (path, options) => api(cfg.githubToken, path, options),
+    repo: cfg.repo,
+    pr: now,
+    issue: {
+      ...scope,
+      requirements: scopeApproval,
+      requirementsVersion: version,
+    },
+    dryRun: cfg.dryRun,
+    waiver: result.waiver,
+  });
+  console.log('  -> handed to QA');
+}
+
 const runScope = await eventScope();
 if (runScope.type === 'pr') {
   const pr = await api(
@@ -1281,5 +1422,27 @@ for (const item of candidates) {
     // run is still visible in Actions.
     console.error(`#${item.content.number} failed: ${err.message}`);
     process.exitCode = 1;
+  }
+}
+
+// Standard Dependabot updates have no issue on the board, so they are found
+// through the pull request list instead.
+if (runScope.type !== 'issue') {
+  const numbers =
+    runScope.type === 'pr'
+      ? [runScope.number]
+      : runScope.type === 'prs'
+        ? runScope.numbers
+        : (await pagedGet(`/repos/${cfg.repo}/pulls?state=open`))
+            .filter((p) => p.user?.login === 'dependabot[bot]')
+            .map((p) => p.number);
+  for (const number of numbers) {
+    if (cfg.onlyIssue && cfg.onlyIssue !== number) continue;
+    try {
+      await processDependencyPr(number);
+    } catch (err) {
+      console.error(`#${number} failed: ${err.message}`);
+      process.exitCode = 1;
+    }
   }
 }

@@ -14,6 +14,7 @@ import {
   resumableBase,
 } from './stack.mjs';
 import { issueRequirements, scopeHash } from './requirements.mjs';
+import { dependencyScope, isDependencyUpdate } from './dependency-update.mjs';
 import { copilotWaiver } from './copilot-waiver.mjs';
 import { referencedIssueNumbers } from '../automation/issue-links.mjs';
 import {
@@ -428,8 +429,11 @@ for (let pr of candidates) {
     if (files.length !== pr.changed_files)
       throw new Error('Incomplete changed-file coverage');
     validateSeverity(pr, files);
-    const issues =
+    let issues =
       severityFor(pr) === 'low' ? [] : (linkedIssues ?? (await issuesFor(pr)));
+    // A standard Dependabot update needs no issue: the PR is its own scope.
+    const dependencyScoped = !issues.length && isDependencyUpdate(pr, repo);
+    if (dependencyScoped) issues = [dependencyScope(pr, repo)];
     const reviews =
       severityFor(pr) === 'low'
         ? []
@@ -498,6 +502,7 @@ for (let pr of candidates) {
       current.draft !== pr.draft ||
       current.body !== pr.body ||
       !sameSeverity(current, pr) ||
+      (dependencyScoped && !isDependencyUpdate(current, repo)) ||
       current.technicalReviewRequired !== pr.technicalReviewRequired
     )
       throw new Error('PR changed during evaluation');

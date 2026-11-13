@@ -449,6 +449,15 @@ and every package under `apps/*`.
 - **Labels:** every Dependabot PR gets `dependencies` and `severity:standard`, so
   it carries exactly one severity label. Raise the label to `severity:high` by hand when an
   update touches authentication, permissions, migrations or deployment.
+- **No issue link:** a PR by `dependabot[bot]` from a branch of this repository
+  with `dependencies` and exactly `severity:standard` needs no `Closes #N` or
+  `Refs #N`. The PR is its own delivery scope: the bot records the requirements
+  skip, the independent agent review and the QA handoff on the PR itself, and
+  Delivery stages requires them as it does for an issue. The exception does not
+  apply to any other author, to a PR without `dependencies`, or to Low and High
+  PRs; those still need a linked issue (and scope approval for High). The
+  exception follows the PR author, so reviewers must check the commits when a
+  person has pushed to a Dependabot branch.
 - **Merging:** nothing is merged automatically. Dependabot PRs go through the
   normal CI, review and QA gates for their severity.
 
