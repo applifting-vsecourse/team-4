@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: npm # Dependabot uses "npm" for pnpm workspaces and detects pnpm-lock.yaml
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Prague
+    open-pull-requests-limit: 5
+    labels: [dependencies, 'severity:standard']
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
