@@ -49,7 +49,7 @@ async function scenario(options) {
     ],
     issue_url: `https://api.github.com/repos/owner/repo/issues/${12 + i}`,
     user: { login: author },
-    head: { sha, ref: `branch-${12 + i}` },
+    head: { sha, ref: options.headRefs?.[12 + i] ?? `branch-${12 + i}` },
     state: 'open',
     base: {
       ref: options.chain
@@ -980,6 +980,35 @@ test('a stack with a PR the issue does not link waits, with a note, instead of d
     r.issueComments.some((c) =>
       c.includes('#99 is stacked on #14 but not linked to this issue'),
     ),
+  );
+});
+
+test('a child PR into the integration branch of a parent PR is not stacked on it', () => {
+  const parent = {
+    authors: ['developer'],
+    headRefs: { 12: 'integration/400-rooms' },
+  };
+  const baseline = run(parent);
+  const r = run({
+    ...parent,
+    unlinkedAbove: {
+      'integration/400-rooms': [
+        { number: 41, base: { ref: 'integration/400-rooms' } },
+      ],
+    },
+  });
+  assert.ok(!r.issueComments.some((c) => c.includes('is stacked on')));
+  assert.equal(r.status, baseline.status);
+  assert.deepEqual(r.handoffs, baseline.handoffs);
+  // A PR stacked on an ordinary branch still blocks the stack.
+  const stacked = run({
+    authors: ['developer'],
+    unlinkedAbove: {
+      'branch-12': [{ number: 41, base: { ref: 'branch-12' } }],
+    },
+  });
+  assert.ok(
+    stacked.issueComments.some((c) => c.includes('#41 is stacked on #12')),
   );
 });
 

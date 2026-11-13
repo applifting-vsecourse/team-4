@@ -187,6 +187,25 @@ and automation are in [`docs/delivery-workflow.md`](docs/delivery-workflow.md#st
   `gh stack sync`, `rebase`, `push` or `submit`: they can rebase and force-push
   the branches and rewrite the PR bases.
 
+### Feature integration branches
+
+When a feature is split into frontend and backend sub-issues (`area:frontend`,
+`area:backend`) under a parent issue, deliver it through the parent's linked
+`integration/<parent>-<slug>` branch; the flow is in
+[`docs/delivery-workflow.md`](docs/delivery-workflow.md#feature-integration-branches).
+
+- Branch each child from the integration branch and open its PR into it with
+  `Closes #<sub-issue>`. The frontend child delivers components and Storybook
+  states with fixtures or mocks; live API and route wiring belongs to the parent.
+- Integrate both sides through PRs into the integration branch with
+  `Refs #<parent>`. Never push to an integration branch directly, rebase it or
+  merge into it with a rebase merge.
+- Child and integration PRs need agent review only. Open the parent PR into
+  `main` with `Closes #<parent>` once the children are merged; it carries the
+  feature's severity, requirements approval and QA.
+- Never open a PR from an integration branch into anything but `main`, and do
+  not change review or merge enforcement in a child PR.
+
 ### PRs handling
 
 Use `.github/pull_request_template.md` as the starting point for PR descriptions. Keep the body concise and written for a reviewer who has not seen the conversation:

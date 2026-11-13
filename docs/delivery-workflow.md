@@ -235,6 +235,109 @@ tested.
   provided the stack still contains the merged PR's head (a reused branch name is
   not enough).
 
+## Feature integration branches
+
+A feature built as separate frontend and backend slices has a parent issue that
+owns the end-to-end scope and links its branch `integration/<parent>-<slug>`
+(GitHub's linked branch in this repository, from the issue's Development section). The `integration/`
+prefix is reserved for these branches. The parent issue has native sub-issues
+labeled `area:frontend` and `area:backend`.
+
+To start a feature:
+
+1. On the parent issue, add a frontend and a backend sub-issue with their
+   `area:` labels.
+2. In the parent issue's Development section, create the branch
+   `integration/<parent>-<slug>` from `main`.
+3. Branch each child from the integration branch, open its PR into it with
+   `Closes #<sub-issue>`, and merge it after Delivery stages and `child-verify`
+   pass. Keep the integration branch current with `main` through an integration
+   PR from a sync branch that merges `main` (never a PR whose head is `main`).
+4. Integrate and refine through integration PRs (`Refs #<parent>`).
+5. Open the parent PR from the integration branch into `main` with
+   `Closes #<parent>` and the feature's severity label; it waits until the
+   integration work is finished.
+
+The `Protect integration branches` ruleset keeps these branches PR-only, with
+`child-verify` and `Delivery stages` required and no force push, deletion or
+rebase merge. Until it is installed, Delivery stages refuses every PR into an
+integration branch. It has no bypass, so integration branches stay after the
+parent PR merges; deleting one needs an administrator to edit the ruleset
+first. Adding a bypass actor or rebase merges to it voids the guarantee the
+parent review carry-over relies on.
+
+PRs into an integration branch link exactly one open issue, with `Closes #N` or
+`Refs #N`. GitHub closes issues only for merges into `main`, so the Integration
+merge workflow closes a merged child's sub-issue as completed, but only when the
+child PR says `Closes #<sub-issue>` and its merged head passed agent review for
+that sub-issue. A child that only `Refs` its sub-issue is partial work and closes
+nothing; neither does integration work. The workflow runs once per merge: if it
+fails, re-run it or close the sub-issue by hand.
+
+- **Child PR:** links the sub-issue. It needs exactly one `area:` label, and its
+  parent issue must be open and link the PR's base branch.
+- **Integration PR:** `Refs #<parent>`, for integrating both sides and refining
+  the UI. The parent issue may itself be a sub-issue of an epic.
+
+For these PRs Delivery stages requires a non-draft PR and a passing agent review
+(or manual Copilot waiver) on the current commit, made after the PR's latest
+retarget. It does not require requirements
+approval, technical review, QA or any other human review: those gates apply to the
+parent PR, which contains the whole feature. The severity label still has to be
+valid. Changes to review and merge enforcement paths are refused; they go
+through their own PR into `main`. These PRs are not stacks: a PR into an integration branch is never a
+slice on top of the parent PR. Its head must be its own: commit statuses belong
+to the commit, so the PR is refused while another open PR has the same head
+commit or branch.
+
+The `child-verify` status is published only on PRs into an integration branch. It
+passes when the latest CI run made for this PR into its current base (the latest
+attempt of each job) passed the lanes for the PR's role:
+`checks` and `stories` for frontend, `checks` and `database` for backend, and
+`checks`, `database` and `stories` for integration PRs. E2E does not run on these
+PRs. Any other link fails it. CI does not re-run on a retarget, so a run from
+before the PR's latest base change never counts: push a commit, or close and
+reopen the PR. PRs from forks are not supported, because GitHub does not
+associate their CI runs with the PR.
+
+The agent-review runner reviews these PRs like any other, but records no
+requirements step, posts no QA handoff and requests no QA. A review from before
+the PR's latest retarget was made against another base and is repeated. A sub-issue moves to
+Ready for Code Review once its child PR is ready for review and stays there until
+the merge closes it. Integration PRs never move the parent issue's card. A
+sub-issue is delivered through its child PR: a PR into `main` linked to a
+sub-issue that has a child PR is not reviewed or handed to QA; link it to the
+parent issue instead.
+
+The parent PR goes from the integration branch to `main` and runs the normal
+gates for its severity, with full `verify` and QA. It is blocked until the parent
+issue has a frontend and a backend sub-issue (each with only its own `area:`
+label) closed as completed, every sub-issue is closed and no PR into the
+integration branch is still open. Until then the parent issue stays In Progress
+and its PR is neither reviewed nor handed to QA. Sub-issue and label changes
+reach the parent PR's status through the five-minute
+reconciliation.
+
+A parent PR is a PR from an integration branch of this repository; a fork's
+branch with the same name is an ordinary PR. A PR from an integration branch
+into any other branch is refused, so the branch reaches `main` only as the parent
+PR. Eligibility is checked again before the QA handoff.
+
+Once eligible, the parent PR's agent review carries over when the integration
+branch, followed from the PR head down to the history it shares with `main`,
+consists only of GitHub's merge or squash commits of PRs merged into the branch,
+each merging a final head that passed agent review, after its latest retarget,
+under the parent issue or one of its sub-issues. A single-commit rebase merge looks
+like a squash and counts as one. Otherwise the whole PR is reviewed: after a
+direct push, a rewritten branch, a rebase merge of several commits, a merged PR
+with only a manual Copilot waiver, or more than 250 merges. The carry-over
+requires the `integration/**` ruleset (PR-only, no force push or deletion, and
+the `child-verify` and `Delivery stages` checks) to be active on the branch;
+without it the whole PR is reviewed. The carry-over assumes that separately
+reviewed frontend and backend changes do not break each other: integration problems surface only in `verify`
+(including E2E) and QA of the parent PR. QA of the parent commit is still
+required.
+
 ## Manual Copilot waiver
 
 Only David (`darebakdavca`) can waive Copilot review, on any PR, by posting a
@@ -328,6 +431,36 @@ can still block alongside the status. Re-run affected historical enforcement
 runs after installation and verify actual mergeability; do not rewrite native
 job results or weaken protection. New workflow runs use the distinct job name.
 
+## Dependency updates
+
+Dependabot is configured in [`.github/dependabot.yml`](../.github/dependabot.yml)
+for the pnpm workspace. It uses the `npm` ecosystem on the repository root, so it
+covers the root `package.json`, `pnpm-workspace.yaml`, the shared `pnpm-lock.yaml`
+and every package under `apps/*`.
+
+- **Frequency:** weekly, on Monday at 06:00 (Europe/Prague), with at most five
+  open version-update PRs.
+- **Groups:** minor and patch updates are combined into one `minor-and-patch` PR.
+  Major updates get their own PR so breaking changes are reviewed separately.
+- **Security updates:** Dependabot opens these as soon as an advisory applies,
+  independent of the schedule. Grouping applies to version updates only, so
+  security PRs are not combined. They require Dependabot alerts and
+  security updates to be enabled in the repository settings.
+- **Labels:** every Dependabot PR gets `dependencies` and `severity:standard`, so
+  it carries exactly one severity label. Raise the label to `severity:high` by hand when an
+  update touches authentication, permissions, migrations or deployment.
+- **No issue link:** a PR by `dependabot[bot]` from a branch of this repository
+  with `dependencies` and exactly `severity:standard` needs no `Closes #N` or
+  `Refs #N`. The PR is its own delivery scope: the bot records the requirements
+  skip, the independent agent review and the QA handoff on the PR itself, and
+  Delivery stages requires them as it does for an issue. The exception does not
+  apply to any other author, to a PR without `dependencies`, or to Low and High
+  PRs; those still need a linked issue (and scope approval for High). The
+  exception follows the PR author, so reviewers must check the commits when a
+  person has pushed to a Dependabot branch.
+- **Merging:** nothing is merged automatically. Dependabot PRs go through the
+  normal CI, review and QA gates for their severity.
+
 ## Releases and the stage
 
 https://team-4.vsepractical.applifting.dev is the stage; there is no separate
@@ -336,7 +469,17 @@ that commit, building exactly the commit CI verified. Also once CI passes,
 `release.yml` publishes a GitHub Release. The release bumps the
 patch of the highest `vX.Y.Z` tag, lists the issues the merged PR closes and links the Build & Deploy
 workflow. To put any released version on the stage, run that workflow with
-**Use workflow from → Tags → vX.Y.Z**. To bump minor or major, publish the
+**Use workflow from → Tags → vX.Y.Z**. The `deploy.yml` on `main` and on new
+tags deploys a manual run only from `main` or a `v*` tag whose commit is already
+on `main` and has a passing `verify`, and stops before building anything
+otherwise. A run from `main` therefore waits until CI has passed on its tip; pick
+a tag to deploy earlier. A manual run uses the workflow file of the ref it starts
+from, and the deploy secrets are repository-wide, so this guard prevents mistakes
+but does not stop a branch with an edited `deploy.yml`.
+
+The `integration/` branch prefix is reserved for feature integration branches.
+PRs into an `integration/` branch skip the E2E lane, so their `verify` fails by
+design; a PR to `main` runs every lane. To bump minor or major, publish the
 higher tag by hand; the next merge continues from it.
 
 Redeploying an older version does not roll back database migrations.
@@ -363,6 +506,26 @@ and High blocked until David/Bogdan approves. New policy markers prevent old
 requirements-exemption handoffs from being reused. A severity change during review
 invalidates the in-flight result. Returning to a previous severity may reuse valid
 evidence for the same head and unchanged policy/scope.
+
+## Installing the feature integration flow
+
+Merge the feature integration code through the existing gates first; the
+installer refuses to run until the trusted scripts and workflows on `main` match
+the local checkout. Then run:
+
+```sh
+node scripts/delivery/install-feature-flow.mjs
+node scripts/delivery/install-feature-flow.mjs --apply
+```
+
+The first command is read-only and shows the labels and ruleset it would create.
+Apply creates the `area:frontend` and `area:backend` labels and creates or updates
+the `Protect integration branches` ruleset for `refs/heads/integration/**`, then
+reads it back to verify it. It does not change `Protect main`. It needs `gh` 2.48
+or newer. The ruleset lets new branches be created (status checks are not
+enforced on creation); confirm this when creating the first integration branch
+from a parent issue's Development section. Until the ruleset
+is installed, parent PRs are reviewed as a whole instead of carrying reviews over.
 
 ## Configuration and validation
 

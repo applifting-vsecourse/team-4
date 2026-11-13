@@ -47,6 +47,22 @@ import {
   sliceFingerprint,
 } from '../delivery/stack.mjs';
 import { ciEvidence } from './ci-evidence.mjs';
+import {
+  integrationRole,
+  isIntegrationBranch,
+  isParentPr,
+  parentReasons,
+  retargetedAt,
+} from '../delivery/feature.mjs';
+import {
+  integratedReview,
+  readIssueDetails,
+} from '../delivery/feature-github.mjs';
+import { referencedIssueNumbers } from '../automation/issue-links.mjs';
+import {
+  dependencyScope,
+  isDependencyUpdate,
+} from '../delivery/dependency-update.mjs';
 import { planReview, executeReview } from './batches.mjs';
 import { ensureQaReviewRequest } from './qa-review.mjs';
 import { ensureTechnicalReviewRequest } from './technical-review.mjs';
@@ -142,6 +158,29 @@ async function listTimeline(number) {
     if (batch.length < 100) return all;
   }
 }
+
+async function pagedGet(path) {
+  const all = [];
+  for (let page = 1; ; page++) {
+    const batch = await api(
+      cfg.githubToken,
+      `${path}${path.includes('?') ? '&' : '?'}per_page=100&page=${page}`,
+    );
+    all.push(...batch);
+    if (batch.length < 100) return all;
+  }
+}
+
+const issueDetails = (number) =>
+  readIssueDetails({
+    repo: cfg.repo,
+    number,
+    graphql: (query, variables) =>
+      api(cfg.githubToken, '/graphql', {
+        method: 'POST',
+        body: { query, variables },
+      }),
+  });
 
 async function postComment(number, body) {
   if (cfg.dryRun) {
@@ -327,7 +366,15 @@ async function readRules() {
   return rules;
 }
 
-async function reviewPr({ pr, issue, prCount, rules, requirements, stack }) {
+async function reviewPr({
+  pr,
+  issue,
+  prCount,
+  rules,
+  requirements,
+  stack,
+  integration = false,
+}) {
   const meta = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${pr}`);
   const sha = meta.head.sha;
   const currentReviews = [];
@@ -351,12 +398,17 @@ async function reviewPr({ pr, issue, prCount, rules, requirements, stack }) {
   );
   meta.requirements = preflight.approval;
   meta.requirementsVersion = preflight.version;
+  // A PR into an integration branch has no requirements step: its gates are
+  // on the parent PR.
   if (
     meta.state !== 'open' ||
-    (meta.base.ref !== 'main' && !stack) ||
+    (integration
+      ? !isIntegrationBranch(meta.base.ref) || meta.draft
+      : meta.base.ref !== 'main' && !stack) ||
     sha !== requirements.sha ||
     severityFor(meta) !== requirements.severity ||
-    requirementsApproval(meta, currentReviews)?.id !== requirements.reviewId
+    (!integration &&
+      requirementsApproval(meta, currentReviews)?.id !== requirements.reviewId)
   ) {
     return {
       pr,
@@ -426,6 +478,35 @@ async function reviewPr({ pr, issue, prCount, rules, requirements, stack }) {
     };
   }
 
+  // A parent PR whose every commit came through a reviewed PR into its
+  // integration branch is not reviewed again as one large diff.
+  if (!cfg.force && isParentPr(meta)) {
+    const coverage = await integratedReview({
+      get: (path) => api(cfg.githubToken, path),
+      repo: cfg.repo,
+      pr: meta,
+      parent: await issueDetails(issue.number),
+    });
+    if (coverage.covered) {
+      const comment = await postComment(
+        pr,
+        scopeMarker +
+          '\n' +
+          formatPrComment({
+            sha,
+            result: 'pass',
+            attempt: 1,
+            pr,
+            issue: issue.number,
+            integratedFrom: { branch: meta.head.ref, prs: coverage.prs },
+          }),
+      );
+      return { pr, sha, status: 'pass', url: comment.html_url };
+    }
+    console.log(
+      `  -> #${pr}: ${coverage.missing.length} commit(s) did not come through a reviewed PR into ${meta.head.ref}; reviewing the whole PR`,
+    );
+  }
   const diff = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${pr}`, {
     accept: 'application/vnd.github.diff',
   });
@@ -447,7 +528,7 @@ async function reviewPr({ pr, issue, prCount, rules, requirements, stack }) {
   const carryFloor = approvalRecords[0] ?? requirements.created_at;
   // Merging the parent branch into a stacked PR changes its head but not its
   // own change: carry an earlier pass over instead of reviewing it again.
-  const slice = stack ? sliceFingerprint(diff) : undefined;
+  const slice = stack || integration ? sliceFingerprint(diff) : undefined;
   const carry =
     !cfg.force && slice
       ? findCarryOver({
@@ -549,6 +630,100 @@ async function reviewPr({ pr, issue, prCount, rules, requirements, stack }) {
   return { pr, sha, url: comment.html_url, ...outcome };
 }
 
+// Blocks parent PRs whose integration work is not finished, keeping their issue
+// In Progress with a note. Returns whether anything was blocked.
+async function parentWaiting(board, item, snapshot) {
+  const issue = item.content;
+  const blocked = [];
+  for (const { pr } of snapshot) {
+    if (!isParentPr(pr)) continue;
+    // The PR's own links decide which issue owns the branch, as in delivery.
+    const numbers = new Set([
+      issue.number,
+      ...referencedIssueNumbers(pr.body, { stacked: true }),
+    ]);
+    blocked.push(
+      ...parentReasons({
+        pr,
+        issues: await Promise.all([...numbers].map(issueDetails)),
+        openInto: await pagedGet(
+          `/repos/${cfg.repo}/pulls?state=open&base=${encodeURIComponent(pr.head.ref)}`,
+        ),
+      }),
+    );
+  }
+  if (!blocked.length) return false;
+  const status = await currentStatus(item.id);
+  if ([STATUS_REVIEW, STATUS_TESTING].includes(status))
+    await moveStatus(
+      board,
+      { ...item, status: { name: status } },
+      'In Progress',
+    );
+  const reason = blocked.join(' ');
+  const marker = issueMarker({
+    issue: issue.number,
+    state: `integration-waiting|${createHash('sha256').update(reason).digest('hex').slice(0, 12)}`,
+  });
+  console.log(`  -> In Progress: ${reason}`);
+  if (!hasBotComment(await listComments(issue.number), marker))
+    await postComment(
+      issue.number,
+      `${marker}\nThe parent PR is not reviewed or handed to QA yet: ${reason}`,
+    );
+  return true;
+}
+
+// PRs into an integration branch: agent review only, no requirements step,
+// QA handoff or QA request. A sub-issue whose child PR is ready for review
+// stays in Ready for Code Review until the merge closes it; integration work
+// linked to the parent issue never moves the parent's card.
+async function reviewIntegrationPrs(board, item, prs, { ownsBoard }) {
+  const issue = item.content;
+  const rules = await readRules();
+  let target = null;
+  for (const pr of prs) {
+    const role = integrationRole({
+      pr,
+      issues: await Promise.all(
+        referencedIssueNumbers(pr.body, { stacked: true }).map(issueDetails),
+      ),
+    });
+    if (role.kind === 'invalid' || role.issue !== issue.number) {
+      console.log(
+        `  -> #${pr.number}: not reviewed: ${role.reason ?? `it belongs to #${role.issue}`}`,
+      );
+      continue;
+    }
+    if (role.kind === 'child')
+      target =
+        target === STATUS_REVIEW || !pr.draft ? STATUS_REVIEW : 'In Progress';
+    if (pr.draft) {
+      console.log(`  -> #${pr.number}: draft, not reviewed`);
+      continue;
+    }
+    const result = await reviewPr({
+      pr: pr.number,
+      issue,
+      prCount: prs.length,
+      rules,
+      // A verdict from before the PR's latest retarget reviewed another base.
+      requirements: {
+        sha: pr.head.sha,
+        severity: severityFor(pr),
+        created_at: new Date(
+          retargetedAt(await listTimeline(pr.number)),
+        ).toISOString(),
+      },
+      integration: true,
+    });
+    console.log(
+      `  -> #${pr.number} (${role.kind} of #${role.parent}): ${result.status}${result.reason ? `: ${result.reason}` : ''}`,
+    );
+  }
+  if (ownsBoard && target) await moveStatus(board, item, target);
+}
+
 async function processIssue(board, item) {
   const issue = item.content;
   console.log(`#${issue.number} ${issue.title}`);
@@ -560,11 +735,48 @@ async function processIssue(board, item) {
     throw new Error(
       'More than 100 linked PR references; refusing partial review',
     );
-  const prNumbers = pullRequestsLinkedToIssue(issue)
+  const linkedNumbers = pullRequestsLinkedToIssue(issue)
     .filter(
       (p) => p.state === 'OPEN' && p.repository.nameWithOwner === cfg.repo,
     )
     .map((p) => p.number);
+  // PRs into an integration branch get agent review only; every other PR
+  // goes through the flow below.
+  const prNumbers = [];
+  const integrationPrs = [];
+  for (const number of linkedNumbers) {
+    const pr = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${number}`);
+    if (pr.state === 'open' && isIntegrationBranch(pr.base.ref))
+      integrationPrs.push(pr);
+    else prNumbers.push(number);
+  }
+  if (integrationPrs.length) {
+    // A sub-issue (as opposed to a parent issue, which owns the branch) is
+    // delivered by its child PR, which also owns its card.
+    const details = await issueDetails(issue.number);
+    const subIssue = Boolean(details.parent) && !details.branches.length;
+    await reviewIntegrationPrs(board, item, integrationPrs, {
+      ownsBoard: subIssue,
+    });
+    if (!prNumbers.length) return;
+    // Its work reaches main through the parent PR: a PR into main linked to
+    // it must not take the sub-issue to QA on its own.
+    if (subIssue) {
+      const marker = issueMarker({
+        issue: issue.number,
+        state: `child-and-main|${prNumbers.join(',')}`,
+      });
+      console.log(
+        `  -> sub-issue also has PRs into main: ${prNumbers.join(', ')}`,
+      );
+      if (!hasBotComment(await listComments(issue.number), marker))
+        await postComment(
+          issue.number,
+          `${marker}\nThis sub-issue is delivered by its child PR into the integration branch. PRs ${prNumbers.map((n) => `#${n}`).join(', ')} into main are not reviewed or handed to QA here; link them to the parent issue instead.`,
+        );
+      return;
+    }
+  }
 
   async function snapshots() {
     const all = [];
@@ -619,7 +831,12 @@ async function processIssue(board, item) {
           cfg.githubToken,
           `/repos/${cfg.repo}/pulls?state=open&base=${encodeURIComponent(stack.tip.head.ref)}&per_page=100`,
         )
-      ).filter((p) => !prNumbers.includes(p.number));
+      )
+        // A child PR into the parent PR's integration branch is not stacked on it.
+        .filter(
+          (p) =>
+            !prNumbers.includes(p.number) && !isIntegrationBranch(p.base?.ref),
+        );
       const lows = stack.prs.filter((p) => severityFor(p) === 'low');
       const reason = above.length
         ? `${above.map((p) => `#${p.number}`).join(', ')} is stacked on #${stack.tip.number} but not linked to this issue; link every PR of a stack to the same issue.`
@@ -725,6 +942,9 @@ async function processIssue(board, item) {
     console.log('  -> no linked Standard/High PRs need review or QA');
     return;
   }
+  // A parent PR becomes eligible only once its integration work is finished;
+  // until then the parent issue stays In Progress and is not reviewed.
+  if (await parentWaiting(board, item, initial)) return;
   const reviewPrNumbers = initial.map(({ pr }) => pr.number);
   const transition = requirementsTransition(item.status?.name, initial);
   if (transition.review && item.status?.name === STATUS_TESTING) {
@@ -816,6 +1036,9 @@ async function processIssue(board, item) {
   const rolesByPr = new Map(
     current.map(({ pr }) => [pr.number, reviewersFor(pr.user.login)]),
   );
+  // Eligibility can change while the review ran: never hand a parent PR to QA
+  // that is no longer eligible.
+  if (await parentWaiting(board, item, current)) return;
   const stillApproved = requirementsTransition(item.status.name, current);
   if (
     !stillApproved.review ||
@@ -1015,6 +1238,143 @@ async function processIssue(board, item) {
   console.log(`  -> ${decision.outcome}${moved ? ' (moved)' : ''}`);
 }
 
+// A standard Dependabot update has no issue. The PR is its own scope (a pull
+// request is an issue number too), so it gets the same evidence as any other
+// PR: requirements record, agent review, readiness record and QA request.
+async function hasLinkedIssues(pr) {
+  const data = await api(cfg.githubToken, '/graphql', {
+    method: 'POST',
+    body: {
+      query: `query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){closingIssuesReferences(first:1){totalCount}}}}`,
+      variables: {
+        owner: cfg.repo.split('/')[0],
+        repo: cfg.repo.split('/')[1],
+        number: pr.number,
+      },
+    },
+  });
+  if (data.errors) throw new Error('Cannot read closing issues');
+  return (
+    data.data.repository.pullRequest.closingIssuesReferences.totalCount > 0 ||
+    referencedIssueNumbers(pr.body).length > 0
+  );
+}
+
+async function processDependencyPr(number) {
+  let pr = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${number}`);
+  if (
+    pr.state !== 'open' ||
+    pr.draft ||
+    !isDependencyUpdate(pr, cfg.repo) ||
+    (await hasLinkedIssues(pr))
+  )
+    return;
+  console.log(`#${number} ${pr.title} [dependency update]`);
+  const scope = dependencyScope(pr, cfg.repo);
+  const issue = { number, title: pr.title, body: pr.body };
+  const reviews = await pagedGet(`/repos/${cfg.repo}/pulls/${number}/reviews`);
+  pr.technicalReviewRequired = technicalReviewRequired(
+    pr,
+    technicalReviewRequired(pr) ? [] : await listTimeline(number),
+  );
+  if (pr.technicalReviewRequired && runScope.type !== 'pr')
+    await ensureTechnicalReviewRequest({
+      api: (path, options) => api(cfg.githubToken, path, options),
+      repo: cfg.repo,
+      pr,
+      requiredByHistory: true,
+      dryRun: cfg.dryRun,
+    });
+  // Read the PR's own comments, as the review and Delivery stages do: a
+  // /requirements-rereview comment starts a new cycle and changes the id.
+  const found = issueRequirements(pr, await listComments(number), []);
+  const scopeApproval = found.approval;
+  const version = found.version;
+  pr.requirements = scopeApproval;
+  pr.requirementsVersion = version;
+  const approval = requirementsApproval(pr, reviews);
+  const marker = requirementsMarker(number, pr.head.sha, number, approval.id);
+  let record = (await listComments(number))
+    .filter(
+      (c) =>
+        c.user?.login === 'github-actions[bot]' &&
+        (c.body ?? '').startsWith(marker + '\n'),
+    )
+    .at(-1);
+  if (!record)
+    record = await postComment(
+      number,
+      `${marker}\nStandard severity dependency update: no issue or requirements approval is required for commit \`${pr.head.sha}\`. Ready for code review.`,
+    );
+  const result = await reviewPr({
+    pr: number,
+    issue,
+    prCount: 1,
+    rules: await readRules(),
+    requirements: {
+      ...record,
+      created_at: record.created_at ?? new Date().toISOString(),
+      sha: pr.head.sha,
+      reviewId: approval.id,
+      severity: severityFor(pr),
+    },
+  });
+  const now = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${number}`);
+  if (now.head.sha !== result.sha || !isDependencyUpdate(now, cfg.repo)) {
+    console.log('  -> head or classification changed during review');
+    return;
+  }
+  if (!['pass', 'waived'].includes(result.status)) {
+    console.log(
+      `  -> ${result.status}${result.reason ? `: ${result.reason}` : ''}`,
+    );
+    return;
+  }
+  const live = copilotWaiver({ pr: now, comments: await listComments(number) });
+  if (result.status === 'waived' && live?.source !== result.waiver.source)
+    return;
+  now.technicalReviewRequired = pr.technicalReviewRequired;
+  if (
+    now.technicalReviewRequired &&
+    !technicalReviewApproval(
+      now,
+      await pagedGet(`/repos/${cfg.repo}/pulls/${number}/reviews`),
+    )
+  ) {
+    console.log('  -> waiting for technical review approval');
+    return;
+  }
+  const qa = reviewersFor(pr.user.login).qa;
+  const ready =
+    readyMarker(number, result.sha, number) +
+    (result.status === 'waived' ? '\n' + waiverMarker(result.waiver) : '');
+  if (
+    !(await listComments(number)).some(
+      (c) =>
+        c.user?.login === 'github-actions[bot]' &&
+        (c.body ?? '').startsWith(ready + '\n') &&
+        Date.parse(c.created_at) >= Date.parse(record.created_at ?? 0),
+    )
+  )
+    await postComment(
+      number,
+      `${ready}\nReady for QA · dependency update · \`${result.sha}\`.\n${result.status === 'waived' ? `Copilot waived ([reason](${result.waiver.url})). ` : ''}@${qa}: test this commit, then approve.`,
+    );
+  await ensureQaReviewRequest({
+    api: (path, options) => api(cfg.githubToken, path, options),
+    repo: cfg.repo,
+    pr: now,
+    issue: {
+      ...scope,
+      requirements: scopeApproval,
+      requirementsVersion: version,
+    },
+    dryRun: cfg.dryRun,
+    waiver: result.waiver,
+  });
+  console.log('  -> handed to QA');
+}
+
 const runScope = await eventScope();
 if (runScope.type === 'pr') {
   const pr = await api(
@@ -1062,5 +1422,27 @@ for (const item of candidates) {
     // run is still visible in Actions.
     console.error(`#${item.content.number} failed: ${err.message}`);
     process.exitCode = 1;
+  }
+}
+
+// Standard Dependabot updates have no issue on the board, so they are found
+// through the pull request list instead.
+if (runScope.type !== 'issue') {
+  const numbers =
+    runScope.type === 'pr'
+      ? [runScope.number]
+      : runScope.type === 'prs'
+        ? runScope.numbers
+        : (await pagedGet(`/repos/${cfg.repo}/pulls?state=open`))
+            .filter((p) => p.user?.login === 'dependabot[bot]')
+            .map((p) => p.number);
+  for (const number of numbers) {
+    if (cfg.onlyIssue && cfg.onlyIssue !== number) continue;
+    try {
+      await processDependencyPr(number);
+    } catch (err) {
+      console.error(`#${number} failed: ${err.message}`);
+      process.exitCode = 1;
+    }
   }
 }
