@@ -6,6 +6,7 @@ import { screenMeta, showsHeading } from "@/screens/screenMeta"
 import { showsText } from "@/screens/steps"
 
 import { participantHandlers } from "@/features/participant-access/fixtures/handlers"
+import { programmeHandlers } from "@/features/programme/fixtures/handlers"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
 import { OWN_REGISTRATION } from "@/features/registrations/fixtures/participantRegistrations"
 import {
@@ -27,6 +28,8 @@ const meta = {
       ...participantHandlers.signedIn(),
       ...registrationHandlers.own(),
       ...registrationHandlers.ownChange(),
+      // After a saved change the detail opens and loads the programme.
+      ...programmeHandlers.participant(),
     )
   },
 } satisfies Meta<typeof screenMeta.component>
@@ -45,12 +48,14 @@ async function changePhone({ canvas }: Pick<StoryContext, "canvas">) {
 
 /**
  * The review dialog with the server's preview, once it faded in. While the
- * preview loads, a different dialog of the same name is shown first.
+ * preview loads, a dialog of the same name and description shows a loading
+ * status first; wait until that status is gone.
  */
 const review = async (name: string | RegExp = REVIEW) => {
   const current = () => screen.getByRole("dialog", { name })
   await waitFor(
     async () => {
+      await expect(within(current()).queryByText("Načítám kontrolu změn…")).not.toBeInTheDocument()
       await expect(within(current()).getByText(/Původní a navržené údaje/)).toBeInTheDocument()
       await expect(current()).toBeVisible()
     },
