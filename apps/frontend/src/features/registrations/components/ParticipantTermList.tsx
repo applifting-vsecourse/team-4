@@ -1,8 +1,8 @@
+import { ParticipationBadge } from "@/components/ParticipationBadge"
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 
 import { type ParticipantTerm } from "@/features/registrations/api/participantRegistrationSchemas"
-import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
 
 // Every selected term with its own status, so a mixed registration reads the
 // same as any other (S2-14).

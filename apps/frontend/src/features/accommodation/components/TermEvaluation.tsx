@@ -8,6 +8,7 @@ import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { Notice } from "@/components/Notice"
 import { PageSection } from "@/components/PageSection"
+import { ParticipationBadge } from "@/components/ParticipationBadge"
 import { PendingButton } from "@/components/PendingButton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -39,7 +40,6 @@ import {
   isConfirmable,
   reasonText,
   RESULT_BADGE,
-  STATE_LABEL,
   STATUS_BADGE,
   type EvaluationStatus,
   type ParticipationState,
@@ -195,12 +195,6 @@ function DecisionMenu({ person, decisions }: { person: OrderPerson; decisions: P
   )
 }
 
-function StateBadge({ state }: { state: ParticipationState }) {
-  return (
-    <Badge variant={state === "waitlisted" ? "warning" : "secondary"}>{STATE_LABEL[state]}</Badge>
-  )
-}
-
 // On a narrow card the state moves under the name instead of its own column, so
 // the row keeps its actions in view without scrolling sideways.
 type OrderTableProps = {
@@ -243,7 +237,7 @@ function OrderTable({ people, attribute, decisions, renderName }: OrderTableProp
                     Přihlášeno <span className="whitespace-nowrap">{person.receivedAt}</span>
                   </p>
                   <div className="mt-1 @2xl:hidden">
-                    <StateBadge state={person.state} />
+                    <ParticipationBadge status={person.state} />
                   </div>
                 </TableCell>
                 {attribute ? (
@@ -256,7 +250,7 @@ function OrderTable({ people, attribute, decisions, renderName }: OrderTableProp
                 ) : null}
                 <TableCell className="hidden @2xl:table-cell">
                   <div className="-ml-2">
-                    <StateBadge state={person.state} />
+                    <ParticipationBadge status={person.state} />
                   </div>
                 </TableCell>
                 <TableCell className="whitespace-normal">

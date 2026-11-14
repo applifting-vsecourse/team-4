@@ -9,13 +9,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { PARTICIPATION_LABELS } from "@/lib/participation"
 
 import {
   paymentStateSchema,
   type RegistrationFilter,
 } from "@/features/registrations/api/eventRegistrationSchemas"
 import { activeParticipationStatusSchema } from "@/features/registrations/api/registrationSchemas"
-import { PARTICIPATION_LABELS } from "@/features/registrations/components/ParticipationBadge"
 import { PAYMENT_STATE_LABELS } from "@/features/registrations/components/PaymentStateBadge"
 
 // A select cannot hold an empty value, so "no filter" has its own.

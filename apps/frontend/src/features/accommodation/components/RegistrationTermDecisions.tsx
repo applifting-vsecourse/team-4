@@ -3,6 +3,7 @@ import { useQueries, useQuery } from "@tanstack/react-query"
 
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
+import { type TermParticipation } from "@/lib/participation"
 
 import {
   registrationAccommodationQueryOptions,
@@ -12,11 +13,7 @@ import {
   ParticipationDecisionDialog,
   type ParticipationDecisionTarget,
 } from "@/features/accommodation/components/ParticipationDecisionDialog"
-import {
-  TermDecisions,
-  type DecisionTerm,
-  type DecisionTermState,
-} from "@/features/accommodation/components/TermDecisions"
+import { TermDecisions, type DecisionTerm } from "@/features/accommodation/components/TermDecisions"
 import { attributeLabel } from "@/features/accommodation/lib/evaluationView"
 import { reasonText } from "@/features/accommodation/lib/proposal"
 
@@ -26,7 +23,7 @@ type RegistrationTerm = {
   startDate: string
   endDate: string
   priceMinor: number
-  status: DecisionTermState
+  status: TermParticipation
 }
 
 type RegistrationTermDecisionsProps = {

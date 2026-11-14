@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 
 import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { LoadError } from "@/components/LoadError"
+import { ParticipationBadge } from "@/components/ParticipationBadge"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -13,7 +14,6 @@ import {
 import { formatCzk } from "@/lib/money"
 
 import { type RegistrationDetail as Detail } from "@/features/registrations/api/eventRegistrationSchemas"
-import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
 import { PaymentStateBadge } from "@/features/registrations/components/PaymentStateBadge"
 import { SimulatedPaymentHistory } from "@/features/registrations/components/SimulatedPaymentHistory"
 import { describeBalance } from "@/features/registrations/lib/balance"

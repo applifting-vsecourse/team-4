@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/EmptyState"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { PageSection } from "@/components/PageSection"
+import { ParticipationBadge } from "@/components/ParticipationBadge"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -26,7 +27,6 @@ import {
   type RegistrationFilter,
   type RegistrationSummary,
 } from "@/features/registrations/api/eventRegistrationSchemas"
-import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
 import { PaymentStateBadge } from "@/features/registrations/components/PaymentStateBadge"
 import { RegistrationFilters } from "@/features/registrations/components/RegistrationFilters"
 import { describeBalance } from "@/features/registrations/lib/balance"

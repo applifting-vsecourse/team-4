@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 
-import { Badge } from "@/components/ui/badge"
+import { ParticipationBadge } from "@/components/ParticipationBadge"
 import {
   Table,
   TableBody,
@@ -9,11 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-
-import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
-
-/** A term's participation before or after the change; "cancelled" once released. */
-export type TermState = "pending" | "confirmed" | "waitlisted" | "cancelled"
+import { type TermParticipation } from "@/lib/participation"
 
 /** A personal or contact value, or a part of the needs (F63), the change replaces. */
 export type ChangedValue = { label: string; original: string; proposed: string }
@@ -26,8 +22,8 @@ export type AffectedTerm = {
   dates: string
   /** Already formatted, e.g. "2 400 Kč". */
   price: string
-  original: TermState | null
-  proposed: TermState | null
+  original: TermParticipation | null
+  proposed: TermParticipation | null
 }
 
 /** One line of the price and balance, already formatted. */
@@ -119,10 +115,9 @@ export function ChangeSummary({ values = [], terms = [], money = [] }: ChangeSum
   )
 }
 
-/** Participation of one term, including a released one. */
-export function TermStateBadge({ state }: { state: TermState | null }) {
+/** The term's participation on one side of the change; a dash where the term is not part of it. */
+function TermStateBadge({ state }: { state: TermParticipation | null }) {
   if (state === null) return <span className="text-muted-foreground">–</span>
-  if (state === "cancelled") return <Badge variant="secondary">Odhlášeno</Badge>
   return <ParticipationBadge status={state} />
 }
 
