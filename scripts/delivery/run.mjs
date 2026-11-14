@@ -17,6 +17,7 @@ import { issueRequirements, scopeHash } from './requirements.mjs';
 import { isDependencyUpdate } from './dependency-update.mjs';
 import { onlyDependabotCommits, pullCommits } from './dependency-merge.mjs';
 import { copilotWaiver } from './copilot-waiver.mjs';
+import { ADR_DIR, adrReasons, changedAdrs } from './adr.mjs';
 import { referencedIssueNumbers } from '../automation/issue-links.mjs';
 import {
   childVerify,
@@ -96,6 +97,28 @@ async function issuesFor(pr) {
   if (issues.some((i) => i.repository.nameWithOwner !== repo))
     throw new Error('Cross-repository issue links are not supported');
   return issues;
+}
+
+// The entries of docs/adr/ at a commit or branch; empty when it is absent. A
+// listing reports symlinks and directories as such instead of following them.
+async function adrEntries(ref) {
+  let entries;
+  try {
+    entries = await api(
+      `/repos/${repo}/contents/${ADR_DIR}?ref=${encodeURIComponent(ref)}`,
+    );
+  } catch (error) {
+    if (error.message.endsWith(': 404')) return [];
+    throw error;
+  }
+  if (!Array.isArray(entries))
+    throw new Error(`${ADR_DIR} is not a directory at ${ref}`);
+  return entries.map(({ path, sha, type }) => ({ path, sha, type }));
+}
+async function blobText(sha) {
+  const blob = await api(`/repos/${repo}/git/blobs/${sha}`);
+  if (blob.encoding !== 'base64') throw new Error(`Cannot read blob ${sha}`);
+  return Buffer.from(blob.content, 'base64').toString('utf8');
 }
 
 const issueDetails = (number) =>
@@ -455,8 +478,9 @@ for (let pr of candidates) {
     }
     const issues =
       severityFor(pr) === 'low' ? [] : (linkedIssues ?? (await issuesFor(pr)));
+    // ADR acceptance is a Comment review, so Low ADR PRs need reviews too.
     const reviews =
-      severityFor(pr) === 'low'
+      severityFor(pr) === 'low' && !changedAdrs(files).length
         ? []
         : await list(`/repos/${repo}/pulls/${pr.number}/reviews`);
     const comments =
@@ -482,6 +506,18 @@ for (let pr of candidates) {
       issue.requirementsVersion = scope.version;
     }
     const result = evaluate({ pr, issues, reviews, comments, qaFrom });
+    const adrBlocked = await adrReasons({
+      pr,
+      files,
+      reviews,
+      list: adrEntries,
+      text: blobText,
+    });
+    if (adrBlocked.length) {
+      result.pass = false;
+      // First: acceptance comes before QA, so it is the step to act on.
+      result.reasons.unshift(...adrBlocked);
+    }
     // A parent PR is eligible only once its integration work is finished.
     const parentState = async () =>
       JSON.stringify({
