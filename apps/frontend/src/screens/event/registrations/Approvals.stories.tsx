@@ -54,7 +54,7 @@ export const EmptyQueue: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...registrationHandlers.eventChangeRequests([]))
   },
-  play: () => showsText("Žádné změny nečekají na schválení."),
+  play: () => showsText("Žádné změny nečekají na schválení"),
 }
 
 export const LoadFailed: Story = {

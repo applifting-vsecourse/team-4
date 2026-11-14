@@ -145,14 +145,14 @@ describe("RegistrationsSection", () => {
   it("tells an event without registrations from filters without a match", async () => {
     responses.push({ total: 0, registrations: [] })
     renderSection()
-    expect(await screen.findByText("Tato akce zatím nemá žádné přihlášky.")).toBeInTheDocument()
+    expect(await screen.findByText("Tato akce zatím nemá žádné přihlášky")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Zrušit filtry" })).not.toBeInTheDocument()
   })
 
   it("offers to clear filters that match nothing", async () => {
     responses.push({ total: 3, registrations: [] })
     const { onFilterChange } = renderSection({ status: "waitlisted" })
-    expect(await screen.findByText("Žádná přihláška neodpovídá filtrům.")).toBeInTheDocument()
+    expect(await screen.findByText("Žádná přihláška neodpovídá filtrům")).toBeInTheDocument()
 
     const clear = screen.getAllByRole("button", { name: "Zrušit filtry" })
     await userEvent.click(clear[clear.length - 1]!)

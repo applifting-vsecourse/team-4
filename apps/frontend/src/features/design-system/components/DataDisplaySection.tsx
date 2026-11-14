@@ -4,6 +4,7 @@ import { CalendarX, Lock } from "lucide-react"
 import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
+import { EmptyState } from "@/components/EmptyState"
 import { FormError } from "@/components/FormError"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
@@ -23,14 +24,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -256,19 +249,13 @@ export function DataDisplaySection() {
               <Skeleton className="h-4 w-5/6" />
             </LoadingBlock>
           </ShowcaseItem>
-          <ShowcaseItem label="Empty">
-            <Empty className="border border-dashed border-border">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <CalendarX />
-                </EmptyMedia>
-                <EmptyTitle>Zatím žádné akce</EmptyTitle>
-                <EmptyDescription>Vytvořte první akci a otevřete přihlášky.</EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <Button>Vytvořit akci</Button>
-              </EmptyContent>
-            </Empty>
+          <ShowcaseItem label="EmptyState">
+            <EmptyState
+              icon={CalendarX}
+              title="Zatím žádné akce"
+              description="Vytvořte první akci a otevřete přihlášky."
+              action={<Button>Vytvořit akci</Button>}
+            />
           </ShowcaseItem>
           <ShowcaseItem label="Progress">
             <OccupancyProgress />

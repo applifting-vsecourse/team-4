@@ -167,7 +167,7 @@ describe("ParticipantRegistrationList", () => {
   it("says there are no registrations", async () => {
     get.mockReturnValue(respondWith([]))
     renderList()
-    expect(await screen.findByText("Zatím nemáte žádné přihlášky.")).toBeInTheDocument()
+    expect(await screen.findByText("Zatím nemáte žádné přihlášky")).toBeInTheDocument()
   })
 
   it("never turns a failed first load into the empty state, and retries", async () => {
@@ -175,7 +175,7 @@ describe("ParticipantRegistrationList", () => {
     renderList()
 
     expect(await screen.findByText("Data se nepodařilo načíst")).toBeInTheDocument()
-    expect(screen.queryByText("Zatím nemáte žádné přihlášky.")).not.toBeInTheDocument()
+    expect(screen.queryByText("Zatím nemáte žádné přihlášky")).not.toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Zkusit znovu" }))
     expect(await screen.findByRole("heading", { name: MIXED.event.name })).toBeInTheDocument()
@@ -202,6 +202,6 @@ describe("ParticipantRegistrationList", () => {
     get.mockReturnValue(failWith(401))
     renderList()
     expect(await screen.findByText("Přihlášení vypršelo.")).toBeInTheDocument()
-    expect(screen.queryByText("Zatím nemáte žádné přihlášky.")).not.toBeInTheDocument()
+    expect(screen.queryByText("Zatím nemáte žádné přihlášky")).not.toBeInTheDocument()
   })
 })

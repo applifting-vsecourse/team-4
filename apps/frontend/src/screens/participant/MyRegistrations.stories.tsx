@@ -43,7 +43,7 @@ export const Empty: Story = {
   beforeEach: ({ msw }) => {
     msw.use(http.get(apiUrl(LIST), () => HttpResponse.json({ registrations: [] })))
   },
-  play: () => showsText("Zatím nemáte žádné přihlášky."),
+  play: () => showsText("Zatím nemáte žádné přihlášky"),
 }
 
 /** The first load failed: an error, never an empty list. */

@@ -1,10 +1,10 @@
 import { History } from "lucide-react"
 
+import { EmptyState } from "@/components/EmptyState"
 import { LoadError } from "@/components/LoadError"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 
 type HistoryBase = {
   id: string
@@ -186,14 +186,10 @@ export function EvaluationHistory({
             onRetry={onRetry}
           />
         ) : entries.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <History />
-              </EmptyMedia>
-              <EmptyTitle>Historie zatím neobsahuje záznamy</EmptyTitle>
-            </EmptyHeader>
-          </Empty>
+          <EmptyState
+            icon={History}
+            title="Historie zatím neobsahuje záznamy"
+          />
         ) : (
           <ol className="divide-y divide-border text-sm">
             {entries.map((entry) => (

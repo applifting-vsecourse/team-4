@@ -5,13 +5,13 @@ import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 
 import { ROUTES } from "@/app/routes"
+import { EmptyState } from "@/components/EmptyState"
 import { FormError } from "@/components/FormError"
 import { Notice } from "@/components/Notice"
 import { PendingButton } from "@/components/PendingButton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import {
   Form,
   FormControl,
@@ -153,20 +153,11 @@ export function RegistrationForm({
 
   if (terms.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed">
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <CalendarX />
-            </EmptyMedia>
-            <EmptyTitle>Akce nemá termíny k výběru</EmptyTitle>
-            <EmptyDescription>
-              Pořadatel zatím nevypsal žádný termín, a proto se na akci nelze přihlásit. Zkuste to
-              později.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      </div>
+      <EmptyState
+        icon={CalendarX}
+        title="Akce nemá termíny k výběru"
+        description="Pořadatel zatím nevypsal žádný termín, a proto se na akci nelze přihlásit. Zkuste to později."
+      />
     )
   }
 

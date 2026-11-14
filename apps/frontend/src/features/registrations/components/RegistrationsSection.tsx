@@ -1,15 +1,15 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { ClipboardList, X } from "lucide-react"
+import { ClipboardList, SearchX, X } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { EmptyState } from "@/components/EmptyState"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { PageSection } from "@/components/PageSection"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -128,30 +128,25 @@ function RegistrationsResult({
 }: RegistrationsResultProps) {
   if (total === 0) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <ClipboardList />
-          </EmptyMedia>
-          <EmptyTitle>Tato akce zatím nemá žádné přihlášky.</EmptyTitle>
-        </EmptyHeader>
-      </Empty>
+      <EmptyState
+        icon={ClipboardList}
+        title="Tato akce zatím nemá žádné přihlášky"
+      />
     )
   }
 
   if (registrations.length === 0) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyTitle>Žádná přihláška neodpovídá filtrům.</EmptyTitle>
-        </EmptyHeader>
-        <EmptyContent>
+      <EmptyState
+        icon={SearchX}
+        title="Žádná přihláška neodpovídá filtrům"
+        action={
           <Button onClick={onClearFilters}>
             <X />
             Zrušit filtry
           </Button>
-        </EmptyContent>
-      </Empty>
+        }
+      />
     )
   }
 

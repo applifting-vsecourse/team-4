@@ -87,7 +87,7 @@ export const NoRegistrations: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...empty())
   },
-  play: () => showsText("Tato akce zatím nemá žádné přihlášky."),
+  play: () => showsText("Tato akce zatím nemá žádné přihlášky"),
 }
 
 /** Filters from the URL match nothing: the way back to all registrations. */
@@ -100,7 +100,7 @@ export const NoMatch: Story = {
       ),
     )
   },
-  play: () => showsText("Žádná přihláška neodpovídá filtrům."),
+  play: () => showsText("Žádná přihláška neodpovídá filtrům"),
 }
 
 export const LoadFailed: Story = {

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { ClipboardList, Ellipsis, RefreshCw } from "lucide-react"
 
+import { EmptyState } from "@/components/EmptyState"
 import { FormError } from "@/components/FormError"
 import { HorizontalOverflowViewport } from "@/components/HorizontalOverflowViewport"
 import { LoadError } from "@/components/LoadError"
@@ -18,7 +19,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -505,16 +505,10 @@ export function TermEvaluation({
               </Card>
 
               {people.length === 0 ? (
-                <Card>
-                  <Empty>
-                    <EmptyHeader>
-                      <EmptyMedia variant="icon">
-                        <ClipboardList />
-                      </EmptyMedia>
-                      <EmptyTitle>V termínu nikdo nečeká na rozhodnutí ani na místo</EmptyTitle>
-                    </EmptyHeader>
-                  </Empty>
-                </Card>
+                <EmptyState
+                  icon={ClipboardList}
+                  title="V termínu nikdo nečeká na rozhodnutí ani na místo"
+                />
               ) : (
                 <>
                   {isConfirmable(status) && suitable === 0 && !confirmedResult ? (

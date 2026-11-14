@@ -1,14 +1,15 @@
 import type { ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
+import { ClipboardList } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { EmptyState } from "@/components/EmptyState"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatPragueDateTime } from "@/lib/date"
 
@@ -61,11 +62,10 @@ export function ParticipantRegistrationList({
 
       {data ? (
         data.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>Zatím nemáte žádné přihlášky.</EmptyTitle>
-            </EmptyHeader>
-          </Empty>
+          <EmptyState
+            icon={ClipboardList}
+            title="Zatím nemáte žádné přihlášky"
+          />
         ) : (
           <ul className="space-y-4">
             {data.map((registration) => (

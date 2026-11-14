@@ -1,11 +1,11 @@
 import { CalendarClock, Plus } from "lucide-react"
 
+import { EmptyState } from "@/components/EmptyState"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { PageSection } from "@/components/PageSection"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { ProgrammeList, type ProgrammeDay } from "@/features/programme/components/ProgrammeList"
@@ -65,15 +65,11 @@ export function TermProgramme({
           <Skeleton className="h-12 w-full" />
         </LoadingBlock>
       ) : days.length === 0 ? (
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <CalendarClock />
-            </EmptyMedia>
-            <EmptyTitle>Program zatím nemá žádné položky</EmptyTitle>
-          </EmptyHeader>
-          <EmptyContent>{addButton}</EmptyContent>
-        </Empty>
+        <EmptyState
+          icon={CalendarClock}
+          title="Program zatím nemá žádné položky"
+          action={addButton}
+        />
       ) : (
         <Card>
           <CardContent>

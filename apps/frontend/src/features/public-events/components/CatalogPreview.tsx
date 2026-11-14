@@ -1,8 +1,8 @@
 import { CalendarX } from "lucide-react"
 
+import { EmptyState } from "@/components/EmptyState"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
@@ -45,14 +45,10 @@ export function CatalogPreview() {
 
   if (events.length === 0) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <CalendarX />
-          </EmptyMedia>
-          <EmptyTitle>Zatím žádné veřejné akce</EmptyTitle>
-        </EmptyHeader>
-      </Empty>
+      <EmptyState
+        icon={CalendarX}
+        title="Zatím žádné veřejné akce"
+      />
     )
   }
 
