@@ -38,7 +38,7 @@ Deliberately sparse — this file grows as the team learns what it expects from 
 
 ### Sync with main before starting an issue
 
-Before starting work on any issue, fetch the latest `origin/main` and merge it into the issue's working branch. Create new issue branches from the latest `origin/main`. Resolve any merge conflicts before implementation so the work uses the current shared UI, components and application behavior. Preserve unrelated local changes; do not discard them to make the merge possible. If they prevent a safe merge, report the blocker before starting implementation.
+Before starting work on an issue, read its current GitHub labels along with its body and native parent relationship. Use the labels to identify the assigned scope and delivery workflow. Then fetch the latest `origin/main`. For ordinary issues, create new branches from it and merge it into existing working branches. For frontend and backend child issues, follow [Feature integration branches](#feature-integration-branches). Resolve merge conflicts before implementation and preserve unrelated local changes.
 
 ### User stories are owned by the PM
 
@@ -206,7 +206,21 @@ When a feature is split into frontend and backend sub-issues (`area:frontend`,
 `integration/<parent>-<slug>` branch; the flow is in
 [`docs/delivery-workflow.md`](docs/delivery-workflow.md#feature-integration-branches).
 
-- Branch each child from the integration branch and open its PR into it with
+- Verify that the child has exactly one of `area:frontend` or `area:backend`
+  and that its open parent links the intended integration branch. The area label
+  determines the child scope and CI lanes. If the labels or parent link are
+  missing, ambiguous, or inconsistent with the issue, report the discrepancy.
+- Fetch the linked integration branch and `origin/main`. If the child needs
+  changes from `main` that the integration branch lacks, reuse an open sync PR
+  that brings them in or create one from a
+  sync branch based on the integration branch. Merge `origin/main` into the sync
+  branch and target the integration branch with `Refs #<parent>`. Follow the
+  normal delivery gates and use a merge commit so Git retains the ancestry.
+  If Delivery stages blocks the sync, report the specific reason.
+- Start from the fetched integration branch. If the child needs a sync, fetch
+  it again after the sync lands. Create the child branch from that remote ref,
+  or merge it into an existing child branch.
+  Open the child PR into the integration branch with
   `Closes #<sub-issue>`. The frontend child delivers components and Storybook
   states with fixtures or mocks; live API and route wiring belongs to the parent.
 - Integrate both sides through PRs into the integration branch with

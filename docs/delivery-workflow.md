@@ -271,12 +271,21 @@ To start a feature:
    `area:` labels.
 2. In the parent issue's Development section, create the branch
    `integration/<parent>-<slug>` from `main`.
-3. Branch each child from the integration branch, open its PR into it with
-   `Closes #<sub-issue>`, and merge it after Delivery stages and `child-verify`
-   pass. Keep the integration branch current with `main` through an integration
-   PR from a sync branch that merges `main` (never a PR whose head is `main`).
-4. Integrate and refine through integration PRs (`Refs #<parent>`).
-5. Open the parent PR from the integration branch into `main` with
+3. Before starting a child, verify its live `area:frontend` or `area:backend`
+   label and its parent’s linked integration branch. Fetch `main` and the
+   integration branch. If the child needs changes from `main` that the integration
+   branch lacks, reuse an open PR that brings in the needed commits or branch
+   from the integration branch, merge `origin/main` into that sync branch, and
+   open a PR into the integration branch with `Refs #<parent>`. Use a merge
+   commit after the required checks pass to preserve ancestry. Delivery stages
+   currently refuses sync PRs whose diff includes review or merge enforcement
+   files. Surface that blocker if it applies.
+4. Fetch the integration branch again after any required sync. Branch each child
+   from the fetched integration branch and open its
+   PR into it with `Closes #<sub-issue>`. Merge after Delivery stages and
+   `child-verify` pass.
+5. Integrate and refine through integration PRs (`Refs #<parent>`).
+6. Open the parent PR from the integration branch into `main` with
    `Closes #<parent>` and the feature's severity label; it waits until the
    integration work is finished.
 
