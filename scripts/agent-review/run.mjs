@@ -28,11 +28,15 @@ import {
 } from './lib.mjs';
 
 import {
+  agentReviewPassed,
+  agentVerdict,
   isStorybookPreview,
   reviewersFor,
   requirementsApproval,
   reviewStartApproval,
   requirementsMarker,
+  requirementsRecord,
+  requirementsRecordPredatesReview,
   requirementsTransition,
   readyMarker,
   storybookPreviewApproval,
@@ -1062,12 +1066,26 @@ async function processIssue(board, item) {
     console.log(`  -> ${next}: scope or code changed during review`);
     return;
   }
-  // A deleted/edited waiver must not be cached as a successful model review.
-  // Read the native PR comments again immediately before the QA handoff.
+  // Use the same latest verdict as the delivery gate before handing off to QA.
   for (const r of results) {
+    const { pr, comments } = current.find(({ pr }) => pr.number === r.pr);
+    if (
+      r.status === 'pass' &&
+      !cfg.dryRun &&
+      !agentReviewPassed({
+        comments,
+        pr: r.pr,
+        sha: r.sha,
+        issue: issue.number,
+      })
+    ) {
+      r.status = 'error';
+      r.reason = 'The latest agent review did not pass.';
+    }
     if (r.status !== 'waived') continue;
+    // A deleted or edited waiver must not be cached as a successful review.
     const live = copilotWaiver({
-      pr: current.find(({ pr }) => pr.number === r.pr).pr,
+      pr,
       comments: await listComments(r.pr),
     });
     if (live?.source !== r.waiver.source) r.status = 'stale';
@@ -1132,7 +1150,7 @@ async function processIssue(board, item) {
     scopePending.length === 0;
   if (handoffReady) {
     // Record the scope approval after agent and human code review.
-    for (const { pr, reviews } of current) {
+    for (const { pr, reviews, comments } of current) {
       const approval = requirementsApproval(pr, reviews);
       if (!approval || approval.exempt || isStorybookPreview(pr)) continue;
       const marker = requirementsMarker(
@@ -1141,15 +1159,23 @@ async function processIssue(board, item) {
         issue.number,
         approval.id,
       );
-      let record = (await listComments(pr.number))
-        .filter(
-          (c) =>
-            c.user?.login === 'github-actions[bot]' &&
-            (c.body ?? '').startsWith(marker + '\n') &&
-            Date.parse(c.created_at) >= Date.parse(approval.submitted_at),
-        )
-        .at(-1);
-      if (!record)
+      const result = results.find((r) => r.pr === pr.number);
+      const reviewedAt =
+        result.waiver?.at ??
+        agentVerdict({
+          comments,
+          pr: pr.number,
+          sha: pr.head.sha,
+          issue: issue.number,
+        })?.created_at;
+      let record = requirementsRecord({
+        comments,
+        pr: pr.number,
+        sha: pr.head.sha,
+        issue: issue.number,
+        approval,
+      });
+      if (!record || requirementsRecordPredatesReview(record, reviewedAt))
         record = await postComment(
           pr.number,
           `${marker}\nIssue requirements approved by @${approval.reviewer ?? reviewersFor(pr.user.login).requirements} after code review for commit \`${pr.head.sha}\`. Issue #${issue.number}: ready for QA.`,
@@ -1197,47 +1223,60 @@ async function processIssue(board, item) {
       stacked.length ? STATUS_REVIEW : STATUS_TESTING,
     );
     if (moved) {
-      for (const r of results) {
-        const snapshot = current.find(({ pr }) => pr.number === r.pr);
-        if (isStorybookPreview(snapshot.pr)) continue;
+      const handoffs = results
+        .map((r) => {
+          const { pr } = current.find(({ pr }) => pr.number === r.pr);
+          const tip = pr.stack?.tip;
+          return { r, pr, tip, covered: Boolean(tip && tip.number !== r.pr) };
+        })
+        .filter(({ pr }) => !isStorybookPreview(pr));
+      const handoffTimes = new Map();
+      // Record lower handoffs first so the tip can cover them, even after a retry.
+      handoffs.sort((a, b) => Number(b.covered) - Number(a.covered));
+      for (const { r, pr, tip, covered } of handoffs) {
+        const stack = pr.stack;
+        let recordAt = Date.parse(requirementRecords.get(r.pr).created_at);
+        if (tip?.number === r.pr) {
+          for (const member of stack.prs) {
+            recordAt = Math.max(recordAt, handoffTimes.get(member.number) ?? 0);
+          }
+        }
         const marker =
           readyMarker(r.pr, r.sha, issue.number) +
           (r.status === 'waived' ? '\n' + waiverMarker(r.waiver) : '');
-        if (
-          !(await listComments(r.pr)).some(
-            (c) =>
-              c.user?.login === 'github-actions[bot]' &&
-              (c.body ?? '').startsWith(marker + '\n') &&
-              Date.parse(c.created_at) >=
-                Date.parse(requirementRecords.get(r.pr).created_at),
-          )
-        ) {
+        let handoff = (await listComments(r.pr)).findLast(
+          (c) =>
+            c.user?.login === 'github-actions[bot]' &&
+            (c.body ?? '').startsWith(marker + '\n') &&
+            Date.parse(c.created_at) >= recordAt,
+        );
+        if (!handoff) {
           // One QA pass per stack: the tip contains every lower PR, so only the
           // tip asks for it. Lower PRs get the record the delivery check needs.
-          const stack = snapshot.pr.stack;
-          const tip = stack?.tip;
-          const covered = tip && tip.number !== r.pr;
-          await postComment(
+          handoff = await postComment(
             r.pr,
             covered
               ? `${marker}\nReady for QA via stack tip #${tip.number} · issue #${issue.number} · \`${r.sha}\`. No separate QA pass: testing and approving the tip covers this PR.`
               : `${marker}\nReady for QA · issue #${issue.number} · \`${r.sha}\`.\n${r.status === 'waived' ? `Copilot waived ([reason](${r.waiver.url})). ` : ''}${stack ? `Stack: ${stack.prs.map((member) => `#${member.number}`).join(' ← ')}. ` : ''}@${rolesByPr.get(r.pr).qa}: test this commit${stack ? ' (it contains the whole stack)' : ''}, then approve.`,
           );
         }
-        if (snapshot.pr.stack && snapshot.pr.stack.tip.number !== r.pr)
-          continue;
+        handoffTimes.set(
+          r.pr,
+          Date.parse(handoff.created_at ?? new Date().toISOString()),
+        );
+        if (covered) continue;
         await ensureQaReviewRequest({
           api: (path, options) => api(cfg.githubToken, path, options),
           repo: cfg.repo,
-          pr: snapshot.pr,
+          pr,
           issue: {
             number: issue.number,
-            requirements: snapshot.pr.requirements,
-            requirementsVersion: snapshot.pr.requirementsVersion,
+            requirements: pr.requirements,
+            requirementsVersion: pr.requirementsVersion,
           },
           dryRun: cfg.dryRun,
           waiver: r.waiver,
-          stacked: Boolean(snapshot.pr.stack),
+          stacked: Boolean(stack),
         });
       }
     }

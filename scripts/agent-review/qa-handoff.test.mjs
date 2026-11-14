@@ -21,8 +21,13 @@ async function scenario(options) {
   }
   const { issueRequirements, scopeMarker } =
     await import('./scripts/delivery/requirements.mjs');
-  const { requirementsApproval, requirementsMarker, readyMarker } =
-    await import('./scripts/delivery/lib.mjs');
+  const {
+    evaluate,
+    requirementsApproval,
+    requirementsMarker,
+    reviewStartApproval,
+    readyMarker,
+  } = await import('./scripts/delivery/lib.mjs');
   const sha = 'a'.repeat(40);
   const issue = {
     number: 78,
@@ -65,6 +70,7 @@ async function scenario(options) {
     additions: options.binaryOnly ? 0 : 1,
     deletions: 0,
   }));
+  const linkedPrs = options.reverseLinks ? prs.toReversed() : prs;
   const reviews = [
     {
       id: 1,
@@ -86,6 +92,8 @@ async function scenario(options) {
       commit_id: sha,
       submitted_at: '2001-01-01T00:00:00Z',
     });
+  let now = Date.parse('2026-01-01T00:00:00Z');
+  const timestamp = () => new Date((now += 1000)).toISOString();
   const bot = (body, at = '2001-01-01T00:00:00Z') => ({
     id: calls.length + 10,
     user: { login: 'github-actions[bot]' },
@@ -132,6 +140,20 @@ async function scenario(options) {
         .push(
           bot(readyMarker(pr.number, sha, 78) + '\n', '2003-01-01T00:00:00Z'),
         );
+    if (options.rerunHighReview && approval && !approval.exempt) {
+      const reviewStart = reviewStartApproval(pr, reviews);
+      const prComments = comments.get(pr.number);
+      prComments[0].created_at = '2002-06-01T00:00:00Z';
+      prComments.unshift(
+        bot(requirementsMarker(pr.number, sha, 78, reviewStart.id) + '\n'),
+      );
+      prComments.push(
+        bot(
+          `<!-- agent-review-scope issue=78 -->\n<!-- agent-review pr=${pr.number} sha=${sha} result=${options.rerunHighReview} attempt=1 -->\n`,
+          '2004-01-01T00:00:00Z',
+        ),
+      );
+    }
     if (options.oldHandoff) {
       comments
         .get(pr.number)
@@ -184,6 +206,14 @@ async function scenario(options) {
         submitted_at: '2004-01-01T00:00:00Z',
       });
   }
+  const previousQa = {
+    id: 3,
+    user: { login: 'MatejKrones' },
+    state: 'APPROVED',
+    commit_id: sha,
+    submitted_at: '2005-01-01T00:00:00Z',
+  };
+  if (options.rerunHighReview) reviews.push(previousQa);
   let failed = false;
   const headReads = new Map();
   const diffText =
@@ -261,7 +291,7 @@ async function scenario(options) {
                           pageInfo: { hasNextPage: false },
                           nodes: options.referencesOnly
                             ? []
-                            : prs.map((pr) => ({
+                            : linkedPrs.map((pr) => ({
                                 number: pr.number,
                                 state: 'OPEN',
                                 repository: { nameWithOwner: 'owner/repo' },
@@ -316,7 +346,15 @@ async function scenario(options) {
     else if (path.endsWith('/comments')) {
       const number = Number(path.split('/').at(-2));
       if (opts.method === 'POST') {
-        data = bot(body.body, new Date().toISOString());
+        if (
+          options.failHandoffOnce === number &&
+          body.body.startsWith('<!-- delivery-ready') &&
+          !failed
+        ) {
+          failed = true;
+          return { ok: false, status: 503, text: async () => 'unavailable' };
+        }
+        data = bot(body.body, timestamp());
         calls.push(
           body.body.startsWith('<!-- delivery-ready')
             ? 'handoff:' + number
@@ -436,7 +474,7 @@ async function scenario(options) {
         comments.get(pr.number).push({
           ...old,
           id: old.id + 1000,
-          updated_at: new Date(Date.now() + 1000).toISOString(),
+          updated_at: timestamp(),
         });
       }
     }
@@ -465,13 +503,35 @@ async function scenario(options) {
         for (const c of comments.get(pr.number)) {
           if (c.body.startsWith('/copilot-waive')) {
             c.body += ' Updated reason';
-            c.updated_at = new Date(Date.now() + 1000).toISOString();
+            c.updated_at = timestamp();
           }
         }
     }
   }
   if (eventDir)
     await (await import('node:fs/promises')).rm(eventDir, { recursive: true });
+  const delivery = (qa) =>
+    prs.map(
+      (pr) =>
+        evaluate({
+          pr,
+          issues: [
+            {
+              ...issue,
+              requirements: pr.requirements,
+              requirementsVersion: pr.requirementsVersion,
+            },
+          ],
+          reviews: [...reviews.filter((review) => review !== previousQa), qa],
+          comments: comments.get(pr.number),
+          qaFrom: {
+            review: qa,
+            sha: prs.at(-1).head.sha,
+            number: prs.at(-1).number,
+            owner: 'MatejKrones',
+          },
+        }).pass,
+    );
   // A simulated API failure is asserted in the result rather than failing the child.
   process.exitCode = 0;
   console.log(
@@ -480,6 +540,13 @@ async function scenario(options) {
       calls,
       issueComments: comments.get(78).map((c) => c.body),
       requested: Object.fromEntries(requested),
+      ...(options.rerunHighReview && {
+        previousQaPasses: delivery(previousQa),
+        freshQaPasses: delivery({
+          ...previousQa,
+          submitted_at: timestamp(),
+        }),
+      }),
       prComments: Object.fromEntries(
         prs.map((pr) => [
           pr.number,
@@ -676,13 +743,20 @@ test('deleting a waiver returns testing issue to code review rather than using t
 
 test('editing the waiver creates a new auditable handoff without duplicate pending request', () => {
   const r = run({
+    authors: ['developer'],
+    severityByPr: { 12: 'severity:high' },
     waiver: true,
     verdict: 'findings',
     editAfterFirst: true,
-    runs: 2,
+    runs: 3,
   });
   assert.equal(r.status, 'Ready for Testing');
   assert.deepEqual(r.handoffs, [2]);
+  // The fixture has a pre-review approval record, followed by one for each waiver.
+  assert.equal(
+    r.prComments[12].filter((c) => c.includes('review=scope:')).length,
+    3,
+  );
   assert.equal(r.calls.filter((c) => c === 'request:12').length, 1);
 });
 
@@ -969,6 +1043,49 @@ test('PR requirements command is recorded on the issue and advances High work on
 });
 
 const chain = { authors: ['developer', 'developer', 'developer'], chain: true };
+
+test('a newer High review refreshes a stale approval and hands the stack back to QA once', () => {
+  const r = run({
+    ...chain,
+    severityByPr: { 12: 'severity:high' },
+    existingHandoff: true,
+    rerunHighReview: 'pass',
+    reverseLinks: true,
+    failHandoffOnce: 12,
+    runs: 3,
+  });
+  assert.equal(r.status, 'Ready for Testing');
+  assert.equal(
+    r.issueComments.filter((c) => c.startsWith('<!-- issue-requirements '))
+      .length,
+    1,
+  );
+  assert.equal(
+    r.prComments[12].filter((c) => c.includes('review=scope:')).length,
+    2,
+  );
+  assert.deepEqual(r.handoffs, [2, 1, 2]);
+  assert.equal(r.calls.filter((c) => c === 'exit:1').length, 1);
+  assert.ok(r.calls.indexOf('handoff:12') < r.calls.indexOf('handoff:14'));
+  assert.deepEqual(
+    r.calls.filter((c) => c.startsWith('request:')),
+    ['request:14'],
+  );
+  assert.deepEqual(r.previousQaPasses, [false, true, false]);
+  assert.deepEqual(r.freshQaPasses, [true, true, true]);
+});
+
+test('a newer agent error on a lower PR keeps the stack out of QA', () => {
+  const r = run({
+    ...chain,
+    severityByPr: { 12: 'severity:high' },
+    existingHandoff: true,
+    rerunHighReview: 'error',
+  });
+  assert.equal(r.status, 'Ready for Code Review');
+  assert.deepEqual(r.handoffs, [1, 1, 1]);
+  assert.ok(!r.calls.some((c) => c.startsWith('request:')));
+});
 
 test('a chain of PRs is reviewed as one stack and handed to QA once, at the tip', () => {
   const r = run({ ...chain, runs: 2 });
