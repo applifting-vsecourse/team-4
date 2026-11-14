@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 
 import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { LoadError } from "@/components/LoadError"
+import { Money } from "@/components/Money"
 import { ParticipationBadge } from "@/components/ParticipationBadge"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -166,23 +167,20 @@ function PaymentSummary({ registration }: { registration: Detail }) {
         <div className="space-y-3">
           <DefinitionList>
             <DefinitionRow label="Cena vybraných termínů">
-              <span className="font-mono tabular-nums">
-                {formatCzk(registration.selectedPriceMinor)}
-              </span>
+              <Money minor={registration.selectedPriceMinor} />
             </DefinitionRow>
             <DefinitionRow label="Částka za potvrzené termíny">
-              <span className="font-mono tabular-nums">
-                {formatCzk(registration.amountDueMinor)}
-              </span>
+              <Money minor={registration.amountDueMinor} />
             </DefinitionRow>
             <DefinitionRow label="Zaplaceno">
-              <span className="font-mono tabular-nums">{formatCzk(registration.paidMinor)}</span>
+              <Money minor={registration.paidMinor} />
             </DefinitionRow>
             {hasNoObligation ? null : (
               <DefinitionRow label={balance.label}>
-                <span className="font-mono font-medium tabular-nums">
-                  {balance.amount ?? formatCzk(0)}
-                </span>
+                <Money
+                  minor={Math.abs(registration.balanceMinor)}
+                  isEmphasised
+                />
               </DefinitionRow>
             )}
             {registration.reminderAt ? (

@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState"
 import { FormError } from "@/components/FormError"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
+import { Money } from "@/components/Money"
 import { Notice } from "@/components/Notice"
 import { PageSection } from "@/components/PageSection"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
@@ -258,19 +259,22 @@ export function DataDisplaySection() {
               action={<Button>Vytvořit akci</Button>}
             />
           </ShowcaseItem>
-          <ShowcaseItem label="DefinitionList inline">
+          <ShowcaseItem label="DefinitionList inline + Money">
             <DefinitionList>
               <DefinitionRow label="Cena výběru">
-                <span className="font-mono tabular-nums">4 800 Kč</span>
+                <Money minor={480_000} />
               </DefinitionRow>
               <DefinitionRow label="Zaplaceno">
-                <span className="font-mono tabular-nums">2 400 Kč</span>
+                <Money minor={240_000} />
               </DefinitionRow>
               <DefinitionRow
                 label="Zbývá zaplatit"
                 isEmphasised
               >
-                <span className="font-mono tabular-nums">2 400 Kč</span>
+                <Money
+                  minor={240_000}
+                  isEmphasised
+                />
               </DefinitionRow>
             </DefinitionList>
           </ShowcaseItem>

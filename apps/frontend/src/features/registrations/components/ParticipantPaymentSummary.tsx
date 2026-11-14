@@ -1,7 +1,7 @@
 import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
+import { Money } from "@/components/Money"
 import { formatPragueDate } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
-import { cn } from "@/lib/utils"
 
 import { type PaymentInstructions } from "@/features/registrations/api/registrationSchemas"
 import { BalanceRow } from "@/features/registrations/components/BalanceRow"
@@ -38,27 +38,27 @@ export function ParticipantPaymentSummary({
     <div className="space-y-3">
       <DefinitionList>
         <DefinitionRow label="Cena výběru">
-          <Amount minor={selectedPriceMinor} />
+          <Money minor={selectedPriceMinor} />
         </DefinitionRow>
         {hasObligation ? (
           <>
             <DefinitionRow label="K úhradě za potvrzené termíny">
-              <Amount minor={amountDueMinor} />
+              <Money minor={amountDueMinor} />
             </DefinitionRow>
             <DefinitionRow label="Zaplaceno">
-              <Amount minor={paidMinor} />
+              <Money minor={paidMinor} />
             </DefinitionRow>
             {isBalanceHighlighted ? null : (
               <DefinitionRow label="Zbývá zaplatit">
-                <Amount
+                <Money
                   minor={Math.max(balanceMinor, 0)}
-                  className="font-medium"
+                  isEmphasised
                 />
               </DefinitionRow>
             )}
             {balanceMinor < 0 ? (
               <DefinitionRow label="Přeplatek">
-                <Amount minor={-balanceMinor} />
+                <Money minor={-balanceMinor} />
               </DefinitionRow>
             ) : null}
             {isBalanceHighlighted ? (
@@ -98,8 +98,4 @@ export function ParticipantPaymentSummary({
       ) : null}
     </div>
   )
-}
-
-function Amount({ minor, className }: { minor: number; className?: string }) {
-  return <span className={cn("font-mono tabular-nums", className)}>{formatCzk(minor)}</span>
 }

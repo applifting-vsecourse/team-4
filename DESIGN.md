@@ -125,6 +125,7 @@ Recurring states and page actions have one component each in `src/components/`. 
 | Titled part of a page                     | `PageSection title description? actions? isBusy? headingId?`       | A region named by its `h2`; actions on the right of the heading. `headingId` only when a link points at the section. Subsections with an `h3` stay hand-written.                       |
 | Labels and values of a record             | `DefinitionList layout?` with `DefinitionRow label isEmphasised?`  | `inline` (label left, value right) for short values such as amounts and dates; `stacked` (label above) for longer text. `isEmphasised` for the total, e.g. „Zbývá zaplatit“.           |
 | State of a registration's term            | `ParticipationBadge status`                                        | One type and label set in `src/lib/participation.ts` for every screen; a screen that cannot show a state narrows the type with `Exclude`.                                              |
+| Amount of money from haléře               | `Money minor isEmphasised?`                                        | Monospaced digits of equal width. Components that receive an already formatted amount keep it as text.                                                                                 |
 
 ### Adding or composing
 
