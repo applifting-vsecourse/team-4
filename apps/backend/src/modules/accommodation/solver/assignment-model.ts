@@ -11,7 +11,6 @@ import {
 //   y_r_v  room r carries hard-attribute value v (binary)
 //   e_r    extra beds used in room r (integer 0..extraBeds)
 //   u_r    room r is used (binary)
-//   z_r_k_w room r holds someone with value w of soft attribute k (binary)
 
 export type Term = readonly [coefficient: number, variable: string];
 export type Expression = Term[];
@@ -24,7 +23,6 @@ export type Constraint = {
 type Participant = {
   id: string;
   value: string | null;
-  softValues: Record<string, string>;
   isConfirmed: boolean;
   /** Rooms the participant may sleep in. */
   roomIndexes: number[];
@@ -47,8 +45,6 @@ export type AssignmentModel = {
     extraBeds: Expression;
     /** Rooms in use (stage 4, minimized). */
     rooms: Expression;
-    /** Weighted soft-rule violations (stage 5, minimized). */
-    soft: Expression;
   };
 };
 
@@ -57,8 +53,6 @@ export const x = (participant: number, room: number): string =>
 const y = (room: number, value: number): string => `y_${room}_${value}`;
 const e = (room: number): string => `e_${room}`;
 const u = (room: number): string => `u_${room}`;
-const z = (room: number, attribute: number, value: number): string =>
-  `z_${room}_${attribute}_${value}`;
 
 /** Placement of participant `i`: the sum of its room variables. */
 export const placement = (
@@ -77,7 +71,6 @@ const participantOf = (
 ): Omit<Participant, 'roomIndexes'> => ({
   id: source.id,
   value: source.value,
-  softValues: source.softValues ?? {},
   isConfirmed,
 });
 
@@ -129,7 +122,6 @@ export function buildAssignmentModel(
         ),
       ].sort()
     : [];
-  const softAttributes = input.softAttributes ?? [];
 
   const constraints: Constraint[] = [];
   const binaries: string[] = [];
@@ -196,41 +188,6 @@ export function buildAssignmentModel(
     }
   });
 
-  // Soft attributes: z marks each value present in a room.
-  const soft: Expression = [];
-  softAttributes.forEach((attribute, k) => {
-    const weight = 2 ** (softAttributes.length - 1 - k);
-    const values = [
-      ...new Set(
-        participants.flatMap((p) => {
-          const value = p.softValues[attribute];
-          return value === undefined ? [] : [value];
-        }),
-      ),
-    ].sort();
-    rooms.forEach((room, r) => {
-      if (capacity(room) === 0 || values.length < 2) return;
-      values.forEach((value, w) => {
-        const holders = occupancyOf(
-          r,
-          inRoom[r]!.filter(
-            (i) => participants[i]!.softValues[attribute] === value,
-          ),
-        );
-        if (holders.length === 0) return;
-        binaries.push(z(r, k, w));
-        constraints.push({
-          expression: [...holders, [-capacity(room), z(r, k, w)]],
-          sense: '<=',
-          rhs: 0,
-        });
-        soft.push([weight, z(r, k, w)]);
-      });
-      // Distinct values in a used room minus one is its number of violations.
-      soft.push([-weight, u(r)]);
-    });
-  });
-
   if (breakSymmetry) {
     addSymmetryBreaking(
       rooms,
@@ -258,7 +215,6 @@ export function buildAssignmentModel(
       rooms: rooms.flatMap((room, r) =>
         capacity(room) > 0 ? [[1, u(r)] as const] : [],
       ),
-      soft,
     },
   };
 }
@@ -311,9 +267,15 @@ const formatExpression = (expression: Expression): string => {
   return lines.join('\n   ');
 };
 
+/** What the LP text needs of a model. */
+export type LpModel = Pick<
+  AssignmentModel,
+  'constraints' | 'binaries' | 'integers'
+>;
+
 /** The model with one objective and the constraints fixed by earlier stages. */
 export function toLp(
-  model: AssignmentModel,
+  model: LpModel,
   sense: 'Maximize' | 'Minimize',
   objective: Expression,
   extra: Constraint[] = [],

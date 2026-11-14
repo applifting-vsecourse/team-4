@@ -27,27 +27,36 @@ Variant M (PM decision on #181), level by level, each level keeping the optimum 
 1. Most candidates accommodated.
 2. Among those, the higher positions in the term's order, exactly: the order is walked from the top and each candidate is fixed as placed while the optimal count still allows it.
 3. Base beds before extra beds.
-4. Fewest rooms (phase 2).
-5. Fewest soft-rule violations, weighted by rank (phase 2).
+4. Fewest rooms (room-level model only).
 
-Levels 1–2 decide who is suitable and must finish within the time limit (30 s per term), otherwise the result is `timeout`. Levels 3–5 only shape the rooms: when they run out of time the best valid layout found so far is kept and `stats.complete` is `false`.
+Levels 1–2 decide who is suitable and must finish within the time limit (30 s per term), otherwise the result is `timeout`. Levels 3–4 only shape the rooms: when they run out of time the best valid layout found so far is kept and `stats.complete` is `false`.
 
 Hard constraints: the term's beds per room, one hard-attribute value per room, confirmed participants always accommodated. Candidates without an effective value under a hard attribute are not evaluated (reason `R`). Unplaced reasons `A`, `B`, `C`, `N` follow spec §7.5. Confirmed participants who no longer fit give `infeasible` with the participants involved.
 
 ## Two models
 
 - **Phase 1** (`phase-one.ts`) uses an aggregate model. Without pinned rooms, rooms with the same beds are interchangeable, and so are candidates with the same hard-attribute value: a value with `a` places always takes its `a` highest positions. The model only decides how many rooms of each type carry each value. `phase-equivalence.spec.ts` checks on random terms that it picks the same people with the same reasons as the room-level model.
-- **Phase 2** (`assignment-model.ts`) models every person in every room, as needed for room proposals, soft attributes and pinned rooms.
+- **Room level** (`assignment-model.ts`, `phase: 2`) models every person in every room. It is the reference that `phase-equivalence.spec.ts` checks phase 1 against.
+
+## Room proposals (phase 2)
+
+`solveRoomProposal` (`solve-room-proposal.ts`) lays out the confirmed participants of one term in rooms, as specified in the phase-2 spec and decided in [ADR-0002](../../../../../../docs/adr/0002-room-proposal-local-search.md). It never decides who takes part.
+
+1. **U1, exact** (`room-proposal-placement.ts`): an aggregate HiGHS model decides how many people of each hard-attribute value are placed, by person order, and a small exact assignment decides which room carries which value, serving the rooms of other terms and saved rooms first. A greedy fill gives a valid starting layout.
+2. **U2–U7, local search** (`room-proposal-search.ts`): relocations, swaps, room swaps and wish-pair moves, compared by the full score vector, with seeded perturbation and a budget counted in evaluated moves, so the same input gives the same proposal. A final pass moves earlier people into earlier rooms where that keeps every score (U7). The search then re-runs up to twice from its own result as if it were applied, keeping it while it improves.
+3. `room-proposal-layout.ts` prepares the input (room order, locks, closed rooms, lock conflicts) and scores the result. Its scores are what the proposal reports.
+
+`strategy: 'exact'` (`room-proposal-exact.ts`, `room-proposal-model.ts`) solves every level on a room-level HiGHS model instead. It proves optimality on small terms only and is the test oracle: `room-proposal-oracle.spec.ts` requires the search to reach its scores on 60 sampled small terms (a wider fuzz of 400 terms found one where it does not; see ADR-0002). `solve-room-proposal.spec.ts` covers the 13 spec examples. `pnpm backend solver:proposal-benchmark` measures 200 people in 40 rooms.
 
 ## Spike results
 
 `pnpm backend solver:benchmark`: 200 participants over three overlapping terms, 40 rooms (mostly identical), gender as the hard attribute, 3 and 5 soft attributes, plus an overbooked term with all 200 participants for 134 beds.
 
-| Case | Phase 1 (aggregate) | Phase 2 (room level) |
-|---|---|---|
-| 3 terms, 109–133 candidates each, 134–162 beds, 3 or 5 soft attributes | 11–91 ms, exact | same people in every term, but stopped at 30 s with the room layout not proven optimal |
-| Overbooked term: 200 candidates, 134 beds | 97 ms (19 solves), exact | `timeout`: levels 1–2 do not finish in 30 s |
-| Re-run with 60 confirmed participants | 12 ms | not measured |
+| Case                                                                   | Phase 1 (aggregate)      | Phase 2 (room level)                                                                   |
+| ---------------------------------------------------------------------- | ------------------------ | -------------------------------------------------------------------------------------- |
+| 3 terms, 109–133 candidates each, 134–162 beds, 3 or 5 soft attributes | 11–91 ms, exact          | same people in every term, but stopped at 30 s with the room layout not proven optimal |
+| Overbooked term: 200 candidates, 134 beds                              | 97 ms (19 solves), exact | `timeout`: levels 1–2 do not finish in 30 s                                            |
+| Re-run with 60 confirmed participants                                  | 12 ms                    | not measured                                                                           |
 
 Earlier variants that did not work:
 
@@ -59,6 +68,6 @@ Earlier variants that did not work:
 ## Conclusions
 
 - HiGHS in a worker thread is enough for phase 1 (Sprint 3 scope) with a wide margin; no CP-SAT service is needed for it.
-- Phase 2 should not decide who is suitable again. It should take phase 1's suitable people as fixed and only lay them out in rooms (levels 3–5). The soft-attribute level does not reach a proven optimum in 30 s; it returns the best layout found. Whether that layout is good enough, or a CP-SAT service is worth it, is a phase 2 decision.
+- Phase 2 should not decide who is suitable again. It should take phase 1's suitable people as fixed and only lay them out in rooms. The soft-attribute level does not reach a proven optimum in 30 s; ADR-0002 decides phase 2 accordingly.
 - HiGHS checks its clock only now and then, so a level can overrun the limit by a few seconds. The worker runner terminates the worker 2 s after the limit as a safety net.
 - A layout HiGHS returns at its time limit is checked against all constraints before it is used. Without a feasible solution yet, HiGHS still returns column values, and using them gave "0 suitable".
