@@ -4,6 +4,7 @@ import { CalendarX, Lock } from "lucide-react"
 import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink"
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { EmptyState } from "@/components/EmptyState"
 import { FormError } from "@/components/FormError"
 import { LoadError } from "@/components/LoadError"
@@ -256,6 +257,30 @@ export function DataDisplaySection() {
               description="Vytvořte první akci a otevřete přihlášky."
               action={<Button>Vytvořit akci</Button>}
             />
+          </ShowcaseItem>
+          <ShowcaseItem label="DefinitionList inline">
+            <DefinitionList>
+              <DefinitionRow label="Cena výběru">
+                <span className="font-mono tabular-nums">4 800 Kč</span>
+              </DefinitionRow>
+              <DefinitionRow label="Zaplaceno">
+                <span className="font-mono tabular-nums">2 400 Kč</span>
+              </DefinitionRow>
+              <DefinitionRow
+                label="Zbývá zaplatit"
+                isEmphasised
+              >
+                <span className="font-mono tabular-nums">2 400 Kč</span>
+              </DefinitionRow>
+            </DefinitionList>
+          </ShowcaseItem>
+          <ShowcaseItem label="DefinitionList stacked">
+            <DefinitionList layout="stacked">
+              <DefinitionRow label="Místo">Chata Pod Lesem, Krkonoše</DefinitionRow>
+              <DefinitionRow label="Popis">
+                Čtrnáct dní her, výletů a táboráků pro děti od 8 do 14 let.
+              </DefinitionRow>
+            </DefinitionList>
           </ShowcaseItem>
           <ShowcaseItem label="Progress">
             <OccupancyProgress />

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
@@ -71,13 +72,15 @@ export function ChangeRequestCard({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <dl className="space-y-2 text-sm">
-            <Row label="Změna">{kind}</Row>
-            <Row label="Odesláno">{submittedAt}</Row>
+          <DefinitionList>
+            <DefinitionRow label="Změna">{kind}</DefinitionRow>
+            <DefinitionRow label="Odesláno">{submittedAt}</DefinitionRow>
             {decidedAt ? (
-              <Row label={status === "approved" ? "Schváleno" : "Zamítnuto"}>{decidedAt}</Row>
+              <DefinitionRow label={status === "approved" ? "Schváleno" : "Zamítnuto"}>
+                {decidedAt}
+              </DefinitionRow>
             ) : null}
-          </dl>
+          </DefinitionList>
           {notice}
           <ChangeSummary {...summary} />
         </div>
@@ -88,14 +91,5 @@ export function ChangeRequestCard({
         </CardFooter>
       ) : null}
     </Card>
-  )
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right">{children}</dd>
-    </div>
   )
 }

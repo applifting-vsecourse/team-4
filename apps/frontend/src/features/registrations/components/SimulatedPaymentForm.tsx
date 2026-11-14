@@ -1,3 +1,4 @@
+import { DefinitionList } from "@/components/DefinitionList"
 import { FormError } from "@/components/FormError"
 import { Notice } from "@/components/Notice"
 import { PendingButton } from "@/components/PendingButton"
@@ -6,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
-import { BalanceAmount } from "@/features/registrations/components/BalanceAmount"
+import { BalanceRow } from "@/features/registrations/components/BalanceRow"
 
 export type SimulatedPaymentFormProps = {
   eventName: string
@@ -62,15 +63,12 @@ export function SimulatedPaymentForm({
           }}
         >
           {debt ? (
-            <dl className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm">
-              <dt className="font-medium">Zbývá zaplatit</dt>
-              <dd>
-                <BalanceAmount
-                  amount={debt}
-                  isSettled={false}
-                />
-              </dd>
-            </dl>
+            <DefinitionList>
+              <BalanceRow
+                amount={debt}
+                isSettled={false}
+              />
+            </DefinitionList>
           ) : null}
 
           {isDebtReduced ? (

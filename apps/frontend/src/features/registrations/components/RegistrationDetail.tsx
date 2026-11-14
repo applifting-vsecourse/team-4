@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { LoadError } from "@/components/LoadError"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -82,13 +83,13 @@ export function RegistrationDetail({
               <CardTitle>Kontaktní údaje</CardTitle>
             </CardHeader>
             <CardContent>
-              <dl className="space-y-2 text-sm">
-                <Row label="Jméno a příjmení">
+              <DefinitionList>
+                <DefinitionRow label="Jméno a příjmení">
                   {registration.firstName} {registration.lastName}
-                </Row>
-                <Row label="E-mail">{registration.email}</Row>
-                <Row label="Telefon">{registration.phone}</Row>
-              </dl>
+                </DefinitionRow>
+                <DefinitionRow label="E-mail">{registration.email}</DefinitionRow>
+                <DefinitionRow label="Telefon">{registration.phone}</DefinitionRow>
+              </DefinitionList>
             </CardContent>
           </Card>
 
@@ -163,52 +164,43 @@ function PaymentSummary({ registration }: { registration: Detail }) {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <dl className="space-y-2 text-sm">
-            <Row label="Cena vybraných termínů">
+          <DefinitionList>
+            <DefinitionRow label="Cena vybraných termínů">
               <span className="font-mono tabular-nums">
                 {formatCzk(registration.selectedPriceMinor)}
               </span>
-            </Row>
-            <Row label="Částka za potvrzené termíny">
+            </DefinitionRow>
+            <DefinitionRow label="Částka za potvrzené termíny">
               <span className="font-mono tabular-nums">
                 {formatCzk(registration.amountDueMinor)}
               </span>
-            </Row>
-            <Row label="Zaplaceno">
+            </DefinitionRow>
+            <DefinitionRow label="Zaplaceno">
               <span className="font-mono tabular-nums">{formatCzk(registration.paidMinor)}</span>
-            </Row>
+            </DefinitionRow>
             {hasNoObligation ? null : (
-              <Row label={balance.label}>
+              <DefinitionRow label={balance.label}>
                 <span className="font-mono font-medium tabular-nums">
                   {balance.amount ?? formatCzk(0)}
                 </span>
-              </Row>
+              </DefinitionRow>
             )}
             {registration.reminderAt ? (
-              <Row label="Datum připomenutí platby">
+              <DefinitionRow label="Datum připomenutí platby">
                 {formatPragueDate(registration.reminderAt)}
-              </Row>
+              </DefinitionRow>
             ) : null}
             {registration.variableSymbol ? (
-              <Row label="Variabilní symbol">
+              <DefinitionRow label="Variabilní symbol">
                 <span className="font-mono">{registration.variableSymbol}</span>
-              </Row>
+              </DefinitionRow>
             ) : null}
-          </dl>
+          </DefinitionList>
           {hasNoObligation ? (
             <p className="text-sm text-muted-foreground">Bez platební povinnosti</p>
           ) : null}
         </div>
       </CardContent>
     </Card>
-  )
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right">{children}</dd>
-    </div>
   )
 }

@@ -1,5 +1,6 @@
 import { RefreshCw } from "lucide-react"
 
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { FormError } from "@/components/FormError"
 import { PendingButton } from "@/components/PendingButton"
 import { Badge } from "@/components/ui/badge"
@@ -222,10 +223,9 @@ export function QueueMoveDialog({
                 movedId={personId}
               />
             </div>
-            <dl className="text-sm">
-              <dt className="text-muted-foreground">Důvod</dt>
-              <dd className="break-words">{reason}</dd>
-            </dl>
+            <DefinitionList layout="stacked">
+              <DefinitionRow label="Důvod">{reason}</DefinitionRow>
+            </DefinitionList>
           </div>
         ) : null}
 

@@ -123,6 +123,7 @@ Recurring states and page actions have one component each in `src/components/`. 
 | Reloading a list or detail                | `RefreshButton`                                                    | „Aktualizovat“ / „Aktualizuji…“.                                                                                                                                                       |
 | Way back to the parent page               | `BackLink to params`                                               | Ghost button with `ArrowLeft` above the page heading.                                                                                                                                  |
 | Titled part of a page                     | `PageSection title description? actions? isBusy? headingId?`       | A region named by its `h2`; actions on the right of the heading. `headingId` only when a link points at the section. Subsections with an `h3` stay hand-written.                       |
+| Labels and values of a record             | `DefinitionList layout?` with `DefinitionRow label isEmphasised?`  | `inline` (label left, value right) for short values such as amounts and dates; `stacked` (label above) for longer text. `isEmphasised` for the total, e.g. „Zbývá zaplatit“.           |
 
 ### Adding or composing
 

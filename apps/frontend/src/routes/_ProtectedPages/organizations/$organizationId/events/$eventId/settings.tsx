@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { Pencil } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { PageHeader } from "@/components/PageHeader"
 import { PageSection } from "@/components/PageSection"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
@@ -81,21 +82,14 @@ function EventPage() {
           }
         >
           <Card>
-            <CardContent className="space-y-4">
-              <dl className="space-y-4 text-sm">
-                <div>
-                  <dt className="text-muted-foreground">Název</dt>
-                  <dd className="mt-1 break-words">{event.name}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Místo</dt>
-                  <dd className="mt-1 break-words">{event.location}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Popis</dt>
-                  <dd className="mt-1 break-words whitespace-pre-line">{event.description}</dd>
-                </div>
-              </dl>
+            <CardContent>
+              <DefinitionList layout="stacked">
+                <DefinitionRow label="Název">{event.name}</DefinitionRow>
+                <DefinitionRow label="Místo">{event.location}</DefinitionRow>
+                <DefinitionRow label="Popis">
+                  <span className="whitespace-pre-line">{event.description}</span>
+                </DefinitionRow>
+              </DefinitionList>
             </CardContent>
           </Card>
         </PageSection>

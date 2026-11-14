@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { Notice } from "@/components/Notice"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -37,18 +38,14 @@ export function AccommodationCard({
       <CardContent>
         <div className="space-y-4">
           {children ?? (
-            <dl className="space-y-3 text-sm">
-              <div className="space-y-1">
-                <dt className="text-muted-foreground">Pohlaví pro ubytování</dt>
-                <dd>{genderText(answer.gender)}</dd>
-              </div>
+            <DefinitionList layout="stacked">
+              <DefinitionRow label="Pohlaví pro ubytování">
+                {genderText(answer.gender)}
+              </DefinitionRow>
               {answer.genderOther ? (
-                <div className="space-y-1">
-                  <dt className="text-muted-foreground">Vlastní odpověď</dt>
-                  <dd className="break-words">{answer.genderOther}</dd>
-                </div>
+                <DefinitionRow label="Vlastní odpověď">{answer.genderOther}</DefinitionRow>
               ) : null}
-            </dl>
+            </DefinitionList>
           )}
           {extra}
           {isManualAccommodation ? (
