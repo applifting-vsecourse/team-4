@@ -3,10 +3,13 @@ import { http, HttpResponse } from "msw"
 import { expect, waitFor, within } from "storybook/test"
 
 import { env } from "@/config/env"
+import { failOn, neverAnswer } from "@/screens/msw"
 import { eventUrl, organizerBackend, screenMeta, showsHeading } from "@/screens/screenMeta"
+import { showsText } from "@/screens/steps"
 
 import { eventDetailSchema, eventTermSchema } from "@/features/events/api/eventSchemas"
 import { DRAFT_EVENT, OPEN_EVENT } from "@/features/events/fixtures/events"
+import { eventHandlers } from "@/features/events/fixtures/handlers"
 import { ORGANIZATION } from "@/features/organizations/fixtures/organizations"
 import { registrationChangeListSchema } from "@/features/registrations/api/registrationChangeSchemas"
 
@@ -213,4 +216,61 @@ export const AddFirstTermFromOverview: StoryObj<typeof meta> = {
     const terms = within(await canvas.findByRole("region", { name: "Termíny a ceny" }))
     await expect(terms.getByRole("row", { name: /První termín/ })).toHaveTextContent("500 Kč")
   },
+}
+
+const EVENT = "/organizations/:organizationId/events/:eventId"
+
+export const SummaryLoading: StoryObj<typeof meta> = {
+  beforeEach: ({ msw }) => {
+    msw.use(...neverAnswer("get", `${EVENT}/registrations`))
+  },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("status", { name: "Načítání souhrnu" })).toBeVisible()
+    await showsText("Žádné žádosti nečekají na vaše rozhodnutí.")
+  },
+}
+
+export const PendingApprovalsLoading: StoryObj<typeof meta> = {
+  beforeEach: ({ msw }) => {
+    msw.use(...neverAnswer("get", `${EVENT}/change-requests`))
+  },
+  play: async ({ canvas }) => {
+    await expect(
+      await canvas.findByRole("status", { name: "Načítání čekajících žádostí" }),
+    ).toBeVisible()
+  },
+}
+
+export const SummaryLoadFailed: StoryObj<typeof meta> = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("get", `${EVENT}/registrations`))
+  },
+  play: async () => {
+    await showsText("Souhrn se nepodařilo načíst")
+    await showsText("Žádné žádosti nečekají na vaše rozhodnutí.")
+  },
+}
+
+export const PendingApprovalsLoadFailed: StoryObj<typeof meta> = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("get", `${EVENT}/change-requests`))
+  },
+  play: () => showsText("Čekající žádosti se nepodařilo načíst"),
+}
+
+/** Open without a term: none can be added any more. */
+export const OpenWithoutTerms: StoryObj<typeof meta> = {
+  beforeEach: ({ msw }) => {
+    msw.use(...eventHandlers.detail({ ...OPEN_EVENT, terms: [] }))
+  },
+  play: async () => {
+    await showsText("Od otevření přihlašování jsou termíny zamčené, nový termín už nelze přidat.")
+    // Wait for the pending requests too, so the page is checked once settled.
+    await showsText("Žádné žádosti nečekají na vaše rozhodnutí.")
+  },
+}
+
+export const EventUnavailable: StoryObj<typeof meta> = {
+  args: { url: `/organizations/${ORGANIZATION.id}/events/0190c0de-0000-7000-8000-000000000999` },
+  play: () => showsText("Záznam není dostupný"),
 }

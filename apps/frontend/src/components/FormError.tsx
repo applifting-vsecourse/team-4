@@ -1,0 +1,22 @@
+import { CircleAlert } from "lucide-react"
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+
+type FormErrorProps = {
+  /** What failed, e.g. "Určení se nepodařilo uložit"; omit when the message says it. */
+  title?: string
+  /** The server's or the client's message, shown in full however long it is. */
+  message?: string | null
+}
+
+// A failed save or action of a form or dialog. It sits at the form, above its
+// buttons; success is a toast instead.
+export function FormError({ title, message }: FormErrorProps) {
+  return (
+    <Alert variant="destructive">
+      <CircleAlert aria-hidden />
+      {title ? <AlertTitle>{title}</AlertTitle> : null}
+      {message ? <AlertDescription>{message}</AlertDescription> : null}
+    </Alert>
+  )
+}

@@ -1,6 +1,4 @@
-import { TriangleAlert } from "lucide-react"
-
-import { Alert, AlertTitle } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -40,12 +38,7 @@ export function PublicationSection({
                 onCheckedChange={onChange}
               />
             </div>
-            {errorMessage ? (
-              <Alert variant="destructive">
-                <TriangleAlert />
-                <AlertTitle>{errorMessage}</AlertTitle>
-              </Alert>
-            ) : null}
+            {errorMessage ? <FormError message={errorMessage} /> : null}
           </div>
         </CardContent>
       </Card>

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 
-import { Alert, AlertTitle } from "@/components/ui/alert"
+import { Notice } from "@/components/Notice"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 import { type GenderAnswer } from "@/features/registrations/api/registrationSchemas"
@@ -52,9 +52,10 @@ export function AccommodationCard({
           )}
           {extra}
           {isManualAccommodation ? (
-            <Alert>
-              <AlertTitle>Ubytování je potřeba určit ručně</AlertTitle>
-            </Alert>
+            <Notice
+              tone="warning"
+              title="Ubytování je potřeba určit ručně"
+            />
           ) : null}
         </div>
       </CardContent>

@@ -1,19 +1,11 @@
 import { useState, type FormEvent } from "react"
-import { Info, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
-import { Alert, AlertTitle } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
+import { Notice } from "@/components/Notice"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
@@ -30,7 +22,6 @@ export type ChangeApprovalSettingsProps = {
   isSaving?: boolean
   /** Called with the entered text; the owner validates it. Absent in the design preview. */
   onSubmit?: (days: string) => void
-  onDismissError?: () => void
 }
 
 // Správa akce → Nastavení: the number of days before each term's start
@@ -42,7 +33,6 @@ export function ChangeApprovalSettings({
   errorMessage,
   isSaving = false,
   onSubmit,
-  onDismissError,
 }: ChangeApprovalSettingsProps) {
   const [value, setValue] = useState(days)
 
@@ -55,38 +45,13 @@ export function ChangeApprovalSettings({
     <CollapsibleSection
       headingId="change-approval-heading"
       title="Schvalování změn přihlášek"
-      afterContent={
-        <Dialog
-          open={Boolean(errorMessage)}
-          onOpenChange={(isOpen) => {
-            if (!isOpen) onDismissError?.()
-          }}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Uložení se nezdařilo</DialogTitle>
-              <DialogDescription>{errorMessage}</DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                >
-                  Zavřít
-                </Button>
-              </DialogClose>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      }
     >
       <Card>
         <CardContent>
-          <Alert>
-            <Info />
-            <AlertTitle>{savedSetting}</AlertTitle>
-          </Alert>
+          <Notice
+            tone="info"
+            title={savedSetting}
+          />
 
           <form
             noValidate
@@ -111,6 +76,13 @@ export function ChangeApprovalSettings({
               />
               {daysError ? <FieldError>{daysError}</FieldError> : null}
             </Field>
+
+            {errorMessage ? (
+              <FormError
+                title="Uložení se nezdařilo"
+                message={errorMessage}
+              />
+            ) : null}
 
             <div className="flex justify-end">
               <Button

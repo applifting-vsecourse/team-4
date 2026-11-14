@@ -1,11 +1,14 @@
 import { useState, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { ChevronLeft, MapPin } from "lucide-react"
+import { MapPin } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { BackLink } from "@/components/BackLink"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { RefreshButton } from "@/components/RefreshButton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,10 +25,8 @@ import { type ChangeProposal } from "@/features/registrations/api/registrationCh
 import { AccommodationCard } from "@/features/registrations/components/AccommodationCard"
 import { ChangeRequestCard } from "@/features/registrations/components/ChangeRequestCard"
 import { ChangeReviewDialog } from "@/features/registrations/components/ChangeReviewDialog"
-import { LoadFailedAlert } from "@/features/registrations/components/LoadFailedAlert"
 import { ParticipantPaymentSummary } from "@/features/registrations/components/ParticipantPaymentSummary"
 import { PaymentQrCard } from "@/features/registrations/components/PaymentQrCard"
-import { RefreshButton } from "@/features/registrations/components/RefreshButton"
 import { RegistrationChangeActions } from "@/features/registrations/components/RegistrationChangeActions"
 import { RegistrationHistory } from "@/features/registrations/components/RegistrationHistory"
 import { RegistrationNeedsSummary } from "@/features/registrations/components/RegistrationNeedsSummary"
@@ -43,18 +44,7 @@ import {
   isSessionRefused,
 } from "@/features/registrations/lib/sessionExpired"
 
-const BackToList = () => (
-  <Button
-    variant="ghost"
-    size="sm"
-    asChild
-  >
-    <Link to={ROUTES.myRegistrations}>
-      <ChevronLeft />
-      Moje přihlášky
-    </Link>
-  </Button>
-)
+const BackToList = () => <BackLink to={ROUTES.myRegistrations}>Moje přihlášky</BackLink>
 
 // One own registration (S2-14): terms, payment summary with the
 // stored instructions, and the history of received payments.
@@ -115,7 +105,7 @@ export function ParticipantRegistrationDetail({
       </div>
 
       {query.isError ? (
-        <LoadFailedAlert
+        <LoadError
           shownFrom={data ? query.dataUpdatedAt : undefined}
           isRetrying={query.isFetching}
           onRetry={() => query.refetch()}
@@ -158,18 +148,11 @@ export function ParticipantRegistrationDetail({
           ) : null}
 
           {changesQuery.isError ? (
-            <Alert variant="destructive">
-              <AlertDescription>
-                Změny přihlášky se nepodařilo načíst.{" "}
-                <Button
-                  variant="link"
-                  size="sm"
-                  onClick={() => void changesQuery.refetch()}
-                >
-                  Zkusit znovu
-                </Button>
-              </AlertDescription>
-            </Alert>
+            <LoadError
+              title="Změny přihlášky se nepodařilo načíst"
+              isRetrying={changesQuery.isFetching}
+              onRetry={() => changesQuery.refetch()}
+            />
           ) : null}
 
           {request ? (
@@ -281,15 +264,14 @@ export function ParticipantRegistrationDetail({
           )}
         </>
       ) : query.isPending ? (
-        <div
+        <LoadingBlock
+          label="Načítání přihlášky"
           className="space-y-4"
-          role="status"
-          aria-label="Načítání přihlášky"
         >
           <Skeleton className="h-10 w-2/3" />
           <Skeleton className="h-40 w-full" />
           <Skeleton className="h-48 w-full" />
-        </div>
+        </LoadingBlock>
       ) : null}
     </section>
   )

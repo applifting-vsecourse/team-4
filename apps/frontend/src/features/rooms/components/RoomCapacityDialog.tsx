@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react"
 import { Loader2 } from "lucide-react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -173,11 +173,7 @@ function RoomCapacityForm({
       onSubmit={submit}
     >
       {conflicts?.length ? <CapacityConflictAlert conflicts={conflicts} /> : null}
-      {errorMessage ? (
-        <Alert variant="destructive">
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-      ) : null}
+      {errorMessage ? <FormError message={errorMessage} /> : null}
 
       <Field data-invalid={labelError ? true : undefined}>
         <FieldLabel htmlFor="room-label">Označení</FieldLabel>

@@ -24,7 +24,7 @@ export const TERM_JULY = {
   status: "confirmed",
 } as const
 
-export const TERM_AUGUST = {
+const TERM_AUGUST = {
   termId: uuid(102),
   label: "Turnus 2",
   startDate: "2027-08-01",

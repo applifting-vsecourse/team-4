@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -286,11 +286,7 @@ export function RegistrationChangeForm({
         </CardContent>
       </Card>
 
-      {errorMessage ? (
-        <Alert variant="destructive">
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-      ) : null}
+      {errorMessage ? <FormError message={errorMessage} /> : null}
 
       <div className="flex flex-wrap justify-end gap-2">
         <Button

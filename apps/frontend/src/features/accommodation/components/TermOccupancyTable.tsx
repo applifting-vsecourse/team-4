@@ -1,5 +1,6 @@
 import { RefreshCw } from "lucide-react"
 
+import { LoadError } from "@/components/LoadError"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -12,7 +13,6 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
 import { type TermCapacity } from "@/features/accommodation/components/TermCapacitySummary"
 import { STATUS_BADGE, type EvaluationStatus } from "@/features/accommodation/lib/proposal"
 
@@ -61,7 +61,7 @@ export function TermOccupancyTable({
       </div>
 
       {isLoadFailed ? (
-        <RetryAlert title="Obsazenost se nepodařilo načíst" />
+        <LoadError title="Obsazenost se nepodařilo načíst" />
       ) : (
         <>
           <Card padding="none">

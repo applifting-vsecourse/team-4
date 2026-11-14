@@ -177,9 +177,7 @@ describe("ParticipantRegistrationDetail", () => {
   it("never shows a failed first load as an empty detail", async () => {
     serve(failWith(500))
     renderDetail()
-    expect(
-      await screen.findByText("Data se nepodařilo načíst. Zkuste to znovu."),
-    ).toBeInTheDocument()
+    expect(await screen.findByText("Data se nepodařilo načíst")).toBeInTheDocument()
     expect(screen.queryByText("Termíny")).not.toBeInTheDocument()
   })
 })

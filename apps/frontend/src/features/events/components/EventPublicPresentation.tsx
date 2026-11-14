@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ImageOff, ImagePlus, Loader2, Trash2, TriangleAlert } from "lucide-react"
+import { ImageOff, ImagePlus, Loader2, Trash2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { Alert, AlertTitle } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
@@ -222,12 +222,7 @@ export function EventPublicPresentation({
                 <p className="text-sm text-muted-foreground">
                   JPEG, PNG nebo WebP do 5 MB, nejvýše {MAX_PHOTOS} fotky.
                 </p>
-                {photoError ? (
-                  <Alert variant="destructive">
-                    <TriangleAlert />
-                    <AlertTitle>{photoError}</AlertTitle>
-                  </Alert>
-                ) : null}
+                {photoError ? <FormError message={photoError} /> : null}
               </div>
             </section>
 
@@ -344,12 +339,7 @@ export function EventPublicPresentation({
                   />
                 </fieldset>
 
-                {errorMessage ? (
-                  <Alert variant="destructive">
-                    <TriangleAlert />
-                    <AlertTitle>{errorMessage}</AlertTitle>
-                  </Alert>
-                ) : null}
+                {errorMessage ? <FormError message={errorMessage} /> : null}
                 <div className="flex justify-end">
                   <Button
                     type="submit"

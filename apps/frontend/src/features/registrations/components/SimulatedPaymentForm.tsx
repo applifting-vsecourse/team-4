@@ -1,6 +1,7 @@
-import { Loader2, RefreshCw } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { LoadError } from "@/components/LoadError"
+import { Notice } from "@/components/Notice"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
@@ -74,30 +75,21 @@ export function SimulatedPaymentForm({
           ) : null}
 
           {isDebtReduced ? (
-            <Alert>
-              <RefreshCw aria-hidden />
-              <AlertTitle>Částka k úhradě se mezitím snížila</AlertTitle>
-              <AlertDescription>Zkontrolujte částku a potvrďte platbu znovu.</AlertDescription>
-            </Alert>
+            <Notice
+              tone="warning"
+              title="Částka k úhradě se mezitím snížila"
+            >
+              Zkontrolujte částku a potvrďte platbu znovu.
+            </Notice>
           ) : null}
 
           {errorMessage ? (
-            <Alert variant="destructive">
-              <AlertTitle>Akce se nepodařila</AlertTitle>
-              <AlertDescription>
-                <p>{errorMessage}</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={onRetry}
-                  disabled={isSaving}
-                >
-                  Zkusit znovu
-                </Button>
-              </AlertDescription>
-            </Alert>
+            <LoadError
+              title="Akce se nepodařila"
+              description={errorMessage}
+              isRetrying={isSaving}
+              onRetry={onRetry}
+            />
           ) : null}
 
           {debt ? (

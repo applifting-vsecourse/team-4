@@ -127,7 +127,7 @@ function Decided() {
 }
 
 const meta = {
-  title: "Designs/Accommodation evaluation/F13-1 F14-1 Participant registration",
+  title: "Not implemented/F13-1 F14-1 Participant term states",
   parameters: { layout: "fullscreen" },
   globals: { viewport: { value: "desktop", isRotated: false } },
 } satisfies Meta

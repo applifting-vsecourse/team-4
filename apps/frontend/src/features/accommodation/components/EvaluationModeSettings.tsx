@@ -1,12 +1,11 @@
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
 
+import { FormError } from "@/components/FormError"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-
-import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
 
 export type EvaluationMode = "automatic" | "manual"
 
@@ -70,9 +69,9 @@ export function EvaluationModeSettings({
               </Field>
             </RadioGroup>
             {saveError ? (
-              <ErrorAlert
+              <FormError
                 title="Režim se nepodařilo uložit"
-                detail={saveError}
+                message={saveError}
               />
             ) : null}
           </div>
