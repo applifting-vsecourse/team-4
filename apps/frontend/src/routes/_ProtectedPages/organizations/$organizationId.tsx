@@ -4,6 +4,7 @@ import { createFileRoute, Link, Outlet, useParams } from "@tanstack/react-router
 import { ROUTES } from "@/app/routes"
 import { BrandMark } from "@/components/BrandMark"
 import { ThemeSwitcher } from "@/components/Header/ThemeSwitcher"
+import { WithinMain } from "@/components/MainLandmark"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 
 import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOptions"
@@ -66,7 +67,9 @@ function OrganizationShell() {
             <BrandMark />
           </Link>
         </div>
-        <Outlet />
+        <WithinMain>
+          <Outlet />
+        </WithinMain>
       </SidebarInset>
     </SidebarProvider>
   )

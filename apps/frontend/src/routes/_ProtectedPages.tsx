@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, redirect, useMatch } from "@tanstack/react-rou
 
 import { ROUTES } from "@/app/routes"
 import { Header } from "@/components/Header/Header"
+import { Main } from "@/components/MainLandmark"
 import { Seo } from "@/components/Seo"
 
 import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOptions"
@@ -41,9 +42,9 @@ function Layout() {
     <>
       <Seo />
       <Header account={<HeaderMenu />} />
-      <main className="min-h-svh">
+      <Main className="min-h-svh">
         <Outlet />
-      </main>
+      </Main>
     </>
   )
 }
