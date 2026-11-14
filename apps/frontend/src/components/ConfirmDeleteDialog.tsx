@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
-import { Loader2 } from "lucide-react"
 
 import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -57,14 +57,13 @@ export function ConfirmDeleteDialog({
           <DialogClose asChild>
             <Button variant="outline">Zrušit</Button>
           </DialogClose>
-          <Button
+          <PendingButton
             variant="destructive"
-            disabled={isDeleting}
+            isPending={isDeleting}
             onClick={() => onConfirm?.()}
           >
-            {isDeleting ? <Loader2 className="size-4 animate-spin" /> : null}
             Odstranit
-          </Button>
+          </PendingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

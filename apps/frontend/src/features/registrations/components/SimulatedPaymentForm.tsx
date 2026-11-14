@@ -1,7 +1,6 @@
-import { Loader2 } from "lucide-react"
-
 import { FormError } from "@/components/FormError"
 import { Notice } from "@/components/Notice"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
@@ -119,14 +118,13 @@ export function SimulatedPaymentForm({
                 <FieldError id="payment-amount-error">{amountError}</FieldError>
               </Field>
 
-              <Button
+              <PendingButton
                 type="submit"
                 className="w-full max-w-sm sm:w-auto"
-                disabled={isSaving}
+                isPending={isSaving}
               >
-                {isSaving ? <Loader2 className="animate-spin" /> : null}
                 Zaplatit
-              </Button>
+              </PendingButton>
             </>
           ) : null}
         </form>

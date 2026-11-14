@@ -1,9 +1,8 @@
 import { useState, type FormEvent } from "react"
-import { Loader2 } from "lucide-react"
 
 import { FormError } from "@/components/FormError"
 import { Notice } from "@/components/Notice"
-import { Button } from "@/components/ui/button"
+import { PendingButton } from "@/components/PendingButton"
 import { Card, CardContent } from "@/components/ui/card"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
@@ -85,13 +84,12 @@ export function ChangeApprovalSettings({
             ) : null}
 
             <div className="flex justify-end">
-              <Button
+              <PendingButton
                 type="submit"
-                disabled={isSaving}
+                isPending={isSaving}
               >
-                {isSaving ? <Loader2 className="size-4 animate-spin" /> : null}
                 Uložit schvalování změn
-              </Button>
+              </PendingButton>
             </div>
           </form>
         </CardContent>

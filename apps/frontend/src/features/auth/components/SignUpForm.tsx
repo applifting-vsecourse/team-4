@@ -1,10 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
 import { FormError } from "@/components/FormError"
-import { Button } from "@/components/ui/button"
+import { PendingButton } from "@/components/PendingButton"
 import {
   Form,
   FormControl,
@@ -101,15 +100,14 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
           )}
         />
 
-        <Button
+        <PendingButton
           type="submit"
           size="lg"
           className="w-full max-w-sm"
-          disabled={isLoading}
+          isPending={isLoading}
         >
-          {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}
           Zaregistrovat se
-        </Button>
+        </PendingButton>
       </form>
     </Form>
   )

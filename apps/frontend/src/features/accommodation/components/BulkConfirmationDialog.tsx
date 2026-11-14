@@ -1,6 +1,7 @@
-import { Loader2, RefreshCw } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 
 import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -114,13 +115,12 @@ export function BulkConfirmationDialog({
               Načíst nový návrh
             </Button>
           ) : (
-            <Button
-              disabled={isSaving}
+            <PendingButton
+              isPending={isSaving}
               onClick={onConfirm}
             >
-              {isSaving ? <Loader2 className="animate-spin" /> : null}
               {isSaving ? "Potvrzuji…" : `Potvrdit ${participations(count)}`}
-            </Button>
+            </PendingButton>
           )}
         </DialogFooter>
       </DialogContent>

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { ClipboardList, Ellipsis, Loader2, RefreshCw } from "lucide-react"
+import { ClipboardList, Ellipsis, RefreshCw } from "lucide-react"
 
 import { FormError } from "@/components/FormError"
 import { HorizontalOverflowViewport } from "@/components/HorizontalOverflowViewport"
@@ -7,6 +7,7 @@ import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { Notice } from "@/components/Notice"
 import { PageSection } from "@/components/PageSection"
+import { PendingButton } from "@/components/PendingButton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -450,14 +451,14 @@ export function TermEvaluation({
                       )}
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button
+                      <PendingButton
                         variant="outline"
-                        disabled={isRunning}
+                        isPending={isRunning}
+                        icon={<RefreshCw />}
                         onClick={onRecalculate}
                       >
-                        {isRunning ? <Loader2 className="animate-spin" /> : <RefreshCw />}
                         {isRunning ? "Přepočítává se…" : "Přepočítat"}
-                      </Button>
+                      </PendingButton>
                       {onConfirmAll ? (
                         <Button
                           disabled={!canConfirm}

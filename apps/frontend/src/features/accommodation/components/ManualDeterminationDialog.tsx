@@ -1,7 +1,7 @@
 import { useState } from "react"
-import { Loader2 } from "lucide-react"
 
 import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -114,13 +114,12 @@ export function ManualDeterminationDialog({
               Zrušit
             </Button>
           </DialogClose>
-          <Button
-            disabled={isSaving}
+          <PendingButton
+            isPending={isSaving}
             onClick={submit}
           >
-            {isSaving ? <Loader2 className="animate-spin" /> : null}
             Uložit určení
-          </Button>
+          </PendingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,11 +1,10 @@
 import { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
 import { FormError } from "@/components/FormError"
-import { Button } from "@/components/ui/button"
+import { PendingButton } from "@/components/PendingButton"
 import {
   Form,
   FormControl,
@@ -211,13 +210,13 @@ export function PaymentSettingsForm({
         />
 
         <div className="flex justify-end">
-          <Button
+          <PendingButton
             type="submit"
-            disabled={isLoading || !canSave}
+            isPending={isLoading}
+            disabled={!canSave}
           >
-            {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}
             Uložit platební nastavení
-          </Button>
+          </PendingButton>
         </div>
       </form>
     </Form>

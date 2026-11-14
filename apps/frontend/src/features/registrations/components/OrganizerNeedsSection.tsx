@@ -1,8 +1,9 @@
 import { useState } from "react"
-import { Loader2, Pencil } from "lucide-react"
+import { Pencil } from "lucide-react"
 
 import { FormError } from "@/components/FormError"
 import { Notice } from "@/components/Notice"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { readApiError } from "@/lib/apiError"
@@ -141,13 +142,13 @@ function NeedsEditor({
             />
           ) : null}
           <div className="flex flex-wrap gap-2">
-            <Button
+            <PendingButton
               type="submit"
-              disabled={correct.isPending || isStale}
+              isPending={correct.isPending}
+              disabled={isStale}
             >
-              {correct.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
               {correct.isPending ? "Ukládám…" : "Uložit údaje"}
-            </Button>
+            </PendingButton>
             <Button
               type="button"
               variant="outline"

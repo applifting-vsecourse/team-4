@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react"
-import { Loader2 } from "lucide-react"
 
 import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { readApiError } from "@/lib/apiError"
 
@@ -104,13 +104,12 @@ export function OrganizerAccommodationCard({
             >
               Zrušit
             </Button>
-            <Button
+            <PendingButton
               type="submit"
-              disabled={update.isPending}
+              isPending={update.isPending}
             >
-              {update.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
               {update.isPending ? "Ukládám…" : "Uložit"}
-            </Button>
+            </PendingButton>
           </div>
         </form>
       ) : undefined}

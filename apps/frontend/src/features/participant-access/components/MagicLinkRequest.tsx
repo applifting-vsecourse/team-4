@@ -1,10 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Mail } from "lucide-react"
+import { Mail } from "lucide-react"
 import { useForm } from "react-hook-form"
 
 import { FormError } from "@/components/FormError"
 import { Notice } from "@/components/Notice"
-import { Button } from "@/components/ui/button"
+import { PendingButton } from "@/components/PendingButton"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Form,
@@ -76,15 +76,14 @@ export function MagicLinkRequest({ notice }: MagicLinkRequestProps) {
               )}
             />
 
-            <Button
+            <PendingButton
               type="submit"
               size="lg"
               className="w-full max-w-sm"
-              disabled={request.isPending}
+              isPending={request.isPending}
             >
-              {request.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
               Poslat přihlašovací odkaz
-            </Button>
+            </PendingButton>
 
             {request.isSuccess ? (
               <Notice

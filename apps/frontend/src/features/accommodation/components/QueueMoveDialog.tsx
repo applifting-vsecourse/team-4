@@ -1,6 +1,7 @@
-import { Loader2, RefreshCw } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 
 import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -253,13 +254,12 @@ export function QueueMoveDialog({
           </DialogClose>
           {isForm ? <Button onClick={onContinue}>Pokračovat</Button> : null}
           {step === "review" || step === "failed" || isSaving ? (
-            <Button
-              disabled={isSaving}
+            <PendingButton
+              isPending={isSaving}
               onClick={onSave}
             >
-              {isSaving ? <Loader2 className="animate-spin" /> : null}
               {isSaving ? "Ukládám…" : "Uložit pořadí"}
-            </Button>
+            </PendingButton>
           ) : null}
           {step === "stale" ? (
             <Button onClick={onReload}>

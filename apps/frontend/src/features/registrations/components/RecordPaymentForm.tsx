@@ -1,10 +1,10 @@
 import { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
 import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/ui/date-picker"
 import { DialogClose, DialogFooter } from "@/components/ui/dialog"
@@ -122,13 +122,12 @@ export function RecordPaymentForm({
               Zrušit
             </Button>
           </DialogClose>
-          <Button
+          <PendingButton
             type="submit"
-            disabled={isLoading}
+            isPending={isLoading}
           >
-            {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}
             Uložit platbu
-          </Button>
+          </PendingButton>
         </DialogFooter>
       </form>
     </Form>

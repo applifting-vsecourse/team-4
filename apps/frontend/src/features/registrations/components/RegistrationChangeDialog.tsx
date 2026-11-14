@@ -1,8 +1,9 @@
 import { useState } from "react"
-import { Loader2, RefreshCw } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 
 import { FormError } from "@/components/FormError"
 import { Notice } from "@/components/Notice"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -159,15 +160,15 @@ export function RegistrationChangeDialog({
               Načíst přihlášku znovu
             </Button>
           ) : (
-            <Button
+            <PendingButton
               type="button"
               variant={isCancellation && !isRequest ? "destructive" : "default"}
-              disabled={isSubmitting || (release ? !isReleaseConsentGiven : false)}
+              isPending={isSubmitting}
+              disabled={release ? !isReleaseConsentGiven : false}
               onClick={() => onConfirm?.(isReleaseConsentGiven)}
             >
-              {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
               {confirmLabel}
-            </Button>
+            </PendingButton>
           )}
         </DialogFooter>
       </DialogContent>

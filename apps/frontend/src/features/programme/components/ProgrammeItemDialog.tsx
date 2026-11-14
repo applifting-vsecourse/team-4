@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react"
-import { Loader2 } from "lucide-react"
 
 import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/ui/date-picker"
 import {
@@ -199,13 +199,12 @@ function ProgrammeItemForm({
             Zrušit
           </Button>
         </DialogClose>
-        <Button
+        <PendingButton
           type="submit"
-          disabled={isSubmitting}
+          isPending={isSubmitting}
         >
-          {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
           Uložit položku
-        </Button>
+        </PendingButton>
       </DialogFooter>
     </form>
   )

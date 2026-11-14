@@ -1,9 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
 import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -131,13 +131,12 @@ export function EventForm({
           >
             Zrušit
           </Button>
-          <Button
+          <PendingButton
             type="submit"
-            disabled={isLoading}
+            isPending={isLoading}
           >
-            {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}
             {submitLabel}
-          </Button>
+          </PendingButton>
         </div>
       </form>
     </Form>
