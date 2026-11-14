@@ -1,14 +1,11 @@
 import { useState } from "react"
 
+import { DialogActions } from "@/components/DialogActions"
 import { FormError } from "@/components/FormError"
-import { PendingButton } from "@/components/PendingButton"
-import { Button } from "@/components/ui/button"
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -105,22 +102,11 @@ export function ManualDeterminationDialog({
           />
         ) : null}
 
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button
-              variant="outline"
-              disabled={isSaving}
-            >
-              Zrušit
-            </Button>
-          </DialogClose>
-          <PendingButton
-            isPending={isSaving}
-            onClick={submit}
-          >
-            Uložit určení
-          </PendingButton>
-        </DialogFooter>
+        <DialogActions
+          submitLabel="Uložit určení"
+          isPending={isSaving}
+          onSubmit={submit}
+        />
       </DialogContent>
     </Dialog>
   )

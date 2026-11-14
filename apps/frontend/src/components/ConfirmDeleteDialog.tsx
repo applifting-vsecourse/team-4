@@ -1,14 +1,11 @@
 import type { ReactNode } from "react"
 
+import { DialogActions } from "@/components/DialogActions"
 import { FormError } from "@/components/FormError"
-import { PendingButton } from "@/components/PendingButton"
-import { Button } from "@/components/ui/button"
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -53,18 +50,12 @@ export function ConfirmDeleteDialog({
           <DialogDescription>{consequence}</DialogDescription>
         </DialogHeader>
         {errorMessage ? <FormError message={errorMessage} /> : null}
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Zrušit</Button>
-          </DialogClose>
-          <PendingButton
-            variant="destructive"
-            isPending={isDeleting}
-            onClick={() => onConfirm?.()}
-          >
-            Odstranit
-          </PendingButton>
-        </DialogFooter>
+        <DialogActions
+          submitLabel="Odstranit"
+          submitVariant="destructive"
+          isPending={isDeleting}
+          onSubmit={() => onConfirm?.()}
+        />
       </DialogContent>
     </Dialog>
   )

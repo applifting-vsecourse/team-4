@@ -3,11 +3,9 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
+import { DialogActions } from "@/components/DialogActions"
 import { FormError } from "@/components/FormError"
-import { PendingButton } from "@/components/PendingButton"
-import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/ui/date-picker"
-import { DialogClose, DialogFooter } from "@/components/ui/dialog"
 import {
   Form,
   FormControl,
@@ -192,22 +190,10 @@ export function TermForm({
           )}
         />
 
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button
-              type="button"
-              variant="outline"
-            >
-              Zrušit
-            </Button>
-          </DialogClose>
-          <PendingButton
-            type="submit"
-            isPending={isLoading}
-          >
-            Uložit termín
-          </PendingButton>
-        </DialogFooter>
+        <DialogActions
+          submitLabel="Uložit termín"
+          isPending={isLoading}
+        />
       </form>
     </Form>
   )

@@ -1,14 +1,11 @@
 import { useState, type FormEvent } from "react"
 
+import { DialogActions } from "@/components/DialogActions"
 import { FormError } from "@/components/FormError"
-import { PendingButton } from "@/components/PendingButton"
-import { Button } from "@/components/ui/button"
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -215,22 +212,10 @@ function RoomCapacityForm({
         />
       ))}
 
-      <DialogFooter>
-        <DialogClose asChild>
-          <Button
-            type="button"
-            variant="outline"
-          >
-            Zrušit
-          </Button>
-        </DialogClose>
-        <PendingButton
-          type="submit"
-          isPending={isSaving}
-        >
-          Uložit
-        </PendingButton>
-      </DialogFooter>
+      <DialogActions
+        submitLabel="Uložit"
+        isPending={isSaving}
+      />
     </form>
   )
 }

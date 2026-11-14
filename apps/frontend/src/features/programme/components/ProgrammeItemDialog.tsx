@@ -1,15 +1,12 @@
 import { useState, type FormEvent } from "react"
 
+import { DialogActions } from "@/components/DialogActions"
 import { FormError } from "@/components/FormError"
-import { PendingButton } from "@/components/PendingButton"
-import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/ui/date-picker"
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -190,22 +187,10 @@ function ProgrammeItemForm({
           <FieldError>{errors.description}</FieldError>
         </Field>
       </FieldGroup>
-      <DialogFooter>
-        <DialogClose asChild>
-          <Button
-            type="button"
-            variant="outline"
-          >
-            Zrušit
-          </Button>
-        </DialogClose>
-        <PendingButton
-          type="submit"
-          isPending={isSubmitting}
-        >
-          Uložit položku
-        </PendingButton>
-      </DialogFooter>
+      <DialogActions
+        submitLabel="Uložit položku"
+        isPending={isSubmitting}
+      />
     </form>
   )
 }
