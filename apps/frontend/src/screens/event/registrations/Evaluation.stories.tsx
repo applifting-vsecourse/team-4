@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { http, HttpResponse } from "msw"
+import { delay, http, HttpResponse } from "msw"
 import { expect, screen, userEvent, within } from "storybook/test"
 
 import { apiUrl, failOn, neverAnswer } from "@/screens/msw"
@@ -73,6 +73,37 @@ export const Loading: Story = {
     await expect(
       await canvas.findByRole("status", { name: "Načítání vyhodnocení termínu" }),
     ).toBeVisible()
+    // The term tabs stay, so another term can be picked (S4-01).
+    await expect(canvas.getByRole("tab", { name: "Turnus 2" })).toBeVisible()
+  },
+}
+
+/**
+ * Another term is loading: its tabs stay and the placeholder keeps the page
+ * height, so the organizer stays where they were (S4-01).
+ */
+export const SwitchingTerm: Story = {
+  beforeEach: ({ msw }) => {
+    const [, second] = OPEN_EVENT.terms
+    msw.use(
+      // Only the second term never answers; the first falls through to the backend.
+      http.get(apiUrl(`${TERM}/evaluation`), async ({ params }) => {
+        if (params.termId !== second?.id) return undefined
+        await delay("infinite")
+      }),
+    )
+  },
+  play: async (context) => {
+    await showsHeading("Pořadí")(context)
+    const { canvas } = context
+    await userEvent.click(canvas.getByRole("tab", { name: "Turnus 2" }))
+    await expect(
+      await canvas.findByRole("status", { name: "Načítání vyhodnocení termínu" }),
+    ).toBeVisible()
+    await expect(canvas.getByRole("tab", { name: "Turnus 2" })).toHaveAttribute(
+      "data-state",
+      "active",
+    )
   },
 }
 

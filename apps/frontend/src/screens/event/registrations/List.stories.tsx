@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { http, HttpResponse } from "msw"
-import { expect, waitFor } from "storybook/test"
+import { delay, http, HttpResponse } from "msw"
+import { expect, screen, userEvent, waitFor } from "storybook/test"
 
 import { apiUrl, failOn, failsOnRefresh, neverAnswer } from "@/screens/msw"
 import { eventUrl, organizerBackend, screenMeta, showsHeading } from "@/screens/screenMeta"
@@ -60,6 +60,33 @@ export const Loading: Story = {
     await waitFor(() =>
       expect(canvasElement.querySelector('[aria-label="Načítání přihlášek"]')).not.toBeNull(),
     )
+  },
+}
+
+/**
+ * Another filter is loading: the previous rows stay, so the page does not
+ * shrink and move the organizer away from the filters (S4-01).
+ */
+export const SwitchingFilter: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      // Only the filtered list never answers; the unfiltered one falls through.
+      http.get(apiUrl(LIST), async ({ request }) => {
+        if (!new URL(request.url).searchParams.has("termId")) return undefined
+        await delay("infinite")
+      }),
+    )
+  },
+  play: async (context) => {
+    await showsHeading("Seznam přihlášek")(context)
+    const { canvas } = context
+    const [row] = await canvas.findAllByRole("row", { name: /Zaplaceno|Bez povinnosti/ })
+    await userEvent.click(canvas.getByRole("combobox", { name: "Termín" }))
+    await userEvent.click(await screen.findByRole("option", { name: "Turnus 1" }))
+    await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument())
+    // The filter is applied while its rows are still on the way.
+    await expect(canvas.getByRole("combobox", { name: "Termín" })).toHaveTextContent("Turnus 1")
+    await expect(row).toBeVisible()
   },
 }
 
