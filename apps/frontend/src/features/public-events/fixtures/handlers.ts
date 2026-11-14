@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw"
 
 import { env } from "@/config/env"
 
+import type { CatalogEvent, PublicEvent } from "@/features/public-events/api/publicEventSchemas"
 import letniTaborImage from "@/features/public-events/fixtures/images/letni-tabor.jpg"
 import {
   CATALOG_EVENT,
@@ -36,10 +37,10 @@ export const publicEventHandlers = {
   catalogListFailed: () => [
     http.get(CATALOG_LIST_URL, () => HttpResponse.json({ statusCode: 500 }, { status: 500 })),
   ],
-  detail: () => [http.get(DETAIL, () => HttpResponse.json(PUBLIC_EVENT))],
+  detail: (event: PublicEvent = PUBLIC_EVENT) => [http.get(DETAIL, () => HttpResponse.json(event))],
   /** The catalog detail (F55) and its photos. */
-  catalogDetail: () => [
-    http.get(CATALOG_DETAIL, () => HttpResponse.json(CATALOG_EVENT)),
+  catalogDetail: (event: CatalogEvent = CATALOG_EVENT) => [
+    http.get(CATALOG_DETAIL, () => HttpResponse.json(event)),
     http.get(`${CATALOG_DETAIL}/photos/:photoId`, async () => {
       const image = await (await fetch(letniTaborImage)).arrayBuffer()
       return new HttpResponse(image, { headers: { "Content-Type": "image/jpeg" } })
