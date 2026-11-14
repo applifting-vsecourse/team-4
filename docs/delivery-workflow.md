@@ -15,35 +15,35 @@ Multiple or unknown `severity:` labels block merging. Use the highest level in
 mixed changes. Collaborators may escalate the label. The gate reads live labels
 and re-evaluates on label changes, pushes, reviews and scheduled reconciliation.
 
-| Gate                                     | Low         | Standard (default) | High                               |
-| ---------------------------------------- | ----------- | ------------------ | ---------------------------------- |
-| CI (`verify`)                            | Required    | Required           | Required                           |
-| Issue link (`Closes #N` or `Refs #N`)    | Optional    | Required           | Required                           |
-| Requirements approval                    | Skipped     | Skipped            | David or Bogdan before code review |
-| Independent Copilot code review          | Skipped     | Required           | Required                           |
-| Human QA of current commit after handoff | Skipped     | Required           | Required                           |
-| Technical approval                       | Not allowed | If labeled         | If labeled                         |
+| Gate                                     | Low         | Standard (default) | High                              |
+| ---------------------------------------- | ----------- | ------------------ | --------------------------------- |
+| CI (`verify`)                            | Required    | Required           | Required                          |
+| Issue link (`Closes #N` or `Refs #N`)    | Optional    | Required           | Required                          |
+| Requirements approval                    | Skipped     | Skipped            | David or Bogdan after code review |
+| Independent Copilot code review          | Skipped     | Required           | Required                          |
+| Human QA of current commit after handoff | Skipped     | Required           | Required                          |
+| Technical approval                       | Not allowed | If labeled         | If labeled                        |
 
 The `technical-review` PR label is an additional gate for Standard and High PRs. Use it
 for a new or replaced Docker Compose service, a newly added package/dependency,
 or comparable shared infrastructure/tooling changes that need technical
 oversight. Routine feature work such as adding a page does not need it. When
-present, the workflow requests an approving review from Bogdan (`rmnskb`) and
-requires that approval on the current commit before moving the issue to Ready for
+present, the workflow requests an approving review from Bogdan (`rmnskb`) once
+CI and the agent review of the current commit have passed, and requires an approval from him or David (`darebakdavca`) on the current commit before moving the issue to Ready for
 Testing or allowing merge. The approval is separate from High requirements
-approval and from QA; an `rmnskb` review may satisfy both applicable review gates.
+approval and from QA; an approval from either may satisfy both applicable review gates.
 
 The technical-review requirement is recorded by the PR's label history. Removing
 the label after it was applied does not clear the requirement; a current-commit
-approval from `rmnskb` does. Low severity cannot be combined with this label.
+approval from `rmnskb` or `darebakdavca` does. Low severity cannot be combined with this label.
 
-A PR that `rmnskb` authored needs no technical approval: GitHub does not let an
-author approve their own PR, and the technical reviewer's own change already
-carries his technical sign-off. The workflow does not request him and the gate
-records the exemption; Copilot review, requirements approval and QA still apply.
-Keep the label on such PRs so the classification stays visible. The exemption
-follows the PR's author, not each commit's pusher: commits another collaborator
-pushes to a PR `rmnskb` opened are covered by the other gates only.
+Either David (`darebakdavca`) or Bogdan (`rmnskb`) may give the technical
+approval on the current commit; one approval is enough and nobody approves their
+own PR. The workflow requests only Bogdan, and never David. On a PR `rmnskb`
+authored there is no automatic request: he asks David by hand and David's
+approval of the current commit satisfies the gate. Copilot review, requirements
+approval and QA still apply. The rule follows the PR's author, not each commit's
+pusher.
 
 ### Storybook design-preview PRs
 
@@ -87,9 +87,31 @@ deployment and approval-workflow changes. File checks enforce the Low boundary
 and High for review enforcement; authors and reviewers classify other domain
 risks. A label is not an automatic assessment of code behavior.
 
+## Order of checks
+
+Checks on a non-draft PR run in this order, each on the current commit:
+
+1. CI (`verify`) and the independent agent review (or its manual waiver, or a
+   review carried over under [Stacked PRs](#stacked-prs) and the integration
+   rules). The agent review does not wait for scope approval.
+2. Human code review. Only PRs with `technical-review` have it: after step 1
+   succeeds the workflow requests `rmnskb`, and never before. A pending,
+   failing or blocking agent review sends no request. A new commit restarts
+   from step 1: the earlier agent result and code review do not count for it.
+   `rmnskb` or `darebakdavca` may approve the current commit (one approval is
+   enough, the author cannot approve their own PR); the workflow requests only
+   `rmnskb`, never David, and on a PR `rmnskb` authored David approves after a
+   manual request.
+3. Requirements approval (High only). It is requested once the human code
+   review has passed, or immediately after step 1 when the PR has none. An
+   approval granted earlier on the issue stays valid. The bot records it after
+   the agent review.
+4. QA handoff and QA of the current commit, after all of the above.
+
 ## Requirements (High only)
 
-Open a PR targeting main and link each issue with `Closes #N` if the PR completes
+Scope approval is asked for after agent and human code review (see
+[Order of checks](#order-of-checks)). Open a PR targeting main and link each issue with `Closes #N` if the PR completes
 it or `Refs #N` if the PR is partial. `Refs` leaves the issue open. Leave its card In Progress. David
 (`darebakdavca`) or Bogdan (`rmnskb`) approves requirements through
 an approving review on a linked implementation PR, or `/requirements-approve`
@@ -376,10 +398,11 @@ trigger reconciliation; scheduled polling remains the fallback.
 ## Reviewer requests and merge rules
 
 Matej is not automatically requested at PR creation. For a non-draft PR,
-technical review is requested from `rmnskb` as soon as the PR is opened with the
-label or the label is added, so it can happen alongside CI and agent review.
-Approval is still required on the current commit before QA handoff, except on
-PRs `rmnskb` authored. CODEOWNERS lists David
+technical review is requested from `rmnskb` only after CI and the agent review
+have passed on the current commit, so it never happens alongside them.
+Approval from `rmnskb` or `darebakdavca` is still required on the current commit
+before QA handoff; David is never requested automatically, and on PRs `rmnskb`
+authored nobody is, because David approves after a manual request. CODEOWNERS lists David
 for workflow/enforcement paths; GitHub does not request an author to review their own PR. The bot's
 Ready for Testing comment identifies the QA owner, then the bot sends that person
 a GitHub review request: MatejKrones, or darebakdavca on Matej-authored PRs.
@@ -449,17 +472,25 @@ and every package under `apps/*`.
 - **Labels:** every Dependabot PR gets `dependencies` and `severity:standard`, so
   it carries exactly one severity label. Raise the label to `severity:high` by hand when an
   update touches authentication, permissions, migrations or deployment.
-- **No issue link:** a PR by `dependabot[bot]` from a branch of this repository
-  with `dependencies` and exactly `severity:standard` needs no `Closes #N` or
-  `Refs #N`. The PR is its own delivery scope: the bot records the requirements
-  skip, the independent agent review and the QA handoff on the PR itself, and
-  Delivery stages requires them as it does for an issue. The exception does not
-  apply to any other author, to a PR without `dependencies`, or to Low and High
-  PRs; those still need a linked issue (and scope approval for High). The
-  exception follows the PR author, so reviewers must check the commits when a
-  person has pushed to a Dependabot branch.
-- **Merging:** nothing is merged automatically. Dependabot PRs go through the
-  normal CI, review and QA gates for their severity.
+- **No issue link, no review, no QA:** a PR by `dependabot[bot]` from a branch of
+  this repository with `dependencies` and exactly `severity:standard` needs no
+  `Closes #N` or `Refs #N`, no agent review, no human approval and no QA. The
+  automation sends no requests for code review, technical approval, scope
+  approval or QA. `Delivery stages` passes for it (a draft does not, and neither
+  does a PR with a commit not authored by Dependabot, which follows the normal
+  gates) and CI
+  (`verify`) is the only gate. The exception does not apply to any other author,
+  to a PR without `dependencies`, or to Low and High PRs; those follow their
+  normal gates.
+- **Merging:** the `Dependency update merge` workflow enables GitHub auto-merge
+  (merge commit) on such a PR, so it merges as soon as every required check has
+  passed on the current head and GitHub allows it. A new commit must pass the
+  checks again. Auto-merge is switched off again when the PR stops being a
+  standard Dependabot update (label change, draft) or when any commit on the
+  branch is not authored by Dependabot, because nobody reviews these PRs. It
+  needs the repository setting _Allow auto-merge_ and uses
+  `PROJECT_AUTOMATION_TOKEN`: a merge made with `GITHUB_TOKEN` would not start
+  the CI, deploy and release workflows on `main`.
 
 ## Releases and the stage
 

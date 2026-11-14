@@ -33,7 +33,7 @@ function fixture() {
       draft: false,
     },
     issues: [{ number: 78 }],
-    reviews: [review(PM, 1), review(QA, 4)],
+    reviews: [review(PM, 1), review(QA, 6)],
     comments: [
       {
         user: { login: 'github-actions[bot]' },
@@ -43,11 +43,18 @@ function fixture() {
       {
         user: { login: 'github-actions[bot]' },
         body: readyMarker(12, sha, 78) + '\nReady for testing',
-        created_at: time(3),
+        created_at: time(5),
       },
       {
         user: { login: 'github-actions[bot]' },
         body: requirementsMarker(12, sha, 78, 1) + '\nRequirements approved',
+        created_at: time(4),
+      },
+      {
+        user: { login: 'github-actions[bot]' },
+        body:
+          requirementsMarker(12, sha, 78, 'severity-high-review') +
+          '\nAgent review starts',
         created_at: time(1),
       },
     ],
@@ -55,6 +62,25 @@ function fixture() {
 }
 test('requirements + agent review + readiness precede QA on the exact head', () => {
   assert.equal(evaluate(fixture()).pass, true);
+});
+test('High scope approval recorded before agent review does not pass', () => {
+  const f = fixture();
+  f.comments.find((c) =>
+    c.body.startsWith(
+      '<!-- requirements-ready pr=12 sha=' + sha + ' issue=78 review=1 ',
+    ),
+  ).created_at = time(1);
+  const result = evaluate(f);
+  assert.equal(result.pass, false);
+  assert.match(result.reasons.join(' '), /after agent review/);
+});
+test('High review can start and pass before scope approval, which is then required', () => {
+  const f = fixture();
+  f.reviews = [review(QA, 6)];
+  f.issues = [{ number: 78, requirements: null }];
+  const result = evaluate(f);
+  assert.equal(result.pass, false);
+  assert.match(result.reasons.join(' '), /needs requirements approval/);
 });
 test('PM approval alone cannot permit merging', () => {
   const f = fixture();
@@ -83,9 +109,11 @@ test('ordinary comments do not dismiss an approval', () => {
   f.reviews.push(review(PM, 5, 'COMMENTED'));
   assert.equal(evaluate(f).pass, true);
 });
-test('technical-review requires rmnskb approval on the current commit', () => {
+test('technical-review requires rmnskb or darebakdavca approval on the current commit', () => {
   const f = fixture();
   f.pr.labels.push({ name: 'technical-review' });
+  // David's requirements approval is on another commit than the head.
+  f.reviews[0].commit_id = 'c'.repeat(40);
   assert.equal(evaluate(f).pass, false);
   f.reviews.push(review(TECHNICAL_REVIEWER, 5));
   assert.equal(evaluate(f).pass, true);
@@ -100,27 +128,50 @@ test('technical-review remains required after its label is removed', () => {
     true,
   );
   const f = fixture();
+  f.reviews[0].commit_id = 'c'.repeat(40);
   f.pr.technicalReviewRequired = true;
   assert.equal(evaluate(f).pass, false);
 });
 test('a stale technical approval does not count', () => {
   const f = fixture();
   f.pr.labels.push({ name: 'technical-review' });
+  f.reviews[0].commit_id = 'c'.repeat(40);
   f.reviews.push(review(TECHNICAL_REVIEWER, 5, 'APPROVED', 'b'.repeat(40)));
   assert.equal(technicalReviewApproval(f.pr, f.reviews), null);
   assert.equal(evaluate(f).pass, false);
 });
-test("the technical reviewer's own PR needs no technical approval, but still every other gate", () => {
+test('David can give the technical approval; one approval is enough', () => {
+  const f = fixture();
+  f.pr.labels.push({ name: 'technical-review' });
+  f.reviews[0].commit_id = 'c'.repeat(40);
+  assert.equal(evaluate(f).pass, false);
+  f.reviews.push(review(PM, 5));
+  assert.equal(technicalReviewApproval(f.pr, f.reviews).user.login, PM);
+  assert.equal(evaluate(f).pass, true);
+});
+test('nobody approves their own technical review', () => {
+  const f = fixture();
+  f.pr.labels.push({ name: 'technical-review' });
+  f.reviews = [review(PM, 1, 'APPROVED', 'c'.repeat(40)), review(QA, 6)];
+  f.pr.user.login = PM;
+  f.reviews.push(review(PM, 5));
+  assert.equal(technicalReviewApproval(f.pr, f.reviews), null);
+  f.reviews.push(review(TECHNICAL_REVIEWER, 7));
+  assert.ok(technicalReviewApproval(f.pr, f.reviews));
+});
+test("Bogdan's own PR needs David's technical approval and every other gate", () => {
   const f = fixture();
   f.pr.labels.push({ name: 'technical-review' });
   f.pr.user.login = TECHNICAL_REVIEWER;
-  assert.equal(technicalReviewApproval(f.pr, f.reviews).exempt, true);
+  f.reviews[0].commit_id = 'c'.repeat(40);
+  assert.equal(technicalReviewApproval(f.pr, f.reviews), null);
+  assert.equal(evaluate(f).pass, false);
+  f.reviews.push(review(PM, 5));
+  assert.equal(technicalReviewApproval(f.pr, f.reviews).user.login, PM);
   assert.equal(evaluate(f).pass, true);
-  f.reviews = [review(PM, 1)];
+  f.reviews = [review(PM, 5), review(PM, 1)];
   assert.equal(evaluate(f).pass, false);
-  f.reviews = [review(QA, 4)];
-  assert.equal(evaluate(f).pass, false);
-  f.reviews = [review(PM, 1), review(QA, 4)];
+  f.reviews = [review(PM, 1), review(QA, 6)];
   f.pr.head.sha = 'b'.repeat(40);
   assert.equal(evaluate(f).pass, false);
 });
@@ -179,12 +230,13 @@ for (const [author, substitute] of [
       f.pr.labels = [];
       f.comments[2].body =
         requirementsMarker(12, sha, 78, 'severity-standard') + '\nPolicy skip';
+      f.comments[2].created_at = time(1);
     }
     f.reviews = [review(substitute, 1)];
     assert.equal(evaluate(f).pass, false);
-    f.reviews.push(review(substitute, 4));
+    f.reviews.push(review(substitute, 6));
     assert.equal(evaluate(f).pass, true);
-    f.reviews.push(review(substitute, 5, 'CHANGES_REQUESTED'));
+    f.reviews.push(review(substitute, 7, 'CHANGES_REQUESTED'));
     assert.equal(evaluate(f).pass, false);
   });
   test(`${author}: author approval and unrelated reviewers cannot substitute`, () => {
@@ -206,17 +258,19 @@ for (const [author, substitute] of [
 
 test('PR creation stays in progress until the correct current requirements approval', () => {
   const f = fixture();
+  // High work is reviewed before it asks for scope approval.
   assert.deepEqual(
     requirementsTransition('In Progress', [{ pr: f.pr, reviews: [] }]),
-    { status: 'In Progress', review: false },
+    { status: 'Ready for Code Review', review: true },
   );
   assert.deepEqual(requirementsTransition('In Progress', [f]), {
     status: 'Ready for Code Review',
     review: true,
   });
+  const draft = fixture();
+  draft.pr.draft = true;
   assert.equal(
-    requirementsTransition('Ready for Code Review', [{ pr: f.pr, reviews: [] }])
-      .review,
+    requirementsTransition('Ready for Code Review', [draft]).review,
     false,
   );
 });
@@ -224,7 +278,7 @@ test('every linked PR needs requirements policy satisfied; commits preserve scop
   const f = fixture();
   const other = fixture();
   other.pr = { ...other.pr, number: 13 };
-  other.reviews = [];
+  other.pr.draft = true;
   assert.equal(requirementsTransition('In Progress', [f, other]).review, false);
   for (const status of [
     'Ready for Code Review',
@@ -259,13 +313,13 @@ test('a missing, forged or late requirements handoff blocks delivery', () => {
   forged.comments[2].user.login = 'developer';
   assert.equal(evaluate(forged).pass, false);
   const late = fixture();
-  late.comments[2].created_at = time(3);
+  late.comments[2].created_at = time(1);
   assert.equal(evaluate(late).pass, false);
 });
 test('review comments and a second QA approval preserve the requirements cycle', () => {
   const f = fixture();
   f.pr.user.login = QA;
-  f.reviews = [review(PM, 1), review(PM, 4), review(PM, 5, 'COMMENTED')];
+  f.reviews = [review(PM, 1), review(PM, 6), review(PM, 7, 'COMMENTED')];
   assert.equal(requirementsApproval(f.pr, f.reviews).id, 1);
   assert.equal(evaluate(f).pass, true);
 });
@@ -286,7 +340,8 @@ test('High severity requires scope approval even for David and Bogdan', () => {
     f.pr.user.login = author;
     assert.equal(requirementsApproval(f.pr, []), null);
     assert.equal(
-      requirementsTransition('In Progress', [{ pr: f.pr, reviews: [] }]).review,
+      evaluate({ ...f, reviews: [review(QA, 6)], issues: [{ number: 78 }] })
+        .pass,
       false,
     );
   }
@@ -300,7 +355,7 @@ test('a stacked PR takes its QA from the stack tip commit', () => {
   const tip = 'c'.repeat(40);
   const f = fixture();
   // QA approved the tip, not this PR's own head, after this PR's handoff.
-  f.reviews = [review(PM, 1), review(QA, 4, 'APPROVED', tip)];
+  f.reviews = [review(PM, 1), review(QA, 6, 'APPROVED', tip)];
   assert.equal(evaluate(f).pass, false);
   const qaFrom = {
     review: f.reviews[1],
@@ -317,7 +372,7 @@ test('tip QA does not count before the handoff, or for another commit', () => {
     evaluate({ ...f, qaFrom: { review: early, sha: tip, number: 20 } }).pass,
     false,
   );
-  const stale = review(QA, 4, 'APPROVED', 'd'.repeat(40));
+  const stale = review(QA, 6, 'APPROVED', 'd'.repeat(40));
   const result = evaluate({
     ...f,
     qaFrom: { review: stale, sha: tip, number: 20 },
