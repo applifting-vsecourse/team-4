@@ -119,6 +119,7 @@ Recurring states and page actions have one component each in `src/components/`. 
 | Confirming a deletion                     | `ConfirmDeleteDialog title consequence errorMessage? onConfirm`    | One verb: „Odstranit“. Its failure stays in the dialog.                                                                                                                                |
 | Reloading a list or detail                | `RefreshButton`                                                    | „Aktualizovat“ / „Aktualizuji…“.                                                                                                                                                       |
 | Way back to the parent page               | `BackLink to params`                                               | Ghost button with `ArrowLeft` above the page heading.                                                                                                                                  |
+| Titled part of a page                     | `PageSection title description? actions? isBusy? headingId?`       | A region named by its `h2`; actions on the right of the heading. `headingId` only when a link points at the section. Subsections with an `h3` stay hand-written.                       |
 
 ### Adding or composing
 

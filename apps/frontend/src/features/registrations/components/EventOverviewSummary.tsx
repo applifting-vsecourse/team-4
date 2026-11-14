@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router"
 import { ROUTES } from "@/app/routes"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageSection } from "@/components/PageSection"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -60,16 +61,7 @@ export function EventOverviewSummary({
   const params = { organizationId, eventId }
 
   return (
-    <section
-      aria-labelledby="overview-summary-heading"
-      className="space-y-4"
-    >
-      <h2
-        id="overview-summary-heading"
-        className="text-h4"
-      >
-        Souhrn akce
-      </h2>
+    <PageSection title="Souhrn akce">
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
@@ -189,6 +181,6 @@ export function EventOverviewSummary({
           </CardFooter>
         </Card>
       </div>
-    </section>
+    </PageSection>
   )
 }

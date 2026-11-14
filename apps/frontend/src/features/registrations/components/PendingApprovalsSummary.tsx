@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router"
 import { ROUTES } from "@/app/routes"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageSection } from "@/components/PageSection"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -23,18 +24,10 @@ export function PendingApprovalsSummary({ organizationId, eventId }: PendingAppr
   const pendingLabel = count === 1 ? "žádost čeká" : count < 5 ? "žádosti čekají" : "žádostí čeká"
 
   return (
-    <section
-      aria-labelledby="pending-approvals-heading"
-      aria-busy={query.isFetching}
-      className="space-y-4"
+    <PageSection
+      title="Vyžaduje vaši pozornost"
+      isBusy={query.isFetching}
     >
-      <h2
-        id="pending-approvals-heading"
-        className="text-h4"
-      >
-        Vyžaduje vaši pozornost
-      </h2>
-
       {query.isError ? (
         <LoadError
           title="Čekající žádosti se nepodařilo načíst"
@@ -95,6 +88,6 @@ export function PendingApprovalsSummary({ organizationId, eventId }: PendingAppr
           <Skeleton className="h-20 w-full" />
         </LoadingBlock>
       ) : null}
-    </section>
+    </PageSection>
   )
 }

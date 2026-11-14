@@ -8,6 +8,7 @@ import { FormError } from "@/components/FormError"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { Notice } from "@/components/Notice"
+import { PageSection } from "@/components/PageSection"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -181,6 +182,27 @@ export function DataDisplaySection() {
             onConfirm={() => setIsDeleteOpen(false)}
           />
         </div>
+      </ShowcaseSection>
+
+      <ShowcaseSection
+        id="page-section"
+        title="Sekce stránky"
+      >
+        <PageSection
+          title="Seznam přihlášek"
+          actions={
+            <RefreshButton
+              isRefreshing={false}
+              onRefresh={() => undefined}
+            />
+          }
+        >
+          <Card>
+            <CardContent>
+              <p className="text-sm">Obsah sekce</p>
+            </CardContent>
+          </Card>
+        </PageSection>
       </ShowcaseSection>
 
       <ShowcaseSection

@@ -1,6 +1,7 @@
 import { RefreshCw } from "lucide-react"
 
 import { LoadError } from "@/components/LoadError"
+import { PageSection } from "@/components/PageSection"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -43,23 +44,15 @@ export function TermOccupancyTable({
   isLoadFailed = false,
 }: TermOccupancyTableProps) {
   return (
-    <section
-      aria-labelledby="occupancy-heading"
-      className="space-y-4"
-    >
-      <div className="flex min-h-9 items-center justify-between gap-4">
-        <h2
-          id="occupancy-heading"
-          className="text-h4"
-        >
-          Obsazenost po termínech
-        </h2>
+    <PageSection
+      title="Obsazenost po termínech"
+      actions={
         <Button variant="outline">
           <RefreshCw />
           Aktualizovat
         </Button>
-      </div>
-
+      }
+    >
       {isLoadFailed ? (
         <LoadError title="Obsazenost se nepodařilo načíst" />
       ) : (
@@ -118,6 +111,6 @@ export function TermOccupancyTable({
           <p className="text-sm text-muted-foreground">Aktualizováno {updatedAt}</p>
         </>
       )}
-    </section>
+    </PageSection>
   )
 }

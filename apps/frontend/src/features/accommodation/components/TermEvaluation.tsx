@@ -6,6 +6,7 @@ import { HorizontalOverflowViewport } from "@/components/HorizontalOverflowViewp
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { Notice } from "@/components/Notice"
+import { PageSection } from "@/components/PageSection"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -632,20 +633,5 @@ export function TermEvaluation({
  * moves the heading.
  */
 export function TermEvaluationFrame({ children }: { children: ReactNode }) {
-  return (
-    <section
-      aria-labelledby="term-evaluation-heading"
-      className="space-y-4"
-    >
-      <div className="flex min-h-9 items-center">
-        <h2
-          id="term-evaluation-heading"
-          className="text-h4"
-        >
-          Vyhodnocení termínu
-        </h2>
-      </div>
-      {children}
-    </section>
-  )
+  return <PageSection title="Vyhodnocení termínu">{children}</PageSection>
 }

@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router"
 import { ROUTES } from "@/app/routes"
 import { LoadError } from "@/components/LoadError"
 import { Notice } from "@/components/Notice"
+import { PageSection } from "@/components/PageSection"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Card } from "@/components/ui/card"
 import {
@@ -45,25 +46,18 @@ export function OccupancySection({
   const updated = formatPragueDateTime(new Date(updatedAt).toISOString())
 
   return (
-    <section
-      aria-labelledby="occupancy-heading"
-      aria-busy={isRefreshing}
-    >
-      <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
-        <h2
-          id="occupancy-heading"
-          className="text-h4"
-        >
-          Obsazenost po termínech
-        </h2>
-        {terms.length > 0 ? (
+    <PageSection
+      title="Obsazenost po termínech"
+      isBusy={isRefreshing}
+      actions={
+        terms.length > 0 ? (
           <RefreshButton
             isRefreshing={isRefreshing}
             onRefresh={onRefresh}
           />
-        ) : null}
-      </div>
-
+        ) : null
+      }
+    >
       {terms.length === 0 ? (
         <Notice
           tone="info"
@@ -132,6 +126,6 @@ export function OccupancySection({
           </div>
         </div>
       )}
-    </section>
+    </PageSection>
   )
 }

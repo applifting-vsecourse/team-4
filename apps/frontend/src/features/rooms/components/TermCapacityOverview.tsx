@@ -1,5 +1,6 @@
 import { BedDouble, Pencil, Plus, Trash2 } from "lucide-react"
 
+import { PageSection } from "@/components/PageSection"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -71,13 +72,7 @@ export function TermCapacityOverview({
 
   if (terms.length === 0) {
     return (
-      <section aria-labelledby="room-capacity-heading">
-        <h2
-          id="room-capacity-heading"
-          className="mb-4 text-h4"
-        >
-          Pokoje
-        </h2>
+      <PageSection title="Pokoje">
         <Card>
           <Empty>
             <EmptyHeader>
@@ -92,20 +87,15 @@ export function TermCapacityOverview({
             </EmptyHeader>
           </Empty>
         </Card>
-      </section>
+      </PageSection>
     )
   }
 
   return (
-    <section aria-labelledby="room-capacity-heading">
-      <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
-        <h2
-          id="room-capacity-heading"
-          className="text-h4"
-        >
-          Pokoje
-        </h2>
-        {hasRooms ? (
+    <PageSection
+      title="Pokoje"
+      actions={
+        hasRooms ? (
           <Button
             variant="outline"
             onClick={onAddRoom}
@@ -113,9 +103,9 @@ export function TermCapacityOverview({
             <Plus />
             Přidat pokoj
           </Button>
-        ) : null}
-      </div>
-
+        ) : null
+      }
+    >
       <Tabs
         {...(onSelectedTermChange
           ? { value: selectedTermId, onValueChange: onSelectedTermChange }
@@ -260,7 +250,7 @@ export function TermCapacityOverview({
           </TabsContent>
         ))}
       </Tabs>
-    </section>
+    </PageSection>
   )
 }
 

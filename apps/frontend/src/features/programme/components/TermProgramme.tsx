@@ -2,6 +2,7 @@ import { CalendarClock, Plus } from "lucide-react"
 
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageSection } from "@/components/PageSection"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
@@ -45,17 +46,10 @@ export function TermProgramme({
   )
 
   return (
-    <section aria-labelledby="programme-heading">
-      <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
-        <h2
-          id="programme-heading"
-          className="text-h4"
-        >
-          Program termínu
-        </h2>
-        {!isLoadFailed && !isLoading && days.length > 0 ? addButton : null}
-      </div>
-
+    <PageSection
+      title="Program termínu"
+      actions={!isLoadFailed && !isLoading && days.length > 0 ? addButton : null}
+    >
       {isLoadFailed ? (
         <LoadError
           title="Program se nepodařilo načíst"
@@ -92,6 +86,6 @@ export function TermProgramme({
           </CardContent>
         </Card>
       )}
-    </section>
+    </PageSection>
   )
 }

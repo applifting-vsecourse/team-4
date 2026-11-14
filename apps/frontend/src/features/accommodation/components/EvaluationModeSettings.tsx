@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Loader2 } from "lucide-react"
 
 import { FormError } from "@/components/FormError"
+import { PageSection } from "@/components/PageSection"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Field, FieldLabel } from "@/components/ui/field"
@@ -31,16 +32,10 @@ export function EvaluationModeSettings({
   const [selected, setSelected] = useState<EvaluationMode>(mode)
 
   return (
-    <section
-      aria-labelledby="automation-heading"
-      className="space-y-4"
+    <PageSection
+      title="Automatizace"
+      headingId="automation-heading"
     >
-      <h2
-        id="automation-heading"
-        className="text-h4"
-      >
-        Automatizace
-      </h2>
       <Card>
         <CardContent>
           <div className="space-y-4">
@@ -86,6 +81,6 @@ export function EvaluationModeSettings({
           </Button>
         </CardFooter>
       </Card>
-    </section>
+    </PageSection>
   )
 }

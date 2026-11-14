@@ -5,6 +5,7 @@ import { ClipboardList, X } from "lucide-react"
 import { ROUTES } from "@/app/routes"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageSection } from "@/components/PageSection"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -58,24 +59,16 @@ export function RegistrationsSection({
   const { data } = query
 
   return (
-    <section
-      aria-labelledby="registrations-heading"
-      aria-busy={query.isFetching}
-      className="space-y-4"
-    >
-      <div className="flex min-h-9 items-center justify-between gap-4">
-        <h2
-          id="registrations-heading"
-          className="text-h4"
-        >
-          Seznam přihlášek
-        </h2>
+    <PageSection
+      title="Seznam přihlášek"
+      isBusy={query.isFetching}
+      actions={
         <RefreshButton
           isRefreshing={query.isFetching}
           onRefresh={() => query.refetch()}
         />
-      </div>
-
+      }
+    >
       <RegistrationFilters
         terms={terms}
         filter={filter}
@@ -114,7 +107,7 @@ export function RegistrationsSection({
           Aktualizováno {formatPragueDateTime(new Date(query.dataUpdatedAt).toISOString())}
         </p>
       ) : null}
-    </section>
+    </PageSection>
   )
 }
 

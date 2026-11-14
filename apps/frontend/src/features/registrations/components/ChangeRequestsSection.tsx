@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router"
 import { ROUTES } from "@/app/routes"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageSection } from "@/components/PageSection"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -25,24 +26,16 @@ export function ChangeRequestsSection({ organizationId, eventId }: ChangeRequest
   const { data } = query
 
   return (
-    <section
-      aria-labelledby="approvals-heading"
-      aria-busy={query.isFetching}
-      className="space-y-4"
-    >
-      <div className="flex min-h-9 items-center justify-between gap-4">
-        <h2
-          id="approvals-heading"
-          className="text-h4"
-        >
-          Ke schválení
-        </h2>
+    <PageSection
+      title="Ke schválení"
+      isBusy={query.isFetching}
+      actions={
         <RefreshButton
           isRefreshing={query.isFetching}
           onRefresh={() => query.refetch()}
         />
-      </div>
-
+      }
+    >
       {query.isError ? (
         <LoadError
           shownFrom={data ? query.dataUpdatedAt : undefined}
@@ -90,6 +83,6 @@ export function ChangeRequestsSection({ organizationId, eventId }: ChangeRequest
           <Skeleton className="h-12 w-full" />
         </LoadingBlock>
       ) : null}
-    </section>
+    </PageSection>
   )
 }

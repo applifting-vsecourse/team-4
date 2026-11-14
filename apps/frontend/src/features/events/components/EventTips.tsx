@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { Lightbulb } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { PageSection } from "@/components/PageSection"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -66,16 +67,7 @@ export function EventTips({ organizationId, event, evaluationMode }: EventTipsPr
   if (tips.length === 0) return null
 
   return (
-    <section
-      aria-labelledby="event-tips-heading"
-      className="space-y-4"
-    >
-      <h2
-        id="event-tips-heading"
-        className="text-h4"
-      >
-        Tipy pro akci
-      </h2>
+    <PageSection title="Tipy pro akci">
       <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {tips.map((tip) => (
           <li key={tip.hash}>
@@ -112,6 +104,6 @@ export function EventTips({ organizationId, event, evaluationMode }: EventTipsPr
           </li>
         ))}
       </ul>
-    </section>
+    </PageSection>
   )
 }
