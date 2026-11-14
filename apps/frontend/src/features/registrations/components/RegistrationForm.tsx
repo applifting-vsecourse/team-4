@@ -385,7 +385,7 @@ export function RegistrationForm({
         <Button
           type="submit"
           size="lg"
-          className="w-full sm:w-auto"
+          className="w-full max-w-sm sm:w-auto"
           disabled={isSubmitting}
         >
           {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}

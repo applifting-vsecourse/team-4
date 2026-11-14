@@ -49,21 +49,22 @@ const serve = (evaluation = makeTermEvaluation()) =>
 const onSelect = vi.fn()
 
 function renderSection(queue = "all") {
-  render(
-    <QueryClientProvider
-      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-    >
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const section = (termId: string) => (
+    <QueryClientProvider client={client}>
       <TermEvaluationSection
         organizationId="org"
         eventId="event"
         terms={[EVALUATED_TERM, SECOND]}
-        termId={EVALUATED_TERM.id}
+        termId={termId}
         queue={queue}
         onSelect={onSelect}
         renderName={(person) => <a href={`/detail/${person.id}`}>{person.name}</a>}
       />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   )
+  const { rerender } = render(section(EVALUATED_TERM.id))
+  return { selectTerm: (termId: string) => rerender(section(termId)) }
 }
 
 // Radix Select needs pointer capture and scrolling, which jsdom lacks.
@@ -83,6 +84,59 @@ beforeEach(() => {
 })
 
 describe("TermEvaluationSection", () => {
+  it("keeps the term tabs while a term loads, so another term can still be picked", async () => {
+    get.mockReturnValue({ json: () => new Promise(() => undefined) })
+    renderSection()
+
+    expect(screen.getByRole("status", { name: "Načítání vyhodnocení termínu" })).toBeInTheDocument()
+    const termTabs = screen.getByRole("tablist", { name: "Termín" })
+    expect(within(termTabs).getByRole("tab", { name: EVALUATED_TERM.label })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+    await userEvent.click(within(termTabs).getByRole("tab", { name: "Turnus 2" }))
+    expect(onSelect).toHaveBeenCalledWith({ termId: SECOND.id, queue: "all" })
+  })
+
+  it("keeps the previous term, not to be acted on, while another term loads", async () => {
+    serve()
+    const { selectTerm } = renderSection()
+    const proposal = await screen.findByText("Aktuální návrh")
+
+    get.mockReturnValue({ json: () => new Promise(() => undefined) })
+    selectTerm(SECOND.id)
+
+    // The page keeps its height: no placeholder replaces the shown term.
+    expect(
+      screen.queryByRole("status", { name: "Načítání vyhodnocení termínu" }),
+    ).not.toBeInTheDocument()
+    const content = proposal.closest<HTMLElement>("[aria-busy]")!
+    await waitFor(() => expect(content).toHaveAttribute("aria-busy", "true"))
+    expect(content).toHaveAttribute("inert")
+  })
+
+  it("keeps the previous term inert until its history has loaded too", async () => {
+    serve()
+    const { selectTerm } = renderSection()
+    const proposal = await screen.findByText("Aktuální návrh")
+
+    // The new term's evaluation arrives, its runs and moves are still on their way.
+    get.mockImplementation((path: string) =>
+      path.endsWith("/runs") || path.endsWith("/order/moves")
+        ? { json: () => new Promise(() => undefined) }
+        : answer(makeTermEvaluation()),
+    )
+    selectTerm(SECOND.id)
+
+    await waitFor(() => expect(get).toHaveBeenCalledWith(expect.stringContaining(SECOND.id)))
+    const content = proposal.closest<HTMLElement>("[aria-busy]")!
+    await waitFor(() => expect(content).toHaveAttribute("aria-busy", "true"))
+    // Let the evaluation request settle; the history still belongs to the previous term.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(content).toHaveAttribute("aria-busy", "true")
+    expect(content).toHaveAttribute("inert")
+  })
+
   it("shows the current proposal of the term with the results and links to the details", async () => {
     serve()
     renderSection()

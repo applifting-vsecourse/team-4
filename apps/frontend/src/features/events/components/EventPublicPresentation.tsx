@@ -179,7 +179,7 @@ export function EventPublicPresentation({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="w-full"
+                        className="w-full max-w-sm"
                         disabled={removingPhotoId !== null}
                         onClick={() => onRemovePhoto(photo.id)}
                       >

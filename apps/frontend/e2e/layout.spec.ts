@@ -107,6 +107,39 @@ test("a view that is still loading keeps its heading in place", async ({ page })
   release()
 })
 
+// S4-01: a filter changed further down the page keeps the organizer there,
+// also while the filtered list is loading.
+test("changing a registration filter keeps the scroll position", async ({ page }) => {
+  const event = await setUpEvent(page.request, { terms })
+  for (let i = 0; i < 12; i++) {
+    await register(page.request, event.publicId, newParticipant(`Osoba${i}`), event.termIds)
+  }
+  await page.setViewportSize({ width: 1280, height: 500 })
+  await page.goto(registrationsUrl(event, "list"))
+  await expect(page.getByRole("row").filter({ hasText: "Osoba11" })).toBeVisible()
+  const scrollY = () => page.evaluate(() => window.scrollY)
+
+  const term = page.getByRole("combobox", { name: "Termín" })
+  await term.evaluate((element) => element.scrollIntoView({ block: "start" }))
+  const before = await scrollY()
+  expect(before).toBeGreaterThan(0)
+
+  // Hold the filtered list: the page must not shrink while it loads.
+  let release!: () => void
+  const held = new Promise<void>((resolve) => (release = resolve))
+  await page.route("**/registrations?*termId=*", async (route) => {
+    await held
+    await route.continue()
+  })
+  await term.click()
+  await page.getByRole("option", { name: "1. turnus" }).click()
+  await expect(page).toHaveURL(/termId=/)
+  expect(await scrollY()).toBe(before)
+  release()
+  await expect(page.getByRole("row").filter({ hasText: "Osoba11" })).toBeVisible()
+  expect(await scrollY()).toBe(before)
+})
+
 test("every page of the organization keeps the same side margins", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   const event = await setUpEvent(page.request, { terms })

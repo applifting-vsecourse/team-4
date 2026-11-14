@@ -108,7 +108,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
         <Button
           type="submit"
           size="lg"
-          className="w-full"
+          className="w-full max-w-sm"
           disabled={isLoading}
         >
           {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}

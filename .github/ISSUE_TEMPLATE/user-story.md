@@ -17,7 +17,7 @@ Jako [role] chci [akce], abych [cíl].
 
 ## Podklady
 
-<!-- UX doplní návrhy ve Storybooku po zařazení do Sprint Backlogu, před implementací UI. -->
+<!-- Volitelné: snímky obrazovky, nálezy z auditu nebo existující obrazovka jako vzor. -->
 
 ## Mimo rozsah
 

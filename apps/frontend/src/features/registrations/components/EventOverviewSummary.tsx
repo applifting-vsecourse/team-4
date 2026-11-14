@@ -98,7 +98,6 @@ export function EventOverviewSummary({
               asChild
               variant="outline"
               size="sm"
-              className="w-full"
             >
               <Link
                 to={ROUTES.eventRegistrations}
@@ -146,7 +145,6 @@ export function EventOverviewSummary({
               asChild
               variant="outline"
               size="sm"
-              className="w-full"
             >
               <Link
                 to={ROUTES.eventRooms}
@@ -189,7 +187,6 @@ export function EventOverviewSummary({
               asChild
               variant="outline"
               size="sm"
-              className="w-full"
             >
               <Link
                 to={ROUTES.eventRegistrations}
