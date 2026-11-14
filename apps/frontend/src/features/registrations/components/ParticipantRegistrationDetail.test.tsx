@@ -27,6 +27,11 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
     <a href={to}>{children}</a>
   ),
+  createLink:
+    (Anchor: React.ComponentType<React.AnchorHTMLAttributes<HTMLAnchorElement>>) =>
+    ({ children, to }: { children: React.ReactNode; to: string }) => (
+      <Anchor href={to}>{children}</Anchor>
+    ),
 }))
 
 const REGISTRATION: DetailData = {

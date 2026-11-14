@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react"
 
-import { LoadError } from "@/components/LoadError"
+import { FormError } from "@/components/FormError"
 import { Notice } from "@/components/Notice"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -84,11 +84,22 @@ export function SimulatedPaymentForm({
           ) : null}
 
           {errorMessage ? (
-            <LoadError
+            <FormError
               title="Akce se nepodařila"
-              description={errorMessage}
-              isRetrying={isSaving}
-              onRetry={onRetry}
+              message={errorMessage}
+              action={
+                onRetry ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isSaving}
+                    onClick={onRetry}
+                  >
+                    Zkusit znovu
+                  </Button>
+                ) : null
+              }
             />
           ) : null}
 
