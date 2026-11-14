@@ -68,6 +68,7 @@ import { isDependencyUpdate } from '../delivery/dependency-update.mjs';
 import { planReview, executeReview } from './batches.mjs';
 import { ensureQaReviewRequest } from './qa-review.mjs';
 import { ensureTechnicalReviewRequest } from './technical-review.mjs';
+import { ensureRequirementsReviewRequest } from './requirements-review.mjs';
 import {
   copilotWaiver,
   waiverMarker,
@@ -1287,13 +1288,35 @@ async function processIssue(board, item) {
   ) {
     if (item.status.name === STATUS_TESTING)
       moved = await moveStatus(board, item, STATUS_REVIEW);
-    const waitingFor = scopePending.map(({ pr }) => `#${pr.number}`).join(', ');
+    const requests = [];
+    for (const { pr } of scopePending) {
+      const reviewer = reviewersFor(pr.user.login).requirementsReviewer;
+      const requestStatus = await ensureRequirementsReviewRequest({
+        api: (path, options) => api(cfg.githubToken, path, options),
+        repo: cfg.repo,
+        pr,
+        issue: {
+          number: issue.number,
+          requirements: pr.requirements,
+          requirementsVersion: pr.requirementsVersion,
+        },
+        dryRun: cfg.dryRun,
+      });
+      if (requestStatus === 'stale') {
+        console.log(
+          `  -> #${pr.number}: requirements approval request became stale; retrying on the next reconciliation`,
+        );
+        return;
+      }
+      requests.push(`#${pr.number} @${reviewer}`);
+    }
+    const waitingFor = requests.join(', ');
     const state = `requirements-awaiting|${waitingFor}|${resultsKey(results) || 'no-pr'}`;
     const marker = issueMarker({ issue: issue.number, state });
     if (!hasBotComment(await listComments(issue.number), marker)) {
       await postComment(
         issue.number,
-        `${marker}\nAgent and code review passed; requirements approval by ${reviewersFor(scopePending[0].pr.user.login).requirements} is requested for PRs ${waitingFor} (review or /requirements-approve). QA handoff is paused until it is recorded.`,
+        `${marker}\nAgent and code review passed. Requirements approval is requested from ${waitingFor}; approve the corresponding PR or comment \`/requirements-approve\` on the issue or linked PR. QA handoff is paused until approval is recorded.`,
       );
     }
   } else if (technicalPending.length) {

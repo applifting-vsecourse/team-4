@@ -3,6 +3,14 @@ import { copilotWaiver, waiverMarker } from './copilot-waiver.mjs';
 
 export const PM = 'darebakdavca';
 export const REQUIREMENTS_APPROVERS = [PM, 'rmnskb'];
+export function requirementsReviewerFor(author) {
+  const authorLogin = author?.toLowerCase();
+  return (
+    REQUIREMENTS_APPROVERS.find(
+      (login) => login.toLowerCase() !== authorLogin,
+    ) ?? REQUIREMENTS_APPROVERS[0]
+  );
+}
 export const isRequirementsApprover = (login) =>
   REQUIREMENTS_APPROVERS.some(
     (name) => name.toLowerCase() === login?.toLowerCase(),
@@ -15,6 +23,7 @@ export function reviewersFor(author) {
   const login = author.toLowerCase();
   return {
     requirements: REQUIREMENTS_APPROVERS.join(' or '),
+    requirementsReviewer: requirementsReviewerFor(author),
     qa: login === QA.toLowerCase() ? PM : QA,
   };
 }
