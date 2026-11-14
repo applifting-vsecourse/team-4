@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router"
-import { Loader2, RefreshCw } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+import { LoadError } from "@/components/LoadError"
+import { Notice } from "@/components/Notice"
+import { PageSection } from "@/components/PageSection"
+import { RefreshButton } from "@/components/RefreshButton"
 import { Card } from "@/components/ui/card"
 import {
   Table,
@@ -45,61 +46,41 @@ export function OccupancySection({
   const updated = formatPragueDateTime(new Date(updatedAt).toISOString())
 
   return (
-    <section
-      aria-labelledby="occupancy-heading"
-      aria-busy={isRefreshing}
+    <PageSection
+      title="Obsazenost po termínech"
+      isBusy={isRefreshing}
+      actions={
+        terms.length > 0 ? (
+          <RefreshButton
+            isRefreshing={isRefreshing}
+            onRefresh={onRefresh}
+          />
+        ) : null
+      }
     >
-      <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
-        <h2
-          id="occupancy-heading"
-          className="text-h4"
-        >
-          Obsazenost po termínech
-        </h2>
-        {terms.length > 0 ? (
-          <Button
-            variant="outline"
-            onClick={() => onRefresh()}
-            disabled={isRefreshing}
-          >
-            {isRefreshing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw />}
-            {isRefreshing ? "Aktualizuji…" : "Aktualizovat"}
-          </Button>
-        ) : null}
-      </div>
-
       {terms.length === 0 ? (
-        <Alert>
-          <AlertDescription>
-            Akce zatím nemá žádné termíny, pokoje tedy nemají kde být dostupné.{" "}
-            <Link
-              to={ROUTES.eventSettings}
-              hash="terms-heading"
-              params={{ organizationId, eventId }}
-              className="text-foreground underline"
-            >
-              Přidat termín
-            </Link>
-          </AlertDescription>
-        </Alert>
+        <Notice
+          tone="info"
+          title="Akce zatím nemá žádné termíny, pokoje tedy nemají kde být dostupné."
+        >
+          <Link
+            to={ROUTES.eventSettings}
+            hash="terms-heading"
+            params={{ organizationId, eventId }}
+            className="text-foreground underline"
+          >
+            Přidat termín
+          </Link>
+        </Notice>
       ) : (
         <div className="space-y-3">
           {hasRefreshFailed ? (
-            <Alert variant="destructive">
-              <AlertTitle>Aktualizace se nezdařila</AlertTitle>
-              <AlertDescription>
-                <p>Zobrazené počty jsou z posledního úspěšného načtení ({updated}).</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => onRefresh()}
-                  disabled={isRefreshing}
-                >
-                  Zkusit znovu
-                </Button>
-              </AlertDescription>
-            </Alert>
+            <LoadError
+              title="Aktualizace se nezdařila"
+              shownFrom={updatedAt}
+              isRetrying={isRefreshing}
+              onRetry={onRefresh}
+            />
           ) : null}
 
           <Card>
@@ -145,6 +126,6 @@ export function OccupancySection({
           </div>
         </div>
       )}
-    </section>
+    </PageSection>
   )
 }

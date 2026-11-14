@@ -1,10 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import {
   Form,
   FormControl,
@@ -43,11 +42,7 @@ export function SignInForm({ isLoading, errorMessage, onSubmit }: SignInFormProp
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-4"
       >
-        {errorMessage ? (
-          <Alert variant="destructive">
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        ) : null}
+        {errorMessage ? <FormError message={errorMessage} /> : null}
 
         <FormField
           control={form.control}
@@ -86,15 +81,14 @@ export function SignInForm({ isLoading, errorMessage, onSubmit }: SignInFormProp
           )}
         />
 
-        <Button
+        <PendingButton
           type="submit"
           size="lg"
           className="w-full max-w-sm"
-          disabled={isLoading}
+          isPending={isLoading}
         >
-          {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}
           Přihlásit se
-        </Button>
+        </PendingButton>
       </form>
     </Form>
   )

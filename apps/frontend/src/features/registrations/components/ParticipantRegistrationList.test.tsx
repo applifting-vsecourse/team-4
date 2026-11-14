@@ -174,9 +174,7 @@ describe("ParticipantRegistrationList", () => {
     get.mockReturnValueOnce(failWith(500)).mockReturnValue(respondWith([MIXED]))
     renderList()
 
-    expect(
-      await screen.findByText("Data se nepodařilo načíst. Zkuste to znovu."),
-    ).toBeInTheDocument()
+    expect(await screen.findByText("Data se nepodařilo načíst")).toBeInTheDocument()
     expect(screen.queryByText("Zatím nemáte žádné přihlášky.")).not.toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Zkusit znovu" }))

@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { CircleCheck, TriangleAlert } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { PageSection } from "@/components/PageSection"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -82,13 +83,7 @@ export function OpeningReadiness({
   onTermAdded,
 }: Omit<OpeningConditionsProps, "shouldShowOnlyMissing">) {
   return (
-    <section aria-labelledby="opening-readiness-heading">
-      <h2
-        id="opening-readiness-heading"
-        className="mb-4 text-h4"
-      >
-        Před otevřením přihlašování
-      </h2>
+    <PageSection title="Před otevřením přihlašování">
       <Card>
         <CardContent>
           {event.openingBlockers.length > 0 ? (
@@ -118,7 +113,7 @@ export function OpeningReadiness({
           )}
         </CardContent>
       </Card>
-    </section>
+    </PageSection>
   )
 }
 

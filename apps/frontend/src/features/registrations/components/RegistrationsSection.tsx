@@ -1,9 +1,12 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { ClipboardList, Loader2, RefreshCw, X } from "lucide-react"
+import { ClipboardList, X } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageSection } from "@/components/PageSection"
+import { RefreshButton } from "@/components/RefreshButton"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
@@ -56,28 +59,16 @@ export function RegistrationsSection({
   const { data } = query
 
   return (
-    <section
-      aria-labelledby="registrations-heading"
-      aria-busy={query.isFetching}
-      className="space-y-4"
+    <PageSection
+      title="Seznam přihlášek"
+      isBusy={query.isFetching}
+      actions={
+        <RefreshButton
+          isRefreshing={query.isFetching}
+          onRefresh={() => query.refetch()}
+        />
+      }
     >
-      <div className="flex min-h-9 items-center justify-between gap-4">
-        <h2
-          id="registrations-heading"
-          className="text-h4"
-        >
-          Seznam přihlášek
-        </h2>
-        <Button
-          variant="outline"
-          onClick={() => void query.refetch()}
-          disabled={query.isFetching}
-        >
-          {query.isFetching ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw />}
-          {query.isFetching ? "Aktualizuji…" : "Aktualizovat"}
-        </Button>
-      </div>
-
       <RegistrationFilters
         terms={terms}
         filter={filter}
@@ -85,26 +76,11 @@ export function RegistrationsSection({
       />
 
       {query.isError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Data se nepodařilo načíst. Zkuste to znovu.</AlertTitle>
-          <AlertDescription>
-            {data ? (
-              <p>
-                Zobrazený seznam je z posledního úspěšného načtení (
-                {formatPragueDateTime(new Date(query.dataUpdatedAt).toISOString())}).
-              </p>
-            ) : null}
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() => void query.refetch()}
-              disabled={query.isFetching}
-            >
-              Zkusit znovu
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <LoadError
+          shownFrom={data ? query.dataUpdatedAt : undefined}
+          isRetrying={query.isFetching}
+          onRetry={() => query.refetch()}
+        />
       ) : null}
 
       {data ? (
@@ -116,14 +92,14 @@ export function RegistrationsSection({
           onClearFilters={() => onFilterChange({})}
         />
       ) : query.isPending ? (
-        <div
+        <LoadingBlock
+          label="Načítání přihlášek"
           className="space-y-2"
-          aria-label="Načítání přihlášek"
         >
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
-        </div>
+        </LoadingBlock>
       ) : null}
 
       {data && !query.isError ? (
@@ -131,7 +107,7 @@ export function RegistrationsSection({
           Aktualizováno {formatPragueDateTime(new Date(query.dataUpdatedAt).toISOString())}
         </p>
       ) : null}
-    </section>
+    </PageSection>
   )
 }
 

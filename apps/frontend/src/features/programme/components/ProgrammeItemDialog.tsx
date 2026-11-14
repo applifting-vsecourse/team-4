@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react"
-import { Loader2 } from "lucide-react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/ui/date-picker"
 import {
@@ -134,11 +134,7 @@ function ProgrammeItemForm({
       className="space-y-4"
       onSubmit={submit}
     >
-      {errorMessage ? (
-        <Alert variant="destructive">
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-      ) : null}
+      {errorMessage ? <FormError message={errorMessage} /> : null}
       <FieldGroup>
         <Field data-invalid={errors.title ? true : undefined}>
           <FieldLabel htmlFor="programme-title">Název</FieldLabel>
@@ -203,13 +199,12 @@ function ProgrammeItemForm({
             Zrušit
           </Button>
         </DialogClose>
-        <Button
+        <PendingButton
           type="submit"
-          disabled={isSubmitting}
+          isPending={isSubmitting}
         >
-          {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
           Uložit položku
-        </Button>
+        </PendingButton>
       </DialogFooter>
     </form>
   )

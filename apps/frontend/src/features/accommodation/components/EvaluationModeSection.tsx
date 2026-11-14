@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { evaluationModeQueryOptions } from "@/features/accommodation/api/evaluationQueryOptions"
 import { EvaluationModeSettings } from "@/features/accommodation/components/EvaluationModeSettings"
-import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
 import { useSaveEvaluationMode } from "@/features/accommodation/hooks/useSaveEvaluationMode"
 
 const STILL_APPLIES = {
@@ -27,18 +28,17 @@ export function EvaluationModeSection({
 
   if (mode.isPending) {
     return (
-      <Skeleton
-        className="h-40 w-full"
-        role="status"
-        aria-label="Načítání automatizace"
-      />
+      <LoadingBlock label="Načítání automatizace">
+        <Skeleton className="h-40 w-full" />
+      </LoadingBlock>
     )
   }
   if (mode.isError) {
     return (
-      <RetryAlert
+      <LoadError
         title="Automatizaci se nepodařilo načíst"
-        onRetry={() => void mode.refetch()}
+        isRetrying={mode.isFetching}
+        onRetry={() => mode.refetch()}
       />
     )
   }

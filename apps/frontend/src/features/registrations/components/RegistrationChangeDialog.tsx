@@ -1,7 +1,9 @@
 import { useState } from "react"
-import { Info, Loader2, RefreshCw, TriangleAlert } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
+import { Notice } from "@/components/Notice"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -102,45 +104,33 @@ export function RegistrationChangeDialog({
 
         <div className="space-y-4">
           {isStale ? (
-            <Alert variant="destructive">
-              <RefreshCw />
-              <AlertTitle>
-                Přihláška se mezitím změnila. Načtěte ji znovu a změnu potvrďte.
-              </AlertTitle>
-            </Alert>
+            <Notice
+              tone="error"
+              title="Přihláška se mezitím změnila. Načtěte ji znovu a změnu potvrďte."
+            />
           ) : null}
 
-          {errorMessage ? (
-            <Alert variant="destructive">
-              <AlertDescription>{errorMessage}</AlertDescription>
-            </Alert>
-          ) : null}
+          {errorMessage ? <FormError message={errorMessage} /> : null}
 
           {isApprovalNewlyRequired ? (
-            <Alert>
-              <Info />
-              <AlertTitle>
-                Mezitím začalo platit schvalování změn. Změnu můžete odeslat jen jako žádost.
-              </AlertTitle>
-            </Alert>
+            <Notice
+              tone="info"
+              title="Mezitím začalo platit schvalování změn. Změnu můžete odeslat jen jako žádost."
+            />
           ) : isApprovalRequired ? (
-            <Alert>
-              <Info />
-              <AlertTitle>
-                Změnu musí schválit organizátor. Do té doby platí současná přihláška.
-              </AlertTitle>
-            </Alert>
+            <Notice
+              tone="info"
+              title="Změnu musí schválit organizátor. Do té doby platí současná přihláška."
+            />
           ) : null}
 
           <ChangeSummary {...summary} />
 
           {hasFinancialImpact ? (
-            <Alert>
-              <Info />
-              <AlertTitle>
-                Storno poplatek a případnou vratku řeší organizátor podle podmínek akce.
-              </AlertTitle>
-            </Alert>
+            <Notice
+              tone="info"
+              title="Storno poplatek a případnou vratku řeší organizátor podle podmínek akce."
+            />
           ) : null}
 
           {release ? (
@@ -170,15 +160,15 @@ export function RegistrationChangeDialog({
               Načíst přihlášku znovu
             </Button>
           ) : (
-            <Button
+            <PendingButton
               type="button"
               variant={isCancellation && !isRequest ? "destructive" : "default"}
-              disabled={isSubmitting || (release ? !isReleaseConsentGiven : false)}
+              isPending={isSubmitting}
+              disabled={release ? !isReleaseConsentGiven : false}
               onClick={() => onConfirm?.(isReleaseConsentGiven)}
             >
-              {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
               {confirmLabel}
-            </Button>
+            </PendingButton>
           )}
         </DialogFooter>
       </DialogContent>
@@ -194,13 +184,10 @@ function ReleaseNotice({
 }: ReleaseConsent & { onGivenChange: (isGiven: boolean) => void }) {
   return (
     <div className="space-y-3">
-      <Alert>
-        <TriangleAlert />
-        <AlertDescription>
-          Přesunem přijdete o potvrzené místo v termínu {lostTerm}. O účasti v termínu {targetTerm}{" "}
-          rozhodne organizátor.
-        </AlertDescription>
-      </Alert>
+      <Notice
+        tone="warning"
+        title={`Přesunem přijdete o potvrzené místo v termínu ${lostTerm}. O účasti v termínu ${targetTerm} rozhodne organizátor.`}
+      />
       <Field orientation="horizontal">
         <Checkbox
           id="release-consent"

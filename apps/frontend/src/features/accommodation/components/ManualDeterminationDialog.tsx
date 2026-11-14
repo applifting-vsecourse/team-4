@@ -1,6 +1,7 @@
 import { useState } from "react"
-import { Loader2 } from "lucide-react"
 
+import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,7 +17,6 @@ import {
   DeterminationFields,
   type DeterminationFieldsProps,
 } from "@/features/accommodation/components/DeterminationFields"
-import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
 
 export type ManualDeterminationDialogProps = DeterminationFieldsProps & {
   isOpen: boolean
@@ -99,9 +99,9 @@ export function ManualDeterminationDialog({
         />
 
         {saveError ? (
-          <ErrorAlert
+          <FormError
             title="Určení se nepodařilo uložit"
-            detail={saveError}
+            message={saveError}
           />
         ) : null}
 
@@ -114,13 +114,12 @@ export function ManualDeterminationDialog({
               Zrušit
             </Button>
           </DialogClose>
-          <Button
-            disabled={isSaving}
+          <PendingButton
+            isPending={isSaving}
             onClick={submit}
           >
-            {isSaving ? <Loader2 className="animate-spin" /> : null}
             Uložit určení
-          </Button>
+          </PendingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

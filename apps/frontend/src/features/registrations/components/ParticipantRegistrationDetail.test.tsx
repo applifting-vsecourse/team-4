@@ -27,6 +27,11 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
     <a href={to}>{children}</a>
   ),
+  createLink:
+    (Anchor: React.ComponentType<React.AnchorHTMLAttributes<HTMLAnchorElement>>) =>
+    ({ children, to }: { children: React.ReactNode; to: string }) => (
+      <Anchor href={to}>{children}</Anchor>
+    ),
 }))
 
 const REGISTRATION: DetailData = {
@@ -177,9 +182,7 @@ describe("ParticipantRegistrationDetail", () => {
   it("never shows a failed first load as an empty detail", async () => {
     serve(failWith(500))
     renderDetail()
-    expect(
-      await screen.findByText("Data se nepodařilo načíst. Zkuste to znovu."),
-    ).toBeInTheDocument()
+    expect(await screen.findByText("Data se nepodařilo načíst")).toBeInTheDocument()
     expect(screen.queryByText("Termíny")).not.toBeInTheDocument()
   })
 })

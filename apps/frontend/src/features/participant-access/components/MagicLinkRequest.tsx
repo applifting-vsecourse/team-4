@@ -1,9 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Mail } from "lucide-react"
+import { Mail } from "lucide-react"
 import { useForm } from "react-hook-form"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+import { FormError } from "@/components/FormError"
+import { Notice } from "@/components/Notice"
+import { PendingButton } from "@/components/PendingButton"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Form,
@@ -47,16 +48,13 @@ export function MagicLinkRequest({ notice }: MagicLinkRequestProps) {
           >
             <h1 className="text-h2">Moje přihlášky</h1>
             {notice ? (
-              <Alert>
-                <AlertDescription>{notice}</AlertDescription>
-              </Alert>
+              <Notice
+                tone="info"
+                title={notice}
+              />
             ) : null}
             {request.isError ? (
-              <Alert variant="destructive">
-                <AlertDescription>
-                  Odkaz se nepodařilo vyžádat. Zkuste to prosím znovu.
-                </AlertDescription>
-              </Alert>
+              <FormError message="Odkaz se nepodařilo vyžádat. Zkuste to prosím znovu." />
             ) : null}
 
             <FormField
@@ -78,21 +76,22 @@ export function MagicLinkRequest({ notice }: MagicLinkRequestProps) {
               )}
             />
 
-            <Button
+            <PendingButton
               type="submit"
               size="lg"
               className="w-full max-w-sm"
-              disabled={request.isPending}
+              isPending={request.isPending}
             >
-              {request.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
               Poslat přihlašovací odkaz
-            </Button>
+            </PendingButton>
 
             {request.isSuccess ? (
-              <Alert>
-                <Mail aria-hidden />
-                <AlertDescription role="status">{request.data.message}</AlertDescription>
-              </Alert>
+              <Notice
+                tone="success"
+                icon={Mail}
+                role="status"
+                title={request.data.message}
+              />
             ) : null}
           </form>
         </Form>

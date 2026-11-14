@@ -1,11 +1,13 @@
 import { useEffect, type FormEvent } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { CalendarX, Loader2 } from "lucide-react"
+import { CalendarX } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 
 import { ROUTES } from "@/app/routes"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
+import { Notice } from "@/components/Notice"
+import { PendingButton } from "@/components/PendingButton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -382,15 +384,14 @@ export function RegistrationForm({
 
         {submitError ? <SubmitErrorAlert error={submitError} /> : null}
 
-        <Button
+        <PendingButton
           type="submit"
           size="lg"
           className="w-full max-w-sm sm:w-auto"
-          disabled={isSubmitting}
+          isPending={isSubmitting}
         >
-          {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
           {isSubmitting ? "Odesílám přihlášku…" : "Odeslat přihlášku"}
-        </Button>
+        </PendingButton>
       </form>
     </Form>
   )
@@ -412,35 +413,30 @@ function SubmitErrorAlert({ error }: { error: RegistrationSubmitError }) {
   if (error.kind === "terms") return null
   if (error.kind === "already_registered") {
     return (
-      <Alert>
-        <AlertTitle>Přihláška s tímto e-mailem již existuje</AlertTitle>
-        <AlertDescription>
+      <Notice
+        tone="info"
+        title="Přihláška s tímto e-mailem již existuje"
+      >
+        <p>
           Na tuto akci je s tímto e-mailem už přihláška uložená. Novou jsme nevytvořili a údaje té
           existující tady nezobrazujeme. Přihlášku uvidíte po ověření odkazem z e-mailu.
-        </AlertDescription>
+        </p>
         <Button
           variant="outline"
           size="sm"
-          className="mt-2 w-fit"
           asChild
         >
           <a href={ROUTES.myRegistrations}>Vyžádat přihlašovací odkaz</a>
         </Button>
-      </Alert>
+      </Notice>
     )
   }
-  return (
-    <Alert variant="destructive">
-      {error.kind === "unavailable" ? (
-        <>
-          <AlertTitle>Přihlašování není dostupné</AlertTitle>
-          <AlertDescription>
-            Na tuto akci se teď nelze přihlásit. Přihláška nebyla uložena.
-          </AlertDescription>
-        </>
-      ) : (
-        <AlertDescription>{error.message}</AlertDescription>
-      )}
-    </Alert>
+  return error.kind === "unavailable" ? (
+    <FormError
+      title="Přihlašování není dostupné"
+      message="Na tuto akci se teď nelze přihlásit. Přihláška nebyla uložena."
+    />
+  ) : (
+    <FormError message={error.message} />
   )
 }

@@ -1,10 +1,11 @@
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { Notice } from "@/components/Notice"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { ProgrammeList, type ProgrammeDay } from "@/features/programme/components/ProgrammeList"
-import { ProgrammeLoadFailed } from "@/features/programme/components/ProgrammeLoadFailed"
 
 export type ParticipantProgrammeTerm = {
   id: string
@@ -55,19 +56,17 @@ export function ParticipantProgramme({ terms, onRetry }: ParticipantProgrammePro
           </CardHeader>
           <CardContent>
             {term.status !== "confirmed" ? (
-              <Alert>
-                <AlertDescription>
-                  Program je dostupný až po potvrzení účasti v tomto termínu.
-                </AlertDescription>
-              </Alert>
-            ) : term.isLoading ? (
-              <Skeleton
-                className="h-24 w-full"
-                role="status"
-                aria-label="Načítání programu"
+              <Notice
+                tone="info"
+                title="Program je dostupný až po potvrzení účasti v tomto termínu."
               />
+            ) : term.isLoading ? (
+              <LoadingBlock label="Načítání programu">
+                <Skeleton className="h-24 w-full" />
+              </LoadingBlock>
             ) : term.isLoadFailed ? (
-              <ProgrammeLoadFailed
+              <LoadError
+                title="Program se nepodařilo načíst"
                 onRetry={() => onRetry?.(term.id)}
                 isRetrying={term.isRetrying}
               />

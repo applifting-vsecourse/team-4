@@ -2,7 +2,9 @@ import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageSection } from "@/components/PageSection"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -22,33 +24,17 @@ export function PendingApprovalsSummary({ organizationId, eventId }: PendingAppr
   const pendingLabel = count === 1 ? "žádost čeká" : count < 5 ? "žádosti čekají" : "žádostí čeká"
 
   return (
-    <section
-      aria-labelledby="pending-approvals-heading"
-      aria-busy={query.isFetching}
-      className="space-y-4"
+    <PageSection
+      title="Vyžaduje vaši pozornost"
+      isBusy={query.isFetching}
     >
-      <h2
-        id="pending-approvals-heading"
-        className="text-h4"
-      >
-        Vyžaduje vaši pozornost
-      </h2>
-
       {query.isError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Čekající žádosti se nepodařilo načíst.</AlertTitle>
-          <AlertDescription>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() => void query.refetch()}
-              disabled={query.isFetching}
-            >
-              Zkusit znovu
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <LoadError
+          title="Čekající žádosti se nepodařilo načíst"
+          shownFrom={query.data ? query.dataUpdatedAt : undefined}
+          isRetrying={query.isFetching}
+          onRetry={() => query.refetch()}
+        />
       ) : null}
 
       {query.data ? (
@@ -94,14 +80,14 @@ export function PendingApprovalsSummary({ organizationId, eventId }: PendingAppr
           </Card>
         )
       ) : query.isPending ? (
-        <div
-          aria-label="Načítání čekajících žádostí"
+        <LoadingBlock
+          label="Načítání čekajících žádostí"
           className="space-y-2"
         >
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-20 w-full" />
-        </div>
+        </LoadingBlock>
       ) : null}
-    </section>
+    </PageSection>
   )
 }

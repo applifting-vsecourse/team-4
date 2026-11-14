@@ -4,6 +4,7 @@ import { Pencil } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { PageHeader } from "@/components/PageHeader"
+import { PageSection } from "@/components/PageSection"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
@@ -60,15 +61,10 @@ function EventPage() {
       />
       <div className="space-y-10">
         {event.isLocked ? <EventLockedAlert status={event.status} /> : null}
-        <section aria-labelledby="event-details-heading">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-            <h2
-              id="event-details-heading"
-              className="text-h4"
-            >
-              Základní údaje
-            </h2>
-            {!event.isLocked ? (
+        <PageSection
+          title="Základní údaje"
+          actions={
+            !event.isLocked ? (
               <Button
                 asChild
                 variant="outline"
@@ -81,8 +77,9 @@ function EventPage() {
                   Upravit akci
                 </Link>
               </Button>
-            ) : null}
-          </div>
+            ) : null
+          }
+        >
           <Card>
             <CardContent className="space-y-4">
               <dl className="space-y-4 text-sm">
@@ -101,7 +98,7 @@ function EventPage() {
               </dl>
             </CardContent>
           </Card>
-        </section>
+        </PageSection>
 
         <TermsSection
           organizationId={organizationId}

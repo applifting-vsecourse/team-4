@@ -1,12 +1,12 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 
+import { LoadError } from "@/components/LoadError"
 import { Button } from "@/components/ui/button"
 import { formatPragueDateTime } from "@/lib/date"
 
 import { registrationAccommodationQueryOptions } from "@/features/accommodation/api/evaluationQueryOptions"
 import { DeterminationDialog } from "@/features/accommodation/components/DeterminationDialog"
-import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
 import { valueLabel } from "@/features/accommodation/lib/evaluationView"
 
 type RegistrationDeterminationPanelProps = {
@@ -37,9 +37,10 @@ export function RegistrationDeterminationPanel({
   if (accommodation.isPending) return null
   if (accommodation.isError) {
     return (
-      <RetryAlert
+      <LoadError
         title="Určení ubytování se nepodařilo načíst"
-        onRetry={() => void accommodation.refetch()}
+        isRetrying={accommodation.isFetching}
+        onRetry={() => accommodation.refetch()}
       />
     )
   }

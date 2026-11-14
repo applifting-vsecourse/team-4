@@ -1,10 +1,11 @@
 import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2, Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DatePicker } from "@/components/ui/date-picker"
@@ -190,14 +191,12 @@ export function ControlsSection() {
           <Button
             size="icon"
             variant="outline"
-            aria-label="Smazat"
+            aria-label="Odstranit"
           >
             <Trash2 />
           </Button>
           <Button disabled>Zakázané</Button>
-          <Button disabled>
-            <Loader2 className="animate-spin" /> Ukládám…
-          </Button>
+          <PendingButton isPending>Ukládám…</PendingButton>
         </div>
       </ShowcaseSection>
 

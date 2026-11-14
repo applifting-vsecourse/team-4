@@ -84,7 +84,7 @@ You are extending an existing product, not designing a new one. Most UI rework s
 - **shadcn/ui is the design system.** Every control is a shadcn component from `src/components/ui/`. Nothing is hand-rolled, not even where a native element would do.
 - **Semantic tokens only.** Use classes like `bg-background`, `text-muted-foreground`, `border-border`, `bg-success-subtle`. No hex values, no arbitrary colours (`bg-[#...]`).
 - **Accessible by default.** Keyboard reachable, visible focus, accessible names, errors shown at the field without losing the other values. `eslint-plugin-jsx-a11y` is on.
-- **States are part of the design.** Data views have loading (`Skeleton`), empty (`Empty`) and error (`Alert`) states; controls have disabled and invalid states.
+- **States are part of the design.** Data views have loading (`LoadingBlock` with `Skeleton`), empty (`Empty`) and error (`LoadError`) states; controls have disabled and invalid states.
 - **Czech UI copy, brand "akc.io".** Amounts in CZK; times in Prague local time.
 - **Light and dark.** Both themes are defined in `global.css` (`.dark` class via `next-themes`). Using tokens makes both work; check new UI in both with the theme switcher.
 
@@ -102,8 +102,25 @@ Patterns built from them:
 - **Collapsible section:** `CollapsibleSection` from `src/components/ui/collapsible-section.tsx` for consistent full-row triggers and animated content height.
 - **Status labels:** `Badge` with a status variant (table below).
 - **Table labels:** Place a badge that leads a left-aligned cell directly inside `TableCell`. Its text aligns with the column header and the fill extends into the gutter.
-- **Confirmation of destructive actions:** `Dialog` with a `destructive` button.
+- **Confirmation of destructive actions:** `ConfirmDeleteDialog` (below).
 - **Feedback after an action:** `toast` from `sonner` (the `Toaster` is mounted in `__root.tsx`).
+
+### Shared app components
+
+Recurring states and page actions have one component each in `src/components/`. Use them instead of composing `Alert`, `Empty` or `Skeleton` in a feature; `Alert` is imported only by `Notice` and `FormError`.
+
+| Need                                      | Component                                                          | Rule                                                                                                                                                                                   |
+| ----------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| In-page message                           | `Notice tone="info" \| "success" \| "warning" \| "error"`          | The tone picks the icon and colour; `title` is always set (a one-sentence notice is a title only); details and actions go in children; `icon` only for an extra meaning (`Lock`).      |
+| Failed save or action of a form or dialog | `FormError message title? action?`                                 | At the form, above its buttons. `action` only for a way on that differs from submitting again (a retry that checks a lost response). Success is a `toast`, never a dialog or a notice. |
+| Failed load or refresh                    | `LoadError title? description? shownFrom? onRetry action? variant` | `inline` in a section, `page` instead of the whole content. With old data still shown, pass `shownFrom`. Never shown as an empty state.                                                |
+| Loading placeholder                       | `LoadingBlock label` around `Skeleton`s                            | Always a named `role="status"`; never an `aria-label` without a role, never the empty state while loading.                                                                             |
+| Missing or foreign record                 | `RecordUnavailable title? icon? action?`                           | Same look for a missing and a foreign record.                                                                                                                                          |
+| Confirming a deletion                     | `ConfirmDeleteDialog title consequence errorMessage? onConfirm`    | One verb: „Odstranit“. Its failure stays in the dialog.                                                                                                                                |
+| Button whose action takes a while         | `PendingButton isPending icon?` + `Button` props                   | Disabled with a spinner before the label while pending; the spinner replaces `icon`. The label stays, or changes to its „…ím…“ form.                                                   |
+| Reloading a list or detail                | `RefreshButton`                                                    | „Aktualizovat“ / „Aktualizuji…“.                                                                                                                                                       |
+| Way back to the parent page               | `BackLink to params`                                               | Ghost button with `ArrowLeft` above the page heading.                                                                                                                                  |
+| Titled part of a page                     | `PageSection title description? actions? isBusy? headingId?`       | A region named by its `h2`; actions on the right of the heading. `headingId` only when a link points at the section. Subsections with an `h3` stay hand-written.                       |
 
 ### Adding or composing
 
@@ -113,7 +130,7 @@ Patterns built from them:
    - Check the diff afterwards. The CLI has resolved `@/lib/utils` to an npm package named `cn` (`import { cn } from "cn"`) and added `cn` to `package.json`; fix the import to `@/lib/utils` and remove the dependency.
    - The CLI may append CSS variables to `global.css`; replace their values with the tokens documented here.
    - Run `pnpm prettier --write` on the new files; `src/components/ui/` is excluded from ESLint (vendored code) but not from Prettier.
-2. **A reusable composition** (a new variant, or a component made of several kit primitives used across features): put it in `src/components/ui/` too, built only from kit primitives and tokens. Example: the `success`, `warning` and `destructive-subtle` variants added to `badge.tsx`.
+2. **A reusable variant or generic composition** of kit primitives: put it in `src/components/ui/` too, built only from kit primitives and tokens. Example: the `success`, `warning` and `destructive-subtle` variants added to `badge.tsx`, and the `success` and `warning` variants of `alert.tsx` (icon in the status colour). An app component with akc.io copy or behaviour that several features share goes to `src/components/` (see Shared app components).
 3. **Something used by one feature only:** a feature component in `src/features/<feature>/components/`, built from the kit.
 4. Show any new component or variant on the `/design-system` page.
 

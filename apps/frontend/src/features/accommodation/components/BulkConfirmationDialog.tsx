@@ -1,5 +1,7 @@
-import { Loader2, RefreshCw } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 
+import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,8 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-
-import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
 
 /**
  * review: before the one explicit confirmation.
@@ -87,16 +87,16 @@ export function BulkConfirmationDialog({
         )}
 
         {isStale ? (
-          <ErrorAlert
+          <FormError
             title="Návrh je neaktuální, nikdo nebyl potvrzen"
-            detail={staleReason}
+            message={staleReason}
           />
         ) : null}
 
         {state === "failed" ? (
-          <ErrorAlert
+          <FormError
             title="Potvrzení se nepodařilo uložit"
-            detail="Stavy účastí ani platby se nezměnily."
+            message="Stavy účastí ani platby se nezměnily."
           />
         ) : null}
 
@@ -115,13 +115,12 @@ export function BulkConfirmationDialog({
               Načíst nový návrh
             </Button>
           ) : (
-            <Button
-              disabled={isSaving}
+            <PendingButton
+              isPending={isSaving}
               onClick={onConfirm}
             >
-              {isSaving ? <Loader2 className="animate-spin" /> : null}
               {isSaving ? "Potvrzuji…" : `Potvrdit ${participations(count)}`}
-            </Button>
+            </PendingButton>
           )}
         </DialogFooter>
       </DialogContent>

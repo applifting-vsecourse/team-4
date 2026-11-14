@@ -3,10 +3,10 @@ import { createFileRoute, Link, useRouter, type ErrorComponentProps } from "@tan
 import { z } from "zod"
 
 import { ROUTES } from "@/app/routes"
+import { LoadError } from "@/components/LoadError"
 import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { WorkspacePage } from "@/components/WorkspacePage"
 import { HTTPError } from "@/lib/api-client"
@@ -47,7 +47,7 @@ export const Route = createFileRoute(
       ),
     ]),
   component: RegistrationPage,
-  errorComponent: LoadError,
+  errorComponent: RegistrationErrorPage,
 })
 
 function RegistrationPage() {
@@ -163,7 +163,7 @@ function RegistrationPage() {
 
 // A registration of another event or organization looks like a missing one
 // (S2-03); any other failure can be retried and is never shown as data.
-function LoadError({ error, reset }: ErrorComponentProps) {
+function RegistrationErrorPage({ error, reset }: ErrorComponentProps) {
   const { organizationId, eventId } = Route.useParams()
   const router = useRouter()
   const { data: organization } = useQuery(organizationQueryOptions(organizationId))
@@ -194,35 +194,26 @@ function LoadError({ error, reset }: ErrorComponentProps) {
           }
         />
       ) : (
-        <Alert variant="destructive">
-          <AlertTitle>Data se nepodařilo načíst. Zkuste to znovu.</AlertTitle>
-          <AlertDescription>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  reset()
-                  void router.invalidate()
-                }}
+        <LoadError
+          variant="page"
+          onRetry={() => {
+            reset()
+            void router.invalidate()
+          }}
+          action={
+            <Button
+              asChild
+              variant="ghost"
+            >
+              <Link
+                to={ROUTES.eventRegistrations}
+                params={{ organizationId, eventId }}
               >
-                Zkusit znovu
-              </Button>
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-              >
-                <Link
-                  to={ROUTES.eventRegistrations}
-                  params={{ organizationId, eventId }}
-                >
-                  Zpět na přihlášky
-                </Link>
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
+                Zpět na přihlášky
+              </Link>
+            </Button>
+          }
+        />
       )}
     </WorkspacePage>
   )

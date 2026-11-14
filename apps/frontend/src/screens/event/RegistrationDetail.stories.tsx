@@ -42,7 +42,7 @@ export const LoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", DETAIL))
   },
-  play: () => showsText("Data se nepodařilo načíst. Zkuste to znovu."),
+  play: () => showsText("Data se nepodařilo načíst"),
 }
 
 export const RefreshFailed: Story = {
@@ -123,7 +123,7 @@ export const ChangesLoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", `${DETAIL}/changes`))
   },
-  play: () => showsText("Změny přihlášky se nepodařilo načíst."),
+  play: () => showsText("Změny přihlášky se nepodařilo načíst"),
 }
 
 /** The answer needs the organizer's own decision about accommodation (F39-1). */
