@@ -190,7 +190,7 @@ export function ControlsSection() {
           <Button
             size="icon"
             variant="outline"
-            aria-label="Smazat"
+            aria-label="Odstranit"
           >
             <Trash2 />
           </Button>
