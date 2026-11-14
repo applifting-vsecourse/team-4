@@ -7,6 +7,7 @@ import { ROUTES } from "@/app/routes"
 import { EmptyState } from "@/components/EmptyState"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageHeader } from "@/components/PageHeader"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -43,14 +44,16 @@ export function ParticipantRegistrationList({
       aria-busy={query.isFetching}
       className="space-y-4"
     >
-      <p className="text-sm wrap-break-word text-muted-foreground">{email}</p>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-h2">Moje přihlášky</h1>
-        <RefreshButton
-          isRefreshing={query.isFetching}
-          onRefresh={() => query.refetch()}
-        />
-      </div>
+      <PageHeader
+        title="Moje přihlášky"
+        description={<p className="wrap-break-word">{email}</p>}
+        actions={
+          <RefreshButton
+            isRefreshing={query.isFetching}
+            onRefresh={() => query.refetch()}
+          />
+        }
+      />
 
       {query.isError ? (
         <LoadError

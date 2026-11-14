@@ -7,6 +7,7 @@ import { BackLink } from "@/components/BackLink"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { Notice } from "@/components/Notice"
+import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -93,10 +94,10 @@ export function ParticipantRegistrationEdit({
 
       {data ? (
         <>
-          <div className="space-y-2">
-            <h1 className="text-h2">Úprava přihlášky</h1>
-            <p className="text-sm text-muted-foreground">{data.event.name}</p>
-          </div>
+          <PageHeader
+            title="Úprava přihlášky"
+            description={data.event.name}
+          />
           {data.canChange ? (
             // A reloaded registration (new version) starts a fresh form.
             <EditForm

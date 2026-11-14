@@ -25,7 +25,7 @@ You are extending an existing product, not designing a new one. Most UI rework s
 ## Layout and navigation
 
 - **One container per area.** Render pages inside the area's shell and do not add your own `mx-auto max-w-*` page wrapper. A narrow form sits inside the page, left-aligned with the header. _Why: breadcrumbs and titles must not jump when moving between sibling routes._
-- **Fixed page anatomy.** `PageHeader`: breadcrumb, title with status badge, actions on the right. At most one primary (lime) button per view. Actions of a card or row sit at its trailing end; Cancel (`outline`) comes before the confirming button.
+- **Fixed page anatomy.** Every page title is a `PageHeader`: breadcrumb (organization shell only), title with status badge, actions on the right, short lines under the title. Auth, error, landing and e-mail pages keep their own layout. At most one primary (lime) button per view. Actions of a card or row sit at its trailing end; Cancel (`outline`) comes before the confirming button.
 - **A way back from every page.** Event management uses the breadcrumb. Public and participant sub-pages (detail, form, payment) start with a back link above the title: `Button variant="ghost" size="sm"` with `ArrowLeft`, label "Zpět na …" naming the target.
 - **Show the result of an action.** After creating or changing something, land where the result is visible (a term added from Přehled → the term list) and confirm with a toast.
 - **State that should survive refresh or Back/Forward lives in the URL**: tab, view, filters, selected term or queue, sort. Validate it in the route's `validateSearch` (zod, `.catch(undefined)`). Keep only transient UI (open dialog, hover) in component state.

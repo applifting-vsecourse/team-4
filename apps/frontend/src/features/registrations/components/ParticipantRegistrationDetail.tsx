@@ -7,6 +7,7 @@ import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Badge } from "@/components/ui/badge"
@@ -114,19 +115,19 @@ export function ParticipantRegistrationDetail({
 
       {data ? (
         <>
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-h2 wrap-break-word">{data.event.name}</h1>
-              {data.isCancelled ? <Badge variant="secondary">Odhlášená přihláška</Badge> : null}
-            </div>
-            <p className="flex items-start gap-2 text-sm text-muted-foreground">
-              <MapPin
-                aria-hidden
-                className="mt-0.5 size-4 shrink-0"
-              />
-              <span className="wrap-break-word">{data.event.location}</span>
-            </p>
-          </div>
+          <PageHeader
+            title={data.event.name}
+            badge={data.isCancelled ? <Badge variant="secondary">Odhlášená přihláška</Badge> : null}
+            description={
+              <p className="flex items-start gap-2">
+                <MapPin
+                  aria-hidden
+                  className="mt-0.5 size-4 shrink-0"
+                />
+                <span className="wrap-break-word">{data.event.location}</span>
+              </p>
+            }
+          />
 
           {data.canChange ? (
             <section

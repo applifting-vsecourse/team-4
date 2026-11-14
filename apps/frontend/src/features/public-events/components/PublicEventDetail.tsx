@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router"
 import { Info, Mail, MapPin, Phone } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { PageHeader } from "@/components/PageHeader"
 import { PageSection } from "@/components/PageSection"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -197,18 +198,22 @@ export function PublicEventDetail({
   registrationStatus,
 }: PublicEventDetailProps) {
   return (
-    <article className="space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-h2 break-words">{name}</h1>
-        <p className="text-sm font-medium">{organizationName}</p>
-        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <MapPin
-            aria-hidden
-            className="size-4 shrink-0"
-          />
-          <span className="min-w-0 break-words">{location}</span>
-        </p>
-      </header>
+    <article>
+      <PageHeader
+        title={name}
+        description={
+          <>
+            <p className="font-medium text-foreground">{organizationName}</p>
+            <p className="flex items-center gap-1.5">
+              <MapPin
+                aria-hidden
+                className="size-4 shrink-0"
+              />
+              <span className="min-w-0 break-words">{location}</span>
+            </p>
+          </>
+        }
+      />
       <div className="grid gap-8 md:grid-cols-3">
         <div className="min-w-0 space-y-8 md:col-span-2">
           <PhotoGallery photos={photos} />

@@ -3,6 +3,7 @@ import { MapPin } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink"
+import { PageHeader } from "@/components/PageHeader"
 
 import { type PublicEvent } from "@/features/public-events/api/publicEventSchemas"
 
@@ -30,15 +31,19 @@ export function PublicEventView({
           Zpět na detail akce
         </BackLink>
       ) : null}
-      <h1 className="text-h2 break-words">{event.name}</h1>
-      <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
-        <MapPin
-          aria-hidden
-          className="size-4 shrink-0"
-        />
-        <span className="min-w-0 break-words">{event.location}</span>
-      </p>
-      <p className="mt-6 max-w-prose text-sm whitespace-pre-line">{event.description}</p>
+      <PageHeader
+        title={event.name}
+        description={
+          <p className="flex items-center gap-1.5">
+            <MapPin
+              aria-hidden
+              className="size-4 shrink-0"
+            />
+            <span className="min-w-0 break-words">{event.location}</span>
+          </p>
+        }
+      />
+      <p className="max-w-prose text-sm whitespace-pre-line">{event.description}</p>
 
       <section
         aria-label="Přihláška"

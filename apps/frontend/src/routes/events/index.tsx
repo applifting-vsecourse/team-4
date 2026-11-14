@@ -2,6 +2,7 @@ import { useQueryErrorResetBoundary, useSuspenseQuery } from "@tanstack/react-qu
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 
 import { LoadError } from "@/components/LoadError"
+import { PageHeader } from "@/components/PageHeader"
 import { PublicShell } from "@/components/PublicShell"
 import { Seo } from "@/components/Seo"
 
@@ -24,7 +25,7 @@ function CatalogPage() {
   return (
     <PublicShell>
       <Seo title="Katalog akcí" />
-      <h1 className="mb-8 text-h2">Katalog akcí</h1>
+      <PageHeader title="Katalog akcí" />
       {events.length > 0 ? (
         <EventCatalogList events={events.map(toCatalogEventItem)} />
       ) : (
@@ -42,7 +43,7 @@ function CatalogErrorPage() {
   return (
     <PublicShell>
       <Seo title="Katalog akcí se nepodařilo načíst" />
-      <h1 className="mb-8 text-h2">Katalog akcí</h1>
+      <PageHeader title="Katalog akcí" />
       <LoadError
         variant="page"
         title="Katalog se nepodařilo načíst"
