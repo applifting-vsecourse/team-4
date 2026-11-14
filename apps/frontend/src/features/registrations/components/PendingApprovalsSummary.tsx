@@ -80,10 +80,7 @@ export function PendingApprovalsSummary({ organizationId, eventId }: PendingAppr
                     {describeKinds(oldest.kinds)} · podáno {formatChangeTime(oldest.createdAt)}
                   </p>
                 </div>
-                <Button
-                  asChild
-                  className="w-full sm:w-auto"
-                >
+                <Button asChild>
                   <Link
                     to={ROUTES.eventRegistrations}
                     params={{ organizationId, eventId }}

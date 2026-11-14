@@ -198,12 +198,21 @@ test('code and QA remain commit-specific despite persistent requirements approva
     ],
     comments: [
       botComment(
-        requirementsMarker(104, newSha, 79, scope.approval.id) +
-          '\nScope accepted',
-        4,
+        requirementsMarker(
+          104,
+          newSha,
+          79,
+          `severity-high-review:${scope.version}`,
+        ) + '\nAgent review starts',
+        3,
       ),
       botComment(
         `<!-- agent-review-scope issue=79 -->\n<!-- agent-review pr=104 sha=${newSha} result=pass attempt=1 -->`,
+        4,
+      ),
+      botComment(
+        requirementsMarker(104, newSha, 79, scope.approval.id) +
+          '\nScope accepted',
         5,
       ),
       botComment(readyMarker(104, newSha, 79) + '\nTesting handoff', 6),

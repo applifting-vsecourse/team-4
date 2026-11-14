@@ -118,7 +118,7 @@ export function SimulatedPaymentForm({
 
               <Button
                 type="submit"
-                className="w-full sm:w-auto"
+                className="w-full max-w-sm sm:w-auto"
                 disabled={isSaving}
               >
                 {isSaving ? <Loader2 className="animate-spin" /> : null}

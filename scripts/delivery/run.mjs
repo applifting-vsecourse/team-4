@@ -14,7 +14,8 @@ import {
   resumableBase,
 } from './stack.mjs';
 import { issueRequirements, scopeHash } from './requirements.mjs';
-import { dependencyScope, isDependencyUpdate } from './dependency-update.mjs';
+import { isDependencyUpdate } from './dependency-update.mjs';
+import { onlyDependabotCommits, pullCommits } from './dependency-merge.mjs';
 import { copilotWaiver } from './copilot-waiver.mjs';
 import { ADR_DIR, adrReasons, changedAdrs } from './adr.mjs';
 import { referencedIssueNumbers } from '../automation/issue-links.mjs';
@@ -452,11 +453,31 @@ for (let pr of candidates) {
     if (files.length !== pr.changed_files)
       throw new Error('Incomplete changed-file coverage');
     validateSeverity(pr, files);
-    let issues =
+    // A standard Dependabot update needs no issue, agent review, human review
+    // or QA: CI (`verify`) is the gate and auto-merge does the rest.
+    // A person's commit on the branch takes the PR back to the normal gates.
+    if (
+      isDependencyUpdate(pr, repo) &&
+      onlyDependabotCommits(await pullCommits(api, repo, pr.number))
+    ) {
+      const current = await api(`/repos/${repo}/pulls/${pr.number}`);
+      if (
+        current.head.sha !== pr.head.sha ||
+        current.state !== 'open' ||
+        current.draft !== pr.draft ||
+        !isDependencyUpdate(current, repo)
+      )
+        throw new Error('PR changed during evaluation');
+      const summary = pr.draft
+        ? 'PR is still a draft.'
+        : 'Dependency update: CI is the only gate; no review, approval or QA is required.';
+      await reconcileChecks(pr, pr.draft ? 'failure' : 'success', summary);
+      await publish(pr.draft ? 'failure' : 'success', summary);
+      console.log(`#${pr.number}: ${summary}`);
+      continue;
+    }
+    const issues =
       severityFor(pr) === 'low' ? [] : (linkedIssues ?? (await issuesFor(pr)));
-    // A standard Dependabot update needs no issue: the PR is its own scope.
-    const dependencyScoped = !issues.length && isDependencyUpdate(pr, repo);
-    if (dependencyScoped) issues = [dependencyScope(pr, repo)];
     // ADR acceptance is a Comment review, so Low ADR PRs need reviews too.
     const reviews =
       severityFor(pr) === 'low' && !changedAdrs(files).length
@@ -538,7 +559,6 @@ for (let pr of candidates) {
       current.draft !== pr.draft ||
       current.body !== pr.body ||
       !sameSeverity(current, pr) ||
-      (dependencyScoped && !isDependencyUpdate(current, repo)) ||
       current.technicalReviewRequired !== pr.technicalReviewRequired
     )
       throw new Error('PR changed during evaluation');

@@ -18,12 +18,9 @@ export function RegistrationChangeActions({
   onCancelRegistration,
 }: RegistrationChangeActionsProps) {
   return (
-    <div className="flex flex-col gap-2 sm:flex-row">
+    <div className="flex flex-col items-start gap-2 sm:flex-row">
       {registrationId ? (
-        <Button
-          asChild
-          className="w-full sm:w-auto"
-        >
+        <Button asChild>
           <Link
             to={ROUTES.myRegistrationEdit}
             params={{ registrationId }}
@@ -40,7 +37,6 @@ export function RegistrationChangeActions({
       )}
       <Button
         variant="outline"
-        className="w-full sm:w-auto"
         onClick={onCancelRegistration}
       >
         <CalendarX />

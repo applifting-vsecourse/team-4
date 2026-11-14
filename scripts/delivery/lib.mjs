@@ -3,6 +3,14 @@ import { copilotWaiver, waiverMarker } from './copilot-waiver.mjs';
 
 export const PM = 'darebakdavca';
 export const REQUIREMENTS_APPROVERS = [PM, 'rmnskb'];
+export function requirementsReviewerFor(author) {
+  const authorLogin = author?.toLowerCase();
+  return (
+    REQUIREMENTS_APPROVERS.find(
+      (login) => login.toLowerCase() !== authorLogin,
+    ) ?? REQUIREMENTS_APPROVERS[0]
+  );
+}
 export const isRequirementsApprover = (login) =>
   REQUIREMENTS_APPROVERS.some(
     (name) => name.toLowerCase() === login?.toLowerCase(),
@@ -15,6 +23,7 @@ export function reviewersFor(author) {
   const login = author.toLowerCase();
   return {
     requirements: REQUIREMENTS_APPROVERS.join(' or '),
+    requirementsReviewer: requirementsReviewerFor(author),
     qa: login === QA.toLowerCase() ? PM : QA,
   };
 }
@@ -43,18 +52,16 @@ export function technicalReviewRequired(pr, timeline = []) {
   );
 }
 
-// The technical reviewer's own PR needs no technical approval: GitHub doesn't
-// let him approve it, and the change already has his technical sign-off. The
-// other gates (Copilot review, requirements, QA) still apply.
+// David or Bogdan may approve the current commit; one approval is enough and
+// nobody approves their own PR, so on Bogdan's PR it is David's to give.
+export const TECHNICAL_APPROVERS = [PM, TECHNICAL_REVIEWER];
 export function technicalReviewApproval(pr, reviews) {
-  if (pr.user.login.toLowerCase() === TECHNICAL_REVIEWER.toLowerCase())
-    return {
-      id: 'technical-reviewer-author',
-      exempt: true,
-      commit_id: pr.head.sha,
-    };
-  const review = latestReview(reviews, TECHNICAL_REVIEWER);
-  return approved(review, pr.head.sha) ? review : null;
+  const author = pr.user.login.toLowerCase();
+  return (
+    TECHNICAL_APPROVERS.filter((login) => login.toLowerCase() !== author)
+      .map((login) => latestReview(reviews, login))
+      .find((review) => approved(review, pr.head.sha)) ?? null
+  );
 }
 
 export function isStorybookPreview(pr) {
@@ -98,8 +105,37 @@ export function requirementsApproval(pr, reviews) {
   return ordered.find((r) => r.id > reset && r.state === 'APPROVED') ?? null;
 }
 
+// The record which starts agent review. Standard and Low work needs no scope
+// approval, so it is the requirements record itself. High work is reviewed by
+// the agent and the human code reviewers first and asks for scope approval
+// afterwards, so its review starts under an id which does not wait for it.
+export function reviewStartApproval(pr, reviews) {
+  const approval = requirementsApproval(pr, reviews);
+  if (pr.draft || severityFor(pr) !== 'high') return approval;
+  return {
+    id: `severity-high-review${pr.requirementsVersion ? ':' + pr.requirementsVersion : ''}`,
+    exempt: true,
+    commit_id: pr.head.sha,
+  };
+}
+
 export function requirementsMarker(pr, sha, issue, reviewId) {
   return `<!-- requirements-ready pr=${pr} sha=${sha} issue=${issue} review=${reviewId} -->`;
+}
+
+export function requirementsRecord({ comments, pr, sha, issue, approval }) {
+  const marker = requirementsMarker(pr, sha, issue, approval.id);
+  return comments.findLast(
+    (c) =>
+      c.user?.login === 'github-actions[bot]' &&
+      (c.body ?? '').startsWith(marker + '\n') &&
+      (approval.exempt ||
+        Date.parse(c.created_at) >= Date.parse(approval.submitted_at)),
+  );
+}
+
+export function requirementsRecordPredatesReview(record, reviewedAt) {
+  return Date.parse(record.created_at) < Date.parse(reviewedAt);
 }
 
 export function requirementsTransition(status, prs) {
@@ -111,7 +147,7 @@ export function requirementsTransition(status, prs) {
       review: false,
     };
   const passed = prs.every(({ pr, reviews }) =>
-    requirementsApproval(pr, reviews),
+    reviewStartApproval(pr, reviews),
   );
   if (!passed) return { status: 'In Progress', review: false };
   if (
@@ -189,7 +225,7 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
     reasons.push('Link at least one issue with Closes #N or Refs #N.');
   if (needsTechnicalReview && !technicalApproval)
     reasons.push(
-      `Technical review approval by @${TECHNICAL_REVIEWER} is missing for this commit.`,
+      `Technical review approval by ${TECHNICAL_APPROVERS.map((login) => `@${login}`).join(' or ')} is missing for this commit.`,
     );
   if (!storybookPreview && !approved(qa, qaSha))
     reasons.push(
@@ -202,16 +238,14 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
       `Storybook preview needs current-commit approval by ${REQUIREMENTS_APPROVERS.join(' or ')}.`,
     );
   for (const issue of issues) {
-    const pm = requirementsApproval(
-      Object.hasOwn(issue, 'requirements')
-        ? {
-            ...pr,
-            requirements: issue.requirements,
-            requirementsVersion: issue.requirementsVersion,
-          }
-        : pr,
-      reviews,
-    );
+    const scoped = Object.hasOwn(issue, 'requirements')
+      ? {
+          ...pr,
+          requirements: issue.requirements,
+          requirementsVersion: issue.requirementsVersion,
+        }
+      : pr;
+    const pm = requirementsApproval(scoped, reviews);
     // High severity requires scope approval; Standard records a policy skip.
     if (!pm) {
       reasons.push(
@@ -219,19 +253,20 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
       );
       continue;
     }
-    const requirement = pm
-      ? comments
-          .filter(
-            (c) =>
-              c.user?.login === 'github-actions[bot]' &&
-              (c.body ?? '').startsWith(
-                requirementsMarker(pr.number, sha, issue.number, pm.id) + '\n',
-              ) &&
-              (pm.exempt ||
-                Date.parse(c.created_at) >= Date.parse(pm.submitted_at)),
-          )
-          .at(-1)
-      : null;
+    const markerFor = (approval) =>
+      requirementsRecord({
+        comments,
+        pr: pr.number,
+        sha,
+        issue: issue.number,
+        approval,
+      });
+    // Agent review starts from this record; scope approval is recorded after it.
+    const requirement = markerFor(pm);
+    const start =
+      severity === 'high'
+        ? markerFor(reviewStartApproval(scoped, reviews))
+        : requirement;
     const requirementRecordRequired = severity === 'high' || !storybookPreview;
     // A fresh, bot-authored readiness record proves requirements and agent
     // review passed together before QA. A board column alone proves nothing.
@@ -252,12 +287,12 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
       sha,
       issue: issue.number,
     });
+    const reviewedAt = waiver?.at ?? verdict?.created_at;
     if (
       !waiver &&
       (!verdict ||
-        (requirement &&
-          Date.parse(verdict.created_at) <
-            Date.parse(requirement.created_at)) ||
+        (start &&
+          Date.parse(verdict.created_at) < Date.parse(start.created_at)) ||
         !agentReviewPassed({
           comments,
           pr: pr.number,
@@ -272,25 +307,35 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
     if (
       !storybookPreview &&
       approved(qa, qaSha) &&
-      (waiver || verdict) &&
-      Date.parse(qa.submitted_at) <=
-        Date.parse(waiver?.at ?? verdict.created_at)
+      Date.parse(qa.submitted_at) <= Date.parse(reviewedAt)
     ) {
       reasons.push(
         `QA must approve after the latest agent review or manual waiver for issue #${issue.number}.`,
       );
     }
     if (
+      severity === 'high' &&
+      requirement &&
+      requirementsRecordPredatesReview(requirement, reviewedAt)
+    ) {
+      reasons.push(
+        `Requirements approval for issue #${issue.number} must be recorded after agent review of this commit.`,
+      );
+    }
+    if (
       requirementRecordRequired &&
-      (!requirement ||
+      (!start ||
+        !requirement ||
         (!storybookPreview &&
           (!ready ||
             Date.parse(ready.created_at) < Date.parse(requirement.created_at))))
     ) {
       reasons.push(
-        !requirement
-          ? `Issue #${issue.number} has not entered code review after current requirements approval.`
-          : `Issue #${issue.number} has not passed requirements and agent review into Ready for Testing.`,
+        !start
+          ? `Issue #${issue.number} has not entered code review.`
+          : !requirement
+            ? `Issue #${issue.number} has not recorded requirements approval after code review.`
+            : `Issue #${issue.number} has not passed requirements and agent review into Ready for Testing.`,
       );
     } else if (!storybookPreview && requirement && pm && approved(qa, qaSha)) {
       if (
