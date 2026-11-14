@@ -3,6 +3,14 @@ import { copilotWaiver, waiverMarker } from './copilot-waiver.mjs';
 
 export const PM = 'darebakdavca';
 export const REQUIREMENTS_APPROVERS = [PM, 'rmnskb'];
+export function requirementsReviewerFor(author) {
+  const authorLogin = author?.toLowerCase();
+  return (
+    REQUIREMENTS_APPROVERS.find(
+      (login) => login.toLowerCase() !== authorLogin,
+    ) ?? REQUIREMENTS_APPROVERS[0]
+  );
+}
 export const isRequirementsApprover = (login) =>
   REQUIREMENTS_APPROVERS.some(
     (name) => name.toLowerCase() === login?.toLowerCase(),
@@ -15,6 +23,7 @@ export function reviewersFor(author) {
   const login = author.toLowerCase();
   return {
     requirements: REQUIREMENTS_APPROVERS.join(' or '),
+    requirementsReviewer: requirementsReviewerFor(author),
     qa: login === QA.toLowerCase() ? PM : QA,
   };
 }
@@ -112,6 +121,21 @@ export function reviewStartApproval(pr, reviews) {
 
 export function requirementsMarker(pr, sha, issue, reviewId) {
   return `<!-- requirements-ready pr=${pr} sha=${sha} issue=${issue} review=${reviewId} -->`;
+}
+
+export function requirementsRecord({ comments, pr, sha, issue, approval }) {
+  const marker = requirementsMarker(pr, sha, issue, approval.id);
+  return comments.findLast(
+    (c) =>
+      c.user?.login === 'github-actions[bot]' &&
+      (c.body ?? '').startsWith(marker + '\n') &&
+      (approval.exempt ||
+        Date.parse(c.created_at) >= Date.parse(approval.submitted_at)),
+  );
+}
+
+export function requirementsRecordPredatesReview(record, reviewedAt) {
+  return Date.parse(record.created_at) < Date.parse(reviewedAt);
 }
 
 export function requirementsTransition(status, prs) {
@@ -230,18 +254,13 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
       continue;
     }
     const markerFor = (approval) =>
-      comments
-        .filter(
-          (c) =>
-            c.user?.login === 'github-actions[bot]' &&
-            (c.body ?? '').startsWith(
-              requirementsMarker(pr.number, sha, issue.number, approval.id) +
-                '\n',
-            ) &&
-            (approval.exempt ||
-              Date.parse(c.created_at) >= Date.parse(approval.submitted_at)),
-        )
-        .at(-1);
+      requirementsRecord({
+        comments,
+        pr: pr.number,
+        sha,
+        issue: issue.number,
+        approval,
+      });
     // Agent review starts from this record; scope approval is recorded after it.
     const requirement = markerFor(pm);
     const start =
@@ -268,6 +287,7 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
       sha,
       issue: issue.number,
     });
+    const reviewedAt = waiver?.at ?? verdict?.created_at;
     if (
       !waiver &&
       (!verdict ||
@@ -287,9 +307,7 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
     if (
       !storybookPreview &&
       approved(qa, qaSha) &&
-      (waiver || verdict) &&
-      Date.parse(qa.submitted_at) <=
-        Date.parse(waiver?.at ?? verdict.created_at)
+      Date.parse(qa.submitted_at) <= Date.parse(reviewedAt)
     ) {
       reasons.push(
         `QA must approve after the latest agent review or manual waiver for issue #${issue.number}.`,
@@ -298,9 +316,7 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
     if (
       severity === 'high' &&
       requirement &&
-      (waiver || verdict) &&
-      Date.parse(requirement.created_at) <
-        Date.parse(waiver?.at ?? verdict.created_at)
+      requirementsRecordPredatesReview(requirement, reviewedAt)
     ) {
       reasons.push(
         `Requirements approval for issue #${issue.number} must be recorded after agent review of this commit.`,
