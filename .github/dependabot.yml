@@ -12,6 +12,3 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
-    ignore:
-      - dependency-name: '@nestjs/testing'
-        update-types: [version-update:semver-major]
