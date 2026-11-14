@@ -124,7 +124,7 @@ function RegistrationCard({
           {status === "open" ? (
             <Button
               asChild
-              className="w-full"
+              className="w-full max-w-sm"
             >
               <Link
                 to={ROUTES.publicRegistration}

@@ -51,7 +51,7 @@ function fixture() {
       command,
       bot(
         requirementsMarker(12, sha, 78, 'grant') + '\nRequirements approved',
-        1,
+        3,
       ),
       bot(
         `<!-- agent-review-scope issue=78 -->\n<!-- agent-review pr=12 sha=${sha} result=findings attempt=1 -->\nFindings remain visible`,
@@ -63,6 +63,11 @@ function fixture() {
           waiverMarker(waiver) +
           '\nManually waived by David',
         4,
+      ),
+      bot(
+        requirementsMarker(12, sha, 78, 'severity-high-review') +
+          '\nAgent review starts',
+        1,
       ),
     ],
   };
@@ -165,6 +170,7 @@ test('new/edited commands need a fresh matching handoff and later QA', () => {
   f.comments[3].body =
     readyMarker(12, sha, 78) + '\n' + waiverMarker(waiver) + '\nNew handoff';
   f.comments[3].created_at = at(7);
+  f.comments[1].created_at = at(6);
   assert.equal(evaluate(f).pass, false);
   f.reviews[0].submitted_at = at(8);
   assert.equal(evaluate(f).pass, true);
@@ -290,7 +296,18 @@ async function checkScenario(mode) {
     );
     comments[1] = bot(
       requirementsMarker(12, sha, 78, decision.approval.id) + '\n',
-      '2000-01-01',
+      '2002-06-01',
+    );
+    comments.push(
+      bot(
+        requirementsMarker(
+          12,
+          sha,
+          78,
+          `severity-high-review:${decision.version}`,
+        ) + '\n',
+        '2000-01-01',
+      ),
     );
   }
   if (mode === 'forged') command.user.login = 'collaborator';
@@ -658,7 +675,7 @@ test('waiver cannot replace a missing or stale requirements handoff record', () 
     assert.equal(result.pass, false);
     assert.ok(
       result.reasons.includes(
-        'Issue #78 has not entered code review after current requirements approval.',
+        'Issue #78 has not recorded requirements approval after code review.',
       ),
     );
   }

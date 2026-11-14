@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { ClipboardList, Loader2, RefreshCw, X } from "lucide-react"
 
@@ -47,7 +47,12 @@ export function RegistrationsSection({
   filter,
   onFilterChange,
 }: RegistrationsSectionProps) {
-  const query = useQuery(eventRegistrationsQueryOptions(organizationId, eventId, filter))
+  // Another filter keeps the previous rows until its own arrive, so the page
+  // does not shrink and move the organizer away from the filters (S4-01).
+  const query = useQuery({
+    ...eventRegistrationsQueryOptions(organizationId, eventId, filter),
+    placeholderData: keepPreviousData,
+  })
   const { data } = query
 
   return (

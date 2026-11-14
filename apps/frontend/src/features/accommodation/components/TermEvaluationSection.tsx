@@ -1,8 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
-import { Skeleton } from "@/components/ui/skeleton"
 import { readApiError } from "@/lib/apiError"
 import { formatCalendarRange, formatPragueDateTime } from "@/lib/date"
 
@@ -30,6 +29,7 @@ import {
   TermEvaluation,
   TermEvaluationFrame,
   type OrderPerson,
+  type TermEvaluationProps,
 } from "@/features/accommodation/components/TermEvaluation"
 import { useConfirmProposal } from "@/features/accommodation/hooks/useConfirmProposal"
 import { useRecalculate } from "@/features/accommodation/hooks/useRecalculate"
@@ -89,17 +89,22 @@ export function TermEvaluationSection({
 }: TermEvaluationSectionProps) {
   const queryClient = useQueryClient()
   const hasTerm = termId !== ""
+  // Another term keeps the previous one on screen until its own data arrive,
+  // so the page does not shrink and move the organizer (S4-01).
   const evaluation = useQuery({
     ...termEvaluationQueryOptions(organizationId, eventId, termId),
     enabled: hasTerm,
+    placeholderData: keepPreviousData,
   })
   const runs = useQuery({
     ...termRunsQueryOptions(organizationId, eventId, termId),
     enabled: hasTerm,
+    placeholderData: keepPreviousData,
   })
   const moves = useQuery({
     ...termMovesQueryOptions(organizationId, eventId, termId),
     enabled: hasTerm,
+    placeholderData: keepPreviousData,
   })
   // A run stored while the term was polled belongs into the history.
   const settled = `${evaluation.data?.status}/${evaluation.data?.proposalRun?.id}`
@@ -145,15 +150,30 @@ export function TermEvaluationSection({
     onSelectQueue: (next: string) => onSelect({ termId, queue: next }),
   }
 
+  // Nothing of the term is known yet: only its tabs, so another term can be picked.
+  const unknownTerm = {
+    ...common,
+    mode: "automatic",
+    status: "none",
+    attribute: null,
+    capacity: {
+      confirmed: 0,
+      pending: 0,
+      waitlisted: 0,
+      hasRooms: false,
+      baseBeds: 0,
+      extraBeds: 0,
+    },
+    queues: [],
+    people: [],
+  } satisfies TermEvaluationProps
+
   if (evaluation.isPending) {
     return (
-      <TermEvaluationFrame>
-        <Skeleton
-          className="h-64 w-full"
-          role="status"
-          aria-label="Načítání vyhodnocení termínu"
-        />
-      </TermEvaluationFrame>
+      <TermEvaluation
+        {...unknownTerm}
+        isLoading
+      />
     )
   }
 
@@ -161,20 +181,7 @@ export function TermEvaluationSection({
   if (evaluation.isError && !evaluation.data) {
     return (
       <TermEvaluation
-        {...common}
-        mode="automatic"
-        status="none"
-        attribute={null}
-        capacity={{
-          confirmed: 0,
-          pending: 0,
-          waitlisted: 0,
-          hasRooms: false,
-          baseBeds: 0,
-          extraBeds: 0,
-        }}
-        queues={[]}
-        people={[]}
+        {...unknownTerm}
         isLoadFailed
         onRetryLoad={() => void evaluation.refetch()}
       />
@@ -204,6 +211,10 @@ export function TermEvaluationSection({
   ]
     .sort((a, b) => b.time - a.time)
     .map(({ entry }) => entry)
+  // The shown term stays inert until all of its data belong to the selected
+  // term, so no action or history entry of the previous term is offered.
+  const isSwitching =
+    evaluation.isPlaceholderData || runs.isPlaceholderData || moves.isPlaceholderData
   const recalculateError = recalculate.isError
     ? (readApiError(recalculate.error).message ?? RECALCULATE_FAILED)
     : undefined
@@ -250,6 +261,7 @@ export function TermEvaluationSection({
     <>
       <TermEvaluation
         {...common}
+        isSwitching={isSwitching}
         mode={data.mode}
         // While the request is on its way the term already reads as running.
         status={recalculate.isPending ? "running" : data.status}

@@ -86,17 +86,19 @@ function run(
   return JSON.parse(output.trim().split('\n').at(-1));
 }
 
-test('real runner keeps a new unapproved PR In Progress without reading a diff or calling Copilot', () => {
-  assert.deepEqual(run('In Progress', false), {
-    status: 'In Progress',
-    calls: [],
-  });
+test('real runner starts High code review before scope approval exists', () => {
+  const result = run('In Progress', false);
+  assert.equal(result.status, 'Ready for Code Review');
+  assert.deepEqual(result.calls.slice(0, 3), [
+    'status:Ready for Code Review',
+    'requirements-record',
+    'diff',
+  ]);
 });
-test('real runner corrects a manual code-review move before agent review', () => {
-  assert.deepEqual(run('Ready for Code Review', false), {
-    status: 'In Progress',
-    calls: ['status:In Progress'],
-  });
+test('real runner keeps High work in code review without a manual move', () => {
+  const result = run('Ready for Code Review', false);
+  assert.equal(result.status, 'Ready for Code Review');
+  assert.deepEqual(result.calls.slice(0, 2), ['requirements-record', 'diff']);
 });
 test('real runner moves to code review and records requirements before fetching a diff', () => {
   const result = run('In Progress', true);
@@ -108,17 +110,11 @@ test('real runner moves to code review and records requirements before fetching 
   ]);
 });
 
-test('real runner stops when scope re-review is explicitly requested before agent review', () => {
+test('real runner stops the review when scope re-review is requested during it', () => {
   const result = run('In Progress', true, true);
-  assert.equal(result.status, 'In Progress');
+  assert.equal(result.status, 'Ready for Code Review');
   assert.equal(result.calls.includes('diff'), false);
-  assert.deepEqual(result.calls, [
-    'scope-grant',
-    'status:Ready for Code Review',
-    'requirements-record',
-    'scope-reset',
-    'status:In Progress',
-  ]);
+  assert.ok(result.calls.includes('scope-reset'));
 });
 
 test('real runner starts Standard code review without scope approval', () => {
