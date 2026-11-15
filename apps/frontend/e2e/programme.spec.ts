@@ -153,8 +153,8 @@ test("the organizer edits a term's programme and the confirmed participant reads
   await expect(participant.getByRole("button", { name: /položku|Přidat|Rezervovat/ })).toBeHidden()
 
   // Delete after confirmation; the participant sees it gone on reload.
-  await page.getByRole("button", { name: "Smazat položku Slavnostní večeře" }).click()
-  await dialog.getByRole("button", { name: "Smazat" }).click()
+  await page.getByRole("button", { name: "Odstranit položku Slavnostní večeře" }).click()
+  await dialog.getByRole("button", { name: "Odstranit" }).click()
   await expect(dialog).toBeHidden()
   await expect(page.getByText("Slavnostní večeře")).toBeHidden()
   await participant.reload()
@@ -178,7 +178,7 @@ test("a failed load, save or delete keeps the saved programme and shows no succe
     route.request().method() === "GET" ? route.abort() : route.continue(),
   )
   await page.goto(termProgrammePage(event, 0))
-  await expect(page.getByText("Program se nepodařilo načíst.")).toBeVisible()
+  await expect(page.getByText("Program se nepodařilo načíst")).toBeVisible()
   await expect(page.getByText("Program zatím nemá žádné položky")).toBeHidden()
   await page.unroute(`${API_URL}/organizations/**/programme`)
   await page.getByRole("button", { name: "Zkusit znovu" }).click()
@@ -201,12 +201,12 @@ test("a failed load, save or delete keeps the saved programme and shows no succe
   await expect(page.getByText(DINNER.title)).toBeVisible()
 
   // A failed delete keeps the item.
-  await page.getByRole("button", { name: `Smazat položku ${DINNER.title}` }).click()
-  await dialog.getByRole("button", { name: "Smazat" }).click()
+  await page.getByRole("button", { name: `Odstranit položku ${DINNER.title}` }).click()
+  await dialog.getByRole("button", { name: "Odstranit" }).click()
   await expect(
-    dialog.getByText("Položku se nepodařilo smazat. Zkuste to prosím znovu."),
+    dialog.getByText("Položku se nepodařilo odstranit. Zkuste to prosím znovu."),
   ).toBeVisible()
-  await expect(page.getByText("Položka byla smazána.")).toBeHidden()
+  await expect(page.getByText("Položka byla odstraněna.")).toBeHidden()
   await dialog.getByRole("button", { name: "Zrušit" }).click()
   await page.unroute(`${API_URL}/organizations/**/programme/*`)
   await page.reload()
@@ -218,7 +218,7 @@ test("a failed load, save or delete keeps the saved programme and shows no succe
   const participant = await participantContext.newPage()
   await participant.route(`${API_URL}/participant/**/programme`, (route) => route.abort())
   await signIn(participant, event, jana.email)
-  await expect(participant.getByText("Program se nepodařilo načíst.")).toBeVisible()
+  await expect(participant.getByText("Program se nepodařilo načíst")).toBeVisible()
   await expect(participant.getByText("Program zatím není připravený.")).toBeHidden()
   await participant.unroute(`${API_URL}/participant/**/programme`)
   await participant.getByRole("button", { name: "Zkusit znovu" }).click()

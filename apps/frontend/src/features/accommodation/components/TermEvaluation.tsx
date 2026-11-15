@@ -1,8 +1,15 @@
 import type { ReactNode } from "react"
-import { CircleAlert, CircleCheck, ClipboardList, Ellipsis, Loader2, RefreshCw } from "lucide-react"
+import { ClipboardList, Ellipsis, RefreshCw } from "lucide-react"
 
+import { EmptyState } from "@/components/EmptyState"
+import { FormError } from "@/components/FormError"
 import { HorizontalOverflowViewport } from "@/components/HorizontalOverflowViewport"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { Notice } from "@/components/Notice"
+import { PageSection } from "@/components/PageSection"
+import { ParticipationBadge } from "@/components/ParticipationBadge"
+import { PendingButton } from "@/components/PendingButton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -13,7 +20,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
@@ -25,8 +31,6 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
-import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
 import {
   TermCapacitySummary,
   type TermCapacity,
@@ -36,7 +40,6 @@ import {
   isConfirmable,
   reasonText,
   RESULT_BADGE,
-  STATE_LABEL,
   STATUS_BADGE,
   type EvaluationStatus,
   type ParticipationState,
@@ -192,12 +195,6 @@ function DecisionMenu({ person, decisions }: { person: OrderPerson; decisions: P
   )
 }
 
-function StateBadge({ state }: { state: ParticipationState }) {
-  return (
-    <Badge variant={state === "waitlisted" ? "warning" : "secondary"}>{STATE_LABEL[state]}</Badge>
-  )
-}
-
 // On a narrow card the state moves under the name instead of its own column, so
 // the row keeps its actions in view without scrolling sideways.
 type OrderTableProps = {
@@ -240,7 +237,7 @@ function OrderTable({ people, attribute, decisions, renderName }: OrderTableProp
                     Přihlášeno <span className="whitespace-nowrap">{person.receivedAt}</span>
                   </p>
                   <div className="mt-1 @2xl:hidden">
-                    <StateBadge state={person.state} />
+                    <ParticipationBadge status={person.state} />
                   </div>
                 </TableCell>
                 {attribute ? (
@@ -253,7 +250,7 @@ function OrderTable({ people, attribute, decisions, renderName }: OrderTableProp
                 ) : null}
                 <TableCell className="hidden @2xl:table-cell">
                   <div className="-ml-2">
-                    <StateBadge state={person.state} />
+                    <ParticipationBadge status={person.state} />
                   </div>
                 </TableCell>
                 <TableCell className="whitespace-normal">
@@ -300,42 +297,43 @@ function StatusAlert({
   switch (status) {
     case "stale":
       return (
-        <Alert>
-          <CircleAlert />
-          <AlertTitle>Podklady se od výpočtu změnily</AlertTitle>
-          <AlertDescription>Návrh nelze hromadně potvrdit, dokud se nepřepočítá.</AlertDescription>
-        </Alert>
+        <Notice
+          tone="warning"
+          title="Podklady se od výpočtu změnily"
+        >
+          Návrh nelze hromadně potvrdit, dokud se nepřepočítá.
+        </Notice>
       )
     case "failed":
     case "timeout":
       return (
-        <RetryAlert
+        <LoadError
           title={status === "failed" ? "Výpočet se nezdařil" : "Výpočet nedoběhl v časovém limitu"}
           onRetry={onRecalculate}
         />
       )
     case "infeasible":
       return (
-        <Alert>
-          <CircleAlert />
-          <AlertTitle>Potvrzení účastníci se nevejdou do dostupných pokojů</AlertTitle>
-          <AlertDescription>
-            <p>{conflict?.constraint}</p>
-            <p>Dotčení potvrzení: {conflict?.confirmed.join(", ")}</p>
-          </AlertDescription>
-        </Alert>
+        <Notice
+          tone="warning"
+          title="Potvrzení účastníci se nevejdou do dostupných pokojů"
+        >
+          <p>{conflict?.constraint}</p>
+          <p>Dotčení potvrzení: {conflict?.confirmed.join(", ")}</p>
+        </Notice>
       )
     case "none":
       return (
-        <Alert>
-          <CircleAlert />
-          <AlertTitle>Termín zatím nebyl vyhodnocen</AlertTitle>
-          <AlertDescription id="evaluation-not-ready-reason">
+        <Notice
+          tone="info"
+          title="Termín zatím nebyl vyhodnocen"
+        >
+          <p id="evaluation-not-ready-reason">
             {mode === "automatic"
               ? "Návrh vznikne automaticky; můžete ho vytvořit hned tlačítkem Přepočítat. Hromadné potvrzení bude dostupné po výpočtu."
               : "V ručním režimu vytvořte návrh tlačítkem Přepočítat. Hromadné potvrzení bude dostupné po výpočtu."}
-          </AlertDescription>
-        </Alert>
+          </p>
+        </Notice>
       )
     default:
       return null
@@ -404,18 +402,19 @@ export function TermEvaluation({
 
         <TabsContent value={selectedTermId}>
           {isLoadFailed ? (
-            <RetryAlert
+            <LoadError
               title="Vyhodnocení termínu se nepodařilo načíst"
               onRetry={onRetryLoad}
             />
           ) : isLoading ? (
             // The first load of the section: at least a screen tall, so the
             // page does not shrink under the term tabs (S4-01).
-            <Skeleton
-              className="mt-2 h-svh w-full"
-              role="status"
-              aria-label="Načítání vyhodnocení termínu"
-            />
+            <LoadingBlock
+              label="Načítání vyhodnocení termínu"
+              className="mt-2"
+            >
+              <Skeleton className="h-svh w-full" />
+            </LoadingBlock>
           ) : (
             <div
               className="mt-2 space-y-6"
@@ -446,14 +445,14 @@ export function TermEvaluation({
                       )}
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <Button
+                      <PendingButton
                         variant="outline"
-                        disabled={isRunning}
+                        isPending={isRunning}
+                        icon={<RefreshCw />}
                         onClick={onRecalculate}
                       >
-                        {isRunning ? <Loader2 className="animate-spin" /> : <RefreshCw />}
                         {isRunning ? "Přepočítává se…" : "Přepočítat"}
-                      </Button>
+                      </PendingButton>
                       {onConfirmAll ? (
                         <Button
                           disabled={!canConfirm}
@@ -473,9 +472,9 @@ export function TermEvaluation({
               </Card>
 
               {recalculateError ? (
-                <ErrorAlert
+                <FormError
                   title="Přepočet se nepodařilo spustit"
-                  detail={recalculateError}
+                  message={recalculateError}
                 />
               ) : null}
 
@@ -487,10 +486,10 @@ export function TermEvaluation({
               />
 
               {confirmedResult ? (
-                <Alert>
-                  <CircleCheck />
-                  <AlertTitle>{confirmedResult}</AlertTitle>
-                </Alert>
+                <Notice
+                  tone="success"
+                  title={confirmedResult}
+                />
               ) : null}
 
               <Card>
@@ -500,23 +499,17 @@ export function TermEvaluation({
               </Card>
 
               {people.length === 0 ? (
-                <Card>
-                  <Empty>
-                    <EmptyHeader>
-                      <EmptyMedia variant="icon">
-                        <ClipboardList />
-                      </EmptyMedia>
-                      <EmptyTitle>V termínu nikdo nečeká na rozhodnutí ani na místo</EmptyTitle>
-                    </EmptyHeader>
-                  </Empty>
-                </Card>
+                <EmptyState
+                  icon={ClipboardList}
+                  title="V termínu nikdo nečeká na rozhodnutí ani na místo"
+                />
               ) : (
                 <>
                   {isConfirmable(status) && suitable === 0 && !confirmedResult ? (
-                    <Alert>
-                      <CircleAlert />
-                      <AlertTitle>Nikdo z čekajících se nyní nevejde</AlertTitle>
-                    </Alert>
+                    <Notice
+                      tone="warning"
+                      title="Nikdo z čekajících se nyní nevejde"
+                    />
                   ) : null}
 
                   <section
@@ -629,20 +622,5 @@ export function TermEvaluation({
  * moves the heading.
  */
 export function TermEvaluationFrame({ children }: { children: ReactNode }) {
-  return (
-    <section
-      aria-labelledby="term-evaluation-heading"
-      className="space-y-4"
-    >
-      <div className="flex min-h-9 items-center">
-        <h2
-          id="term-evaluation-heading"
-          className="text-h4"
-        >
-          Vyhodnocení termínu
-        </h2>
-      </div>
-      {children}
-    </section>
-  )
+  return <PageSection title="Vyhodnocení termínu">{children}</PageSection>
 }

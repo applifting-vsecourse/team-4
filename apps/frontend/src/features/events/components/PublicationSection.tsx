@@ -1,6 +1,5 @@
-import { TriangleAlert } from "lucide-react"
-
-import { Alert, AlertTitle } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
+import { PageSection } from "@/components/PageSection"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -21,13 +20,10 @@ export function PublicationSection({
   onChange,
 }: PublicationSectionProps) {
   return (
-    <section aria-labelledby="publication-heading">
-      <h2
-        id="publication-heading"
-        className="mb-4 text-h4"
-      >
-        Publikace
-      </h2>
+    <PageSection
+      title="Publikace"
+      headingId="publication-heading"
+    >
       <Card>
         <CardContent>
           <div className="space-y-4">
@@ -40,15 +36,10 @@ export function PublicationSection({
                 onCheckedChange={onChange}
               />
             </div>
-            {errorMessage ? (
-              <Alert variant="destructive">
-                <TriangleAlert />
-                <AlertTitle>{errorMessage}</AlertTitle>
-              </Alert>
-            ) : null}
+            {errorMessage ? <FormError message={errorMessage} /> : null}
           </div>
         </CardContent>
       </Card>
-    </section>
+    </PageSection>
   )
 }

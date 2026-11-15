@@ -1,20 +1,23 @@
 import type { ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
+import { ClipboardList } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { EmptyState } from "@/components/EmptyState"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageHeader } from "@/components/PageHeader"
+import { RefreshButton } from "@/components/RefreshButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatPragueDateTime } from "@/lib/date"
 
 import { participantRegistrationsQueryOptions } from "@/features/registrations/api/participantRegistrationQueryOptions"
 import { type ParticipantRegistration } from "@/features/registrations/api/participantRegistrationSchemas"
-import { LoadFailedAlert } from "@/features/registrations/components/LoadFailedAlert"
 import { ParticipantPaymentSummary } from "@/features/registrations/components/ParticipantPaymentSummary"
 import { ParticipantTermList } from "@/features/registrations/components/ParticipantTermList"
-import { RefreshButton } from "@/features/registrations/components/RefreshButton"
 import { isSessionRefused } from "@/features/registrations/lib/sessionExpired"
 
 // "Moje přihlášky" (S2-14): every registration of the verified
@@ -41,17 +44,19 @@ export function ParticipantRegistrationList({
       aria-busy={query.isFetching}
       className="space-y-4"
     >
-      <p className="text-sm wrap-break-word text-muted-foreground">{email}</p>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-h2">Moje přihlášky</h1>
-        <RefreshButton
-          isRefreshing={query.isFetching}
-          onRefresh={() => query.refetch()}
-        />
-      </div>
+      <PageHeader
+        title="Moje přihlášky"
+        description={<p className="wrap-break-word">{email}</p>}
+        actions={
+          <RefreshButton
+            isRefreshing={query.isFetching}
+            onRefresh={() => query.refetch()}
+          />
+        }
+      />
 
       {query.isError ? (
-        <LoadFailedAlert
+        <LoadError
           shownFrom={data ? query.dataUpdatedAt : undefined}
           isRetrying={query.isFetching}
           onRetry={() => query.refetch()}
@@ -60,11 +65,10 @@ export function ParticipantRegistrationList({
 
       {data ? (
         data.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>Zatím nemáte žádné přihlášky.</EmptyTitle>
-            </EmptyHeader>
-          </Empty>
+          <EmptyState
+            icon={ClipboardList}
+            title="Zatím nemáte žádné přihlášky"
+          />
         ) : (
           <ul className="space-y-4">
             {data.map((registration) => (
@@ -75,14 +79,13 @@ export function ParticipantRegistrationList({
           </ul>
         )
       ) : query.isPending ? (
-        <div
+        <LoadingBlock
+          label="Načítání přihlášek"
           className="space-y-4"
-          role="status"
-          aria-label="Načítání přihlášek"
         >
           <Skeleton className="h-64 w-full" />
           <Skeleton className="h-40 w-full" />
-        </div>
+        </LoadingBlock>
       ) : null}
 
       {data && !query.isError ? (

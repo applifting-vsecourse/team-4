@@ -179,7 +179,7 @@ export const ChangeApprovalNotSet: Story = {
   play: () => showsText("Žádné změny přihlášek nepodléhají vašemu schválení"),
 }
 
-/** A failed save of the approval period opens a dialog, unlike the other sections. */
+/** A failed save of the approval period stays at the form, like the other sections. */
 export const ChangeApprovalSaveFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("put", `${EVENT}/change-approval`))

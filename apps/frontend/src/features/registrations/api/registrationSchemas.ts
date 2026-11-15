@@ -1,15 +1,11 @@
 import { z } from "zod"
 
+import { TERM_PARTICIPATIONS } from "@/lib/participation"
+
 /** What the organizer filters by; a released term is no participation. */
 export const activeParticipationStatusSchema = z.enum(["pending", "confirmed", "waitlisted"])
 
-/**
- * A term of a registration: "pending" waits for the organizer's decision
- * (S3-01), "cancelled" is a term the participant released (F35-2a).
- */
-export const participationStatusSchema = z.enum(["pending", "confirmed", "waitlisted", "cancelled"])
-
-export type ParticipationStatus = z.infer<typeof participationStatusSchema>
+export const participationStatusSchema = z.enum(TERM_PARTICIPATIONS)
 
 /** The voluntary answer for accommodation (F64); null elsewhere is "not answered". */
 export const genderSchema = z.enum(["female", "male", "other", "undisclosed"])

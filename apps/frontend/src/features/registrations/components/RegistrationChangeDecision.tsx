@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 import { Check, X } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
+import { LoadError } from "@/components/LoadError"
+import { Notice } from "@/components/Notice"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { readApiError } from "@/lib/apiError"
@@ -45,19 +47,11 @@ export function RegistrationChangeDecision({
   return (
     <div className="space-y-6">
       {query.isError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Změny přihlášky se nepodařilo načíst.</AlertTitle>
-          <AlertDescription>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() => void query.refetch()}
-            >
-              Zkusit znovu
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <LoadError
+          title="Změny přihlášky se nepodařilo načíst"
+          isRetrying={query.isFetching}
+          onRetry={() => query.refetch()}
+        />
       ) : null}
 
       {shown ? (
@@ -68,24 +62,22 @@ export function RegistrationChangeDecision({
           summary={toSummaryProps(shown.summary)}
           notice={
             shown.isStale ? (
-              <Alert>
-                <AlertTitle>
-                  Přihláška se po odeslání žádosti změnila, žádost proto nelze schválit. Můžete ji
-                  zamítnout a účastník ji podá znovu.
-                </AlertTitle>
-              </Alert>
+              <Notice
+                tone="warning"
+                title="Přihláška se po odeslání žádosti změnila, žádost proto nelze schválit. Můžete ji zamítnout a účastník ji podá znovu."
+              />
             ) : failure ? (
-              <Alert variant="destructive">
-                <AlertDescription>
-                  {failure.code === "change_already_decided"
+              <FormError
+                message={
+                  failure.code === "change_already_decided"
                     ? "O žádosti už bylo rozhodnuto jinak. Načtěte stránku znovu."
                     : isConsentMissing
                       ? "Účastník nesouhlasil se ztrátou potvrzeného místa. Žádost lze jen zamítnout."
                       : failure.code === "change_invalid"
                         ? (failure.message ?? DECISION_FAILED)
-                        : DECISION_FAILED}
-                </AlertDescription>
-              </Alert>
+                        : DECISION_FAILED
+                }
+              />
             ) : undefined
           }
           actions={

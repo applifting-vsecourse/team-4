@@ -1,16 +1,10 @@
 import { BedDouble, Pencil, Plus, Trash2 } from "lucide-react"
 
+import { EmptyState } from "@/components/EmptyState"
+import { PageSection } from "@/components/PageSection"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import {
   Table,
   TableBody,
@@ -71,41 +65,21 @@ export function TermCapacityOverview({
 
   if (terms.length === 0) {
     return (
-      <section aria-labelledby="room-capacity-heading">
-        <h2
-          id="room-capacity-heading"
-          className="mb-4 text-h4"
-        >
-          Pokoje
-        </h2>
-        <Card>
-          <Empty>
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <BedDouble />
-              </EmptyMedia>
-              <EmptyTitle>Akce zatím nemá žádné termíny</EmptyTitle>
-              <EmptyDescription>
-                Kapacita pokojů se nastavuje pro každý termín. Nejdřív přidejte termín v nastavení
-                akce.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        </Card>
-      </section>
+      <PageSection title="Pokoje">
+        <EmptyState
+          icon={BedDouble}
+          title="Akce zatím nemá žádné termíny"
+          description="Kapacita pokojů se nastavuje pro každý termín. Nejdřív přidejte termín v nastavení akce."
+        />
+      </PageSection>
     )
   }
 
   return (
-    <section aria-labelledby="room-capacity-heading">
-      <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
-        <h2
-          id="room-capacity-heading"
-          className="text-h4"
-        >
-          Pokoje
-        </h2>
-        {hasRooms ? (
+    <PageSection
+      title="Pokoje"
+      actions={
+        hasRooms ? (
           <Button
             variant="outline"
             onClick={onAddRoom}
@@ -113,9 +87,9 @@ export function TermCapacityOverview({
             <Plus />
             Přidat pokoj
           </Button>
-        ) : null}
-      </div>
-
+        ) : null
+      }
+    >
       <Tabs
         {...(onSelectedTermChange
           ? { value: selectedTermId, onValueChange: onSelectedTermChange }
@@ -165,22 +139,16 @@ export function TermCapacityOverview({
               </Card>
 
               {term.rooms.length === 0 ? (
-                <Card>
-                  <Empty>
-                    <EmptyHeader>
-                      <EmptyMedia variant="icon">
-                        <BedDouble />
-                      </EmptyMedia>
-                      <EmptyTitle>Zatím žádné pokoje</EmptyTitle>
-                    </EmptyHeader>
-                    <EmptyContent>
-                      <Button onClick={onAddRoom}>
-                        <Plus />
-                        Přidat pokoj
-                      </Button>
-                    </EmptyContent>
-                  </Empty>
-                </Card>
+                <EmptyState
+                  icon={BedDouble}
+                  title="Zatím žádné pokoje"
+                  action={
+                    <Button onClick={onAddRoom}>
+                      <Plus />
+                      Přidat pokoj
+                    </Button>
+                  }
+                />
               ) : (
                 <Card padding="none">
                   <Table>
@@ -260,7 +228,7 @@ export function TermCapacityOverview({
           </TabsContent>
         ))}
       </Tabs>
-    </section>
+    </PageSection>
   )
 }
 

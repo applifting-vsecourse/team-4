@@ -294,5 +294,5 @@ test("the organizer confirms the proposal of a term, then decides one person", a
 
   // The history of the registration shows the decisions.
   await orderRow(page, "Petr").getByRole("link").click()
-  await expect(page.getByText("Čeká na rozhodnutí → Náhradník")).toBeVisible()
+  await expect(page.getByText("Čeká na rozhodnutí organizátora → Náhradník")).toBeVisible()
 })

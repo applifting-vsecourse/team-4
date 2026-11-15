@@ -1,11 +1,10 @@
 import { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import {
   Form,
   FormControl,
@@ -128,11 +127,7 @@ export function PaymentSettingsForm({
         onSubmit={form.handleSubmit(submit)}
         className="space-y-4"
       >
-        {errorMessage ? (
-          <Alert variant="destructive">
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        ) : null}
+        {errorMessage ? <FormError message={errorMessage} /> : null}
 
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Bankovní účet</legend>
@@ -215,13 +210,13 @@ export function PaymentSettingsForm({
         />
 
         <div className="flex justify-end">
-          <Button
+          <PendingButton
             type="submit"
-            disabled={isLoading || !canSave}
+            isPending={isLoading}
+            disabled={!canSave}
           >
-            {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}
             Uložit platební nastavení
-          </Button>
+          </PendingButton>
         </div>
       </form>
     </Form>

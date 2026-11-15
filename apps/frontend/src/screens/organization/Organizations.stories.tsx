@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { http, HttpResponse } from "msw"
+import { expect } from "storybook/test"
 
 import { apiUrl, failOn } from "@/screens/msw"
 import { organizerBackend, screenMeta, showsHeading } from "@/screens/screenMeta"
@@ -29,15 +30,13 @@ export const NoOrganizations: Story = {
   play: () => showsText("Zatím nemáte organizaci"),
 }
 
-/**
- * The list could not be loaded: the app-wide error page, in English. Known
- * defect kept visible: its <main> sits inside the workspace's <main>
- * (landmark-main-is-top-level), so a11y reports it instead of failing.
- */
+/** The list could not be loaded: the app-wide error page inside the workspace's one <main>. */
 export const LoadFailed: Story = {
-  parameters: { a11y: { test: "todo" } },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", "/organizations"))
   },
-  play: () => showsText("Something went wrong"),
+  play: async ({ canvasElement }) => {
+    await showsText("Stránku se nepodařilo načíst")
+    await expect(canvasElement.querySelectorAll("main")).toHaveLength(1)
+  },
 }

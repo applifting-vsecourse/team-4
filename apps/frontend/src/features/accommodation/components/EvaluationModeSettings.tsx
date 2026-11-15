@@ -1,12 +1,11 @@
 import { useState } from "react"
-import { Loader2 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { FormError } from "@/components/FormError"
+import { PageSection } from "@/components/PageSection"
+import { PendingButton } from "@/components/PendingButton"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-
-import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
 
 export type EvaluationMode = "automatic" | "manual"
 
@@ -32,16 +31,10 @@ export function EvaluationModeSettings({
   const [selected, setSelected] = useState<EvaluationMode>(mode)
 
   return (
-    <section
-      aria-labelledby="automation-heading"
-      className="space-y-4"
+    <PageSection
+      title="Automatizace"
+      headingId="automation-heading"
     >
-      <h2
-        id="automation-heading"
-        className="text-h4"
-      >
-        Automatizace
-      </h2>
       <Card>
         <CardContent>
           <div className="space-y-4">
@@ -70,23 +63,22 @@ export function EvaluationModeSettings({
               </Field>
             </RadioGroup>
             {saveError ? (
-              <ErrorAlert
+              <FormError
                 title="Režim se nepodařilo uložit"
-                detail={saveError}
+                message={saveError}
               />
             ) : null}
           </div>
         </CardContent>
         <CardFooter className="justify-end">
-          <Button
-            disabled={isSaving}
+          <PendingButton
+            isPending={isSaving}
             onClick={() => onSave?.(selected)}
           >
-            {isSaving ? <Loader2 className="animate-spin" /> : null}
             Uložit
-          </Button>
+          </PendingButton>
         </CardFooter>
       </Card>
-    </section>
+    </PageSection>
   )
 }

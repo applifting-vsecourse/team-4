@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -80,9 +80,7 @@ export function ChangeReviewDialog({
             </DialogDescription>
           </DialogHeader>
           {previewChange.isError ? (
-            <Alert variant="destructive">
-              <AlertDescription>{PREVIEW_FAILED}</AlertDescription>
-            </Alert>
+            <FormError message={PREVIEW_FAILED} />
           ) : (
             <p
               role="status"

@@ -1,8 +1,10 @@
 import type { ReactNode } from "react"
-import { Loader2, RefreshCw } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
+import { LoadError } from "@/components/LoadError"
+import { Money } from "@/components/Money"
+import { ParticipationBadge } from "@/components/ParticipationBadge"
+import { RefreshButton } from "@/components/RefreshButton"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   formatCalendarDate,
@@ -13,7 +15,6 @@ import {
 import { formatCzk } from "@/lib/money"
 
 import { type RegistrationDetail as Detail } from "@/features/registrations/api/eventRegistrationSchemas"
-import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
 import { PaymentStateBadge } from "@/features/registrations/components/PaymentStateBadge"
 import { SimulatedPaymentHistory } from "@/features/registrations/components/SimulatedPaymentHistory"
 import { describeBalance } from "@/features/registrations/lib/balance"
@@ -62,32 +63,18 @@ export function RegistrationDetail({
           obdržena {formatPragueDateTime(registration.receivedAt)}
           {hasRefreshFailed ? null : ` · aktualizováno ${updated}`}
         </p>
-        <Button
-          variant="outline"
-          onClick={() => onRefresh()}
-          disabled={isRefreshing}
-        >
-          {isRefreshing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw />}
-          {isRefreshing ? "Aktualizuji…" : "Aktualizovat"}
-        </Button>
+        <RefreshButton
+          isRefreshing={isRefreshing}
+          onRefresh={onRefresh}
+        />
       </div>
 
       {hasRefreshFailed ? (
-        <Alert variant="destructive">
-          <AlertTitle>Data se nepodařilo načíst. Zkuste to znovu.</AlertTitle>
-          <AlertDescription>
-            <p>Zobrazené údaje jsou z posledního úspěšného načtení ({updated}).</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() => onRefresh()}
-              disabled={isRefreshing}
-            >
-              Zkusit znovu
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <LoadError
+          shownFrom={updatedAt}
+          isRetrying={isRefreshing}
+          onRetry={onRefresh}
+        />
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -97,13 +84,13 @@ export function RegistrationDetail({
               <CardTitle>Kontaktní údaje</CardTitle>
             </CardHeader>
             <CardContent>
-              <dl className="space-y-2 text-sm">
-                <Row label="Jméno a příjmení">
+              <DefinitionList>
+                <DefinitionRow label="Jméno a příjmení">
                   {registration.firstName} {registration.lastName}
-                </Row>
-                <Row label="E-mail">{registration.email}</Row>
-                <Row label="Telefon">{registration.phone}</Row>
-              </dl>
+                </DefinitionRow>
+                <DefinitionRow label="E-mail">{registration.email}</DefinitionRow>
+                <DefinitionRow label="Telefon">{registration.phone}</DefinitionRow>
+              </DefinitionList>
             </CardContent>
           </Card>
 
@@ -178,52 +165,40 @@ function PaymentSummary({ registration }: { registration: Detail }) {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <dl className="space-y-2 text-sm">
-            <Row label="Cena vybraných termínů">
-              <span className="font-mono tabular-nums">
-                {formatCzk(registration.selectedPriceMinor)}
-              </span>
-            </Row>
-            <Row label="Částka za potvrzené termíny">
-              <span className="font-mono tabular-nums">
-                {formatCzk(registration.amountDueMinor)}
-              </span>
-            </Row>
-            <Row label="Zaplaceno">
-              <span className="font-mono tabular-nums">{formatCzk(registration.paidMinor)}</span>
-            </Row>
+          <DefinitionList>
+            <DefinitionRow label="Cena vybraných termínů">
+              <Money minor={registration.selectedPriceMinor} />
+            </DefinitionRow>
+            <DefinitionRow label="Částka za potvrzené termíny">
+              <Money minor={registration.amountDueMinor} />
+            </DefinitionRow>
+            <DefinitionRow label="Zaplaceno">
+              <Money minor={registration.paidMinor} />
+            </DefinitionRow>
             {hasNoObligation ? null : (
-              <Row label={balance.label}>
-                <span className="font-mono font-medium tabular-nums">
-                  {balance.amount ?? formatCzk(0)}
-                </span>
-              </Row>
+              <DefinitionRow label={balance.label}>
+                <Money
+                  minor={Math.abs(registration.balanceMinor)}
+                  isEmphasised
+                />
+              </DefinitionRow>
             )}
             {registration.reminderAt ? (
-              <Row label="Datum připomenutí platby">
+              <DefinitionRow label="Datum připomenutí platby">
                 {formatPragueDate(registration.reminderAt)}
-              </Row>
+              </DefinitionRow>
             ) : null}
             {registration.variableSymbol ? (
-              <Row label="Variabilní symbol">
+              <DefinitionRow label="Variabilní symbol">
                 <span className="font-mono">{registration.variableSymbol}</span>
-              </Row>
+              </DefinitionRow>
             ) : null}
-          </dl>
+          </DefinitionList>
           {hasNoObligation ? (
             <p className="text-sm text-muted-foreground">Bez platební povinnosti</p>
           ) : null}
         </div>
       </CardContent>
     </Card>
-  )
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right">{children}</dd>
-    </div>
   )
 }

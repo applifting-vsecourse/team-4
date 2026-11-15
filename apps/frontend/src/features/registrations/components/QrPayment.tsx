@@ -1,11 +1,10 @@
 import { useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
-import { ChevronLeft } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { BackLink } from "@/components/BackLink"
+import { LoadingBlock } from "@/components/LoadingBlock"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
-import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { readApiError } from "@/lib/apiError"
 import { formatCzk, minorToInput } from "@/lib/money"
@@ -41,14 +40,13 @@ function QrPaymentFlow({ token }: QrPaymentProps) {
 
   if (query.isPending) {
     return (
-      <div
+      <LoadingBlock
+        label="Načítání platby"
         className="space-y-4"
-        role="status"
-        aria-label="Načítání platby"
       >
         <Skeleton className="h-10 w-2/3" />
         <Skeleton className="h-48 w-full" />
-      </div>
+      </LoadingBlock>
     )
   }
 
@@ -166,19 +164,12 @@ export function QrPayment({ token }: QrPaymentProps) {
   return (
     <div className="space-y-6">
       {page ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          asChild
+        <BackLink
+          to={ROUTES.myRegistration}
+          params={{ registrationId: page.registrationId }}
         >
-          <Link
-            to={ROUTES.myRegistration}
-            params={{ registrationId: page.registrationId }}
-          >
-            <ChevronLeft />
-            Zpět na přihlášku
-          </Link>
-        </Button>
+          Zpět na přihlášku
+        </BackLink>
       ) : null}
       <QrPaymentFlow token={token} />
     </div>

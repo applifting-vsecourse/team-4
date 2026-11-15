@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react"
-import { Loader2 } from "lucide-react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { readApiError } from "@/lib/apiError"
 
@@ -94,11 +94,7 @@ export function OrganizerAccommodationCard({
             onChange={setDraft}
             isDisabled={update.isPending}
           />
-          {update.isError ? (
-            <Alert variant="destructive">
-              <AlertDescription>{describeError(update.error)}</AlertDescription>
-            </Alert>
-          ) : null}
+          {update.isError ? <FormError message={describeError(update.error)} /> : null}
           <div className="flex flex-wrap justify-end gap-2">
             <Button
               type="button"
@@ -108,13 +104,12 @@ export function OrganizerAccommodationCard({
             >
               Zrušit
             </Button>
-            <Button
+            <PendingButton
               type="submit"
-              disabled={update.isPending}
+              isPending={update.isPending}
             >
-              {update.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
               {update.isPending ? "Ukládám…" : "Uložit"}
-            </Button>
+            </PendingButton>
           </div>
         </form>
       ) : undefined}

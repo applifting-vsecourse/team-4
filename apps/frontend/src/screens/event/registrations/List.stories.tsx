@@ -47,19 +47,12 @@ export const Registrations: StoryObj<typeof meta> = {
 
 type Story = StoryObj<typeof meta>
 
-/**
- * Known defect kept visible: the loading placeholder has an aria-label without a
- * role (aria-prohibited-attr), so a11y reports it instead of failing.
- */
 export const Loading: Story = {
-  parameters: { a11y: { test: "todo" } },
   beforeEach: ({ msw }) => {
     msw.use(...neverAnswer("get", LIST))
   },
-  play: async ({ canvasElement }) => {
-    await waitFor(() =>
-      expect(canvasElement.querySelector('[aria-label="Načítání přihlášek"]')).not.toBeNull(),
-    )
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("status", { name: "Načítání přihlášek" })).toBeVisible()
   },
 }
 
@@ -94,7 +87,7 @@ export const NoRegistrations: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...empty())
   },
-  play: () => showsText("Tato akce zatím nemá žádné přihlášky."),
+  play: () => showsText("Tato akce zatím nemá žádné přihlášky"),
 }
 
 /** Filters from the URL match nothing: the way back to all registrations. */
@@ -107,14 +100,14 @@ export const NoMatch: Story = {
       ),
     )
   },
-  play: () => showsText("Žádná přihláška neodpovídá filtrům."),
+  play: () => showsText("Žádná přihláška neodpovídá filtrům"),
 }
 
 export const LoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", LIST))
   },
-  play: () => showsText("Data se nepodařilo načíst. Zkuste to znovu."),
+  play: () => showsText("Data se nepodařilo načíst"),
 }
 
 export const RefreshFailed: Story = {
@@ -124,6 +117,6 @@ export const RefreshFailed: Story = {
   play: async (context) => {
     await showsHeading("Seznam přihlášek")(context)
     await refresh(context.canvas)
-    await showsText(/Zobrazený seznam je z posledního úspěšného načtení/)
+    await showsText(/Zobrazené údaje jsou z posledního úspěšného načtení/)
   },
 }

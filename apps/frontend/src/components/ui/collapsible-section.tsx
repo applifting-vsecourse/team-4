@@ -14,14 +14,45 @@ type CollapsibleSectionProps = {
   afterContent?: ReactNode
 }
 
+const storageKey = (pathname: string, headingId: string) =>
+  `akcio:collapsible-section:${pathname}:${headingId}`
+
+function readOpenState(key: string) {
+  if (typeof window === "undefined") return true
+
+  try {
+    const savedState = window.localStorage.getItem(key)
+    return savedState === null || savedState === "open"
+  } catch {
+    return true
+  }
+}
+
+function saveOpenState(key: string, isOpen: boolean) {
+  if (typeof window === "undefined") return
+
+  try {
+    window.localStorage.setItem(key, isOpen ? "open" : "closed")
+  } catch {
+    // Collapsing sections still works if browser storage is unavailable.
+  }
+}
+
 export function CollapsibleSection({
   headingId,
   title,
   children,
   afterContent,
 }: CollapsibleSectionProps) {
-  const [isOpen, setIsOpen] = useState(true)
   const router = useRouter({ warn: false })
+  const pathname = typeof window === "undefined" ? "/" : window.location.pathname
+  const sectionStorageKey = storageKey(pathname, headingId)
+  const [isOpen, setIsOpen] = useState(() => readOpenState(sectionStorageKey))
+
+  useEffect(() => {
+    const isAnchorTarget = router?.state.location.hash === headingId
+    setIsOpen(isAnchorTarget || readOpenState(sectionStorageKey))
+  }, [headingId, router, sectionStorageKey])
 
   useEffect(
     () =>
@@ -31,11 +62,16 @@ export function CollapsibleSection({
     [router, headingId],
   )
 
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open)
+    saveOpenState(sectionStorageKey, open)
+  }
+
   return (
     <Collapsible
       asChild
       open={isOpen}
-      onOpenChange={setIsOpen}
+      onOpenChange={handleOpenChange}
     >
       <section aria-labelledby={headingId}>
         <h2

@@ -1,11 +1,10 @@
-import type { ReactNode } from "react"
-
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
+import { Money } from "@/components/Money"
 import { formatPragueDate } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
-import { cn } from "@/lib/utils"
 
 import { type PaymentInstructions } from "@/features/registrations/api/registrationSchemas"
-import { BalanceAmount } from "@/features/registrations/components/BalanceAmount"
+import { BalanceRow } from "@/features/registrations/components/BalanceRow"
 import { formatBankAccount } from "@/features/registrations/lib/bankAccount"
 
 type ParticipantPaymentSummaryProps = {
@@ -37,45 +36,40 @@ export function ParticipantPaymentSummary({
 
   return (
     <div className="space-y-3">
-      <dl className="space-y-2 text-sm">
-        <Row label="Cena výběru">
-          <Amount minor={selectedPriceMinor} />
-        </Row>
+      <DefinitionList>
+        <DefinitionRow label="Cena výběru">
+          <Money minor={selectedPriceMinor} />
+        </DefinitionRow>
         {hasObligation ? (
           <>
-            <Row label="K úhradě za potvrzené termíny">
-              <Amount minor={amountDueMinor} />
-            </Row>
-            <Row label="Zaplaceno">
-              <Amount minor={paidMinor} />
-            </Row>
+            <DefinitionRow label="K úhradě za potvrzené termíny">
+              <Money minor={amountDueMinor} />
+            </DefinitionRow>
+            <DefinitionRow label="Zaplaceno">
+              <Money minor={paidMinor} />
+            </DefinitionRow>
             {isBalanceHighlighted ? null : (
-              <Row label="Zbývá zaplatit">
-                <Amount
+              <DefinitionRow label="Zbývá zaplatit">
+                <Money
                   minor={Math.max(balanceMinor, 0)}
-                  className="font-medium"
+                  isEmphasised
                 />
-              </Row>
+              </DefinitionRow>
             )}
             {balanceMinor < 0 ? (
-              <Row label="Přeplatek">
-                <Amount minor={-balanceMinor} />
-              </Row>
+              <DefinitionRow label="Přeplatek">
+                <Money minor={-balanceMinor} />
+              </DefinitionRow>
             ) : null}
             {isBalanceHighlighted ? (
-              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-border pt-2">
-                <dt className="font-medium">Zbývá zaplatit</dt>
-                <dd className="text-right">
-                  <BalanceAmount
-                    amount={formatCzk(Math.max(balanceMinor, 0))}
-                    isSettled={balanceMinor <= 0}
-                  />
-                </dd>
-              </div>
+              <BalanceRow
+                amount={formatCzk(Math.max(balanceMinor, 0))}
+                isSettled={balanceMinor <= 0}
+              />
             ) : null}
           </>
         ) : null}
-      </dl>
+      </DefinitionList>
 
       {hasObligation ? null : (
         <p className="text-sm text-muted-foreground">
@@ -86,33 +80,22 @@ export function ParticipantPaymentSummary({
       )}
 
       {instructions ? (
-        <dl className="space-y-2 border-t border-border pt-3 text-sm">
-          <Row label="Datum připomenutí platby">{formatPragueDate(instructions.reminderAt)}</Row>
+        <DefinitionList className="border-t border-border pt-3">
+          <DefinitionRow label="Datum připomenutí platby">
+            {formatPragueDate(instructions.reminderAt)}
+          </DefinitionRow>
           {shouldShowAccount ? (
             <>
-              <Row label="Číslo účtu">
+              <DefinitionRow label="Číslo účtu">
                 <span className="font-mono">{formatBankAccount(instructions.account)}</span>
-              </Row>
-              <Row label="Variabilní symbol">
+              </DefinitionRow>
+              <DefinitionRow label="Variabilní symbol">
                 <span className="font-mono">{instructions.variableSymbol}</span>
-              </Row>
+              </DefinitionRow>
             </>
           ) : null}
-        </dl>
+        </DefinitionList>
       ) : null}
     </div>
   )
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right">{children}</dd>
-    </div>
-  )
-}
-
-function Amount({ minor, className }: { minor: number; className?: string }) {
-  return <span className={cn("font-mono tabular-nums", className)}>{formatCzk(minor)}</span>
 }

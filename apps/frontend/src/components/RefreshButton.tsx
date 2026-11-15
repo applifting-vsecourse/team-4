@@ -1,18 +1,19 @@
-import { Loader2, RefreshCw } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { PendingButton } from "@/components/PendingButton"
 
 type RefreshButtonProps = { isRefreshing: boolean; onRefresh: () => unknown }
 
+// Reloads the data of a list or detail; spins and is disabled while it runs.
 export function RefreshButton({ isRefreshing, onRefresh }: RefreshButtonProps) {
   return (
-    <Button
+    <PendingButton
       variant="outline"
+      isPending={isRefreshing}
+      icon={<RefreshCw />}
       onClick={() => onRefresh()}
-      disabled={isRefreshing}
     >
-      {isRefreshing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw />}
       {isRefreshing ? "Aktualizuji…" : "Aktualizovat"}
-    </Button>
+    </PendingButton>
   )
 }

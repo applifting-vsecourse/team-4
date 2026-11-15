@@ -1,29 +1,19 @@
+import { ParticipationBadge } from "@/components/ParticipationBadge"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { type TermParticipation } from "@/lib/participation"
 
 import { RESULT_BADGE, type ProposalResult } from "@/features/accommodation/lib/proposal"
-
-export type DecisionTermState = "confirmed" | "pending" | "waitlisted" | "cancelled"
 
 export type DecisionTerm = {
   id: string
   label: string
   /** Already formatted, e.g. "4.–11. 7. 2027 · 4 800 Kč". */
   details: string
-  state: DecisionTermState
+  state: TermParticipation
   /** The person in the term's current proposal (F13-1); missing when confirmed or without one. */
   proposal?: { result: ProposalResult; reason?: string }
-}
-
-const STATE_BADGE: Record<
-  DecisionTermState,
-  { label: string; variant: "success" | "warning" | "secondary" }
-> = {
-  confirmed: { label: "Potvrzeno", variant: "success" },
-  pending: { label: "Čeká na rozhodnutí", variant: "secondary" },
-  waitlisted: { label: "Náhradník", variant: "warning" },
-  cancelled: { label: "Odhlášeno", variant: "secondary" },
 }
 
 /** F14-1, a later slice: without them no decision is offered. */
@@ -56,9 +46,7 @@ export function TermDecisions({
               <div>
                 <div className="flex items-start justify-between gap-3">
                   <p className="min-w-0 font-medium wrap-break-word">{term.label}</p>
-                  <Badge variant={STATE_BADGE[term.state].variant}>
-                    {STATE_BADGE[term.state].label}
-                  </Badge>
+                  <ParticipationBadge status={term.state} />
                 </div>
                 <p className="text-muted-foreground">{term.details}</p>
                 {term.proposal ? (

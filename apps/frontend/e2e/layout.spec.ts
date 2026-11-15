@@ -32,7 +32,7 @@ test("a page scrollbar that appears or disappears does not move the layout", asy
 
   // Nothing waits for approval: the page is shorter than the window.
   await page.goto(registrationsUrl(event, "approvals"))
-  await expect(page.getByText("Žádné změny nečekají na schválení.")).toBeVisible()
+  await expect(page.getByText("Žádné změny nečekají na schválení")).toBeVisible()
   const short = await headingLeft(page)
 
   // The term evaluation is taller than the window.

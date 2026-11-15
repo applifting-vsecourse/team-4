@@ -3,7 +3,9 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { Pencil } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { PageHeader } from "@/components/PageHeader"
+import { PageSection } from "@/components/PageSection"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
@@ -60,15 +62,10 @@ function EventPage() {
       />
       <div className="space-y-10">
         {event.isLocked ? <EventLockedAlert status={event.status} /> : null}
-        <section aria-labelledby="event-details-heading">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-            <h2
-              id="event-details-heading"
-              className="text-h4"
-            >
-              Základní údaje
-            </h2>
-            {!event.isLocked ? (
+        <PageSection
+          title="Základní údaje"
+          actions={
+            !event.isLocked ? (
               <Button
                 asChild
                 variant="outline"
@@ -81,27 +78,21 @@ function EventPage() {
                   Upravit akci
                 </Link>
               </Button>
-            ) : null}
-          </div>
+            ) : null
+          }
+        >
           <Card>
-            <CardContent className="space-y-4">
-              <dl className="space-y-4 text-sm">
-                <div>
-                  <dt className="text-muted-foreground">Název</dt>
-                  <dd className="mt-1 break-words">{event.name}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Místo</dt>
-                  <dd className="mt-1 break-words">{event.location}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Popis</dt>
-                  <dd className="mt-1 break-words whitespace-pre-line">{event.description}</dd>
-                </div>
-              </dl>
+            <CardContent>
+              <DefinitionList layout="stacked">
+                <DefinitionRow label="Název">{event.name}</DefinitionRow>
+                <DefinitionRow label="Místo">{event.location}</DefinitionRow>
+                <DefinitionRow label="Popis">
+                  <span className="whitespace-pre-line">{event.description}</span>
+                </DefinitionRow>
+              </DefinitionList>
             </CardContent>
           </Card>
-        </section>
+        </PageSection>
 
         <TermsSection
           organizationId={organizationId}

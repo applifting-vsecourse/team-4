@@ -1,6 +1,19 @@
-import { CalendarX, CircleAlert, Info } from "lucide-react"
+import { useState } from "react"
+import { CalendarX, Lock } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { ROUTES } from "@/app/routes"
+import { BackLink } from "@/components/BackLink"
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
+import { EmptyState } from "@/components/EmptyState"
+import { FormError } from "@/components/FormError"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { Money } from "@/components/Money"
+import { Notice } from "@/components/Notice"
+import { PageSection } from "@/components/PageSection"
+import { RecordUnavailable } from "@/components/RecordUnavailable"
+import { RefreshButton } from "@/components/RefreshButton"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,14 +26,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -63,6 +68,8 @@ const APPLICATIONS = [
 ]
 
 export function DataDisplaySection() {
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+
   return (
     <>
       <ShowcaseSection
@@ -99,22 +106,98 @@ export function DataDisplaySection() {
       <ShowcaseSection
         id="alerts"
         title="Hlášení"
+        description="Notice podle tónu, FormError u formuláře, LoadError při neúspěšném načtení."
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <Alert>
-            <Info />
-            <AlertTitle>Platební údaje odeslány</AlertTitle>
-            <AlertDescription>
-              Datum připomenutí platby je 26. 10. 2026 23:59 (Europe/Prague), 14 dní od potvrzení
-              účasti. Automatické upomínky se neodesílají.
-            </AlertDescription>
-          </Alert>
-          <Alert variant="destructive">
-            <CircleAlert />
-            <AlertTitle>Přihlášku se nepodařilo uložit</AlertTitle>
-            <AlertDescription>Zkontrolujte připojení a zkuste to znovu.</AlertDescription>
-          </Alert>
+          <ShowcaseItem label="Notice info">
+            <Notice
+              tone="info"
+              title="Změna platí jen pro nové přihlášky"
+            >
+              Přihlášky, které už akce přijala, si ponechávají původní účet.
+            </Notice>
+          </ShowcaseItem>
+          <ShowcaseItem label="Notice success">
+            <Notice
+              tone="success"
+              title="Přihlašování je otevřené"
+            />
+          </ShowcaseItem>
+          <ShowcaseItem label="Notice warning">
+            <Notice
+              tone="warning"
+              title="Bez platebního nastavení nelze otevřít přihlašování"
+            />
+          </ShowcaseItem>
+          <ShowcaseItem label="Notice s vlastní ikonou">
+            <Notice
+              tone="info"
+              icon={Lock}
+              title="Od otevření přihlašování jsou název, popis, místo, termíny a ceny zamčené"
+            />
+          </ShowcaseItem>
+          <ShowcaseItem label="FormError">
+            <FormError message="Přihlášku se nepodařilo uložit. Zkuste to prosím znovu." />
+          </ShowcaseItem>
+          <ShowcaseItem label="LoadError inline">
+            <LoadError
+              shownFrom={Date.UTC(2026, 9, 12, 12, 30)}
+              onRetry={() => undefined}
+            />
+          </ShowcaseItem>
+          <ShowcaseItem label="LoadError page">
+            <LoadError
+              variant="page"
+              title="Katalog se nepodařilo načíst"
+              onRetry={() => undefined}
+            />
+          </ShowcaseItem>
+          <ShowcaseItem label="RecordUnavailable">
+            <RecordUnavailable action={<Button variant="outline">Zpět na přehled akcí</Button>} />
+          </ShowcaseItem>
         </div>
+      </ShowcaseSection>
+
+      <ShowcaseSection
+        id="page-actions"
+        title="Akce stránky"
+      >
+        <div className="flex flex-wrap items-center gap-4">
+          <BackLink to={ROUTES.designSystem}>Zpět na přehled</BackLink>
+          <RefreshButton
+            isRefreshing={false}
+            onRefresh={() => undefined}
+          />
+          <ConfirmDeleteDialog
+            isOpen={isDeleteOpen}
+            onOpenChange={setIsDeleteOpen}
+            trigger={<Button variant="destructive">Odstranit termín</Button>}
+            title="Odstranit termín „Turnus 1“?"
+            consequence="Termín se z akce trvale odstraní."
+            onConfirm={() => setIsDeleteOpen(false)}
+          />
+        </div>
+      </ShowcaseSection>
+
+      <ShowcaseSection
+        id="page-section"
+        title="Sekce stránky"
+      >
+        <PageSection
+          title="Seznam přihlášek"
+          actions={
+            <RefreshButton
+              isRefreshing={false}
+              onRefresh={() => undefined}
+            />
+          }
+        >
+          <Card>
+            <CardContent>
+              <p className="text-sm">Obsah sekce</p>
+            </CardContent>
+          </Card>
+        </PageSection>
       </ShowcaseSection>
 
       <ShowcaseSection
@@ -159,29 +242,49 @@ export function DataDisplaySection() {
       >
         <div className="grid gap-6 sm:grid-cols-2">
           <ShowcaseItem label="Skeleton">
-            <div
-              className="space-y-3 rounded-lg border border-border bg-card p-4"
-              aria-busy="true"
-              aria-label="Načítání"
+            <LoadingBlock
+              label="Načítání"
+              className="space-y-3"
             >
               <Skeleton className="h-5 w-2/3" />
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-5/6" />
-            </div>
+            </LoadingBlock>
           </ShowcaseItem>
-          <ShowcaseItem label="Empty">
-            <Empty className="border border-dashed border-border">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <CalendarX />
-                </EmptyMedia>
-                <EmptyTitle>Zatím žádné akce</EmptyTitle>
-                <EmptyDescription>Vytvořte první akci a otevřete přihlášky.</EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                <Button>Vytvořit akci</Button>
-              </EmptyContent>
-            </Empty>
+          <ShowcaseItem label="EmptyState">
+            <EmptyState
+              icon={CalendarX}
+              title="Zatím žádné akce"
+              description="Vytvořte první akci a otevřete přihlášky."
+              action={<Button>Vytvořit akci</Button>}
+            />
+          </ShowcaseItem>
+          <ShowcaseItem label="DefinitionList inline + Money">
+            <DefinitionList>
+              <DefinitionRow label="Cena výběru">
+                <Money minor={480_000} />
+              </DefinitionRow>
+              <DefinitionRow label="Zaplaceno">
+                <Money minor={240_000} />
+              </DefinitionRow>
+              <DefinitionRow
+                label="Zbývá zaplatit"
+                isEmphasised
+              >
+                <Money
+                  minor={240_000}
+                  isEmphasised
+                />
+              </DefinitionRow>
+            </DefinitionList>
+          </ShowcaseItem>
+          <ShowcaseItem label="DefinitionList stacked">
+            <DefinitionList layout="stacked">
+              <DefinitionRow label="Místo">Chata Pod Lesem, Krkonoše</DefinitionRow>
+              <DefinitionRow label="Popis">
+                Čtrnáct dní her, výletů a táboráků pro děti od 8 do 14 let.
+              </DefinitionRow>
+            </DefinitionList>
           </ShowcaseItem>
           <ShowcaseItem label="Progress">
             <OccupancyProgress />
