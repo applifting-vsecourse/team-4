@@ -8,15 +8,11 @@ export type SolverRoom = {
   extraBeds: number;
 };
 
-/** Values of the ranked soft attributes, keyed by attribute id (phase 2). */
-export type SoftValues = Record<string, string>;
-
 /** Already confirmed in the term: a fixed input the solver never removes. */
 export type ConfirmedParticipant = {
   id: string;
   /** Effective value of the hard attribute; null without a hard attribute. */
   value: string | null;
-  softValues?: SoftValues;
   /** Phase 2: the room the participant stays in. */
   roomId?: string;
 };
@@ -32,15 +28,12 @@ export type Candidate = {
   value: string | null;
   /** Position in the term's order, 0 = highest priority. Unique. */
   position: number;
-  softValues?: SoftValues;
 };
 
 export type SolverInput = {
   rooms: SolverRoom[];
   /** Whether rooms must be homogeneous in one hard attribute. */
   hasHardAttribute: boolean;
-  /** Soft attribute ids, most important first (phase 2). */
-  softAttributes?: string[];
   confirmed: ConfirmedParticipant[];
   candidates: Candidate[];
 };
