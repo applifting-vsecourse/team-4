@@ -109,18 +109,21 @@ Measured with the benchmark on one machine (16 cores; times vary by machine):
   switch a room's value), and three where it chose another tie (U7). Ties reach
   the earliest layout only as far as simple moves go; the result is still the
   same for the same input.
-- **Spec §7.1 does not hold in general:** "a re-run after applying moves
-  nobody". Two causes, measured as "re-run after apply" in the benchmark:
+- **Spec §7.1 as approved did not hold in general:** it said a re-run after
+  applying moves nobody. Two causes, measured as "re-run after apply" in the benchmark:
   - The search: a re-run can find a better layout and move people for it. Without
     rooms of other terms the re-run moved 0 and 48 people in the two cases;
     without a round limit the re-search keeps improving for six or more rounds.
-  - The spec itself: applying gives everyone a saved room, so U2 (§5.2) no
+  - The spec itself: applying gives everyone placed a saved room, so U2 (§5.2) no
     longer counts and wishes (U3) outrank moves (U4). A re-run then moves
     people even for a proven-optimal solver: in the spike, 176 people, with
     wishes going 10 → 2. With rooms of other terms the search's re-run moved 34
     and 81.
 
-  The PM decides how the spec handles it (raised on the ADR PR).
+  The PM relaxed §7.1 (decision on this PR): a re-run after applying may
+  suggest further moves, which the organizer sees as a difference, and stored
+  placements change only when the organizer applies the new proposal. The
+  spec change is #374.
 
 - The search is our own code to maintain and tune; its moves and budget are
   covered by the oracle and example tests.
