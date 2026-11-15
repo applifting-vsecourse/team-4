@@ -38,6 +38,16 @@ Hard constraints: the term's beds per room, one hard-attribute value per room, c
 - **Phase 1** (`phase-one.ts`) uses an aggregate model. Without pinned rooms, rooms with the same beds are interchangeable, and so are candidates with the same hard-attribute value: a value with `a` places always takes its `a` highest positions. The model only decides how many rooms of each type carry each value. `phase-equivalence.spec.ts` checks on random terms that it picks the same people with the same reasons as the room-level model.
 - **Room level** (`assignment-model.ts`, `phase: 2`) models every person in every room. It is the reference that `phase-equivalence.spec.ts` checks phase 1 against.
 
+## Room proposals (phase 2)
+
+`solveRoomProposal` (`solve-room-proposal.ts`) lays out the confirmed participants of one term in rooms, as specified in the phase-2 spec and decided in [ADR-0002](../../../../../../docs/adr/0002-room-proposal-local-search.md). It never decides who takes part.
+
+1. **U1, exact** (`room-proposal-placement.ts`): an aggregate HiGHS model decides how many people of each hard-attribute value are placed, by person order, and a small exact assignment decides which room carries which value, serving the rooms of other terms and saved rooms first. A greedy fill gives a valid starting layout.
+2. **U2–U7, local search** (`room-proposal-search.ts`): relocations, swaps, room swaps and wish-pair moves, compared by the full score vector, with seeded perturbation and a budget counted in evaluated moves, so the same input gives the same proposal. A final pass moves earlier people into earlier rooms where that keeps every score (U7). The search then re-runs up to twice from its own result as if it were applied, keeping it while it improves.
+3. `room-proposal-layout.ts` prepares the input (room order, locks, closed rooms, lock conflicts) and scores the result. Its scores are what the proposal reports.
+
+`strategy: 'exact'` (`room-proposal-exact.ts`, `room-proposal-model.ts`) solves every level on a room-level HiGHS model instead. It proves optimality on small terms only and is the test oracle: `room-proposal-oracle.spec.ts` requires the search to reach its scores on 60 sampled small terms (it has no optimality proof, so a wider fuzz can find terms where it does not; see ADR-0002). `solve-room-proposal.spec.ts` covers the 13 spec examples. `pnpm backend solver:proposal-benchmark` measures 200 people in 40 rooms.
+
 ## Spike results
 
 Results of the #181 spike: 200 participants over three overlapping terms, 40 rooms (mostly identical), gender as the hard attribute, 3 and 5 soft attributes, plus an overbooked term with all 200 participants for 134 beds. The room-level column used the soft-attribute level that phase 1 has since dropped, so only the phase 1 column is reproducible: `pnpm backend solver:benchmark`.
