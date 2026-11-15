@@ -22,15 +22,17 @@ export function AuthLayout({ title, description, children, footer }: AuthLayoutP
       <main className="min-h-svh">
         <section className="mx-auto w-full max-w-md px-4 py-12 md:py-16">
           <Card>
-            <CardContent className="space-y-6">
-              <header className="space-y-2">
-                <h1 className="text-h2">{title}</h1>
-                <p className="text-sm text-muted-foreground">{description}</p>
-              </header>
+            <CardContent>
+              <div className="space-y-6">
+                <header className="space-y-2">
+                  <h1 className="text-h2">{title}</h1>
+                  <p className="text-sm text-muted-foreground">{description}</p>
+                </header>
 
-              <div>{children}</div>
+                <div>{children}</div>
 
-              <p className="text-sm text-muted-foreground">{footer}</p>
+                <p className="text-sm text-muted-foreground">{footer}</p>
+              </div>
             </CardContent>
           </Card>
         </section>
