@@ -132,7 +132,7 @@ Termín má pro fázi 2 **vlastní verzi vstupů rozdělení**, oddělenou od ve
 | Uložené umístění nebo zámek v termínu (včetně použití návrhu)                     | ne                         | ano                      |
 | Uložené umístění v jiném termínu u osoby potvrzené v tomto termínu                | ne                         | ano                      |
 
-Použití návrhu zvýší verzi rozdělení. Nový návrh ze stejných vstupů vrátí totéž rozdělení s U4 = 0, takže automatický režim po použití nic nepřesune.
+Použití návrhu zvýší verzi rozdělení. Nový návrh po použití (ruční i automatický) může navrhnout další přesuny, například proto, že osoby umístěné v návrhu použitím získají uložené umístění, U2 se na ně už nevztahuje (kap. 5.2) a lepší splnění měkkých preferencí (U3) může převážit přesuny (U4), nebo proto, že nový návrh najde lepší rozdělení. Organizátor je uvidí jako rozdíl proti uloženému umístění (kap. 7.2). Nový návrh uložená umístění nikdy nemění; změní je jen výslovné použití návrhu organizátorem.
 
 ### 7.2 Použití návrhu
 
@@ -220,7 +220,7 @@ R1 (2+0) je v T1 nedostupný a P1 Ž v něm má zámek. R2 (2+0), P2 Ž, P3 Ž.
 
 Návrh z Př. 9 po přidání přání. Organizátor otevře rozdíl: přesun P2 z R2 do R1.
 
-- Použije návrh → uložená umístění R1 {P1, P2}, R3 {P3}. Nic se nezveřejní, účasti se nezmění. Nový návrh (automatický režim) vrátí totéž rozdělení.
+- Použije návrh → uložená umístění R1 {P1, P2}, R3 {P3}. Nic se nezveřejní, účasti se nezmění. Nový návrh (automatický režim) zde vrátí totéž rozdělení, protože uložené rozdělení už splňuje všechna přání a každý přesun by zhoršil U4. Kdyby nový návrh navrhl další přesuny, uložená umístění se změní, až když organizátor nový návrh použije.
 - Jiný stav: před použitím se v T1 potvrdí P4 → verze rozdělení +1, použití odmítnuto jako neaktuální, uložená umístění se nezmění.
 - Jiný stav: P5 zadá přání, ale P5 není v T1 potvrzená → verze rozdělení T1 se nemění.
 
