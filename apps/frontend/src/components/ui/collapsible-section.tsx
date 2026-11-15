@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react"
-import { useRouter, useRouterState } from "@tanstack/react-router"
+import { useRouter } from "@tanstack/react-router"
 import { ChevronDown } from "lucide-react"
 
 import "./collapsible-section.css"
@@ -45,12 +45,12 @@ export function CollapsibleSection({
   afterContent,
 }: CollapsibleSectionProps) {
   const router = useRouter({ warn: false })
-  const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const pathname = typeof window === "undefined" ? "/" : window.location.pathname
   const sectionStorageKey = storageKey(pathname, headingId)
   const [isOpen, setIsOpen] = useState(() => readOpenState(sectionStorageKey))
 
   useEffect(() => {
-    const isAnchorTarget = router.state.location.hash === headingId
+    const isAnchorTarget = router?.state.location.hash === headingId
     setIsOpen(isAnchorTarget || readOpenState(sectionStorageKey))
   }, [headingId, router, sectionStorageKey])
 
