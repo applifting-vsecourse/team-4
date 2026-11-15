@@ -1,6 +1,6 @@
 # ADR-0002: Lay out room proposals by deterministic local search
 
-- **Status:** Proposed
+- **Status:** Accepted 2026-11-15 in #372
 - **Proposed:** 2026-11-14
 - **Deciders:** tech lead (`rmnskb`); PM (`darebakdavca`) for the spec-visible
   consequences (the notice and §7.1)
