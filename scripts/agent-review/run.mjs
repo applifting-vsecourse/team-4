@@ -751,6 +751,17 @@ async function reviewIntegrationPrs(board, item, prs, { ownsBoard }) {
   if (ownsBoard && target) await moveStatus(board, item, target);
 }
 
+const PREVIEW_APPROVED = 'storybook-preview-approved|';
+
+function latestPreviewApproval(comments, issue) {
+  const prefix = issueMarker({ issue, state: PREVIEW_APPROVED }).slice(0, -4);
+  const comment = comments.findLast(
+    (c) =>
+      c.user?.login === 'github-actions[bot]' && c.body?.startsWith(prefix),
+  );
+  return comment?.body.slice(prefix.length).split(' -->')[0];
+}
+
 async function processIssue(board, item) {
   const issue = item.content;
   console.log(`#${issue.number} ${issue.title}`);
@@ -771,15 +782,10 @@ async function processIssue(board, item) {
   // Requeue an updated preview, or one that relied on the pause when it ends.
   if (item.status.name === 'Sprint Backlog') {
     if (!linkedNumbers.length) return;
-    const prefix = issueMarker({
-      issue: issue.number,
-      state: 'storybook-preview-approved|',
-    }).slice(0, -4);
-    const approved = (await listComments(issue.number)).findLast(
-      (c) =>
-        c.user?.login === 'github-actions[bot]' && c.body?.startsWith(prefix),
+    const results = latestPreviewApproval(
+      await listComments(issue.number),
+      issue.number,
     );
-    const results = approved?.body.slice(prefix.length).split(' -->')[0];
     if (!results) return;
     let needsReview = false;
     for (const result of results.split(',')) {
@@ -1269,9 +1275,15 @@ async function processIssue(board, item) {
     previewOnly &&
     technicalPending.length === 0
   ) {
-    const state = `storybook-preview-approved|${resultsKey(results) || 'no-pr'}`;
-    const marker = issueMarker({ issue: issue.number, state });
-    if (!hasBotComment(await listComments(issue.number), marker)) {
+    const verdicts = resultsKey(results) || 'no-pr';
+    const marker = issueMarker({
+      issue: issue.number,
+      state: PREVIEW_APPROVED + verdicts,
+    });
+    if (
+      latestPreviewApproval(await listComments(issue.number), issue.number) !==
+      verdicts
+    ) {
       await postComment(
         issue.number,
         `${marker}\nStorybook preview cleared the code review stage and received current-commit PM approval. No separate QA handoff is required; the issue remains open in Sprint Backlog.`,

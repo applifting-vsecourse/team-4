@@ -473,6 +473,10 @@ async function scenario(options) {
       for (const pr of prs) pr.head.sha = 'b'.repeat(40);
       for (const review of reviews) review.commit_id = 'b'.repeat(40);
     }
+    if (i === 1 && options.resetAfterSecond) {
+      for (const pr of prs) pr.head.sha = sha;
+      for (const review of reviews) review.commit_id = sha;
+    }
     if (i === options.resumeAfterRun) delete process.env.PAUSE_COPILOT_REVIEW;
     if (i === 0 && options.unstackAfterFirst)
       for (const pr of prs) pr.base = { ref: 'main' };
@@ -810,6 +814,24 @@ test('a new preview head is tracked while paused even if its previous head passe
     r.prComments[12].some((c) =>
       c.includes(`sha=${'b'.repeat(40)} result=pass`),
     ),
+  );
+});
+
+test('a preview reset to a previously approved head stops requeuing after approval', () => {
+  const r = run({
+    authors: ['developer'],
+    binaryOnly: true,
+    ciPassed: true,
+    pauseCopilot: true,
+    preview: true,
+    pushAfterFirst: true,
+    resetAfterSecond: true,
+    runs: 4,
+  });
+  assert.equal(r.status, 'Sprint Backlog');
+  assert.equal(
+    r.calls.filter((c) => c === 'status:Ready for Code Review').length,
+    2,
   );
 });
 
