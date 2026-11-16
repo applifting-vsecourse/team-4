@@ -94,6 +94,11 @@ jobs:
           context: .
           file: apps/backend/Dockerfile.deploy
           push: true
+          build-args: |
+            SMTP_HOST=${{ vars.SMTP_HOST }}
+            SMTP_USERNAME=${{ vars.SMTP_USERNAME }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+            EMAIL_FROM=${{ vars.EMAIL_FROM }}
           tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend:latest
       - name: Build & push frontend
         if: steps.stale.outputs.stale != 'true'
