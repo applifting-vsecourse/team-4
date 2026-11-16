@@ -33,6 +33,8 @@ type RegistrationTermDecisionsProps = {
   /** E.g. "Alex Šimek". */
   person: string
   terms: RegistrationTerm[]
+  /** Render inside the registration overview card. */
+  isSection?: boolean
   /** Reloaded after a decision, i.e. the registration detail with its term states. */
   invalidate: readonly unknown[]
 }
@@ -47,6 +49,7 @@ export function RegistrationTermDecisions({
   registrationId,
   person,
   terms,
+  isSection = false,
   invalidate,
 }: RegistrationTermDecisionsProps) {
   const accommodation = useQuery(
@@ -105,6 +108,7 @@ export function RegistrationTermDecisions({
     <>
       <TermDecisions
         terms={decisionTerms}
+        isSection={isSection}
         // Whether the person needs a determination is known only once it is read.
         onConfirm={accommodation.data ? (term) => decide(term, "confirm") : undefined}
         onWaitlist={accommodation.data ? (term) => decide(term, "waitlist") : undefined}

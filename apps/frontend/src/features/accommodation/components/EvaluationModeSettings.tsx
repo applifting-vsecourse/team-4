@@ -1,7 +1,6 @@
 import { useState } from "react"
 
 import { FormError } from "@/components/FormError"
-import { PageSection } from "@/components/PageSection"
 import { PendingButton } from "@/components/PendingButton"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Field, FieldLabel } from "@/components/ui/field"
@@ -31,54 +30,49 @@ export function EvaluationModeSettings({
   const [selected, setSelected] = useState<EvaluationMode>(mode)
 
   return (
-    <PageSection
-      title="Automatizace"
-      headingId="automation-heading"
-    >
-      <Card>
-        <CardContent>
-          <div className="space-y-4">
-            <RadioGroup
-              value={selected}
-              onValueChange={(value) => setSelected(value as EvaluationMode)}
-              aria-label="Aktualizace návrhu vyhodnocení"
-            >
-              <Field orientation="horizontal">
-                <RadioGroupItem
-                  id="mode-automatic"
-                  value="automatic"
-                />
-                <FieldLabel htmlFor="mode-automatic">
-                  Přepočítat návrh automaticky po každé změně
-                </FieldLabel>
-              </Field>
-              <Field orientation="horizontal">
-                <RadioGroupItem
-                  id="mode-manual"
-                  value="manual"
-                />
-                <FieldLabel htmlFor="mode-manual">
-                  Přepočítat návrh jen tlačítkem Přepočítat
-                </FieldLabel>
-              </Field>
-            </RadioGroup>
-            {saveError ? (
-              <FormError
-                title="Režim se nepodařilo uložit"
-                message={saveError}
-              />
-            ) : null}
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end">
-          <PendingButton
-            isPending={isSaving}
-            onClick={() => onSave?.(selected)}
+    <Card>
+      <CardContent>
+        <div className="space-y-4">
+          <RadioGroup
+            value={selected}
+            onValueChange={(value) => setSelected(value as EvaluationMode)}
+            aria-label="Aktualizace návrhu vyhodnocení"
           >
-            Uložit
-          </PendingButton>
-        </CardFooter>
-      </Card>
-    </PageSection>
+            <Field orientation="horizontal">
+              <RadioGroupItem
+                id="mode-automatic"
+                value="automatic"
+              />
+              <FieldLabel htmlFor="mode-automatic">
+                Přepočítat návrh automaticky po každé změně
+              </FieldLabel>
+            </Field>
+            <Field orientation="horizontal">
+              <RadioGroupItem
+                id="mode-manual"
+                value="manual"
+              />
+              <FieldLabel htmlFor="mode-manual">
+                Přepočítat návrh jen tlačítkem Přepočítat
+              </FieldLabel>
+            </Field>
+          </RadioGroup>
+          {saveError ? (
+            <FormError
+              title="Režim se nepodařilo uložit"
+              message={saveError}
+            />
+          ) : null}
+        </div>
+      </CardContent>
+      <CardFooter className="justify-end">
+        <PendingButton
+          isPending={isSaving}
+          onClick={() => onSave?.(selected)}
+        >
+          Uložit
+        </PendingButton>
+      </CardFooter>
+    </Card>
   )
 }

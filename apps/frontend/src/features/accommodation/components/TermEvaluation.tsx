@@ -249,18 +249,14 @@ function OrderTable({ people, attribute, decisions, renderName }: OrderTableProp
                   </TableCell>
                 ) : null}
                 <TableCell className="hidden @2xl:table-cell">
-                  <div className="-ml-2">
-                    <ParticipationBadge status={person.state} />
-                  </div>
+                  <ParticipationBadge status={person.state} />
                 </TableCell>
                 <TableCell className="whitespace-normal">
                   {person.result ? (
                     <>
-                      <div className="-ml-2">
-                        <Badge variant={RESULT_BADGE[person.result].variant}>
-                          {RESULT_BADGE[person.result].label}
-                        </Badge>
-                      </div>
+                      <Badge variant={RESULT_BADGE[person.result].variant}>
+                        {RESULT_BADGE[person.result].label}
+                      </Badge>
                       {person.reason ? (
                         <p className="mt-1 text-muted-foreground">
                           {reasonText(person.reason, attribute ?? "")}

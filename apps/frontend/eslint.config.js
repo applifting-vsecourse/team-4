@@ -265,4 +265,42 @@ export default [
     },
     rules: { "shadcn/no-restyle": "off" },
   },
+  {
+    // The InputGroup geometry comes from its approved shadcn primitive.
+    files: ["src/components/ui/input-group.tsx"],
+    rules: {
+      "shadcn/no-arbitrary-values": [
+        "error",
+        {
+          allow: [
+            "transition-[border-color,box-shadow,background-color]",
+            "has-[[data-slot=input-group-control]:focus-visible]:ring-[3px]",
+            "[&>kbd]:rounded-[calc(var(--radius)-5px)]",
+            "has-[>button]:ml-[-0.45rem]",
+            "has-[>kbd]:ml-[-0.35rem]",
+            "has-[>button]:mr-[-0.45rem]",
+            "has-[>kbd]:mr-[-0.35rem]",
+            "rounded-[calc(var(--radius)-5px)]",
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // This icon transition is part of the registration search affordance.
+    files: ["src/features/registrations/components/RegistrationFilters.tsx"],
+    rules: {
+      "shadcn/no-arbitrary-values": [
+        "error",
+        { allow: ["transition-[color,transform]"] },
+      ],
+    },
+  },
+  {
+    // Gradient direction is not a color; the stops already use theme tokens.
+    files: ["src/components/HorizontalOverflowViewport.tsx"],
+    rules: {
+      "shadcn/no-raw-colors": ["error", { allow: ["bg-gradient-to-l"] }],
+    },
+  },
 ]

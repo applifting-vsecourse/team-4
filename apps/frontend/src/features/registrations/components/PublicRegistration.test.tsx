@@ -391,9 +391,7 @@ describe("submitting", () => {
     expect(screen.getByText(/20\. 10\. 2026 14:03/)).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Letní tábor" })).toBeInTheDocument()
     // Payment summary: the whole selection, what the confirmed terms owe, and the stored instructions.
-    expect(valueOf("Cena výběru")).toBe("4 500,50 Kč")
-    expect(valueOf("K úhradě za potvrzené termíny")).toBe("4 500,50 Kč")
-    expect(valueOf("Zaplaceno")).toBe("0 Kč")
+    expect(valueOf("Cena celkem")).toBe("4 500,50 Kč")
     expect(valueOf("Zbývá zaplatit")).toBe("4 500,50 Kč")
     expect(valueOf("Datum připomenutí platby")).toBe("28. 6. 2027")
     expect(valueOf("Číslo účtu")).toBe("2501234567/2010")

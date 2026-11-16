@@ -131,8 +131,9 @@ describe("ParticipantRegistrationDetail", () => {
 
     const value = (label: string) =>
       plain(screen.getByText(label, { selector: "dt" }).nextElementSibling?.textContent)
-    expect(value("Zaplaceno")).toBe("2 000 Kč")
+    expect(value("Cena celkem")).toBe("9 000 Kč")
     expect(value("Zbývá zaplatit")).toBe("2 500 Kč")
+    expect(screen.queryByText("Zaplaceno", { selector: "dt" })).not.toBeInTheDocument()
     expect(value("Číslo účtu")).toBe("2501234567/2010")
     expect(value("Variabilní symbol")).toBe("2610190042")
     expect(value("Datum připomenutí platby")).toBe("28. 6. 2027")

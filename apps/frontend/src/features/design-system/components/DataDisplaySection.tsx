@@ -261,11 +261,8 @@ export function DataDisplaySection() {
           </ShowcaseItem>
           <ShowcaseItem label="DefinitionList inline + Money">
             <DefinitionList>
-              <DefinitionRow label="Cena výběru">
+              <DefinitionRow label="Cena celkem">
                 <Money minor={480_000} />
-              </DefinitionRow>
-              <DefinitionRow label="Zaplaceno">
-                <Money minor={240_000} />
               </DefinitionRow>
               <DefinitionRow
                 label="Zbývá zaplatit"

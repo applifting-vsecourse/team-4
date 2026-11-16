@@ -19,6 +19,8 @@ type OrganizerAccommodationCardProps = {
     RegistrationDetail,
     "id" | "gender" | "genderOther" | "requiresManualAccommodation"
   >
+  /** Render inside the participant overview card rather than as a separate card. */
+  isSection?: boolean
   /** Below the answer while it is not edited: the determination (S3-01), from another feature. */
   determination?: ReactNode
   /** A saved answer changes the term evaluation of another feature (S3-01). */
@@ -39,6 +41,7 @@ export function OrganizerAccommodationCard({
   organizationId,
   eventId,
   registration,
+  isSection = false,
   determination,
   onAnswerSaved,
 }: OrganizerAccommodationCardProps) {
@@ -60,6 +63,7 @@ export function OrganizerAccommodationCard({
     <AccommodationCard
       answer={stored}
       isManualAccommodation={registration.requiresManualAccommodation}
+      isSection={isSection}
       extra={isEditing ? undefined : determination}
       action={
         isEditing ? null : (

@@ -25,7 +25,10 @@ import {
 import { OrganizerAccommodationCard } from "@/features/registrations/components/OrganizerAccommodationCard"
 import { OrganizerNeedsSection } from "@/features/registrations/components/OrganizerNeedsSection"
 import { RecordPaymentDialog } from "@/features/registrations/components/RecordPaymentDialog"
-import { RegistrationChangeDecision } from "@/features/registrations/components/RegistrationChangeDecision"
+import {
+  RegistrationChangeDecision,
+  RegistrationChangeHistory,
+} from "@/features/registrations/components/RegistrationChangeDecision"
 import { RegistrationDetail } from "@/features/registrations/components/RegistrationDetail"
 
 // Správa akce → Přihlášky → Detail účastníka (S2-11): the organizer's view of
@@ -99,6 +102,7 @@ function RegistrationPage() {
           organizationId={organizationId}
           eventId={eventId}
           registrationId={registrationId}
+          shouldShowHistory={false}
         />
       </div>
       <RegistrationDetail
@@ -112,6 +116,7 @@ function RegistrationPage() {
             organizationId={organizationId}
             eventId={eventId}
             registration={registration.data}
+            isSection
             // The answer is an input of the evaluation: its proposals turn stale.
             onAnswerSaved={() =>
               void queryClient.invalidateQueries({
@@ -137,16 +142,24 @@ function RegistrationPage() {
             registrationId={registrationId}
             person={name}
             terms={registration.data.terms}
+            isSection
             invalidate={eventRegistrationKeys.detail(organizationId, eventId, registrationId)}
           />
         }
         history={
-          <RegistrationEvaluationHistory
-            organizationId={organizationId}
-            eventId={eventId}
-            registrationId={registrationId}
-            person={name}
-          />
+          <>
+            <RegistrationEvaluationHistory
+              organizationId={organizationId}
+              eventId={eventId}
+              registrationId={registrationId}
+              person={name}
+            />
+            <RegistrationChangeHistory
+              organizationId={organizationId}
+              eventId={eventId}
+              registrationId={registrationId}
+            />
+          </>
         }
         needs={
           <OrganizerNeedsSection

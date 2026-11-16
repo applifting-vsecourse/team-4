@@ -10,7 +10,6 @@ import { formatBankAccount } from "@/features/registrations/lib/bankAccount"
 type ParticipantPaymentSummaryProps = {
   selectedPriceMinor: number
   amountDueMinor: number
-  paidMinor: number
   balanceMinor: number
   /** Present only while a debt remains. */
   instructions: PaymentInstructions | null
@@ -20,13 +19,11 @@ type ParticipantPaymentSummaryProps = {
   isBalanceHighlighted?: boolean
 }
 
-// The price of the selection, what the confirmed terms owe, what was received
-// and what is left. With nothing owed there is no request to pay and no
-// reminder date (S2-14, S2-16). Payment never changes who is confirmed.
+// Show the full selected price and the balance for confirmed terms. Waitlisted
+// terms are included in the total, but create no payment obligation until confirmed.
 export function ParticipantPaymentSummary({
   selectedPriceMinor,
   amountDueMinor,
-  paidMinor,
   balanceMinor,
   instructions,
   shouldShowAccount = true,
@@ -37,17 +34,11 @@ export function ParticipantPaymentSummary({
   return (
     <div className="space-y-3">
       <DefinitionList>
-        <DefinitionRow label="Cena výběru">
+        <DefinitionRow label="Cena celkem">
           <Money minor={selectedPriceMinor} />
         </DefinitionRow>
         {hasObligation ? (
           <>
-            <DefinitionRow label="K úhradě za potvrzené termíny">
-              <Money minor={amountDueMinor} />
-            </DefinitionRow>
-            <DefinitionRow label="Zaplaceno">
-              <Money minor={paidMinor} />
-            </DefinitionRow>
             {isBalanceHighlighted ? null : (
               <DefinitionRow label="Zbývá zaplatit">
                 <Money
@@ -56,11 +47,6 @@ export function ParticipantPaymentSummary({
                 />
               </DefinitionRow>
             )}
-            {balanceMinor < 0 ? (
-              <DefinitionRow label="Přeplatek">
-                <Money minor={-balanceMinor} />
-              </DefinitionRow>
-            ) : null}
             {isBalanceHighlighted ? (
               <BalanceRow
                 amount={formatCzk(Math.max(balanceMinor, 0))}

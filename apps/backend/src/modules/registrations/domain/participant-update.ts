@@ -55,6 +55,8 @@ export type UpdatePayment = {
 export type ParticipantUpdatePayload = {
   reason: ParticipantUpdateReason;
   eventName: string;
+  /** Full price of all selected terms at the time of the update; absent on older queued messages. */
+  selectedPriceMinor?: number;
   organizer: { name: string; email: string | null; phone: string | null };
   /** The valid terms after the event. */
   terms: UpdateTerm[];

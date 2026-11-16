@@ -5,11 +5,11 @@ import { Pencil } from "lucide-react"
 import { ROUTES } from "@/app/routes"
 import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { PageHeader } from "@/components/PageHeader"
-import { PageSection } from "@/components/PageSection"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { WorkspacePage } from "@/components/WorkspacePage"
 
 import { EvaluationModeSection } from "@/features/accommodation/components/EvaluationModeSection"
@@ -62,7 +62,8 @@ function EventPage() {
       />
       <div className="space-y-10">
         {event.isLocked ? <EventLockedAlert status={event.status} /> : null}
-        <PageSection
+        <CollapsibleSection
+          headingId="basic-details-heading"
           title="Základní údaje"
           actions={
             !event.isLocked ? (
@@ -92,7 +93,7 @@ function EventPage() {
               </DefinitionList>
             </CardContent>
           </Card>
-        </PageSection>
+        </CollapsibleSection>
 
         <TermsSection
           organizationId={organizationId}

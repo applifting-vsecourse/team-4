@@ -80,7 +80,6 @@ function Submitted() {
                 <ParticipantPaymentSummary
                   selectedPriceMinor={960_000}
                   amountDueMinor={0}
-                  paidMinor={0}
                   balanceMinor={0}
                   instructions={null}
                 />
@@ -114,7 +113,6 @@ function Decided() {
             <ParticipantPaymentSummary
               selectedPriceMinor={1_440_000}
               amountDueMinor={480_000}
-              paidMinor={0}
               balanceMinor={480_000}
               instructions={INSTRUCTIONS}
             />

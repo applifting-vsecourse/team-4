@@ -3,9 +3,9 @@ import { CalendarCog, ListChecks, Pencil, Plus, Trash2 } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { EmptyState } from "@/components/EmptyState"
-import { PageSection } from "@/components/PageSection"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import {
   Table,
   TableBody,
@@ -53,9 +53,9 @@ export function TermsSection({ organizationId, event }: TermsSectionProps) {
   )
 
   return (
-    <PageSection
-      title="Termíny a ceny"
+    <CollapsibleSection
       headingId="terms-heading"
+      title="Termíny a ceny"
       actions={canEdit ? addButton : null}
     >
       {event.terms.length === 0 ? (
@@ -143,6 +143,6 @@ export function TermsSection({ organizationId, event }: TermsSectionProps) {
           </Table>
         </Card>
       )}
-    </PageSection>
+    </CollapsibleSection>
   )
 }
