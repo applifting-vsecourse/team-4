@@ -562,7 +562,7 @@ Only incoming movements of an imported statement are stored; an invalid movement
 | `bookedOn`                                           | date                               | As in the statement.                                       |
 | `amountMinor`                                        | int > 0                            | CHECK.                                                     |
 | `variableSymbol`                                     | varchar(10)?                       | Digits only (CHECK).                                       |
-| `counterpartyAccount`, `counterpartyName`, `message` | text?                              | As in the statement, for pairing by hand.                  |
+| `counterpartyAccount`, `counterpartyName`, `message` | varchar(60)?, (200)?, (500)?       | As in the statement, for pairing by hand.                  |
 | `importedById`, `importedAt`                         | user id, timestamptz               | Who imported it and when.                                  |
 
 ## 5. Key flows against the model
