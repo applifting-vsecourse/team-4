@@ -502,9 +502,19 @@ describe('room proposals (#365)', () => {
     ).rejects.toThrow(/accommodation_room_proposal_result_chk/);
     await expect(
       prisma.accommodationRoomProposal.create({
-        data: { ...base, status: 'solved', finishedAt: date('2026-12-31') },
+        data: {
+          ...base,
+          status: 'solved',
+          result: {},
+          finishedAt: date('2026-12-31'),
+        },
       }),
-    ).rejects.toThrow(/accommodation_room_proposal/);
+    ).rejects.toThrow(/accommodation_room_proposal_time_chk/);
+    await expect(
+      prisma.accommodationRoomProposal.create({
+        data: { ...base, status: 'solved', result: {}, layoutVersion: -1 },
+      }),
+    ).rejects.toThrow(/accommodation_room_proposal_layout_version_chk/);
     await expect(
       prisma.accommodationRoomProposal.create({
         data: { ...base, status: 'failed', error: 'Worker crashed' },
@@ -512,10 +522,32 @@ describe('room proposals (#365)', () => {
     ).resolves.toBeDefined();
   });
 
+  it('is never changed or removed', async () => {
+    const { event, term } = await termOf();
+    const stored = await prisma.accommodationRoomProposal.create({
+      data: { ...proposal(event.id, term.id), status: 'solved', result: {} },
+    });
+
+    await expect(
+      prisma.accommodationRoomProposal.update({
+        where: { id: stored.id },
+        data: { error: 'x' },
+      }),
+    ).rejects.toThrow(/is immutable/);
+    await expect(
+      prisma.accommodationRoomProposal.delete({ where: { id: stored.id } }),
+    ).rejects.toThrow(/is immutable/);
+  });
+
   it('keeps a running proposal whole on the term state', async () => {
     const { event, term } = await termOf();
     const base = { termId: term.id, eventId: event.id, layoutVersion: 2 };
 
+    await expect(
+      prisma.accommodationTermState.create({
+        data: { ...base, layoutVersion: -1 },
+      }),
+    ).rejects.toThrow(/accommodation_term_state_layout_version_chk/);
     await expect(
       prisma.accommodationTermState.create({
         data: { ...base, proposalRunningId: randomUUID() },

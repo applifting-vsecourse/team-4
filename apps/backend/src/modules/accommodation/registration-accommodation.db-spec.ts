@@ -336,6 +336,19 @@ describe('determining the effective value', () => {
     expect(await layoutVersions(f)).toEqual([1, 0]);
     await correctGender(f, registration, 'male');
     expect(await layoutVersions(f)).toEqual([2, 0]);
+    // The own words of "Jiná odpověď" are no input of a room proposal.
+    await correctGender(f, registration, 'other');
+    expect(await layoutVersions(f)).toEqual([3, 0]);
+    await app.get(EventRegistrationsRepository).updateGender(
+      {
+        organizationId: f.event.organizationId,
+        ownerId: f.ownerId,
+        eventId: f.event.id,
+      },
+      registration.id,
+      { gender: 'other', genderOther: 'Nebinární' },
+    );
+    expect(await layoutVersions(f)).toEqual([3, 0]);
   });
 
   it('replaces a determination with a new record, and records nothing for the same value', async () => {
