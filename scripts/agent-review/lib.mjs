@@ -189,8 +189,12 @@ export function hasBotComment(comments, marker) {
   );
 }
 
+export function reviewSatisfied({ status }) {
+  return ['pass', 'waived', 'skipped'].includes(status);
+}
+
 /**
- * results: [{ pr, sha, status: 'pass'|'waived'|'findings'|'error'|'stale', url, reason }]
+ * results: [{ pr, sha, status: 'pass'|'waived'|'skipped'|'findings'|'error'|'stale', url, reason }]
  * The issue may advance only if every linked PR passed for its current commit.
  */
 export function decideIssue(results) {
@@ -204,7 +208,7 @@ export function decideIssue(results) {
   }
   const reasons = [];
   for (const r of results) {
-    if (['pass', 'waived'].includes(r.status)) continue;
+    if (reviewSatisfied(r)) continue;
     const where = r.url ? ` ([detail](${r.url}))` : '';
     if (r.status === 'waiting') {
       reasons.push(`PR #${r.pr}: čeká na CI aktuálního commitu.`);
@@ -314,16 +318,21 @@ export function formatIssueNote({
           `- PR #${r.pr}: Copilot review waived by @${r.waiver.actor} ([command](${r.waiver.url})): ${r.waiver.reason}`,
       )
       .join('\n');
-    return `${marker}\n### ${waivers ? 'Podmínka code review splněna s ruční výjimkou' : 'Agentní code review prošlo'}\n\n${links}\n\n${waivers ? waivers + '\n\n' : ''}${tail}`;
+    const heading = results.some((r) => r.status === 'skipped')
+      ? 'Copilot review je pozastavené nastavením repozitáře'
+      : waivers
+        ? 'Podmínka code review splněna s ruční výjimkou'
+        : 'Agentní code review prošlo';
+    return `${marker}\n### ${heading}\n\n${links}\n\n${waivers ? waivers + '\n\n' : ''}${tail}`;
   }
   // Failing PRs are already described (with links) in the reasons; list only
   // the ones that passed so no PR appears twice.
   const why = reasons.map((r) => `- ${r}`).join('\n');
   const passed = results
-    .filter((r) => ['pass', 'waived'].includes(r.status))
+    .filter(reviewSatisfied)
     .map(
       (r) =>
-        `- PR #${r.pr} (\`${r.sha.slice(0, 7)}\`): ${r.status === 'waived' ? `ruční výjimka od @${r.waiver.actor}` : 'prošlo'}${r.url ? ` — [komentář](${r.url})` : ''}`,
+        `- PR #${r.pr} (\`${r.sha.slice(0, 7)}\`): ${r.status === 'waived' ? `ruční výjimka od @${r.waiver.actor}` : r.status === 'skipped' ? 'pozastaveno nastavením repozitáře' : 'prošlo'}${r.url ? ` — [komentář](${r.url})` : ''}`,
     )
     .join('\n');
   return `${marker}\n### Agentní code review neprošlo\n\n${why}\n\n${passed ? `${passed}\n\n` : ''}Issue zůstává v **${STATUS_REVIEW}**.`;

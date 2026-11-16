@@ -184,6 +184,9 @@ Copilot review with a standalone PR comment
 for that PR commit; CI and severity-specific requirements/QA still apply. Preserve
 findings and record a manual waiver, never a fabricated Copilot pass. A new
 commit needs a new waiver or review; recheck edited/deleted commands.
+During a Copilot outage, a repository administrator may set the Actions secret
+`PAUSE_COPILOT_REVIEW` to `true` to skip only Copilot for delivery to `main`,
+including stacks. See the [pause procedure](docs/delivery-workflow.md#pause-copilot-review-for-main).
 Never manufacture passing gate evidence or bypass merge protection.
 
 ### Stacked PRs

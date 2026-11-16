@@ -191,6 +191,17 @@ async function sharedHead(pr) {
   return [...new Map(others.map((other) => [other.number, other])).values()];
 }
 
+async function childStatusPassed(sha) {
+  for (let page = 1; ; page++) {
+    const { statuses } = await api(
+      `/repos/${repo}/commits/${sha}/status?per_page=100&page=${page}`,
+    );
+    const child = statuses.find(({ context }) => context === 'child-verify');
+    if (child) return child.state === 'success';
+    if (statuses.length < 100) return false;
+  }
+}
+
 // GitHub requires both a status and a check run when they share a name.
 // Reconcile only checks created by our previous publisher, never Actions jobs.
 async function reconcileChecks(pr, conclusion, summary) {
@@ -288,8 +299,8 @@ for (let pr of candidates) {
       target_url: runUrl,
     });
   const publish = status('Delivery stages');
-  // child-verify is published only on PRs into an integration branch, where
-  // the integration branch ruleset requires it: a missing status blocks.
+  // Only PRs into an integration branch can pass child-verify. The separate
+  // required status keeps a main verdict on the same commit from granting it.
   const publishChild = status('child-verify');
   const intoIntegration = isIntegrationBranch(pr.base.ref);
   try {
@@ -324,13 +335,14 @@ for (let pr of candidates) {
         await list(`/repos/${repo}/issues/${pr.number}/timeline`),
       );
       const verify = childVerify({ role, jobs: await ciJobs(pr, since) });
+      const shared = await sharedHead(pr);
       const reasons = integrationStages({
         pr,
         role,
         files,
         comments,
         waiver: copilotWaiver({ pr, comments }),
-        sharedHead: await sharedHead(pr),
+        sharedHead: shared,
         since,
         protectedBase: await protectedBranch(
           (path) => api(path),
@@ -357,7 +369,11 @@ for (let pr of candidates) {
       const summary = reasons.length
         ? reasons.join(' ')
         : `${role.kind === 'child' ? `Child of #${role.parent}` : `Integration work for #${role.parent}`}: agent review passed; requirements, QA and human review happen on the parent PR.`;
-      await publishChild(verify.state, verify.description);
+      // Another PR can overwrite Delivery stages on a shared commit, but
+      // it cannot satisfy the integration branch's separate required status.
+      if (verify.state === 'success' && reasons.length)
+        await publishChild('failure', summary);
+      else await publishChild(verify.state, verify.description);
       await reconcileChecks(
         pr,
         reasons.length ? 'failure' : 'success',
@@ -375,6 +391,7 @@ for (let pr of candidates) {
           waiver: true,
           sharedHead: late,
         }).join(' ');
+        await publishChild('failure', note);
         await reconcileChecks(pr, 'failure', note);
         await publish('failure', note);
         console.log(`#${pr.number}: ${note}`);
@@ -505,7 +522,15 @@ for (let pr of candidates) {
       issue.requirements = scope.approval;
       issue.requirementsVersion = scope.version;
     }
-    const result = evaluate({ pr, issues, reviews, comments, qaFrom });
+    const copilotReviewPaused = process.env.PAUSE_COPILOT_REVIEW === 'true';
+    const result = evaluate({
+      pr,
+      issues,
+      reviews,
+      comments,
+      qaFrom,
+      copilotReviewPaused,
+    });
     const adrBlocked = await adrReasons({
       pr,
       files,
@@ -573,16 +598,19 @@ for (let pr of candidates) {
     )
       throw new Error('Stack tip changed during evaluation');
     const waiver = copilotWaiver({ pr, comments });
+    const reviewSummary = waiver
+      ? `Copilot review manually waived by @${waiver.actor}`
+      : result.copilotReviewSkipped
+        ? 'Copilot review skipped (repository pause)'
+        : 'agent review passed';
     const summary = result.pass
       ? severityFor(pr) === 'low'
         ? 'Low severity: issue linkage, requirements, code review and QA are not required; CI remains required.'
         : isStorybookPreview(pr)
-          ? 'Storybook design preview: CI, independent review and current PM approval passed; separate QA is skipped.'
+          ? `Storybook preview: ${reviewSummary}; current PM approval recorded. Separate QA is skipped.`
           : qaFrom
-            ? `Requirements and agent review passed; QA approved stack tip #${qaFrom.number}, which contains this PR.`
-            : waiver
-              ? `Requirements satisfied; Copilot review manually waived by @${waiver.actor}; QA approved this commit after handoff.`
-              : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; agent review passed before QA approved this commit.`
+            ? `Requirements satisfied; ${reviewSummary}; QA approved stack tip #${qaFrom.number}.`
+            : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; ${reviewSummary}; QA approved this commit.`
       : result.reasons.join(' ');
     for (const issue of issues) {
       if (
@@ -591,8 +619,41 @@ for (let pr of candidates) {
       )
         throw new Error('Issue scope changed during evaluation');
     }
+    const pausedIntegrationConflict = async () =>
+      result.pass && result.copilotReviewSkipped
+        ? (await sharedHead(pr)).find((other) =>
+            isIntegrationBranch(other.base.ref),
+          )
+        : null;
+    const publishConflict = async (other) => {
+      const note = `Integration PR #${other.number} shares this head; give it its own head before delivery.`;
+      await reconcileChecks(pr, 'failure', note);
+      await publish('failure', note);
+      console.log(`#${pr.number}: ${note}`);
+    };
+    const sharedIntegration = await pausedIntegrationConflict();
+    if (sharedIntegration) {
+      await publishConflict(sharedIntegration);
+      continue;
+    }
+    // A closed integration PR can leave a green child status on this commit.
+    // Invalidate that status before publishing a main pass that skipped review.
+    if (
+      result.pass &&
+      result.copilotReviewSkipped &&
+      (await childStatusPassed(pr.head.sha))
+    )
+      await publishChild(
+        'failure',
+        'An integration PR must verify this head before merging.',
+      );
     await reconcileChecks(pr, result.pass ? 'success' : 'failure', summary);
     await publish(result.pass ? 'success' : 'failure', summary);
+    const lateIntegration = await pausedIntegrationConflict();
+    if (lateIntegration) {
+      await publishConflict(lateIntegration);
+      continue;
+    }
     console.log(
       `#${pr.number}: ${result.pass ? 'pass' : result.reasons.join(' ')}`,
     );
