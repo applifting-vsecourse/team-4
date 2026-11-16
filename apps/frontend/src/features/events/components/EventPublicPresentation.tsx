@@ -256,12 +256,16 @@ export function EventPublicPresentation({
                       </FormItem>
                     )}
                   />
+                </fieldset>
+
+                <fieldset className="space-y-4">
+                  <legend className="mb-4 text-base font-medium">Podmínky účasti</legend>
                   <FormField
                     control={form.control}
                     name="conditions"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Podmínky účasti</FormLabel>
+                        <FormLabel className="sr-only">Podmínky účasti</FormLabel>
                         <FormControl>
                           <Textarea
                             rows={4}
