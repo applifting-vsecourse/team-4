@@ -37,6 +37,13 @@ export const publicEventHandlers = {
   catalogListFailed: () => [
     http.get(CATALOG_LIST_URL, () => HttpResponse.json({ statusCode: 500 }, { status: 500 })),
   ],
+  /** The first load fails, a retry gets the whole catalog. */
+  catalogListFailedOnce: () => [
+    http.get(CATALOG_LIST_URL, () => HttpResponse.json({ statusCode: 500 }, { status: 500 }), {
+      once: true,
+    }),
+    ...catalogListOf(CATALOG_LIST.length),
+  ],
   detail: (event: PublicEvent = PUBLIC_EVENT) => [http.get(DETAIL, () => HttpResponse.json(event))],
   /** The catalog detail (F55) and its photos. */
   catalogDetail: (event: CatalogEvent = CATALOG_EVENT) => [
