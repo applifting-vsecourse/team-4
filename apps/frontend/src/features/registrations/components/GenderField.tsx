@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Field, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 import { genderSchema, type GenderAnswer } from "@/features/registrations/api/registrationSchemas"
@@ -39,17 +38,17 @@ export function GenderField({ id, value, onChange, isDisabled }: GenderFieldProp
         className="sm:grid-cols-2"
       >
         {GENDERS.map((gender) => (
-          <div
+          <Field
             key={gender}
-            className="flex items-center gap-2"
+            orientation="horizontal"
           >
             <RadioGroupItem
               id={`${id}-${gender}`}
               value={gender}
               aria-controls={gender === "other" && value.gender === "other" ? otherId : undefined}
             />
-            <Label htmlFor={`${id}-${gender}`}>{GENDER_LABELS[gender]}</Label>
-          </div>
+            <FieldLabel htmlFor={`${id}-${gender}`}>{GENDER_LABELS[gender]}</FieldLabel>
+          </Field>
         ))}
       </RadioGroup>
       {value.gender === "other" ? (

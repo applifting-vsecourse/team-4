@@ -147,7 +147,6 @@ export function RegistrationChangeForm({
                 <FieldLabel htmlFor="change-first-name">Jméno</FieldLabel>
                 <Input
                   id="change-first-name"
-                  surface="editable"
                   autoComplete="given-name"
                   defaultValue={contact.firstName}
                   aria-invalid={errors.firstName ? true : undefined}
@@ -159,7 +158,6 @@ export function RegistrationChangeForm({
                 <FieldLabel htmlFor="change-last-name">Příjmení</FieldLabel>
                 <Input
                   id="change-last-name"
-                  surface="editable"
                   autoComplete="family-name"
                   defaultValue={contact.lastName}
                   aria-invalid={errors.lastName ? true : undefined}
@@ -194,7 +192,6 @@ export function RegistrationChangeForm({
                 </FieldLabel>
                 <Input
                   id="change-phone"
-                  surface="editable"
                   type="tel"
                   autoComplete="tel"
                   defaultValue={contact.phone}
