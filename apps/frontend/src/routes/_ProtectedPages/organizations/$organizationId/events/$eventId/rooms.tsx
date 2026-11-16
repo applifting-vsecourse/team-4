@@ -6,9 +6,11 @@ import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { WorkspacePage } from "@/components/WorkspacePage"
 
+import { ACCOMMODATION_RULES_HEADING } from "@/features/accommodation/components/HardAttributeSection"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
+import { EventSettingsButton } from "@/features/events/components/EventSettingsButton"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { useRefreshEvent } from "@/features/events/hooks/useEventMutations"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
@@ -54,6 +56,13 @@ function RoomsPage() {
         title={event.name}
         badge={<EventStatusBadge status={event.status} />}
         description={event.location}
+        actions={
+          <EventSettingsButton
+            organizationId={organizationId}
+            eventId={eventId}
+            section={ACCOMMODATION_RULES_HEADING}
+          />
+        }
       />
       <div className="space-y-8">
         <OccupancySection

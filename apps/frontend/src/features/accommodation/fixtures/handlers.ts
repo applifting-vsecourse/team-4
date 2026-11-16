@@ -4,6 +4,7 @@ import { env } from "@/config/env"
 
 import type { TermEvaluationData } from "@/features/accommodation/api/evaluationSchemas"
 import {
+  makeHardAttributeSetting,
   makeMoves,
   makeRegistrationAccommodation,
   makeRunEvidence,
@@ -23,8 +24,19 @@ export const accommodationHandlers = {
   termEvaluation: (evaluation: TermEvaluationData) => [
     http.get(`${BASE}/terms/:termId/evaluation`, () => HttpResponse.json(evaluation)),
   ],
+  /** The event's hard attribute, `null` when rooms are not split (#384). */
+  hardAttribute: (hardAttribute: string | null) => [
+    http.get(`${BASE}/hard-attribute`, () =>
+      HttpResponse.json(makeHardAttributeSetting(hardAttribute)),
+    ),
+  ],
   evaluation: () => [
     http.get(`${BASE}/evaluation-mode`, () => HttpResponse.json({ mode: "automatic" })),
+    http.get(`${BASE}/hard-attribute`, () => HttpResponse.json(makeHardAttributeSetting())),
+    http.put(`${BASE}/hard-attribute`, async ({ request }) => {
+      const { hardAttribute } = (await request.json()) as { hardAttribute: string | null }
+      return HttpResponse.json(makeHardAttributeSetting(hardAttribute))
+    }),
     http.put(`${BASE}/evaluation-mode`, async ({ request }) =>
       HttpResponse.json(await request.json()),
     ),
