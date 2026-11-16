@@ -40,6 +40,8 @@ jobs:
     name: Reconcile delivery stages
     if: github.event_name != 'issue_comment' || github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    env:
+      PAUSE_COPILOT_REVIEW: ${{ secrets.PAUSE_COPILOT_REVIEW }}
     timeout-minutes: 10
     steps:
       # Never execute PR code with a write token. Reviews are polled from main.

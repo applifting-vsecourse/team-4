@@ -25,6 +25,7 @@ import {
   hasBotComment,
   issueMarker,
   resultsKey,
+  reviewSatisfied,
 } from './lib.mjs';
 
 import {
@@ -38,7 +39,7 @@ import {
   requirementsRecord,
   requirementsRecordPredatesReview,
   requirementsTransition,
-  readyMarker,
+  qaHandoffMarker,
   storybookPreviewApproval,
   technicalReviewApproval,
   technicalReviewRequired,
@@ -71,7 +72,6 @@ import { ensureTechnicalReviewRequest } from './technical-review.mjs';
 import { ensureRequirementsReviewRequest } from './requirements-review.mjs';
 import {
   copilotWaiver,
-  waiverMarker,
   waiverObservation,
 } from '../delivery/copilot-waiver.mjs';
 
@@ -93,6 +93,7 @@ const cfg = {
   projectToken: process.env.PROJECT_TOKEN,
   dryRun: process.env.DRY_RUN === 'true',
   force: process.env.FORCE === 'true',
+  copilotReviewPaused: process.env.PAUSE_COPILOT_REVIEW === 'true',
   onlyIssue: process.env.ONLY_ISSUE ? Number(process.env.ONLY_ISSUE) : null,
   copilotVersion: process.env.COPILOT_CLI_VERSION || '1.0.98',
   copilotModel: process.env.COPILOT_MODEL || '',
@@ -460,6 +461,29 @@ async function reviewPr({
     }
     return { pr, sha, status: 'waived', waiver, url: waiver.url };
   }
+  // The outage switch applies to PRs delivering to main (including stacks).
+  // Integration-only PRs still need review evidence for child completion.
+  if (cfg.copilotReviewPaused && !integration) {
+    const evidence = { comments, pr, sha, issue: issue.number };
+    const verdict = agentVerdict(evidence);
+    if (
+      verdict &&
+      Date.parse(verdict.created_at) >= Date.parse(requirements.created_at) &&
+      agentReviewPassed(evidence)
+    )
+      return { pr, sha, status: 'pass', url: verdict.html_url };
+
+    const ci = await ciEvidence({
+      repo: cfg.repo,
+      pr,
+      sha,
+      get: (path) => api(cfg.githubToken, path),
+    });
+    return ci.status === 'completed' && ci.conclusion === 'success'
+      ? { pr, sha, status: 'skipped' }
+      : { pr, sha, status: 'waiting' };
+  }
+
   const scopeMarker = `<!-- agent-review-scope issue=${issue.number} -->`;
   const scopedComments = comments.filter(
     (c) =>
@@ -1018,7 +1042,7 @@ async function processIssue(board, item) {
   // A push during the review makes the verdict stale: compare against the
   // heads as they are right now, immediately before deciding.
   for (const r of results) {
-    if (!['pass', 'waived'].includes(r.status)) continue;
+    if (!reviewSatisfied(r)) continue;
     const now = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${r.pr}`);
     if (now.head.sha !== r.sha) r.status = 'stale';
   }
@@ -1083,19 +1107,19 @@ async function processIssue(board, item) {
       r.status = 'error';
       r.reason = 'The latest agent review did not pass.';
     }
-    if (r.status !== 'waived') continue;
-    // A deleted or edited waiver must not be cached as a successful review.
+    if (!['waived', 'skipped'].includes(r.status)) continue;
+    // Switch to a fresh result if a manual waiver changed during this run.
     const live = copilotWaiver({
       pr,
       comments: await listComments(r.pr),
     });
-    if (live?.source !== r.waiver.source) r.status = 'stale';
+    if (live?.source !== r.waiver?.source) r.status = 'stale';
   }
   const decision = decideIssue(results);
-  // Human code review is requested only once CI and the agent review (or its
-  // manual waiver) have passed on the current commit.
+  // Human code review is requested once CI and the Copilot stage are
+  // satisfied on the current commit.
   for (const r of results) {
-    if (!['pass', 'waived'].includes(r.status)) continue;
+    if (!reviewSatisfied(r)) continue;
     const snapshot = current.find(({ pr }) => pr.number === r.pr);
     if (
       !snapshot?.pr.technicalReviewRequired ||
@@ -1163,12 +1187,14 @@ async function processIssue(board, item) {
       const result = results.find((r) => r.pr === pr.number);
       const reviewedAt =
         result.waiver?.at ??
-        agentVerdict({
-          comments,
-          pr: pr.number,
-          sha: pr.head.sha,
-          issue: issue.number,
-        })?.created_at;
+        (result.status === 'skipped'
+          ? requirementRecords.get(pr.number).created_at
+          : agentVerdict({
+              comments,
+              pr: pr.number,
+              sha: pr.head.sha,
+              issue: issue.number,
+            })?.created_at);
       let record = requirementsRecord({
         comments,
         pr: pr.number,
@@ -1179,7 +1205,7 @@ async function processIssue(board, item) {
       if (!record || requirementsRecordPredatesReview(record, reviewedAt))
         record = await postComment(
           pr.number,
-          `${marker}\nIssue requirements approved by @${approval.reviewer ?? reviewersFor(pr.user.login).requirements} after code review for commit \`${pr.head.sha}\`. Issue #${issue.number}: ready for QA.`,
+          `${marker}\nIssue requirements approved by @${approval.reviewer ?? reviewersFor(pr.user.login).requirements} after the code review stage for commit \`${pr.head.sha}\`. Issue #${issue.number}: ready for QA.`,
         );
       requirementRecords.set(pr.number, {
         ...requirementRecords.get(pr.number),
@@ -1200,7 +1226,7 @@ async function processIssue(board, item) {
     if (!hasBotComment(await listComments(issue.number), marker)) {
       await postComment(
         issue.number,
-        `${marker}\nStorybook preview passed independent review. Waiting for current-commit PM approval; no QA handoff will be sent until preview approval is recorded.`,
+        `${marker}\nStorybook preview cleared the code review stage. Waiting for current-commit PM approval; no QA handoff will be sent until preview approval is recorded.`,
       );
     }
   } else if (
@@ -1214,7 +1240,7 @@ async function processIssue(board, item) {
     if (!hasBotComment(await listComments(issue.number), marker)) {
       await postComment(
         issue.number,
-        `${marker}\nStorybook preview passed independent review and current-commit PM approval. No separate QA handoff is required; the issue remains open in Sprint Backlog.`,
+        `${marker}\nStorybook preview cleared the code review stage and received current-commit PM approval. No separate QA handoff is required; the issue remains open in Sprint Backlog.`,
       );
     }
   } else if (handoffReady) {
@@ -1242,9 +1268,15 @@ async function processIssue(board, item) {
             recordAt = Math.max(recordAt, handoffTimes.get(member.number) ?? 0);
           }
         }
-        const marker =
-          readyMarker(r.pr, r.sha, issue.number) +
-          (r.status === 'waived' ? '\n' + waiverMarker(r.waiver) : '');
+        const marker = qaHandoffMarker(r.pr, r.sha, issue.number, {
+          waiver: r.waiver,
+          copilotReviewPaused: r.status === 'skipped',
+        });
+        const reviewNote = r.waiver
+          ? `Copilot waived ([reason](${r.waiver.url})). `
+          : r.status === 'skipped'
+            ? 'Copilot review skipped: repository pause is enabled. '
+            : '';
         let handoff = (await listComments(r.pr)).findLast(
           (c) =>
             c.user?.login === 'github-actions[bot]' &&
@@ -1257,8 +1289,8 @@ async function processIssue(board, item) {
           handoff = await postComment(
             r.pr,
             covered
-              ? `${marker}\nReady for QA via stack tip #${tip.number} · issue #${issue.number} · \`${r.sha}\`. No separate QA pass: testing and approving the tip covers this PR.`
-              : `${marker}\nReady for QA · issue #${issue.number} · \`${r.sha}\`.\n${r.status === 'waived' ? `Copilot waived ([reason](${r.waiver.url})). ` : ''}${stack ? `Stack: ${stack.prs.map((member) => `#${member.number}`).join(' ← ')}. ` : ''}@${rolesByPr.get(r.pr).qa}: test this commit${stack ? ' (it contains the whole stack)' : ''}, then approve.`,
+              ? `${marker}\n${reviewNote}Ready for QA via stack tip #${tip.number} · issue #${issue.number} · \`${r.sha}\`. No separate QA pass: testing and approving the tip covers this PR.`
+              : `${marker}\nReady for QA · issue #${issue.number} · \`${r.sha}\`.\n${reviewNote}${stack ? `Stack: ${stack.prs.map((member) => `#${member.number}`).join(' ← ')}. ` : ''}@${rolesByPr.get(r.pr).qa}: test this commit${stack ? ' (it contains the whole stack)' : ''}, then approve.`,
           );
         }
         handoffTimes.set(
@@ -1277,6 +1309,7 @@ async function processIssue(board, item) {
           },
           dryRun: cfg.dryRun,
           waiver: r.waiver,
+          copilotReviewPaused: r.status === 'skipped',
           stacked: Boolean(stack),
         });
       }
@@ -1316,7 +1349,7 @@ async function processIssue(board, item) {
     if (!hasBotComment(await listComments(issue.number), marker)) {
       await postComment(
         issue.number,
-        `${marker}\nAgent and code review passed. Requirements approval is requested from ${waitingFor}; approve the corresponding PR or comment \`/requirements-approve\` on the issue or linked PR. QA handoff is paused until approval is recorded.`,
+        `${marker}\nCode review stage complete. Requirements approval is requested from ${waitingFor}; approve the corresponding PR or comment \`/requirements-approve\` on the issue or linked PR. QA handoff is paused until approval is recorded.`,
       );
     }
   } else if (technicalPending.length) {
@@ -1330,7 +1363,7 @@ async function processIssue(board, item) {
     if (!hasBotComment(await listComments(issue.number), marker)) {
       await postComment(
         issue.number,
-        `${marker}\nAgent review passed; waiting for current-commit technical approval from @rmnskb or @darebakdavca on PRs ${waitingFor}. QA handoff is paused until approval is recorded.`,
+        `${marker}\nAgent review stage complete; waiting for current-commit technical approval from @rmnskb or @darebakdavca on PRs ${waitingFor}. QA handoff is paused until approval is recorded.`,
       );
     }
   } else if (item.status.name === STATUS_TESTING) {

@@ -505,7 +505,15 @@ for (let pr of candidates) {
       issue.requirements = scope.approval;
       issue.requirementsVersion = scope.version;
     }
-    const result = evaluate({ pr, issues, reviews, comments, qaFrom });
+    const copilotReviewPaused = process.env.PAUSE_COPILOT_REVIEW === 'true';
+    const result = evaluate({
+      pr,
+      issues,
+      reviews,
+      comments,
+      qaFrom,
+      copilotReviewPaused,
+    });
     const adrBlocked = await adrReasons({
       pr,
       files,
@@ -573,16 +581,19 @@ for (let pr of candidates) {
     )
       throw new Error('Stack tip changed during evaluation');
     const waiver = copilotWaiver({ pr, comments });
+    const reviewSummary = waiver
+      ? `Copilot review manually waived by @${waiver.actor}`
+      : copilotReviewPaused
+        ? 'Copilot review optional (repository pause)'
+        : 'agent review passed';
     const summary = result.pass
       ? severityFor(pr) === 'low'
         ? 'Low severity: issue linkage, requirements, code review and QA are not required; CI remains required.'
         : isStorybookPreview(pr)
-          ? 'Storybook design preview: CI, independent review and current PM approval passed; separate QA is skipped.'
+          ? `Storybook preview: ${reviewSummary}; current PM approval recorded. Separate QA is skipped.`
           : qaFrom
-            ? `Requirements and agent review passed; QA approved stack tip #${qaFrom.number}, which contains this PR.`
-            : waiver
-              ? `Requirements satisfied; Copilot review manually waived by @${waiver.actor}; QA approved this commit after handoff.`
-              : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; agent review passed before QA approved this commit.`
+            ? `Requirements satisfied; ${reviewSummary}; QA approved stack tip #${qaFrom.number}.`
+            : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; ${reviewSummary}; QA approved this commit.`
       : result.reasons.join(' ');
     for (const issue of issues) {
       if (

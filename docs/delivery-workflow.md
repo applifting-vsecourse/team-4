@@ -25,6 +25,9 @@ and re-evaluates on label changes, pushes, reviews and scheduled reconciliation.
 | Technical approval                       | Not allowed | If labeled         | If labeled                        |
 | ADR acceptance, if the PR changes an ADR | Required    | Required           | Required                          |
 
+Copilot review for PRs delivering to `main` can be
+[paused during an outage](#pause-copilot-review-for-main).
+
 The `technical-review` PR label is an additional gate for Standard and High PRs. Use it
 for a new or replaced Docker Compose service, a newly added package/dependency,
 or comparable shared infrastructure/tooling changes that need technical
@@ -93,8 +96,9 @@ risks. A label is not an automatic assessment of code behavior.
 Checks on a non-draft PR run in this order, each on the current commit:
 
 1. CI (`verify`) and the independent agent review (or its manual waiver, or a
-   review carried over under [Stacked PRs](#stacked-prs) and the integration
-   rules). The agent review does not wait for scope approval.
+   [repository pause](#pause-copilot-review-for-main), or a review carried over
+   under [Stacked PRs](#stacked-prs) and the integration rules). Agent review
+   does not wait for scope approval.
 2. Human code review. Only PRs with `technical-review` have it: after step 1
    succeeds the workflow requests `rmnskb`, and never before. A pending,
    failing or blocking agent review sends no request. A new commit restarts
@@ -370,6 +374,29 @@ reviewed frontend and backend changes do not break each other: integration probl
 (including E2E) and QA of the parent PR. QA of the parent commit is still
 required.
 
+## Pause Copilot review for main
+
+When Copilot credits are exhausted, a repository administrator can set
+`PAUSE_COPILOT_REVIEW` to exactly `true` in **Settings → Secrets and variables →
+Actions → Repository secrets**. Unset it, delete it, or set it to `false` to
+restore the requirement.
+
+This applies to PRs delivering to `main`, including stacks. After CI passes,
+the workflow skips Copilot for those PRs and records the pause in the QA
+handoff and delivery verdict. Existing findings stay visible, and no Copilot
+pass is created. A valid existing Copilot pass keeps its normal handoff, and
+a valid manual waiver still applies. The `verify` and `Delivery stages` checks
+remain required, as do applicable scope, human review, ADR and QA approvals. PRs into `integration/*` still
+need review evidence or a manual waiver under the integration rules.
+
+After changing the secret, start a **new run** of **Agent code review** with
+**dry run** turned off. That workflow also reconciles **Delivery stages**.
+Scheduled runs also pick up the change. After restoring the requirement,
+check that reconciliation has finished before merging: GitHub keeps the
+previous status visible until it is updated. An open PR that relied on a
+paused handoff needs review or a valid waiver and the corresponding QA
+handoff before merge.
+
 ## Manual Copilot waiver
 
 Any human GitHub user who can comment on a PR, including the PR author, can waive
@@ -386,8 +413,8 @@ do not grant a waiver. This is separate from requirements approval and does not
 grant QA approval.
 
 The agent-review workflow rechecks the live command before handing the commit
-to QA. Every linked PR still needs either a valid Copilot pass or its own current
-waiver. The bot records the manual waiver, its reason and command link in the
+to QA. Unless review is paused for main, every linked PR still needs either a valid
+Copilot pass or its own current waiver. The bot records the manual waiver, its reason and command link in the
 QA handoff and issue summary, and requests the normal QA owner. It never writes
 a fake Copilot pass or deletes earlier findings. CI and branch protection remain
 unchanged; QA must approve the exact commit after the waiver and matching handoff.

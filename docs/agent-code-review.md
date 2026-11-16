@@ -46,6 +46,13 @@ Samotné dokončení běhu ani absence komentářů úspěch neznamená.
 - Čekající žádosti o QA review se neduplikují a platné schválení aktuálního commitu po předání se znovu nevyžaduje. Chyba API při odeslání žádosti je viditelná jako neúspěšný běh; další běh žádost zopakuje i po existujícím předání do Ready for Testing.
 - Workflow běží s `concurrency`, takže se dva běhy nepřekrývají.
 
+## Pozastavení Copilot review
+
+Při vyčerpání kreditů lze pro PR směřující do `main` (včetně stacků)
+pozastavit Copilot review pomocí Actions secretu `PAUSE_COPILOT_REVIEW=true`.
+CI, schválení a QA nadále platí.
+Viz [postup zapnutí a vypnutí](delivery-workflow.md#pause-copilot-review-for-main).
+
 ## Ruční výjimka z Copilot review
 
 Každý člověk, který může na PR komentovat, včetně autora PR, může napsat

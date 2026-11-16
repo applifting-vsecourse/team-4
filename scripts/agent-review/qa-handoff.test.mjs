@@ -407,7 +407,7 @@ async function scenario(options) {
               event: 'pull_request',
               path: '.github/workflows/ci.yml',
               repository: { full_name: 'owner/repo' },
-              pull_requests: [{ number: 12 }],
+              pull_requests: prs.map(({ number }) => ({ number })),
               status: 'completed',
               conclusion: 'success',
               run_attempt: 1,
@@ -510,7 +510,17 @@ async function scenario(options) {
   }
   if (eventDir)
     await (await import('node:fs/promises')).rm(eventDir, { recursive: true });
-  const delivery = (qa) =>
+  if (options.passAfterPause)
+    for (const pr of prs)
+      comments
+        .get(pr.number)
+        .push(
+          bot(
+            `<!-- agent-review-scope issue=78 -->\n<!-- agent-review pr=${pr.number} sha=${sha} result=pass attempt=1 -->\n`,
+            '2002-01-01T00:00:00Z',
+          ),
+        );
+  const delivery = (qa, copilotReviewPaused = false) =>
     prs.map(
       (pr) =>
         evaluate({
@@ -524,6 +534,7 @@ async function scenario(options) {
           ],
           reviews: [...reviews.filter((review) => review !== previousQa), qa],
           comments: comments.get(pr.number),
+          copilotReviewPaused,
           qaFrom: {
             review: qa,
             sha: prs.at(-1).head.sha,
@@ -543,6 +554,17 @@ async function scenario(options) {
       ...(options.rerunHighReview && {
         previousQaPasses: delivery(previousQa),
         freshQaPasses: delivery({
+          ...previousQa,
+          submitted_at: timestamp(),
+        }),
+      }),
+      ...(options.pauseCopilot && {
+        previousQaWhilePaused: delivery(previousQa, true),
+        freshQaWhilePaused: delivery(
+          { ...previousQa, submitted_at: timestamp() },
+          true,
+        ),
+        freshQaAfterResuming: delivery({
           ...previousQa,
           submitted_at: timestamp(),
         }),
@@ -584,6 +606,7 @@ function run(options = {}) {
         PROJECT_NUMBER: '1',
         DRY_RUN: String(options.dryRun ?? false),
         FORCE: 'false',
+        PAUSE_COPILOT_REVIEW: String(options.pauseCopilot ?? false),
         ONLY_ISSUE: '',
       },
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -657,6 +680,80 @@ test('real runner dry run writes no comments, requests or card status', () => {
     r.calls.some((c) => /^(request|handoff|status|comment):/.test(c)),
     false,
   );
+});
+
+test('repository pause skips Copilot even after findings, with a real CI and QA handoff', () => {
+  const r = run({
+    ciPassed: true,
+    pauseCopilot: true,
+    verdict: 'findings',
+    runs: 2,
+  });
+  assert.equal(r.status, 'Ready for Testing');
+  assert.deepEqual(r.requested, { 12: ['MatejKrones'] });
+  assert.deepEqual(r.handoffs, [1]);
+  assert.ok(r.prComments[12].some((c) => c.includes('result=findings')));
+  assert.ok(!r.prComments[12].some((c) => c.includes('result=pass')));
+  assert.ok(
+    r.prComments[12].some(
+      (c) =>
+        c.startsWith('<!-- delivery-ready-copilot-paused ') &&
+        c.includes('Copilot review skipped'),
+    ),
+  );
+  assert.deepEqual(r.previousQaWhilePaused, [false]);
+  assert.deepEqual(r.freshQaWhilePaused, [true]);
+  assert.deepEqual(r.freshQaAfterResuming, [false]);
+});
+
+test('a paused handoff never counts as a reviewed handoff after resuming', () => {
+  const r = run({
+    ciPassed: true,
+    pauseCopilot: true,
+    noVerdict: true,
+    passAfterPause: true,
+  });
+  // A pass predates the handoff timestamp, but comes to light after the pause.
+  assert.deepEqual(r.freshQaAfterResuming, [false]);
+});
+
+test('repository pause preserves a handoff already backed by a Copilot pass', () => {
+  const r = run({ ciPassed: true, pauseCopilot: true, existingHandoff: true });
+  assert.deepEqual(r.handoffs, [1]);
+  assert.deepEqual(r.previousQaWhilePaused, [true]);
+  assert.deepEqual(r.freshQaAfterResuming, [true]);
+});
+
+test('repository pause cannot hand off before CI, scope or technical approval', () => {
+  for (const options of [
+    { freshReview: true },
+    { ciPassed: true, unapproved: true },
+    { ciPassed: true, technicalReview: true },
+  ]) {
+    const r = run({ pauseCopilot: true, ...options });
+    assert.deepEqual(r.handoffs, [0]);
+    assert.ok(!r.calls.includes('request:12'));
+  }
+});
+
+test('a paused stack still hands off and requests QA only on its tip', () => {
+  const r = run({
+    pauseCopilot: true,
+    ciPassed: true,
+    chain: true,
+    authors: ['darebakdavca', 'darebakdavca'],
+    noVerdict: true,
+  });
+  assert.deepEqual(r.handoffs, [1, 1]);
+  assert.deepEqual(r.requested, { 12: [], 13: ['MatejKrones'] });
+  assert.deepEqual(r.freshQaWhilePaused, [true, true]);
+  assert.deepEqual(r.freshQaAfterResuming, [false, false]);
+});
+
+test('only the exact enabled setting pauses review', () => {
+  const r = run({ ciPassed: true, pauseCopilot: 'TRUE', verdict: 'findings' });
+  assert.deepEqual(r.handoffs, [0]);
+  assert.deepEqual(r.requested, { 12: [] });
 });
 
 test('owner waiver bypasses cached findings and requests QA with an explicit manual handoff', () => {
