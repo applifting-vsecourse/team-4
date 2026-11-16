@@ -372,18 +372,18 @@ required.
 
 ## Manual Copilot waiver
 
-Only David (`darebakdavca`) can waive Copilot review, on any PR, by posting a
-standalone comment on that PR:
+Any human GitHub user who can comment on a PR, including the PR author, can waive
+Copilot review by posting a standalone comment on that PR:
 
 ```text
 /copilot-waive <full-current-40-character-sha> <reason>
 ```
 
 Replace the placeholders with the PR's current full SHA and a non-empty reason
-on the same line. The automation reads the actual GitHub comment author and PR
-container. Commands from other users or bots, quoted commands, issue text and
-short or stale SHAs do not grant a waiver. This is separate from requirements
-approval and does not grant QA approval.
+on the same line. The automation reads the actual human GitHub comment author and
+PR container. Bot comments, quoted commands, issue text and short or stale SHAs
+do not grant a waiver. This is separate from requirements approval and does not
+grant QA approval.
 
 The agent-review workflow rechecks the live command before handing the commit
 to QA. Every linked PR still needs either a valid Copilot pass or its own current

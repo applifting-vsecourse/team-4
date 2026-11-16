@@ -311,7 +311,7 @@ export function formatIssueNote({
       .filter((r) => r.status === 'waived')
       .map(
         (r) =>
-          `- PR #${r.pr}: Copilot review waived by @darebakdavca ([command](${r.waiver.url})): ${r.waiver.reason}`,
+          `- PR #${r.pr}: Copilot review waived by @${r.waiver.actor} ([command](${r.waiver.url})): ${r.waiver.reason}`,
       )
       .join('\n');
     return `${marker}\n### ${waivers ? 'Podmínka code review splněna s ruční výjimkou' : 'Agentní code review prošlo'}\n\n${links}\n\n${waivers ? waivers + '\n\n' : ''}${tail}`;
@@ -323,7 +323,7 @@ export function formatIssueNote({
     .filter((r) => ['pass', 'waived'].includes(r.status))
     .map(
       (r) =>
-        `- PR #${r.pr} (\`${r.sha.slice(0, 7)}\`): ${r.status === 'waived' ? 'ruční výjimka od darebakdavca' : 'prošlo'}${r.url ? ` — [komentář](${r.url})` : ''}`,
+        `- PR #${r.pr} (\`${r.sha.slice(0, 7)}\`): ${r.status === 'waived' ? `ruční výjimka od @${r.waiver.actor}` : 'prošlo'}${r.url ? ` — [komentář](${r.url})` : ''}`,
     )
     .join('\n');
   return `${marker}\n### Agentní code review neprošlo\n\n${why}\n\n${passed ? `${passed}\n\n` : ''}Issue zůstává v **${STATUS_REVIEW}**.`;

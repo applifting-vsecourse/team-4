@@ -178,7 +178,8 @@ receive no automated QA request. CODEOWNERS routes
 David enforcement-path requests; code-owner approval is disabled. GitHub's
 blanket approval count is zero after severity installation; Delivery stages
 enforces the named approvals. See [the delivery workflow](docs/delivery-workflow.md).
-Only `darebakdavca` may waive Copilot review with a standalone PR comment
+Any human GitHub user who can comment on a PR, including its author, may waive
+Copilot review with a standalone PR comment
 `/copilot-waive <full-current-SHA> <reason>`. A waiver replaces only Copilot review
 for that PR commit; CI and severity-specific requirements/QA still apply. Preserve
 findings and record a manual waiver, never a fabricated Copilot pass. A new
