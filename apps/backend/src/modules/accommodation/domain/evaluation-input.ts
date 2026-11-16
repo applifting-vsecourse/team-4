@@ -113,7 +113,6 @@ export function buildEvaluation(
         extraBeds: room.extraBeds,
       })),
       hasHardAttribute: rules.hardAttribute !== null,
-      softAttributes: rules.softAttributes,
       confirmed: confirmed.map((participant) => ({
         id: participant.registrationId,
         value: participant.effectiveValue,
