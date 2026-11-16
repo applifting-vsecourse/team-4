@@ -60,20 +60,9 @@ export class Config {
   @Env('PORT', { expose: true, defaultValue: 4050 })
   readonly port!: number;
 
-  @Env('RESEND_API_KEY')
+  @Env('EMAIL_FROM', { expose: true })
   @IsOptional()
-  readonly resendApiKey?: string;
-
-  @Env('EMAIL_FROM', {
-    expose: true,
-    defaultValue: 'akc.io <onboarding@resend.dev>',
-  })
-  @IsNotEmpty()
-  readonly emailFrom!: string;
-
-  @Env('EMAIL_ALLOWED_RECIPIENT', { expose: true })
-  @IsOptional()
-  readonly emailAllowedRecipient?: string;
+  readonly emailFrom?: string;
 
   @Env('SMTP_HOST', { expose: true })
   @IsOptional()
