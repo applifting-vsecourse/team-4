@@ -495,7 +495,10 @@ and every package under `apps/*`.
 - **Frequency:** weekly, on Monday at 06:00 (Europe/Prague), with at most five
   open version-update PRs.
 - **Groups:** minor and patch updates are combined into one `minor-and-patch` PR.
-  Major updates get their own PR so breaking changes are reviewed separately.
+  Major updates are separate by default, with compatible framework families
+  grouped together: `vitest` and `@vitest/*` in `vitest-major`, and `@nestjs/*`
+  in `nestjs-major`. TypeScript major updates are ignored until the project is
+  ready to migrate; patch and minor TypeScript updates remain enabled.
 - **Security updates:** Dependabot opens these as soon as an advisory applies,
   independent of the schedule. Grouping applies to version updates only, so
   security PRs are not combined. They require Dependabot alerts and
