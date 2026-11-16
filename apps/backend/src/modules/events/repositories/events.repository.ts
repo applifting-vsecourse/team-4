@@ -476,6 +476,7 @@ export class EventsRepository {
         description: true,
         location: true,
         isPublished: true,
+        conditions: true,
         terms: PUBLIC_TERM_SELECT,
       },
     });
@@ -486,6 +487,7 @@ export class EventsRepository {
       event.location,
       event.terms.map(toPublicTerm),
       event.isPublished,
+      event.conditions,
     );
   }
 

@@ -77,7 +77,9 @@ export type SubmitOutcome =
   | { kind: 'created'; result: RegistrationResultModel }
   /** Unknown link, or an event that is not open: the same to the visitor. */
   | { kind: 'event_unavailable' }
-  | { kind: 'term_unknown' };
+  | { kind: 'term_unknown' }
+  /** The event has participation terms and the submit did not confirm them. */
+  | { kind: 'conditions_unconfirmed' };
 
 type OpenEventRow = {
   id: string;
@@ -86,6 +88,7 @@ type OpenEventRow = {
   bankAccountNumber: string | null;
   bankCode: string | null;
   paymentReminderDays: number | null;
+  conditions: string;
 };
 
 export type PendingConfirmation = {
@@ -136,11 +139,19 @@ export class RegistrationsRepository {
     return this.prisma.$transaction(async (tx) => {
       const [event] = await tx.$queryRaw<OpenEventRow[]>`
         SELECT "id", "organizationId", "bankAccountPrefix", "bankAccountNumber",
-               "bankCode", "paymentReminderDays"
+               "bankCode", "paymentReminderDays", "conditions"
         FROM "event"
         WHERE "publicId" = ${publicId} AND "status" = 'open'
         FOR SHARE`;
       if (!event) return { kind: 'event_unavailable' };
+      // Read under the same share lock, so the terms cannot change between
+      // the check and the save (F07). A blank text is no terms.
+      if (
+        event.conditions.trim() !== '' &&
+        input.conditionsConfirmed !== true
+      ) {
+        return { kind: 'conditions_unconfirmed' };
+      }
       const hasPaymentSettings =
         event.bankAccountNumber !== null &&
         event.bankCode !== null &&

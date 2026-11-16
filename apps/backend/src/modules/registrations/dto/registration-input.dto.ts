@@ -12,6 +12,7 @@ import {
   ArrayNotEmpty,
   ArrayUnique,
   IsArray,
+  IsBoolean,
   IsEmail,
   IsIn,
   IsNotEmpty,
@@ -183,4 +184,15 @@ export class RegistrationInputDto {
   })
   @GenderOther()
   genderOther?: string | null;
+
+  @ApiPropertyOptional({
+    type: Boolean,
+    description:
+      'The participant confirms having read the event participation terms (F07). ' +
+      'Required as `true` only while the event has such terms (else 400 ' +
+      '`conditions_unconfirmed`); ignored otherwise. Not stored.',
+  })
+  @IsOptional()
+  @IsBoolean({ message: 'Potvrzení podmínek musí být ano nebo ne.' })
+  conditionsConfirmed?: boolean;
 }

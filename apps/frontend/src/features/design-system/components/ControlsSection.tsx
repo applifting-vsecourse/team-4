@@ -167,7 +167,7 @@ function DatePickerDemo() {
         onChange={setStart}
         disabledAfter={end || undefined}
       />
-      <Label htmlFor="ds-date-end">Konec</Label>
+      <FieldLabel htmlFor="ds-date-end">Konec</FieldLabel>
       <DatePicker
         id="ds-date-end"
         value={end}

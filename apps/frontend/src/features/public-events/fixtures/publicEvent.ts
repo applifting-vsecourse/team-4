@@ -36,7 +36,12 @@ export const PUBLIC_EVENT: PublicEvent = publicEventSchema.parse({
     },
   ],
   isPublished: true,
+  conditions:
+    "Věk účastníka 11 až 15 let.\nZdravotní způsobilost potvrzená rodičem při přihlášce.\nZáloha 2 000 Kč je splatná do 7 dnů od přihlášení.\nPři odhlášení do 30 dnů před začátkem turnusu vracíme celou zálohu, později 50 %.",
 })
+
+/** The same event without participation terms: nothing to read or confirm (F07). */
+export const PUBLIC_EVENT_WITHOUT_CONDITIONS: PublicEvent = { ...PUBLIC_EVENT, conditions: "" }
 
 /** Its catalog detail (F55): published, open, with photos and a public contact. */
 export const CATALOG_EVENT: CatalogEvent = catalogEventSchema.parse({
