@@ -41,7 +41,8 @@ import {
 // Phase 1 uses an aggregate model (phase-one.ts): without pinned rooms, rooms
 // of the same beds and candidates of the same value are interchangeable. The
 // room-level model (assignment-model.ts, `phase: 2`) models every room and
-// person; phase-equivalence.spec.ts checks phase 1 against it.
+// person; phase-equivalence.spec.ts checks phase 1 against it. Room proposals
+// are solve-room-proposal.ts.
 
 export type SolveOptions = {
   /** Wall-clock limit for the whole term (spec: 30 s). */
