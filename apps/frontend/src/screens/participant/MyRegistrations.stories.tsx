@@ -25,7 +25,7 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-/** The verified participant's registrations (S2-14). */
+/** The verified participant's current and past registrations (S2-14). */
 export const MyRegistrations: Story = {
   play: showsHeading("Jarní výlet na Sněžku"),
 }

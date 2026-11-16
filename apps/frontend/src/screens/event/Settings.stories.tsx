@@ -53,6 +53,7 @@ export const Draft: StoryObj<typeof meta> = {
     const automation = within(await canvas.findByRole("region", { name: "Automatizace" }))
     const presentation = within(canvas.getByRole("region", { name: "Veřejná prezentace" }))
     const presentationSave = presentation.getByRole("button", { name: /^Uložit$/ })
+    const automationSave = await automation.findByRole("button", { name: /^Uložit$/ })
     const presentationContent = presentationSave.closest<HTMLElement>(
       "[data-collapsible-section-content]",
     )
@@ -71,7 +72,7 @@ export const Draft: StoryObj<typeof meta> = {
       canvas.getByRole("button", { name: "Otevřít přihlašování" }),
       canvas.getByRole("button", { name: "Uložit platební nastavení" }),
       presentationSave,
-      automation.getByRole("button", { name: /^Uložit$/ }),
+      automationSave,
     ]) {
       await expect(action.getBoundingClientRect().right).toBeCloseTo(rightEdge)
     }
@@ -242,8 +243,10 @@ export const EvaluationModeSaveFailed: Story = {
   },
   play: async ({ canvas }) => {
     const automation = await region(canvas, "Automatizace")
-    await userEvent.click(automation.getByLabelText("Přepočítat návrh jen tlačítkem Přepočítat"))
-    await userEvent.click(automation.getByRole("button", { name: "Uložit" }))
+    await userEvent.click(
+      await automation.findByLabelText("Přepočítat návrh jen tlačítkem Přepočítat"),
+    )
+    await userEvent.click(await automation.findByRole("button", { name: "Uložit" }))
     await showsText("Režim se nepodařilo uložit")
   },
 }

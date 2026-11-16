@@ -66,14 +66,16 @@ export function toSummaryProps(summary: ChangeSummaryData): ChangeSummaryProps {
       })),
       ...needsRows(summary.needs),
     ],
-    terms: summary.terms.map((term) => ({
-      id: term.termId,
-      label: term.label,
-      dates: formatCalendarRange(term.startDate, term.endDate),
-      price: formatCzk(term.priceMinor),
-      original: term.original,
-      proposed: term.proposed,
-    })),
+    terms: summary.terms
+      .filter((term) => term.original !== term.proposed)
+      .map((term) => ({
+        id: term.termId,
+        label: term.label,
+        dates: formatCalendarRange(term.startDate, term.endDate),
+        price: formatCzk(term.priceMinor),
+        original: term.original,
+        proposed: term.proposed,
+      })),
     // Money is compared only where a term changes; a data change alone has none.
     money: summary.terms.some((term) => term.original !== term.proposed)
       ? [

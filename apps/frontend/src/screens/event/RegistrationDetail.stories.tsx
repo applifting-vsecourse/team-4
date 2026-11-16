@@ -31,6 +31,9 @@ type Story = StoryObj<typeof meta>
 /** One registration with its payments (S2-11, S2-12). */
 export const RegistrationDetail: Story = { play: showsHeading(NAME) }
 
+/** PO feedback point 11: align the overview, group payment history, and give long sections full width. */
+export const PoFeedbackLayoutPreview: Story = { play: showsHeading(NAME) }
+
 export const Unavailable: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", DETAIL, 404))

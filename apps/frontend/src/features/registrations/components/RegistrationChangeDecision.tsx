@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { readApiError } from "@/lib/apiError"
 
 import { registrationChangesQueryOptions } from "@/features/registrations/api/eventRegistrationQueryOptions"
+import { type RegistrationChange } from "@/features/registrations/api/registrationChangeSchemas"
 import { ChangeRequestCard } from "@/features/registrations/components/ChangeRequestCard"
 import { RegistrationHistory } from "@/features/registrations/components/RegistrationHistory"
 import { useDecideChange } from "@/features/registrations/hooks/useRegistrationChange"
@@ -23,6 +24,8 @@ type RegistrationChangeDecisionProps = {
   organizationId: string
   eventId: string
   registrationId: string
+  /** Keep the history beside the decision on legacy screens; detail pages put it at the bottom. */
+  shouldShowHistory?: boolean
 }
 
 const DECISION_FAILED = "Rozhodnutí se nepodařilo uložit. Zkuste to prosím znovu."
@@ -34,6 +37,7 @@ export function RegistrationChangeDecision({
   organizationId,
   eventId,
   registrationId,
+  shouldShowHistory = true,
 }: RegistrationChangeDecisionProps) {
   const query = useQuery(registrationChangesQueryOptions(organizationId, eventId, registrationId))
   const decide = useDecideChange(organizationId, eventId, registrationId)
@@ -102,22 +106,39 @@ export function RegistrationChangeDecision({
         />
       ) : null}
 
-      {changes.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Historie změn</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RegistrationHistory
-              entries={changes.map((change) => ({
-                id: change.id,
-                at: formatChangeTime(change.decidedAt ?? change.createdAt),
-                text: describeHistoryEntry(change),
-              }))}
-            />
-          </CardContent>
-        </Card>
-      ) : null}
+      {shouldShowHistory ? <RegistrationChangeHistoryCard changes={changes} /> : null}
     </div>
+  )
+}
+
+/** The registration's past requests, rendered separately so the current request can stay prominent. */
+export function RegistrationChangeHistory({
+  organizationId,
+  eventId,
+  registrationId,
+}: Pick<RegistrationChangeDecisionProps, "organizationId" | "eventId" | "registrationId">) {
+  const query = useQuery(registrationChangesQueryOptions(organizationId, eventId, registrationId))
+  const changes = query.data ?? []
+  return <RegistrationChangeHistoryCard changes={changes} />
+}
+
+function RegistrationChangeHistoryCard({ changes }: { changes: RegistrationChange[] }) {
+  if (!changes.length) return null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Historie změn</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <RegistrationHistory
+          entries={changes.map((change) => ({
+            id: change.id,
+            at: formatChangeTime(change.decidedAt ?? change.createdAt),
+            text: describeHistoryEntry(change),
+          }))}
+        />
+      </CardContent>
+    </Card>
   )
 }

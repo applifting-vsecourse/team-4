@@ -142,10 +142,9 @@ describe("ParticipantRegistrationList", () => {
     expect(within(terms[1]!).getByText("Náhradník")).toBeInTheDocument()
     const value = (label: string) =>
       plain(within(mixed).getByText(label, { selector: "dt" }).nextElementSibling?.textContent)
-    expect(value("Cena výběru")).toBe("9 000 Kč")
-    expect(value("K úhradě za potvrzené termíny")).toBe("4 500 Kč")
-    expect(value("Zaplaceno")).toBe("0 Kč")
+    expect(value("Cena celkem")).toBe("9 000 Kč")
     expect(value("Zbývá zaplatit")).toBe("4 500 Kč")
+    expect(within(mixed).queryByText("Zaplaceno", { selector: "dt" })).not.toBeInTheDocument()
     expect(value("Datum připomenutí platby")).toBe("28. 6. 2027")
     expect(within(mixed).getByRole("link", { name: /Detail přihlášky/ })).toHaveAttribute(
       "href",

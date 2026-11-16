@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, screen, userEvent, within } from "storybook/test"
 
 import { failOn, failsOnRefresh, neverAnswer } from "@/screens/msw"
 import { screenMeta, showsHeading } from "@/screens/screenMeta"
@@ -111,6 +111,7 @@ export const RequestApproved: Story = {
     )
   },
   play: async () => {
+    await userEvent.click(await screen.findByRole("button", { name: "Žádosti o změnu (1)" }))
     await showsText("Schváleno")
     await showsText("Historie změn")
   },
@@ -124,7 +125,10 @@ export const RequestRejected: Story = {
       ]),
     )
   },
-  play: () => showsText("Zamítnuto"),
+  play: async () => {
+    await userEvent.click(await screen.findByRole("button", { name: "Žádosti o změnu (1)" }))
+    await showsText("Zamítnuto")
+  },
 }
 
 /** The participant left one term: it stays listed as cancelled, without a programme. */

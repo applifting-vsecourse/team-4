@@ -3,6 +3,7 @@ import { toast } from "sonner"
 
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
+import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { evaluationModeQueryOptions } from "@/features/accommodation/api/evaluationQueryOptions"
@@ -26,23 +27,17 @@ export function EvaluationModeSection({
   const mode = useQuery(evaluationModeQueryOptions(organizationId, eventId))
   const save = useSaveEvaluationMode(organizationId, eventId)
 
-  if (mode.isPending) {
-    return (
-      <LoadingBlock label="Načítání automatizace">
-        <Skeleton className="h-40 w-full" />
-      </LoadingBlock>
-    )
-  }
-  if (mode.isError) {
-    return (
-      <LoadError
-        title="Automatizaci se nepodařilo načíst"
-        isRetrying={mode.isFetching}
-        onRetry={() => mode.refetch()}
-      />
-    )
-  }
-  return (
+  const content = mode.isPending ? (
+    <LoadingBlock label="Načítání automatizace">
+      <Skeleton className="h-40 w-full" />
+    </LoadingBlock>
+  ) : mode.isError ? (
+    <LoadError
+      title="Automatizaci se nepodařilo načíst"
+      isRetrying={mode.isFetching}
+      onRetry={() => mode.refetch()}
+    />
+  ) : (
     <EvaluationModeSettings
       // A newly saved or reloaded mode starts the form again.
       key={mode.data}
@@ -53,5 +48,14 @@ export function EvaluationModeSection({
         save.mutate(next, { onSuccess: () => toast.success("Režim vyhodnocení byl uložen.") })
       }
     />
+  )
+
+  return (
+    <CollapsibleSection
+      headingId="automation-heading"
+      title="Automatizace"
+    >
+      {content}
+    </CollapsibleSection>
   )
 }

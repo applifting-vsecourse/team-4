@@ -11,6 +11,7 @@ type CollapsibleSectionProps = {
   headingId: string
   title: string
   children: ReactNode
+  actions?: ReactNode
   afterContent?: ReactNode
 }
 
@@ -42,6 +43,7 @@ export function CollapsibleSection({
   headingId,
   title,
   children,
+  actions,
   afterContent,
 }: CollapsibleSectionProps) {
   const router = useRouter({ warn: false })
@@ -74,27 +76,32 @@ export function CollapsibleSection({
       onOpenChange={handleOpenChange}
     >
       <section aria-labelledby={headingId}>
-        <h2
-          id={headingId}
-          className="-ms-2.5 text-h4"
-        >
-          <CollapsibleTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="group h-auto min-h-9 w-full"
-            >
-              <span className="flex w-full items-center justify-between gap-2 px-2.5">
-                <span className="text-left text-h4 font-extrabold whitespace-normal">{title}</span>
-                <ChevronDown
-                  aria-hidden
-                  className="group-data-[state=open]:rotate-180 motion-safe:transition-transform motion-safe:duration-200"
-                />
-              </span>
-            </Button>
-          </CollapsibleTrigger>
-        </h2>
+        <div className="flex min-h-9 flex-wrap items-center justify-between gap-4">
+          <h2
+            id={headingId}
+            className="-ms-2.5 min-w-0 flex-1 text-h4"
+          >
+            <CollapsibleTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="group h-auto min-h-9 w-full"
+              >
+                <span className="flex w-full items-center justify-between gap-2 px-2.5">
+                  <span className="text-left text-h4 font-extrabold whitespace-normal">
+                    {title}
+                  </span>
+                  <ChevronDown
+                    aria-hidden
+                    className="group-data-[state=open]:rotate-180 motion-safe:transition-transform motion-safe:duration-200"
+                  />
+                </span>
+              </Button>
+            </CollapsibleTrigger>
+          </h2>
+          {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+        </div>
         <CollapsibleContent
           forceMount
           data-collapsible-section-content=""

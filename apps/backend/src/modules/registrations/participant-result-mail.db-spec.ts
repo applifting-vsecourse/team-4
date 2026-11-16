@@ -290,6 +290,7 @@ describe('a decision result', () => {
         'payment',
         'proposedTerms',
         'reason',
+        'selectedPriceMinor',
         'terms',
       ].sort(),
     );

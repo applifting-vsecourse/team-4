@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { formatPragueDateTime } from "@/lib/date"
+import { formatCzk } from "@/lib/money"
 
 import { eventRegistrationsQueryOptions } from "@/features/registrations/api/eventRegistrationQueryOptions"
 import {
@@ -29,7 +30,6 @@ import {
 } from "@/features/registrations/api/eventRegistrationSchemas"
 import { PaymentStateBadge } from "@/features/registrations/components/PaymentStateBadge"
 import { RegistrationFilters } from "@/features/registrations/components/RegistrationFilters"
-import { describeBalance } from "@/features/registrations/lib/balance"
 
 type RegistrationsSectionProps = {
   organizationId: string
@@ -89,6 +89,7 @@ export function RegistrationsSection({
           eventId={eventId}
           total={data.total}
           registrations={data.registrations}
+          query={filter.q}
           onClearFilters={() => onFilterChange({})}
         />
       ) : query.isPending ? (
@@ -116,6 +117,7 @@ type RegistrationsResultProps = {
   eventId: string
   total: number
   registrations: RegistrationSummary[]
+  query: string | undefined
   onClearFilters: () => void
 }
 
@@ -124,8 +126,19 @@ function RegistrationsResult({
   eventId,
   total,
   registrations,
+  query,
   onClearFilters,
 }: RegistrationsResultProps) {
+  const normalizedQuery = normalizeSearch(query)
+  const filteredRegistrations = normalizedQuery
+    ? registrations.filter((registration) => {
+        const searchable = normalizeSearch(
+          `${registration.firstName} ${registration.lastName} ${registration.email}`,
+        )
+        return searchable.includes(normalizedQuery)
+      })
+    : registrations
+
   if (total === 0) {
     return (
       <EmptyState
@@ -135,7 +148,7 @@ function RegistrationsResult({
     )
   }
 
-  if (registrations.length === 0) {
+  if (filteredRegistrations.length === 0) {
     return (
       <EmptyState
         icon={SearchX}
@@ -153,21 +166,23 @@ function RegistrationsResult({
   return (
     <div className="space-y-2">
       <p className="text-sm text-muted-foreground">
-        Zobrazeno {registrations.length} z {total} · od nejstarší přihlášky
+        Zobrazeno {filteredRegistrations.length} z {total} · od nejstarší přihlášky
       </p>
       <Card padding="none">
         <Table containerLabel="Tabulka přihlášek">
           <TableHeader>
             <TableRow>
               <TableHead>Účastník</TableHead>
-              <TableHead>Termíny</TableHead>
+              <TableHead>Termín</TableHead>
+              <TableHead>Stav termínu</TableHead>
               <TableHead className="whitespace-nowrap">Přijato</TableHead>
-              <TableHead>Platba</TableHead>
+              <TableHead className="whitespace-nowrap">Stav platby</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Celkem</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Zaplaceno</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {registrations.map((registration) => {
-              const balance = describeBalance(registration.balanceMinor)
+            {filteredRegistrations.map((registration) => {
               return (
                 <TableRow key={registration.id}>
                   <TableCell className="relative">
@@ -182,14 +197,32 @@ function RegistrationsResult({
                     <p className="text-xs text-muted-foreground">{registration.email}</p>
                     <p className="text-xs text-muted-foreground">{registration.phone}</p>
                   </TableCell>
-                  <TableCell className="relative">
+                  <TableCell className="relative text-left">
                     <ul className="space-y-1">
                       {registration.terms.map((term) => (
                         <li
                           key={term.termId}
-                          className="flex items-center gap-2"
+                          className="min-h-7 py-1"
                         >
-                          <span>{term.label}</span>
+                          {term.label}
+                        </li>
+                      ))}
+                    </ul>
+                    <Link
+                      to={ROUTES.registration}
+                      params={{ organizationId, eventId, registrationId: registration.id }}
+                      aria-hidden="true"
+                      tabIndex={-1}
+                      className="absolute inset-0"
+                    />
+                  </TableCell>
+                  <TableCell className="relative text-left">
+                    <ul className="space-y-1">
+                      {registration.terms.map((term) => (
+                        <li
+                          key={term.termId}
+                          className="min-h-7 py-1"
+                        >
                           <ParticipationBadge status={term.status} />
                         </li>
                       ))}
@@ -212,15 +245,34 @@ function RegistrationsResult({
                       className="absolute inset-0"
                     />
                   </TableCell>
-                  <TableCell className="relative whitespace-nowrap">
-                    <div className="-ml-2">
-                      <PaymentStateBadge state={registration.paymentState} />
-                    </div>
-                    {balance.amount ? (
-                      <p className="mt-1 font-mono text-xs text-muted-foreground tabular-nums">
-                        {balance.label} {balance.amount}
-                      </p>
-                    ) : null}
+                  <TableCell className="relative text-left whitespace-nowrap">
+                    <ul className="-ml-2">
+                      <li className="min-h-7 py-1">
+                        <PaymentStateBadge state={registration.paymentState} />
+                      </li>
+                    </ul>
+                    <Link
+                      to={ROUTES.registration}
+                      params={{ organizationId, eventId, registrationId: registration.id }}
+                      aria-hidden="true"
+                      tabIndex={-1}
+                      className="absolute inset-0"
+                    />
+                  </TableCell>
+                  <TableCell className="relative text-right whitespace-nowrap">
+                    {registration.paymentState === "none"
+                      ? "—"
+                      : formatCzk(registration.amountDueMinor)}
+                    <Link
+                      to={ROUTES.registration}
+                      params={{ organizationId, eventId, registrationId: registration.id }}
+                      aria-hidden="true"
+                      tabIndex={-1}
+                      className="absolute inset-0"
+                    />
+                  </TableCell>
+                  <TableCell className="relative text-right whitespace-nowrap">
+                    {registration.paymentState === "none" ? "—" : formatCzk(registration.paidMinor)}
                     <Link
                       to={ROUTES.registration}
                       params={{ organizationId, eventId, registrationId: registration.id }}
@@ -237,4 +289,12 @@ function RegistrationsResult({
       </Card>
     </div>
   )
+}
+
+function normalizeSearch(value: string | undefined) {
+  return (value ?? "")
+    .trim()
+    .toLocaleLowerCase("cs-CZ")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
 }

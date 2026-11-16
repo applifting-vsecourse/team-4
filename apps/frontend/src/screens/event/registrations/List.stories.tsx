@@ -6,7 +6,12 @@ import { apiUrl, failOn, failsOnRefresh, neverAnswer } from "@/screens/msw"
 import { eventUrl, organizerBackend, screenMeta, showsHeading } from "@/screens/screenMeta"
 import { refresh, showsText } from "@/screens/steps"
 
-import { makeRegistrationList } from "@/features/registrations/fixtures/registrations"
+import {
+  makeRegistrationList,
+  makeRegistrationSummary,
+  TERM_AUGUST,
+  TERM_JULY,
+} from "@/features/registrations/fixtures/registrations"
 
 const LIST = "/organizations/:organizationId/events/:eventId/registrations"
 const empty = () => [
@@ -37,8 +42,11 @@ export const Registrations: StoryObj<typeof meta> = {
   play: async (context) => {
     await showsHeading("Seznam přihlášek")(context)
     const { canvas } = context
-    const paymentHeader = await canvas.findByRole("columnheader", { name: "Platba" })
-    const paid = canvas.getByText("Zaplaceno", { exact: true })
+    const paymentHeader = await canvas.findByRole("columnheader", { name: "Stav platby" })
+    const paid = canvas.getByText("Zaplaceno", {
+      exact: true,
+      selector: 'span[data-slot="badge"]',
+    })
     const noPayment = canvas.getByText("Bez povinnosti", { exact: true })
     await expect(Math.abs(textLeft(paid) - textLeft(paymentHeader))).toBeLessThanOrEqual(1)
     await expect(Math.abs(textLeft(noPayment) - textLeft(paymentHeader))).toBeLessThanOrEqual(1)
@@ -46,6 +54,27 @@ export const Registrations: StoryObj<typeof meta> = {
 }
 
 type Story = StoryObj<typeof meta>
+
+/** One attendee signed up for both event terms. */
+export const AttendeeOnBothTerms: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      http.get(apiUrl(LIST), () =>
+        HttpResponse.json(
+          makeRegistrationList([
+            makeRegistrationSummary({
+              terms: [TERM_JULY, TERM_AUGUST],
+              amountDueMinor: 450_000,
+              paidMinor: 200_000,
+              balanceMinor: 250_000,
+              paymentState: "partial",
+            }),
+          ]),
+        ),
+      ),
+    )
+  },
+}
 
 export const Loading: Story = {
   beforeEach: ({ msw }) => {

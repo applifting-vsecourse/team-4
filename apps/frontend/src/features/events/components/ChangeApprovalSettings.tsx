@@ -47,32 +47,36 @@ export function ChangeApprovalSettings({
     >
       <Card>
         <CardContent>
-          <Notice
-            tone="info"
-            title={savedSetting}
-          />
-
           <form
             noValidate
-            className="mt-4 space-y-4"
+            className="space-y-4"
             onSubmit={handleSubmit}
           >
             <Field
-              className="sm:max-w-sm"
+              className="w-full"
               data-invalid={daysError ? true : undefined}
             >
               <FieldLabel htmlFor="change-approval-days">
                 Počet dní před začátkem termínu
               </FieldLabel>
-              <Input
-                id="change-approval-days"
-                inputMode="numeric"
-                autoComplete="off"
-                placeholder="např. 14"
-                value={value}
-                onChange={(event) => setValue(event.target.value)}
-                aria-invalid={daysError ? true : undefined}
-              />
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <Input
+                  id="change-approval-days"
+                  className="sm:max-w-sm"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="např. 14"
+                  value={value}
+                  onChange={(event) => setValue(event.target.value)}
+                  aria-invalid={daysError ? true : undefined}
+                />
+                <PendingButton
+                  type="submit"
+                  isPending={isSaving}
+                >
+                  Uložit schvalování změn
+                </PendingButton>
+              </div>
               {daysError ? <FieldError>{daysError}</FieldError> : null}
             </Field>
 
@@ -82,16 +86,14 @@ export function ChangeApprovalSettings({
                 message={errorMessage}
               />
             ) : null}
-
-            <div className="flex justify-end">
-              <PendingButton
-                type="submit"
-                isPending={isSaving}
-              >
-                Uložit schvalování změn
-              </PendingButton>
-            </div>
           </form>
+
+          <div className="mt-4">
+            <Notice
+              tone="info"
+              title={savedSetting}
+            />
+          </div>
         </CardContent>
       </Card>
     </CollapsibleSection>

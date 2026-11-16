@@ -1,6 +1,6 @@
 import { FormError } from "@/components/FormError"
-import { PageSection } from "@/components/PageSection"
 import { Card, CardContent } from "@/components/ui/card"
+import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 
@@ -20,9 +20,9 @@ export function PublicationSection({
   onChange,
 }: PublicationSectionProps) {
   return (
-    <PageSection
-      title="Publikace"
+    <CollapsibleSection
       headingId="publication-heading"
+      title="Publikace"
     >
       <Card>
         <CardContent>
@@ -40,6 +40,6 @@ export function PublicationSection({
           </div>
         </CardContent>
       </Card>
-    </PageSection>
+    </CollapsibleSection>
   )
 }
