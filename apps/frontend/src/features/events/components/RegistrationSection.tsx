@@ -7,8 +7,8 @@ import { Notice } from "@/components/Notice"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { readApiError } from "@/lib/apiError"
 
 import { type EventDetail } from "@/features/events/api/eventSchemas"
@@ -81,8 +81,8 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
             <EventStatusBadge status={event.status} />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="public-link">Veřejný odkaz na přihlášku</Label>
+          <Field>
+            <FieldLabel htmlFor="public-link">Veřejný odkaz na přihlášku</FieldLabel>
             <div className="flex flex-wrap gap-2">
               <Input
                 id="public-link"
@@ -101,9 +101,7 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
               </Button>
             </div>
             {isDraft ? (
-              <p className="text-sm text-muted-foreground">
-                Odkaz začne fungovat po otevření přihlašování.
-              </p>
+              <FieldDescription>Odkaz začne fungovat po otevření přihlašování.</FieldDescription>
             ) : null}
             {hasCopyFailed ? (
               <p
@@ -113,7 +111,7 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
                 Odkaz se nepodařilo zkopírovat. Označte ho výše a zkopírujte ručně.
               </p>
             ) : null}
-          </div>
+          </Field>
 
           {isDraft ? (
             <div className="space-y-4">
