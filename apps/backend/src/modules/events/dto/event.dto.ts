@@ -289,6 +289,13 @@ export class PublicEventDto {
   })
   isPublished!: boolean;
 
+  @ApiProperty({
+    description:
+      'Participation terms (F07), possibly with cancellation information. ' +
+      'Empty when the event has none; a registration then needs no confirmation.',
+  })
+  conditions!: string;
+
   static from(model: PublicEventModel): PublicEventDto {
     return {
       name: model.name,
@@ -302,6 +309,7 @@ export class PublicEventDto {
         priceMinor: term.priceMinor,
       })),
       isPublished: model.isPublished,
+      conditions: model.conditions,
     };
   }
 }

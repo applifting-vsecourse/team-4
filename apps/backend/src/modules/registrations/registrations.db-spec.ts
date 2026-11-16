@@ -646,6 +646,65 @@ describe('refused submissions save nothing', () => {
   });
 });
 
+describe('participation terms confirmation (F07)', () => {
+  const withConditions = async (conditions: string) => {
+    const f = await eventWith();
+    await prisma.event.update({
+      where: { id: f.event.id },
+      data: { conditions },
+    });
+    return f;
+  };
+
+  it('refuses a submission without the confirmation when the event has terms, and saves nothing', async () => {
+    const f = await withConditions('Zálohu uhraďte do 7 dnů.');
+
+    for (const extra of [{}, { conditionsConfirmed: false }] as Record<
+      string,
+      unknown
+    >[]) {
+      const response = await submit(f.publicId, form(f.termIds, extra));
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        code: 'conditions_unconfirmed',
+        field: 'conditionsConfirmed',
+      });
+    }
+    expect(await registrationsOf(f.event.id)).toBe(0);
+  });
+
+  it('saves the confirmed submission without recording the confirmation', async () => {
+    const f = await withConditions('Zálohu uhraďte do 7 dnů.');
+    const response = await submit(
+      f.publicId,
+      form(f.termIds, { conditionsConfirmed: true }),
+    );
+
+    expect(response.status).toBe(201);
+    const stored = await prisma.registration.findFirstOrThrow({
+      where: { eventId: f.event.id },
+    });
+    expect(JSON.stringify(stored)).not.toMatch(/onditions/);
+  });
+
+  it('needs no confirmation when the terms are empty or blank', async () => {
+    for (const conditions of ['', '  \n ']) {
+      const f = await withConditions(conditions);
+      const response = await submit(f.publicId, form(f.termIds));
+      expect(response.status).toBe(201);
+    }
+  });
+
+  it('refuses a confirmation that is not a boolean', async () => {
+    const f = await withConditions('');
+    const response = await submit(
+      f.publicId,
+      form(f.termIds, { conditionsConfirmed: 'yes' }),
+    );
+    expect(response.status).toBe(400);
+  });
+});
+
 describe('validation', () => {
   it.each([
     ['without a term', { termIds: [] }, 'Vyberte alespoň jeden termín.'],

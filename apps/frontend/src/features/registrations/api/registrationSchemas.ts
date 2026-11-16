@@ -132,4 +132,6 @@ export type RegistrationInput = {
   gender: Gender | null
   /** Own words for `other` only; null when none. */
   genderOther: string | null
+  /** Ticked "I have read the participation terms" (F07); sent, never stored. */
+  conditionsConfirmed: boolean
 }

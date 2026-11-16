@@ -16,6 +16,7 @@ export type ApiErrorCode =
   | "room_label_taken"
   | "capacity_below_confirmed"
   | "term_unknown"
+  | "conditions_unconfirmed"
   | "event_unavailable"
   | "already_registered"
   | "submission_key_reused"

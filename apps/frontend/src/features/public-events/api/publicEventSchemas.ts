@@ -17,6 +17,9 @@ export const publicEventSchema = z.object({
   terms: z.array(publicTermSchema),
   // Listed in the catalog, so the form can link to the public detail.
   isPublished: z.boolean(),
+  // Participation terms (F07), possibly with cancellation information; empty
+  // means there is nothing to read and confirm.
+  conditions: z.string(),
 })
 
 export type PublicEvent = z.infer<typeof publicEventSchema>

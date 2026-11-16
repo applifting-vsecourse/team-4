@@ -1,4 +1,4 @@
-import { useEffect, type FormEvent } from "react"
+import { useEffect, useMemo, type FormEvent } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CalendarX } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
@@ -33,14 +33,18 @@ import {
   type SelectableTerm,
 } from "@/features/registrations/api/registrationSchemas"
 import { GenderField } from "@/features/registrations/components/GenderField"
+import { ParticipationConditionsField } from "@/features/registrations/components/ParticipationConditionsField"
 import { PhoneField } from "@/features/registrations/components/PhoneField"
 import { RegistrationNeedsFields } from "@/features/registrations/components/RegistrationNeedsFields"
-import { type RegistrationSubmitError } from "@/features/registrations/lib/registrationErrors"
+import {
+  CONDITIONS_MESSAGE,
+  type RegistrationSubmitError,
+} from "@/features/registrations/lib/registrationErrors"
 import { registrationNeedsFormSchema } from "@/features/registrations/lib/registrationNeeds"
 
 const PHONE_MESSAGE = "Zadejte platné telefonní číslo pro vybranou zemi, např. 777 123 456."
 
-const schema = z.object({
+const baseSchema = z.object({
   firstName: z
     .string()
     .trim()
@@ -68,9 +72,19 @@ const schema = z.object({
   /** Own words for "Jiná odpověď"; sent only beside it. */
   genderOther: genderOtherSchema,
   needs: registrationNeedsFormSchema,
+  /** Read-confirmation of the participation terms (F07); never persisted. */
+  conditionsConfirmed: z.boolean(),
 })
 
-export type RegistrationFormValues = z.infer<typeof schema>
+export type RegistrationFormValues = z.infer<typeof baseSchema>
+
+// Confirmation is required only when the event has participation terms.
+const createSchema = (isRequired: boolean) =>
+  isRequired
+    ? baseSchema.extend({
+        conditionsConfirmed: z.boolean().refine((isConfirmed) => isConfirmed, CONDITIONS_MESSAGE),
+      })
+    : baseSchema
 
 const EMPTY: RegistrationFormValues = {
   firstName: "",
@@ -81,14 +95,17 @@ const EMPTY: RegistrationFormValues = {
   gender: null,
   genderOther: null,
   needs: NO_NEEDS,
+  conditionsConfirmed: false,
 }
 
 type RegistrationFormProps = {
   terms: SelectableTerm[]
-  /** Values to start from, e.g. a draft kept for the browser tab. */
-  initialValues?: RegistrationFormValues | null
+  /** Participation terms of the event (F07); blank means nothing to confirm. */
+  conditions: string
+  /** Values to start from, e.g. a draft kept for the browser tab; never a confirmation. */
+  initialValues?: Omit<RegistrationFormValues, "conditionsConfirmed"> | null
   /** Every change of the typed values, e.g. to keep them as a draft. */
-  onValuesChange?: (values: RegistrationFormValues) => void
+  onValuesChange?: (values: Omit<RegistrationFormValues, "conditionsConfirmed">) => void
   isSubmitting: boolean
   submitError: RegistrationSubmitError | null
   onSubmit: (values: RegistrationFormValues) => void
@@ -100,16 +117,20 @@ type RegistrationFormProps = {
 // term when saving (S2-08), and a full term can be selected like any other.
 export function RegistrationForm({
   terms,
+  conditions,
   initialValues,
   onValuesChange,
   isSubmitting,
   submitError,
   onSubmit,
 }: RegistrationFormProps) {
+  const hasConditions = conditions.trim() !== ""
+  const schema = useMemo(() => createSchema(hasConditions), [hasConditions])
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(schema),
     shouldFocusError: false,
-    defaultValues: initialValues ?? EMPTY,
+    // A confirmation is never carried over from an earlier visit.
+    defaultValues: { ...(initialValues ?? EMPTY), conditionsConfirmed: false },
   })
   const { setError } = form
   const selectedIds = useWatch({ control: form.control, name: "termIds" })
@@ -135,6 +156,9 @@ export function RegistrationForm({
   useEffect(() => {
     if (submitError?.kind === "terms") {
       setError("termIds", { type: "server", message: submitError.message })
+    }
+    if (submitError?.kind === "conditions") {
+      setError("conditionsConfirmed", { type: "server", message: submitError.message })
     }
   }, [submitError, setError])
 
@@ -373,6 +397,13 @@ export function RegistrationForm({
           </fieldset>
         </section>
 
+        {hasConditions ? (
+          <ParticipationConditionsField
+            control={form.control}
+            conditions={conditions}
+          />
+        ) : null}
+
         {submitError ? <SubmitErrorAlert error={submitError} /> : null}
 
         <PendingButton
@@ -401,7 +432,7 @@ function RequiredMark() {
 }
 
 function SubmitErrorAlert({ error }: { error: RegistrationSubmitError }) {
-  if (error.kind === "terms") return null
+  if (error.kind === "terms" || error.kind === "conditions") return null
   if (error.kind === "already_registered") {
     return (
       <Notice

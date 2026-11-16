@@ -136,6 +136,8 @@ export class PublicEventModel {
     >[],
     /** Listed in the catalog, so the form can link to the public detail. */
     public readonly isPublished: boolean,
+    /** Participation terms (F07); empty means nothing to confirm. */
+    public readonly conditions: string,
   ) {}
 }
 

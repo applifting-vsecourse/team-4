@@ -35,6 +35,7 @@ function PublicRegistrationPage() {
             <PublicRegistration
               publicId={publicId}
               terms={event.terms}
+              conditions={event.conditions}
             />
           }
         />
