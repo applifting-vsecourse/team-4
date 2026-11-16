@@ -148,7 +148,7 @@ test("the organizer edits a term's programme and the confirmed participant reads
   await expect(participant.getByRole("heading", { name: "Program – Turnus 1" })).toBeVisible()
   await expect(participant.getByText("Slavnostní večeře")).toBeVisible()
   await expect(participant.getByText("19:00")).toBeVisible()
-  await expect(participant.getByText("8:30")).toBeVisible()
+  await expect(participant.getByText("8:30", { exact: true })).toBeVisible()
   // They can only read: no editing or booking controls.
   await expect(participant.getByRole("button", { name: /položku|Přidat|Rezervovat/ })).toBeHidden()
 
