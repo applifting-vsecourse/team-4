@@ -1362,6 +1362,7 @@ describe('public presentation and catalog detail (F55)', () => {
       organizationName: expect.any(String),
       location: BASICS.location,
       coverPhotoId: null,
+      registrationStatus: 'not-open',
       terms: [
         {
           id: expect.any(String),
@@ -1371,6 +1372,12 @@ describe('public presentation and catalog detail (F55)', () => {
         },
       ],
     });
+
+    await call(ownerId, 'POST', `${path}/open-registration`);
+    expect(
+      (await listCall()).find((entry) => entry.publicId === publicId)
+        ?.registrationStatus,
+    ).toBe('open');
 
     await call(ownerId, 'PUT', `${path}/publication`, { isPublished: false });
     expect((await listCall()).map((entry) => entry.publicId)).not.toContain(

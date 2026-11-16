@@ -535,6 +535,7 @@ export class EventsRepository {
         publicId: true,
         name: true,
         location: true,
+        status: true,
         organization: { select: { name: true } },
         photos: {
           orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -553,6 +554,7 @@ export class EventsRepository {
             event.organization.name,
             event.location,
             event.photos[0]?.id ?? null,
+            publicRegistrationStatus(event.status),
             event.terms.map(toPublicTerm),
           ),
       )

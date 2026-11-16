@@ -65,6 +65,7 @@ export const CATALOG_LIST: CatalogItem[] = catalogListSchema.parse([
     organizationName: "Spolek Modrá Hora",
     location: "Tábořiště Modrá Hora, Hlinsko",
     coverPhotoId: uuid(401),
+    registrationStatus: "open",
     terms: PUBLIC_EVENT.terms.map(({ id, label, startDate, endDate }) => ({
       id,
       label,
@@ -79,6 +80,7 @@ export const CATALOG_LIST: CatalogItem[] = catalogListSchema.parse([
     location: "DDM Praha 4, Praha",
     // The organizer added no photo: the card shows the default image.
     coverPhotoId: null,
+    registrationStatus: "open",
     terms: [
       { id: uuid(201), label: "Týden 1", startDate: "2027-07-19", endDate: "2027-07-23" },
       { id: uuid(202), label: "Týden 2", startDate: "2027-08-09", endDate: "2027-08-13" },
@@ -90,6 +92,8 @@ export const CATALOG_LIST: CatalogItem[] = catalogListSchema.parse([
     organizationName: "Junák Brno",
     location: "Skautská základna Kameňák, Brno",
     coverPhotoId: null,
+    // Published ahead of the season: listed, but registration is not open yet.
+    registrationStatus: "not-open",
     terms: [{ id: uuid(301), label: "Víkend", startDate: "2027-10-15", endDate: "2027-10-17" }],
   },
 ])

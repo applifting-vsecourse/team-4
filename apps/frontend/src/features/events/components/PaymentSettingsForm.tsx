@@ -5,6 +5,7 @@ import { z } from "zod"
 
 import { FormError } from "@/components/FormError"
 import { PendingButton } from "@/components/PendingButton"
+import { FieldLegend, FieldSet } from "@/components/ui/field"
 import {
   Form,
   FormControl,
@@ -129,8 +130,8 @@ export function PaymentSettingsForm({
       >
         {errorMessage ? <FormError message={errorMessage} /> : null}
 
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium">Bankovní účet</legend>
+        <FieldSet>
+          <FieldLegend variant="label">Bankovní účet</FieldLegend>
           <div className="grid gap-4 sm:grid-cols-[1fr_2fr_1fr]">
             <FormField
               control={form.control}
@@ -187,7 +188,7 @@ export function PaymentSettingsForm({
               )}
             />
           </div>
-        </fieldset>
+        </FieldSet>
 
         <FormField
           control={form.control}

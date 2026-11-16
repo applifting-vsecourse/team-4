@@ -11,7 +11,6 @@ import {
   FieldSet,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -79,16 +78,18 @@ export function RegistrationNeedsFields({
           aria-label="Doprava"
         >
           {transportChoiceSchema.options.map((choice) => (
-            <div
+            <Field
               key={choice}
-              className="flex items-center gap-2"
+              orientation="horizontal"
             >
               <RadioGroupItem
                 id={`needs-transport-${choice}`}
                 value={choice}
               />
-              <Label htmlFor={`needs-transport-${choice}`}>{TRANSPORT_LABELS[choice]}</Label>
-            </div>
+              <FieldLabel htmlFor={`needs-transport-${choice}`}>
+                {TRANSPORT_LABELS[choice]}
+              </FieldLabel>
+            </Field>
           ))}
         </RadioGroup>
         <Field data-invalid={errors.transportNote ? true : undefined}>
@@ -106,7 +107,10 @@ export function RegistrationNeedsFields({
       <FieldSet>
         <FieldLegend>Strava</FieldLegend>
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="flex items-center gap-2 sm:col-span-2">
+          <Field
+            orientation="horizontal"
+            className="sm:col-span-2"
+          >
             <Checkbox
               id="needs-diet-none"
               checked={needs.hasNoDietRestriction}
@@ -117,20 +121,20 @@ export function RegistrationNeedsFields({
                 })
               }
             />
-            <Label htmlFor="needs-diet-none">{NO_DIET_RESTRICTION}</Label>
-          </div>
+            <FieldLabel htmlFor="needs-diet-none">{NO_DIET_RESTRICTION}</FieldLabel>
+          </Field>
           {DIET_CHOICES.map((choice) => (
-            <div
+            <Field
               key={choice}
-              className="flex items-center gap-2"
+              orientation="horizontal"
             >
               <Checkbox
                 id={`needs-diet-${choice}`}
                 checked={needs.diet.includes(choice)}
                 onCheckedChange={(state) => toggleDiet(choice, state === true)}
               />
-              <Label htmlFor={`needs-diet-${choice}`}>{DIET_LABELS[choice]}</Label>
-            </div>
+              <FieldLabel htmlFor={`needs-diet-${choice}`}>{DIET_LABELS[choice]}</FieldLabel>
+            </Field>
           ))}
         </div>
         <FieldError>{errors.diet}</FieldError>

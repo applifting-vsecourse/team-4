@@ -12,6 +12,7 @@ import { PendingButton } from "@/components/PendingButton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Field, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
 import {
   Form,
   FormControl,
@@ -21,7 +22,6 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 import { toE164 } from "@/lib/phone"
@@ -202,48 +202,55 @@ export function RegistrationForm({
             name="termIds"
             render={({ field, fieldState }) => (
               <FormItem>
-                <fieldset className="space-y-3">
-                  <legend className="mb-3 flex w-full flex-wrap items-center gap-3 text-h4">
+                <FieldSet>
+                  <FieldLegend>
                     <span>Termíny</span>
                     <Badge variant="outline">Povinné</Badge>
-                  </legend>
-                  {terms.map((term) => {
-                    const id = `registration-term-${term.id}`
-                    return (
-                      <div
-                        key={term.id}
-                        className="relative flex items-center gap-3 rounded-lg border border-border bg-card p-3 has-data-[state=checked]:border-foreground"
-                      >
-                        <Checkbox
-                          id={id}
-                          aria-invalid={fieldState.error ? true : undefined}
-                          checked={field.value.includes(term.id)}
-                          onCheckedChange={(checked) =>
-                            field.onChange(
-                              checked === true
-                                ? [...field.value, term.id]
-                                : field.value.filter((termId) => termId !== term.id),
-                            )
-                          }
-                        />
-                        <Label
-                          htmlFor={id}
-                          className="relative min-w-0 flex-1 after:absolute after:inset-0"
+                  </FieldLegend>
+                  <div className="space-y-3">
+                    {terms.map((term) => {
+                      const id = `registration-term-${term.id}`
+                      return (
+                        <div
+                          key={term.id}
+                          className="relative rounded-lg border border-border bg-card p-3 has-data-[state=checked]:border-foreground"
                         >
-                          <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                            <span className="min-w-0 break-words">
-                              {term.label}
-                              <span className="mt-2 block font-normal text-muted-foreground">
-                                {formatCalendarRange(term.startDate, term.endDate)}
+                          <Field
+                            orientation="horizontal"
+                            data-invalid={fieldState.error ? true : undefined}
+                          >
+                            <Checkbox
+                              id={id}
+                              aria-invalid={fieldState.error ? true : undefined}
+                              checked={field.value.includes(term.id)}
+                              onCheckedChange={(checked) =>
+                                field.onChange(
+                                  checked === true
+                                    ? [...field.value, term.id]
+                                    : field.value.filter((termId) => termId !== term.id),
+                                )
+                              }
+                            />
+                            <FieldLabel
+                              htmlFor={id}
+                              className="relative min-w-0 flex-1 after:absolute after:inset-0"
+                            >
+                              <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                                <span className="min-w-0 break-words">
+                                  {term.label}
+                                  <span className="mt-2 block font-normal text-muted-foreground">
+                                    {formatCalendarRange(term.startDate, term.endDate)}
+                                  </span>
+                                </span>
+                                <span className="tabular-nums">{formatCzk(term.priceMinor)}</span>
                               </span>
-                            </span>
-                            <span className="tabular-nums">{formatCzk(term.priceMinor)}</span>
-                          </span>
-                        </Label>
-                      </div>
-                    )
-                  })}
-                </fieldset>
+                            </FieldLabel>
+                          </Field>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </FieldSet>
                 <FormMessage className="min-h-0" />
               </FormItem>
             )}
@@ -270,11 +277,13 @@ export function RegistrationForm({
           </div>
         </section>
 
-        <fieldset className="space-y-5">
-          <legend className="mb-5 flex w-full flex-wrap items-center gap-3 text-h4">
-            <span>Kontaktní údaje</span>
-            <Badge variant="outline">Povinné</Badge>
-          </legend>
+        <FieldSet>
+          <FieldLegend>
+            <span className="flex w-full flex-wrap items-center gap-3">
+              <span className="text-h4">Kontaktní údaje</span>
+              <Badge variant="outline">Povinné</Badge>
+            </span>
+          </FieldLegend>
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
               control={form.control}
@@ -350,7 +359,7 @@ export function RegistrationForm({
               </FormItem>
             )}
           />
-        </fieldset>
+        </FieldSet>
 
         <section
           aria-label="Doplňující údaje"
@@ -376,8 +385,8 @@ export function RegistrationForm({
             )}
           />
 
-          <fieldset className="space-y-4">
-            <legend className="sr-only">Doprava, strava a zdraví</legend>
+          <FieldSet>
+            <FieldLegend className="sr-only">Doprava, strava a zdraví</FieldLegend>
             <FormField
               control={form.control}
               name="needs"
@@ -394,7 +403,7 @@ export function RegistrationForm({
                 />
               )}
             />
-          </fieldset>
+          </FieldSet>
         </section>
 
         {hasConditions ? (

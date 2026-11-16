@@ -414,6 +414,12 @@ export class PublicCatalogItemDto {
   coverPhotoId!: string | null;
 
   @ApiProperty({
+    enum: REGISTRATION_STATUSES,
+    description: '`not-open` before the first opening.',
+  })
+  registrationStatus!: PublicRegistrationStatus;
+
+  @ApiProperty({
     type: [PublicCatalogItemTermDto],
     description: 'By start date.',
   })
@@ -426,6 +432,7 @@ export class PublicCatalogItemDto {
       organizationName: model.organizationName,
       location: model.location,
       coverPhotoId: model.coverPhotoId,
+      registrationStatus: model.registrationStatus,
       terms: model.terms.map((term) => ({
         id: term.id,
         label: term.label,

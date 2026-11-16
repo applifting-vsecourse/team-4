@@ -24,6 +24,8 @@ export const publicEventSchema = z.object({
 
 export type PublicEvent = z.infer<typeof publicEventSchema>
 
+const registrationStatusSchema = z.enum(["open", "not-open", "closed"])
+
 // Catalog detail of a published event (F55): whatever the registration status,
 // still without capacity, registrations or internal data.
 export const catalogEventSchema = z.object({
@@ -36,7 +38,7 @@ export const catalogEventSchema = z.object({
     .object({ name: z.string(), email: z.string(), phone: z.string().nullable() })
     .nullable(),
   photos: z.array(z.object({ id: z.string().uuid() })),
-  registrationStatus: z.enum(["open", "not-open", "closed"]),
+  registrationStatus: registrationStatusSchema,
   terms: z.array(publicTermSchema),
 })
 
@@ -50,6 +52,7 @@ export const catalogItemSchema = z.object({
   organizationName: z.string(),
   location: z.string(),
   coverPhotoId: z.string().uuid().nullable(),
+  registrationStatus: registrationStatusSchema,
   terms: z.array(
     z.object({
       id: z.string().uuid(),
@@ -63,3 +66,22 @@ export const catalogItemSchema = z.object({
 export const catalogListSchema = z.array(catalogItemSchema)
 
 export type CatalogItem = z.infer<typeof catalogItemSchema>
+
+const calendarDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+
+// Search and filters of the catalog (F54-2b), kept in the URL so a refresh,
+// a retry and the way back keep them. An invalid value is dropped, not an error;
+// so is an end before the start, which the date pickers do not offer.
+export const catalogFilterSchema = z
+  .object({
+    q: z.string().max(120).optional().catch(undefined),
+    from: calendarDateSchema.optional().catch(undefined),
+    to: calendarDateSchema.optional().catch(undefined),
+    place: z.string().max(120).optional().catch(undefined),
+    open: z.boolean().optional().catch(undefined),
+  })
+  .transform((filter) =>
+    filter.from && filter.to && filter.to < filter.from ? { ...filter, to: undefined } : filter,
+  )
+
+export type CatalogFilter = z.output<typeof catalogFilterSchema>
