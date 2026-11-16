@@ -147,6 +147,7 @@ export function RegistrationChangeForm({
                 <FieldLabel htmlFor="change-first-name">Jméno</FieldLabel>
                 <Input
                   id="change-first-name"
+                  surface="editable"
                   autoComplete="given-name"
                   defaultValue={contact.firstName}
                   aria-invalid={errors.firstName ? true : undefined}
@@ -158,6 +159,7 @@ export function RegistrationChangeForm({
                 <FieldLabel htmlFor="change-last-name">Příjmení</FieldLabel>
                 <Input
                   id="change-last-name"
+                  surface="editable"
                   autoComplete="family-name"
                   defaultValue={contact.lastName}
                   aria-invalid={errors.lastName ? true : undefined}
@@ -170,7 +172,7 @@ export function RegistrationChangeForm({
               <Field>
                 <FieldLabel
                   htmlFor="change-email"
-                  className="items-center"
+                  className="h-6 items-center"
                 >
                   E-mail přihlášení
                   <Badge variant="outline">Neměnný</Badge>
@@ -184,9 +186,15 @@ export function RegistrationChangeForm({
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="change-phone">Telefon</FieldLabel>
+                <FieldLabel
+                  htmlFor="change-phone"
+                  className="h-6 items-center"
+                >
+                  Telefon
+                </FieldLabel>
                 <Input
                   id="change-phone"
+                  surface="editable"
                   type="tel"
                   autoComplete="tel"
                   defaultValue={contact.phone}

@@ -1,7 +1,8 @@
+import { useState } from "react"
 import type { ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { ClipboardList } from "lucide-react"
+import { ChevronDown, ClipboardList } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { EmptyState } from "@/components/EmptyState"
@@ -11,8 +12,9 @@ import { PageHeader } from "@/components/PageHeader"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Skeleton } from "@/components/ui/skeleton"
-import { formatPragueDateTime } from "@/lib/date"
+import { formatPragueDateTime, todayInPrague } from "@/lib/date"
 
 import { participantRegistrationsQueryOptions } from "@/features/registrations/api/participantRegistrationQueryOptions"
 import { type ParticipantRegistration } from "@/features/registrations/api/participantRegistrationSchemas"
@@ -34,10 +36,21 @@ export function ParticipantRegistrationList({
   email,
   sessionEnded,
 }: ParticipantRegistrationListProps) {
+  const [isPastEventsOpen, setIsPastEventsOpen] = useState(false)
   const query = useQuery(participantRegistrationsQueryOptions())
   const { data } = query
 
   if (query.isError && isSessionRefused(query.error)) return sessionEnded
+
+  const today = todayInPrague()
+  const currentRegistrations = data?.filter(
+    (registration) =>
+      registration.terms.length === 0 || registration.terms.some((term) => term.endDate >= today),
+  )
+  const pastRegistrations = data?.filter(
+    (registration) =>
+      registration.terms.length > 0 && registration.terms.every((term) => term.endDate < today),
+  )
 
   return (
     <section
@@ -70,13 +83,53 @@ export function ParticipantRegistrationList({
             title="Zatím nemáte žádné přihlášky"
           />
         ) : (
-          <ul className="space-y-4">
-            {data.map((registration) => (
-              <li key={registration.id}>
-                <RegistrationCard registration={registration} />
-              </li>
-            ))}
-          </ul>
+          <>
+            {currentRegistrations?.length ? (
+              <ul className="space-y-4">
+                {currentRegistrations.map((registration) => (
+                  <li key={registration.id}>
+                    <RegistrationCard registration={registration} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nemáte žádné aktuální přihlášky.</p>
+            )}
+
+            {pastRegistrations?.length ? (
+              <Collapsible
+                open={isPastEventsOpen}
+                onOpenChange={setIsPastEventsOpen}
+              >
+                <section aria-labelledby="past-registrations-heading">
+                  <h2 id="past-registrations-heading">
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="group w-full justify-between"
+                      >
+                        <span>Proběhlé akce ({pastRegistrations.length})</span>
+                        <ChevronDown
+                          aria-hidden
+                          className="transition-transform group-data-[state=open]:rotate-180"
+                        />
+                      </Button>
+                    </CollapsibleTrigger>
+                  </h2>
+                  <CollapsibleContent>
+                    <ul className="space-y-4 pt-4">
+                      {pastRegistrations.map((registration) => (
+                        <li key={registration.id}>
+                          <RegistrationCard registration={registration} />
+                        </li>
+                      ))}
+                    </ul>
+                  </CollapsibleContent>
+                </section>
+              </Collapsible>
+            ) : null}
+          </>
         )
       ) : query.isPending ? (
         <LoadingBlock
@@ -127,7 +180,6 @@ function RegistrationCard({ registration }: { registration: ParticipantRegistrat
             <ParticipantPaymentSummary
               selectedPriceMinor={registration.selectedPriceMinor}
               amountDueMinor={registration.amountDueMinor}
-              paidMinor={registration.paidMinor}
               balanceMinor={registration.balanceMinor}
               instructions={registration.paymentInstructions}
               shouldShowAccount={false}

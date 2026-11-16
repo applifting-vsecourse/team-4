@@ -108,6 +108,13 @@ export const queueParticipantUpdate = async (
       row.terms
         .filter((term) => term.status === 'confirmed')
         .reduce((sum, term) => sum + term.priceMinor, 0);
+    const selectedPriceMinor = input.result
+      ? input.result.terms
+          .filter((term) => term.status !== 'cancelled')
+          .reduce((sum, term) => sum + term.priceMinor, 0)
+      : row.terms
+          .filter((term) => term.status !== 'cancelled')
+          .reduce((sum, term) => sum + term.priceMinor, 0);
     const receivedMinor =
       input.result?.payment.paidMinor ??
       row.payments.reduce((sum, payment) => sum + payment.amountMinor, 0);
@@ -201,6 +208,7 @@ export const queueParticipantUpdate = async (
     return {
       reason: input.reason,
       eventName: row.event.name,
+      selectedPriceMinor,
       organizer: {
         name: row.event.contactName ?? row.event.organization.name,
         email: contactEmail,

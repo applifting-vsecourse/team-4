@@ -11,9 +11,18 @@ Organize backend features into controllers, DTOs, services, domain models and re
 
 ## Story context
 
-Before implementing a story, read the GitHub issue and its sprint decisions. Identify the access area (public, participant, organization or event), data scope, existing destination and entry/exit paths before choosing routes or adding screens. The story defines the implementation scope.
+Before implementing a story, read its active GitHub issue and sprint decisions. Identify the access area (public, participant, organization or event), data scope, existing destination and entry/exit paths before choosing routes or adding screens. The active story defines scope unless the PM gives a later, explicit direction.
 
-Reuse the relevant existing page. Report conflicts or proposed structural changes to the PM before changing the navigation structure. GitHub issue titles and bodies are the single source of truth for user stories, including navigation context. Local Markdown copies are private PM working material, ignored by Git; they are not required for implementation and must not override the issue.
+When the PM approves a requirement that conflicts with a closed issue's acceptance criteria, follow the current requirement. Closed issues record historical scope; their criteria do not block later changes. Track the current decision in the active issue or PO feedback tracker. Do not reopen or edit a closed issue just to reconcile its old criteria unless the PM asks.
+
+```mermaid
+flowchart LR
+  PM["Current PM-approved requirement"] --> Scope["Current implementation scope"]
+  Closed["Closed issue criteria"] --> History["Historical record"]
+  History -. "not a blocker" .-> Scope
+```
+
+Reuse the relevant existing page. Report conflicts or proposed structural changes to the PM before changing the navigation structure. For active stories, GitHub issue titles and bodies are the source of truth, including navigation context. Local Markdown copies are private PM working material, ignored by Git; they are not required for implementation and must not override the active issue.
 
 ## Architecture decisions
 
@@ -43,6 +52,8 @@ Do not retain or introduce backward compatibility for previous product names, st
 ## Conventions
 
 Deliberately sparse — this file grows as the team learns what it expects from generated code. Add rules here when you find yourself repeating the same review feedback.
+
+When updating notes on PO or teacher feedback, keep each note concise and factual: add one status label, then state the team decision or current status in one or two sentences. Use only these labels: `Hotovo`, `Rozpracováno`, `Zamítnuto` and `Čeká`. Use the team’s voice; do not attribute decisions to or name individuals. Omit implementation details already visible in the UI or Storybook and conversational history.
 
 ### Sync with main before starting an issue
 

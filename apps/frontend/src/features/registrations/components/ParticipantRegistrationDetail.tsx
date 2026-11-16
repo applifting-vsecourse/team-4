@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { MapPin } from "lucide-react"
+import { ChevronDown, MapPin } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { BackLink } from "@/components/BackLink"
@@ -13,6 +13,7 @@ import { RefreshButton } from "@/components/RefreshButton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCalendarDate, formatCalendarRange, formatPragueDateTime } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
@@ -67,9 +68,10 @@ export function ParticipantRegistrationDetail({
   const [cancelProposal, setCancelProposal] = useState<ChangeProposal | null>(null)
   const { data } = query
   const changes = changesQuery.data ?? []
-  // The newest change that needed the organizer; a direct one is history only.
-  const latest = changes[0]
-  const request = latest && latest.status !== "applied" ? latest : null
+  const pendingRequest = changes.find((change) => change.status === "pending")
+  const resolvedRequests = changes.filter(
+    (change) => change.status === "approved" || change.status === "rejected",
+  )
 
   if (query.isError && isSessionRefused(query.error)) return sessionEnded
   if (query.isError && isRegistrationUnavailable(query.error)) {
@@ -156,20 +158,52 @@ export function ParticipantRegistrationDetail({
             />
           ) : null}
 
-          {request ? (
+          {pendingRequest ? (
             <ChangeRequestCard
-              status={
-                request.status === "pending"
-                  ? "pending"
-                  : request.status === "approved"
-                    ? "approved"
-                    : "rejected"
-              }
-              kind={describeKinds(request.kinds)}
-              submittedAt={formatChangeTime(request.createdAt)}
-              decidedAt={request.decidedAt ? formatChangeTime(request.decidedAt) : undefined}
-              summary={toSummaryProps(request.summary)}
+              status="pending"
+              kind={describeKinds(pendingRequest.kinds)}
+              submittedAt={formatChangeTime(pendingRequest.createdAt)}
+              summary={toSummaryProps(pendingRequest.summary)}
             />
+          ) : null}
+
+          {resolvedRequests.length > 0 ? (
+            <Collapsible>
+              <section aria-labelledby="change-requests-heading">
+                <h2 id="change-requests-heading">
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="group w-full justify-between"
+                    >
+                      <span>Žádosti o změnu ({resolvedRequests.length})</span>
+                      <ChevronDown
+                        aria-hidden
+                        className="transition-transform group-data-[state=open]:rotate-180"
+                      />
+                    </Button>
+                  </CollapsibleTrigger>
+                </h2>
+                <CollapsibleContent>
+                  <ul className="space-y-4 pt-4">
+                    {resolvedRequests.map((request) => (
+                      <li key={request.id}>
+                        <ChangeRequestCard
+                          status={request.status === "approved" ? "approved" : "rejected"}
+                          kind={describeKinds(request.kinds)}
+                          submittedAt={formatChangeTime(request.createdAt)}
+                          decidedAt={
+                            request.decidedAt ? formatChangeTime(request.decidedAt) : undefined
+                          }
+                          summary={toSummaryProps(request.summary)}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </CollapsibleContent>
+              </section>
+            </Collapsible>
           ) : null}
 
           <Card>
@@ -201,7 +235,6 @@ export function ParticipantRegistrationDetail({
               <ParticipantPaymentSummary
                 selectedPriceMinor={data.selectedPriceMinor}
                 amountDueMinor={data.amountDueMinor}
-                paidMinor={data.paidMinor}
                 balanceMinor={data.balanceMinor}
                 instructions={data.paymentInstructions}
               />

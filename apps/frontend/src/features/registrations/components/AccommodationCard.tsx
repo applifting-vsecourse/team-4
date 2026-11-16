@@ -11,6 +11,8 @@ type AccommodationCardProps = {
   answer: GenderAnswer
   /** Organizer only: the answer does not decide the accommodation. */
   isManualAccommodation?: boolean
+  /** Render as a subsection inside a larger registration overview card. */
+  isSection?: boolean
   /** E.g. the organizer's "Opravit". */
   action?: ReactNode
   /** Replaces the stored answer while it is being edited. */
@@ -25,37 +27,53 @@ type AccommodationCardProps = {
 export function AccommodationCard({
   answer,
   isManualAccommodation = false,
+  isSection = false,
   action,
   children,
   extra,
 }: AccommodationCardProps) {
+  const content = (
+    <div className="space-y-4">
+      {children ?? (
+        <DefinitionList layout="stacked">
+          <DefinitionRow label="Pohlaví pro ubytování">{genderText(answer.gender)}</DefinitionRow>
+          {answer.genderOther ? (
+            <DefinitionRow label="Vlastní odpověď">{answer.genderOther}</DefinitionRow>
+          ) : null}
+        </DefinitionList>
+      )}
+      {extra}
+      {isManualAccommodation ? (
+        <Notice
+          tone="warning"
+          title="Ubytování je potřeba určit ručně"
+        />
+      ) : null}
+    </div>
+  )
+
+  if (isSection) {
+    return (
+      <section
+        aria-label="Ubytování"
+        className="border-t border-border pt-6"
+      >
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold">Ubytování</h3>
+          {action}
+        </div>
+        {content}
+      </section>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Ubytování</CardTitle>
         {action ? <CardAction>{action}</CardAction> : null}
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {children ?? (
-            <DefinitionList layout="stacked">
-              <DefinitionRow label="Pohlaví pro ubytování">
-                {genderText(answer.gender)}
-              </DefinitionRow>
-              {answer.genderOther ? (
-                <DefinitionRow label="Vlastní odpověď">{answer.genderOther}</DefinitionRow>
-              ) : null}
-            </DefinitionList>
-          )}
-          {extra}
-          {isManualAccommodation ? (
-            <Notice
-              tone="warning"
-              title="Ubytování je potřeba určit ručně"
-            />
-          ) : null}
-        </div>
-      </CardContent>
+      <CardContent>{content}</CardContent>
     </Card>
   )
 }

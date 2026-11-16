@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { PencilLine, Plus } from "lucide-react"
 
 import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { LoadError } from "@/components/LoadError"
@@ -64,13 +65,16 @@ export function RegistrationDeterminationPanel({
           </DefinitionRow>
         </DefinitionList>
       ) : null}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setIsOpen(true)}
-      >
-        {valid ? "Změnit určení" : "Určit ubytování"}
-      </Button>
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsOpen(true)}
+        >
+          {valid ? <PencilLine /> : <Plus />}
+          {valid ? "Změnit určení" : "Určit ubytování"}
+        </Button>
+      </div>
       {isOpen ? (
         <DeterminationDialog
           organizationId={organizationId}

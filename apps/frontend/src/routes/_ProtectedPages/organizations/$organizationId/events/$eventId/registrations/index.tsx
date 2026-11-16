@@ -61,7 +61,11 @@ function RegistrationsPage() {
   // Back/Forward return to the previous selection (S4-01).
   const inPage = { resetScroll: false } as const
   const setFilter = (next: RegistrationFilter) =>
-    void navigate({ search: { ...next, view: view === "list" ? undefined : view }, ...inPage })
+    void navigate({
+      search: { ...next, view: view === "list" ? undefined : view },
+      replace: next.q !== filter.q,
+      ...inPage,
+    })
   const setView = (next: string) =>
     void navigate({
       search: {

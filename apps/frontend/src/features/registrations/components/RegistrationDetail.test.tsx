@@ -115,7 +115,7 @@ describe("RegistrationDetail", () => {
     expect(valueOf("Variabilní symbol")).toBe("2027094")
     expect(screen.queryByText(/Splatnost/)).not.toBeInTheDocument()
 
-    const payments = screen.getByText("Přijaté platby").closest<HTMLElement>("[data-slot=card]")!
+    const payments = screen.getByRole("heading", { name: "Přijaté platby" }).parentElement!
     expect(
       within(payments)
         .getAllByRole("listitem")
