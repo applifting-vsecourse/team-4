@@ -107,6 +107,8 @@ function breakTies(
     if (current === undefined) continue;
     // Allowed rooms are in room order; nothing earlier means nothing to try.
     if (allowed[0] !== current) {
+      // Each room weighs its index in room order, so the minimum is the
+      // earliest room the fixed optima still allow.
       const earliest: Expression = allowed.map((r) => [r, x(i, r)] as const);
       const stage = runner.solve('Minimize', earliest, fixed, {
         acceptIncumbent: true,
