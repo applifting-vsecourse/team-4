@@ -78,6 +78,7 @@ erDiagram
 | `AccommodationRun`                              | `accommodation_run`                              | Immutable evaluation of one term: input snapshot, order used and proposal (§3.14).                |
 | `AccommodationTermState`                        | `accommodation_term_state`                       | Input version, scheduled and running evaluation of a term (§3.14).                                |
 | `Payment`                                       | `payment`                                        | Received payment recorded by an organizer.                                                        |
+| `BankTransaction`                               | `bank_transaction`                               | Incoming movement of an imported bank statement, not yet paired with a registration (F23).        |
 | `EmailDelivery`                                 | `email_delivery`                                 | Outbound e-mail log (status, provider id, sanitized error).                                       |
 
 ## 3. Design decisions
@@ -550,6 +551,20 @@ current data; a run only proposes and never changes a participation, a debt or a
 | `submissionKey`                    | uuid unique | Double-submit protection.       |
 | `recordedById`                     | user id     | Organizer who recorded it.      |
 
+### BankTransaction
+
+Only incoming movements of an imported statement are stored; an invalid movement rejects the whole file. Importing does not create `payment` rows or change any balance; pairing does (F24).
+
+| Field                                                | Type                               | Notes                                                      |
+| ---------------------------------------------------- | ---------------------------------- | ---------------------------------------------------------- |
+| `organizationId`, `eventId`                          | uuid                               | Composite FK to `event`.                                   |
+| `bankTransactionId`                                  | varchar(40), unique with `eventId` | The bank's id of the movement; a repeated import skips it. |
+| `bookedOn`                                           | date                               | As in the statement.                                       |
+| `amountMinor`                                        | int > 0                            | CHECK.                                                     |
+| `variableSymbol`                                     | varchar(10)?                       | Digits only (CHECK).                                       |
+| `counterpartyAccount`, `counterpartyName`, `message` | text?                              | As in the statement, for pairing by hand.                  |
+| `importedById`, `importedAt`                         | user id, timestamptz               | Who imported it and when.                                  |
+
 ## 5. Key flows against the model
 
 **Organizer creates an organization (S2-02).** One transaction inserts
@@ -602,6 +617,7 @@ filtered by `participantAccountId` from the session.
 | `accommodation_run (termId, startedAt)`                    | Latest proposal of a term.                             |
 | `accommodation_intervention (eventId, createdAt)`          | Intervention history of an event.                      |
 | `payment (registrationId)`                                 | Balance.                                               |
+| `bank_transaction (eventId, bookedOn)`                     | Received transactions of an event, newest first.       |
 | `participant_magic_link (participantAccountId, createdAt)` | Rate limiting.                                         |
 | `email_delivery (status, createdAt)`                       | Operator view of failures.                             |
 
