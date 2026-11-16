@@ -8,7 +8,9 @@ import { TermEvaluationController } from './controllers/term-evaluation.controll
 import { AccommodationEvaluationRepository } from './repositories/accommodation-evaluation.repository';
 import { EvaluationQueueRepository } from './repositories/evaluation-queue.repository';
 import { OrderMovesRepository } from './repositories/order-moves.repository';
+import { ProposalQueueRepository } from './repositories/proposal-queue.repository';
 import { RegistrationAccommodationRepository } from './repositories/registration-accommodation.repository';
+import { RoomProposalRepository } from './repositories/room-proposal.repository';
 import { TermDecisionRepository } from './repositories/term-decision.repository';
 import { TermEvaluationRepository } from './repositories/term-evaluation.repository';
 import { AccommodationEvaluationService } from './services/accommodation-evaluation.service';
@@ -18,13 +20,21 @@ import {
   RegistrationHardAttributeAnswers,
 } from './services/hard-attribute-answers';
 import { OrderMovesService } from './services/order-moves.service';
+import { ProposalWorker } from './services/proposal-worker.service';
 import { RegistrationAccommodationService } from './services/registration-accommodation.service';
+import {
+  NoRoommateWishes,
+  NoRoomPlacements,
+  RoommateWishes,
+  RoomPlacements,
+} from './services/room-proposal-sources';
+import { RoomProposalService } from './services/room-proposal.service';
 import { TermDecisionService } from './services/term-decision.service';
 import { TermEvaluationService } from './services/term-evaluation.service';
 
-// Accommodation evaluation (S3-T4, S3-01, S3-03): the term evaluation of the
-// organizer, the manual order of a term, and the worker that runs the due
-// evaluations.
+// Accommodation evaluation (S3-T4, S3-01, S3-03, #365): the term evaluation
+// of the organizer, the manual order of a term, and the workers that run the
+// due evaluations and room proposals.
 @Module({
   imports: [AuthModule, PrismaModule],
   controllers: [
@@ -40,8 +50,12 @@ import { TermEvaluationService } from './services/term-evaluation.service';
     EvaluationWorker,
     OrderMovesRepository,
     OrderMovesService,
+    ProposalQueueRepository,
+    ProposalWorker,
     RegistrationAccommodationRepository,
     RegistrationAccommodationService,
+    RoomProposalRepository,
+    RoomProposalService,
     TermDecisionRepository,
     TermDecisionService,
     TermEvaluationRepository,
@@ -50,6 +64,9 @@ import { TermEvaluationService } from './services/term-evaluation.service';
       provide: HardAttributeAnswers,
       useClass: RegistrationHardAttributeAnswers,
     },
+    // Placements and wishes come with #337 and #339.
+    { provide: RoomPlacements, useClass: NoRoomPlacements },
+    { provide: RoommateWishes, useClass: NoRoommateWishes },
   ],
 })
 export class AccommodationModule {}

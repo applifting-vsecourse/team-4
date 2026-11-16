@@ -76,7 +76,8 @@ erDiagram
 | `AccommodationTermOrder`                        | `accommodation_term_order`                       | A manually changed order of a term's unconfirmed participants (§3.14).                            |
 | `AccommodationIntervention`                     | `accommodation_intervention`                     | Immutable record of a manual position change or determination, with its reason (§3.14).           |
 | `AccommodationRun`                              | `accommodation_run`                              | Immutable evaluation of one term: input snapshot, order used and proposal (§3.14).                |
-| `AccommodationTermState`                        | `accommodation_term_state`                       | Input version, scheduled and running evaluation of a term (§3.14).                                |
+| `AccommodationTermState`                        | `accommodation_term_state`                       | Input and layout versions, scheduled and running evaluation and room proposal of a term (§3.14).  |
+| `AccommodationRoomProposal`                     | `accommodation_room_proposal`                    | Immutable room proposal of one term: input snapshot, layout and scores (§3.14).                   |
 | `Payment`                                       | `payment`                                        | Received payment recorded by an organizer.                                                        |
 | `EmailDelivery`                                 | `email_delivery`                                 | Outbound e-mail log (status, provider id, sanitized error).                                       |
 
@@ -456,6 +457,17 @@ current data; a run only proposes and never changes a participation, a debt or a
   own record (one per version at most) and changes nothing.
 - **Writers.** Rules are written by the rules settings; until then they have no rows. Answers to the hard attribute come from the registration: the
   F64 gender answer when the hard attribute is `gender`.
+- **Room proposals (#365, phase-2 spec).** A room proposal lays out a term's confirmed
+  participants in rooms and only proposes: it never changes a stored placement or a
+  participation. `accommodation_room_proposal` stores the snapshot of its input and rules, the
+  solver version, the layout with reasons, wish states, warnings and scores (or the error of a
+  failed one), and the `layoutVersion` it read; a trigger keeps it immutable. The term state's
+  `layoutVersion` is bumped by the layout changes of spec §7.1 present today: rooms (every
+  term), a confirmation, and an answer, determination or change of a person confirmed in the
+  term. Proposals are queued on the same row (`proposalDueAt`, `proposalRunning*`) and run by
+  their own worker, one at a time per process; with `event.isRoomProposalAutomatic` (off for a
+  new event) a layout change makes one due 10 s later. Saved placements, locks and wishes are
+  not stored yet (#337, #339), so a proposal reads none.
 
 ## 4. Field reference
 

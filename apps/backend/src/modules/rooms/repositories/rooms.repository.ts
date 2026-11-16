@@ -1,6 +1,9 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
-import { termInputsChanged } from '@/modules/accommodation/repositories/term-inputs';
+import {
+  termInputsChanged,
+  termLayoutChanged,
+} from '@/modules/accommodation/repositories/term-inputs';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import {
@@ -76,6 +79,8 @@ export class LockedRooms {
     });
     await this.setAvailability(room.id, input.terms);
     await termInputsChanged(this.tx, this.eventId);
+    // Rooms, beds and labels (room order) are layout inputs (spec §7.1).
+    await termLayoutChanged(this.tx, this.eventId);
   }
 
   /** False when the room does not belong to this event. */
@@ -88,6 +93,8 @@ export class LockedRooms {
     await this.tx.roomTermAvailability.deleteMany({ where: { roomId } });
     await this.setAvailability(roomId, input.terms);
     await termInputsChanged(this.tx, this.eventId);
+    // Rooms, beds and labels (room order) are layout inputs (spec §7.1).
+    await termLayoutChanged(this.tx, this.eventId);
     return true;
   }
 
@@ -98,6 +105,8 @@ export class LockedRooms {
     });
     if (count !== 1) return false;
     await termInputsChanged(this.tx, this.eventId);
+    // Rooms, beds and labels (room order) are layout inputs (spec §7.1).
+    await termLayoutChanged(this.tx, this.eventId);
     return true;
   }
 

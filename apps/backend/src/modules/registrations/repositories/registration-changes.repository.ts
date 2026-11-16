@@ -1,7 +1,11 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import { answerChanged } from '@/modules/accommodation/repositories/determination-lapse';
-import { termInputsChanged } from '@/modules/accommodation/repositories/term-inputs';
+import {
+  confirmedTermsOf,
+  termInputsChanged,
+  termLayoutChanged,
+} from '@/modules/accommodation/repositories/term-inputs';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import { changedBalance } from '@/modules/registrations/domain/participant-update';
@@ -644,6 +648,20 @@ export class RegistrationChangesRepository {
         ...plan.summary.terms.map((term) => term.termId),
       ]),
     ]);
+    // Room proposals change where a confirmed participation came or went, and
+    // with a new answer wherever the person is confirmed (spec §7.1).
+    const layout = plan.summary.terms
+      .filter(
+        (row) =>
+          row.proposed !== null &&
+          row.original !== row.proposed &&
+          (row.original === 'confirmed' || row.proposed === 'confirmed'),
+      )
+      .map((row) => row.termId);
+    if (fields.gender !== undefined) {
+      layout.push(...(await confirmedTermsOf(tx, snapshot.id)));
+    }
+    await termLayoutChanged(tx, snapshot.eventId, [...new Set(layout)]);
   }
 }
 

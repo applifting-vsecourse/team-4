@@ -466,3 +466,85 @@ describe('email_delivery', () => {
     ).resolves.toBeDefined();
   });
 });
+
+describe('room proposals (#365)', () => {
+  const termOf = async () => {
+    const organization = await createOrganization(prisma);
+    const { event, terms } = await createEvent(prisma, {
+      organizationId: organization.id,
+      terms: [SUMMER[0]!],
+    });
+    return { event, term: terms[0]! };
+  };
+  const proposal = (eventId: string, termId: string) => ({
+    eventId,
+    termId,
+    solverVersion: 'test',
+    input: {},
+    layoutVersion: 0,
+    startedAt: new Date('2027-01-01T10:00:00Z'),
+    finishedAt: new Date('2027-01-01T10:00:05Z'),
+  });
+
+  it('has a result unless it failed, and a failed one says why', async () => {
+    const { event, term } = await termOf();
+    const base = proposal(event.id, term.id);
+
+    await expect(
+      prisma.accommodationRoomProposal.create({
+        data: { ...base, status: 'solved' },
+      }),
+    ).rejects.toThrow(/accommodation_room_proposal_result_chk/);
+    await expect(
+      prisma.accommodationRoomProposal.create({
+        data: { ...base, status: 'failed', result: {} },
+      }),
+    ).rejects.toThrow(/accommodation_room_proposal_result_chk/);
+    await expect(
+      prisma.accommodationRoomProposal.create({
+        data: { ...base, status: 'solved', finishedAt: date('2026-12-31') },
+      }),
+    ).rejects.toThrow(/accommodation_room_proposal/);
+    await expect(
+      prisma.accommodationRoomProposal.create({
+        data: { ...base, status: 'failed', error: 'Worker crashed' },
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  it('keeps a running proposal whole on the term state', async () => {
+    const { event, term } = await termOf();
+    const base = { termId: term.id, eventId: event.id, layoutVersion: 2 };
+
+    await expect(
+      prisma.accommodationTermState.create({
+        data: { ...base, proposalRunningId: randomUUID() },
+      }),
+    ).rejects.toThrow(/accommodation_term_state_proposal_running_chk/);
+    await expect(
+      prisma.accommodationTermState.create({
+        data: { ...base, proposalRequestedById: 'someone' },
+      }),
+    ).rejects.toThrow(/accommodation_term_state_proposal_requested_chk/);
+    await expect(
+      prisma.accommodationTermState.create({
+        data: {
+          ...base,
+          proposalRunningId: randomUUID(),
+          proposalRunningVersion: 3,
+          proposalRunningSince: new Date(),
+        },
+      }),
+    ).rejects.toThrow(/accommodation_term_state_proposal_running_chk/);
+    await expect(
+      prisma.accommodationTermState.create({
+        data: {
+          ...base,
+          proposalRunningId: randomUUID(),
+          proposalRunningVersion: 2,
+          proposalRunningSince: new Date(),
+        },
+      }),
+    ).resolves.toBeDefined();
+  });
+});

@@ -187,6 +187,17 @@ const register = async (
     })),
   });
 
+/** The layout version of a term's room proposal (phase-2 spec §7.1). */
+const layoutVersion = async (
+  fixture: Fixture,
+  index: number,
+): Promise<number> =>
+  (
+    await prisma.accommodationTermState.findUnique({
+      where: { termId: fixture.terms[index].id },
+    })
+  )?.layoutVersion ?? 0;
+
 const own = (registration: Registration) => ({
   account: registration.participantAccountId,
 });
@@ -266,6 +277,10 @@ describe('changes without approval', () => {
       where: { id: registration.id },
     });
     expect(stored.phone).toBe('+420731987654');
+    // Contact data are no input of a room proposal.
+    for (const index of [0, 1, 2]) {
+      expect(await layoutVersion(fixture, index)).toBe(0);
+    }
   });
 
   it('moves to another term that waits for the organizer: price and payments follow (S3-01)', async () => {
@@ -322,6 +337,9 @@ describe('changes without approval', () => {
       'Turnus 2': 'cancelled',
       'Turnus 3': 'confirmed',
     });
+    // A confirmed place left only Turnus 2; its room proposal is stale.
+    expect(await layoutVersion(fixture, 1)).toBe(1);
+    expect(await layoutVersion(fixture, 2)).toBe(0);
     const detail = await call('GET', base(registration), own(registration));
     expect(detail.body.balanceMinor).toBe(-240_000);
     expect(detail.body.canChange).toBe(true);

@@ -1,7 +1,11 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import { answerChanged } from '@/modules/accommodation/repositories/determination-lapse';
-import { termInputsChanged } from '@/modules/accommodation/repositories/term-inputs';
+import {
+  confirmedTermsOf,
+  termInputsChanged,
+  termLayoutChanged,
+} from '@/modules/accommodation/repositories/term-inputs';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import { GenderAnswer } from '@/modules/registrations/domain/gender';
@@ -277,6 +281,12 @@ export class EventRegistrationsRepository {
           tx,
           scope.eventId,
           terms.map((term) => term.termId),
+        );
+        // A room proposal depends on it only where the person is confirmed.
+        await termLayoutChanged(
+          tx,
+          scope.eventId,
+          await confirmedTermsOf(tx, registrationId),
         );
         // After the recomputation, so the message shows the saved result.
         await queueParticipantUpdate(tx, {
