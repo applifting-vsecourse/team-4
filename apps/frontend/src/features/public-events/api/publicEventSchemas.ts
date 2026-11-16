@@ -67,13 +67,18 @@ export type CatalogItem = z.infer<typeof catalogItemSchema>
 const calendarDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 
 // Search and filters of the catalog (F54-2b), kept in the URL so a refresh,
-// a retry and the way back keep them. An invalid value is dropped, not an error.
-export const catalogFilterSchema = z.object({
-  q: z.string().max(120).optional().catch(undefined),
-  from: calendarDateSchema.optional().catch(undefined),
-  to: calendarDateSchema.optional().catch(undefined),
-  place: z.string().max(120).optional().catch(undefined),
-  open: z.boolean().optional().catch(undefined),
-})
+// a retry and the way back keep them. An invalid value is dropped, not an error;
+// so is an end before the start, which the date pickers do not offer.
+export const catalogFilterSchema = z
+  .object({
+    q: z.string().max(120).optional().catch(undefined),
+    from: calendarDateSchema.optional().catch(undefined),
+    to: calendarDateSchema.optional().catch(undefined),
+    place: z.string().max(120).optional().catch(undefined),
+    open: z.boolean().optional().catch(undefined),
+  })
+  .transform((filter) =>
+    filter.from && filter.to && filter.to < filter.from ? { ...filter, to: undefined } : filter,
+  )
 
-export type CatalogFilter = z.infer<typeof catalogFilterSchema>
+export type CatalogFilter = z.output<typeof catalogFilterSchema>

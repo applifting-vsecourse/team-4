@@ -21,16 +21,13 @@ export function isCatalogFiltered(filter: CatalogFilter): boolean {
  * The published events matching the search and every active filter (F54-2b),
  * in the API order. Text matches a part of the name, organizer or place,
  * ignoring letter case and diacritics like the other searches of the app. A
- * period matches an event when at least one term overlaps it, both end days
- * included; the two ends may be picked in either order.
+ * period matches an event when at least one of its terms shares a day with
+ * it, both end days included; an open end reaches as far as the terms do.
  */
 export function filterCatalog(items: CatalogItem[], filter: CatalogFilter): CatalogItem[] {
   const query = normalizeSearch(filter.q)
   const place = normalizeSearch(filter.place)
-  const [from, to] =
-    filter.from && filter.to && filter.from > filter.to
-      ? [filter.to, filter.from]
-      : [filter.from, filter.to]
+  const { from, to } = filter
 
   return items.filter(
     (item) =>

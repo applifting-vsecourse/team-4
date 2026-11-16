@@ -150,15 +150,25 @@ function ValidationForm() {
   )
 }
 
+// A period: the end cannot be picked before the start, nor the start after the end.
 function DatePickerDemo() {
-  const [value, setValue] = useState("")
+  const [start, setStart] = useState("")
+  const [end, setEnd] = useState("")
   return (
     <>
       <Label htmlFor="ds-date">Začátek</Label>
       <DatePicker
         id="ds-date"
-        value={value}
-        onChange={setValue}
+        value={start}
+        onChange={setStart}
+        disabledAfter={end || undefined}
+      />
+      <Label htmlFor="ds-date-end">Konec</Label>
+      <DatePicker
+        id="ds-date-end"
+        value={end}
+        onChange={setEnd}
+        disabledBefore={start || undefined}
       />
     </>
   )

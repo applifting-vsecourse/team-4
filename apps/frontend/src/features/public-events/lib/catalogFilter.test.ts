@@ -1,7 +1,26 @@
 import { describe, expect, it } from "vitest"
 
-import type { CatalogItem } from "@/features/public-events/api/publicEventSchemas"
+import {
+  catalogFilterSchema,
+  type CatalogItem,
+} from "@/features/public-events/api/publicEventSchemas"
 import { filterCatalog, isCatalogFiltered } from "@/features/public-events/lib/catalogFilter"
+
+describe("catalogFilterSchema", () => {
+  it("keeps a period whose end is on or after its start", () => {
+    expect(catalogFilterSchema.parse({ from: "2027-07-10", to: "2027-07-10" })).toEqual({
+      from: "2027-07-10",
+      to: "2027-07-10",
+    })
+  })
+
+  it("drops an end before the start, as the date pickers do not offer it", () => {
+    expect(catalogFilterSchema.parse({ from: "2027-07-31", to: "2027-07-10" })).toEqual({
+      from: "2027-07-31",
+      to: undefined,
+    })
+  })
+})
 
 const uuid = (n: number) => `0190c0de-0000-7000-8000-${String(n).padStart(12, "0")}`
 
@@ -70,8 +89,11 @@ describe("filterCatalog", () => {
     expect(ids(filterCatalog(list, { from: "2027-07-20", to: "2027-08-01" }))).toEqual(["two"])
   })
 
-  it("accepts the period ends in either order", () => {
-    expect(ids(filterCatalog([tabor], { from: "2027-07-31", to: "2027-07-10" }))).toEqual(["tabor"])
+  it("matches a one-day period sharing exactly the first or last day of a term", () => {
+    const list = [tabor]
+    expect(ids(filterCatalog(list, { from: "2027-07-04", to: "2027-07-04" }))).toEqual(["tabor"])
+    expect(ids(filterCatalog(list, { from: "2027-07-17", to: "2027-07-17" }))).toEqual(["tabor"])
+    expect(ids(filterCatalog(list, { from: "2027-07-18", to: "2027-07-18" }))).toEqual([])
   })
 
   it("leaves out an event without terms when a period is chosen", () => {

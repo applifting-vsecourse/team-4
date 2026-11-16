@@ -80,6 +80,7 @@ export function EventCatalogFilters({ filter, onChange }: EventCatalogFiltersPro
               value={filter.from ?? ""}
               onChange={(from) => onChange({ ...filter, from: from || undefined })}
               placeholder="Libovolný"
+              disabledAfter={filter.to}
             />
           </Field>
           <Field>
@@ -89,6 +90,7 @@ export function EventCatalogFilters({ filter, onChange }: EventCatalogFiltersPro
               value={filter.to ?? ""}
               onChange={(to) => onChange({ ...filter, to: to || undefined })}
               placeholder="Libovolný"
+              disabledBefore={filter.from}
             />
           </Field>
           <Field className="sm:col-span-2">

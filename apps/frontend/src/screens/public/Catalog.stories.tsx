@@ -93,6 +93,43 @@ export const OnlyOpenRegistration: Story = {
   },
 }
 
+/**
+ * A one-day period matches an event whose term shares that day (here the first
+ * day of Turnus 2). The end cannot be picked before the start.
+ */
+export const PeriodFilter: Story = {
+  args: { url: "/events?from=2027-08-01&to=2027-08-01" },
+  beforeEach: ({ msw }) => {
+    msw.use(...publicEventHandlers.catalogList())
+  },
+  play: async (context) => {
+    await showsHeading("Katalog akcí")(context)
+    const canvas = within(context.canvasElement)
+    await expect(
+      await canvas.findByRole("link", { name: "Letní tábor Modrá Hora 2027" }),
+    ).toBeInTheDocument()
+    for (const name of ["Příměstský tábor Město hrou", "Podzimní víkend pro mladé organizátory"]) {
+      await expect(canvas.queryByRole("link", { name })).not.toBeInTheDocument()
+    }
+
+    await userEvent.click(canvas.getByRole("button", { name: "Termín do" }))
+    const body = within(context.canvasElement.ownerDocument.body)
+    await expect(await body.findByRole("grid")).toBeInTheDocument()
+    const day = (date: string) =>
+      context.canvasElement.ownerDocument.querySelector(`td[data-day="${date}"] button`)
+    await expect(day("2027-07-31")).toBeDisabled()
+    await expect(day("2027-08-01")).toBeEnabled()
+    // Closed again, so the story ends on the page and not on the calendar.
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(body.queryByRole("grid")).not.toBeInTheDocument())
+    await waitFor(() =>
+      expect(
+        context.canvasElement.ownerDocument.querySelector("[data-slot=popover-content]"),
+      ).toBeNull(),
+    )
+  },
+}
+
 /** Events are published, but none matches: a zero result that clears everything. */
 export const NoMatch: Story = {
   args: { url: "/events?q=lyzovani&open=true" },
