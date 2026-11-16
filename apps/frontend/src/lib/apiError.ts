@@ -56,6 +56,9 @@ export type ApiErrorCode =
   | "programme_unavailable"
   | "programme_date_out_of_term"
   | "programme_date_invalid"
+  | "statement_format"
+  | "statement_invalid"
+  | "statement_too_large"
 
 export type ApiError = {
   status: number | null
