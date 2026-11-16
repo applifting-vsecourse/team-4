@@ -229,6 +229,44 @@ describe('the exact room-level solve (test oracle)', () => {
   });
 });
 
+describe('ties and locks', () => {
+  it('gives a person the earliest of equivalent rooms (U7)', async () => {
+    const prepared = prepareProposal(
+      input({
+        rooms: [room('R2', 2), room('R1', 2)],
+        participants: [person('P1', 0)],
+      }),
+    );
+
+    expect(roomsOf(prepared, await solveExact(prepared))).toEqual({ P1: 'R1' });
+  });
+
+  it('adds nobody to a locked room over capacity and places the others elsewhere (O5)', async () => {
+    const prepared = prepareProposal(
+      input({
+        rooms: [room('R1', 1), room('R2', 2)],
+        hasHardAttribute: true,
+        participants: [
+          person('L1', 0, 'Ž', { savedRoomId: 'R1', locked: true }),
+          person('L2', 1, 'Ž', { savedRoomId: 'R1', locked: true }),
+          person('P3', 2, 'Ž'),
+          person('P4', 3, 'Ž'),
+        ],
+      }),
+    );
+    expect(prepared.warnings).toEqual([{ roomId: 'R1', kind: 'overCapacity' }]);
+    const expected = { L1: 'R1', L2: 'R1', P3: 'R2', P4: 'R2' };
+
+    const placement = placeByPriority(
+      prepared,
+      await loadHighs(),
+      Date.now() + 30_000,
+    );
+    expect(roomsOf(prepared, placement.layout)).toEqual(expected);
+    expect(roomsOf(prepared, await solveExact(prepared))).toEqual(expected);
+  });
+});
+
 describe('the exact U1 placement', () => {
   it('places the most people, by person order, without mixing values', async () => {
     // A single room and one of three beds: the men fill the large room, the
