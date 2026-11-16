@@ -252,7 +252,7 @@ export function EventPublicPresentation({
                             Od prvního otevření přihlašování popis nelze měnit.
                           </FormDescription>
                         ) : null}
-                        <FormMessage />
+                        <FormMessage className="min-h-0" />
                       </FormItem>
                     )}
                   />
@@ -276,7 +276,7 @@ export function EventPublicPresentation({
                         <FormDescription>
                           Každou podmínku napište na samostatný řádek.
                         </FormDescription>
-                        <FormMessage />
+                        <FormMessage className="min-h-0" />
                       </FormItem>
                     )}
                   />
