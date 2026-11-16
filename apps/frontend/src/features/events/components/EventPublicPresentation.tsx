@@ -8,6 +8,7 @@ import { FormError } from "@/components/FormError"
 import { PendingButton } from "@/components/PendingButton"
 import { Card, CardContent } from "@/components/ui/card"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
+import { FieldLegend, FieldSet } from "@/components/ui/field"
 import {
   Form,
   FormControl,
@@ -231,8 +232,8 @@ export function EventPublicPresentation({
                 onSubmit={form.handleSubmit(submit)}
                 className="space-y-8"
               >
-                <fieldset className="space-y-4">
-                  <legend className="mb-4 text-base font-medium">O akci</legend>
+                <FieldSet>
+                  <FieldLegend>O akci</FieldLegend>
                   <FormField
                     control={form.control}
                     name="description"
@@ -276,10 +277,10 @@ export function EventPublicPresentation({
                       </FormItem>
                     )}
                   />
-                </fieldset>
+                </FieldSet>
 
-                <fieldset className="space-y-4">
-                  <legend className="mb-4 text-base font-medium">Veřejný kontakt</legend>
+                <FieldSet>
+                  <FieldLegend>Veřejný kontakt</FieldLegend>
                   <p className="text-sm text-muted-foreground">
                     Zobrazí se na veřejném detailu akce. Kontakt vašeho účtu se nezveřejňuje.
                   </p>
@@ -335,7 +336,7 @@ export function EventPublicPresentation({
                       </FormItem>
                     )}
                   />
-                </fieldset>
+                </FieldSet>
 
                 {errorMessage ? <FormError message={errorMessage} /> : null}
                 <div className="flex justify-end">
