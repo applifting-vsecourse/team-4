@@ -326,15 +326,16 @@ slice on top of the parent PR. Its head must be its own: commit statuses belong
 to the commit, so the PR is refused while another open PR has the same head
 commit or branch.
 
-The `child-verify` status is published only on PRs into an integration branch. It
-passes when the latest CI run made for this PR into its current base (the latest
-attempt of each job) passed the lanes for the PR's role:
+The integration branch's `child-verify` status passes when the PR satisfies
+its delivery policy and the latest CI run for this PR into its current base
+(the latest attempt of each job) passed the lanes for the PR's role:
 `checks` and `stories` for frontend, `checks` and `database` for backend, and
 `checks`, `database` and `stories` for integration PRs. E2E does not run on these
 PRs. Any other link fails it. CI does not re-run on a retarget, so a run from
 before the PR's latest base change never counts: push a commit, or close and
 reopen the PR. PRs from forks are not supported, because GitHub does not
-associate their CI runs with the PR.
+associate their CI runs with the PR. A PR that skips Copilot on its way to
+`main` clears any earlier successful `child-verify` status on that commit.
 
 The agent-review runner reviews these PRs like any other, but records no
 requirements step, posts no QA handoff and requests no QA. A review from before
@@ -391,11 +392,13 @@ need review evidence or a manual waiver under the integration rules.
 
 After changing the secret, start a **new run** of **Agent code review** with
 **dry run** turned off. That workflow also reconciles **Delivery stages**.
-Scheduled runs also pick up the change. After restoring the requirement,
-check that reconciliation has finished before merging: GitHub keeps the
-previous status visible until it is updated. An open PR that relied on a
-paused handoff needs review or a valid waiver and the corresponding QA
-handoff before merge.
+Scheduled runs also pick up the change. When restoring the requirement, first
+remove the secret, then let all previously queued or running **Agent code
+review** and **Delivery stage enforcement** runs finish or cancel them.
+[GitHub reads repository secrets when it queues a run](https://docs.github.com/en/actions/reference/security/secrets#when-github-actions-reads-secrets).
+Start a fresh **Agent code review** run after those earlier runs clear and
+check each affected PR's `Delivery stages` result before merging. An open PR that relied on a paused
+handoff needs review or a valid waiver and the corresponding QA handoff.
 
 ## Manual Copilot waiver
 

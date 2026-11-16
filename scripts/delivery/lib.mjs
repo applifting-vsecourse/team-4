@@ -216,6 +216,7 @@ export function evaluate({
   copilotReviewPaused = false,
 }) {
   const reasons = [];
+  let copilotReviewSkipped = false;
   let severity;
   try {
     severity = severityFor(pr);
@@ -297,7 +298,8 @@ export function evaluate({
       (!start ||
         Date.parse(verdict.created_at) >= Date.parse(start.created_at)) &&
       agentReviewPassed(evidence);
-    const paused = copilotReviewPaused && !reviewed;
+    const paused = copilotReviewPaused && !reviewed && !waiver;
+    copilotReviewSkipped ||= paused;
     // A previously reviewed commit can keep its normal QA handoff.
     const handoffMarker = qaHandoffMarker(pr.number, sha, issue.number, {
       waiver,
@@ -362,5 +364,5 @@ export function evaluate({
       }
     }
   }
-  return { pass: reasons.length === 0, reasons };
+  return { pass: reasons.length === 0, reasons, copilotReviewSkipped };
 }

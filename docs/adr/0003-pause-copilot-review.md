@@ -1,6 +1,6 @@
 # ADR-0003: Pause Copilot review during outages
 
-- **Status:** Proposed
+- **Status:** Accepted 2026-11-16 in #422
 - **Proposed:** 2026-11-16
 - **Deciders:** Tech lead or PM
 - **Related:** #421, #419

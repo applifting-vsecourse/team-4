@@ -767,6 +767,41 @@ async function processIssue(board, item) {
       (p) => p.state === 'OPEN' && p.repository.nameWithOwner === cfg.repo,
     )
     .map((p) => p.number);
+  // A preview can return to Sprint Backlog while its PR is still open.
+  // Requeue an updated preview, or one that relied on the pause when it ends.
+  if (item.status.name === 'Sprint Backlog') {
+    if (!linkedNumbers.length) return;
+    const prefix = issueMarker({
+      issue: issue.number,
+      state: 'storybook-preview-approved|',
+    }).slice(0, -4);
+    const approved = (await listComments(issue.number)).findLast(
+      (c) =>
+        c.user?.login === 'github-actions[bot]' && c.body?.startsWith(prefix),
+    );
+    const results = approved?.body.slice(prefix.length).split(' -->')[0];
+    if (!results) return;
+    let needsReview = false;
+    for (const result of results.split(',')) {
+      const [pr, reviewedHead, verdict] = result.split(':');
+      if (!linkedNumbers.includes(Number(pr))) continue;
+      const current = await api(
+        cfg.githubToken,
+        `/repos/${cfg.repo}/pulls/${pr}`,
+      );
+      if (
+        current.state === 'open' &&
+        !current.draft &&
+        (current.head.sha.slice(0, 7) !== reviewedHead ||
+          (verdict === 'skipped' && !cfg.copilotReviewPaused))
+      ) {
+        needsReview = true;
+        break;
+      }
+    }
+    if (!needsReview || !(await moveStatus(board, item, STATUS_REVIEW))) return;
+    item = { ...item, status: { name: STATUS_REVIEW } };
+  }
   // PRs into an integration branch get agent review only; every other PR
   // goes through the flow below.
   const prNumbers = [];
@@ -1234,7 +1269,6 @@ async function processIssue(board, item) {
     previewOnly &&
     technicalPending.length === 0
   ) {
-    moved = await moveStatus(board, item, 'Sprint Backlog');
     const state = `storybook-preview-approved|${resultsKey(results) || 'no-pr'}`;
     const marker = issueMarker({ issue: issue.number, state });
     if (!hasBotComment(await listComments(issue.number), marker)) {
@@ -1243,6 +1277,7 @@ async function processIssue(board, item) {
         `${marker}\nStorybook preview cleared the code review stage and received current-commit PM approval. No separate QA handoff is required; the issue remains open in Sprint Backlog.`,
       );
     }
+    moved = await moveStatus(board, item, 'Sprint Backlog');
   } else if (handoffReady) {
     moved = await moveStatus(
       board,
@@ -1408,6 +1443,7 @@ if (!board.project.field) throw new Error('Status field not found');
 const candidates = board.items.filter(
   (i) =>
     [
+      'Sprint Backlog',
       'In Progress',
       STATUS_REVIEW,
       STATUS_TESTING,

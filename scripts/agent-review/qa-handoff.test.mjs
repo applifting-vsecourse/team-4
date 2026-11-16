@@ -51,6 +51,7 @@ async function scenario(options) {
           (options.unapproved ? 'severity:high' : 'severity:standard'),
       },
       ...(options.technicalReview ? [{ name: 'technical-review' }] : []),
+      ...(options.preview ? [{ name: 'design:storybook-preview' }] : []),
     ],
     issue_url: `https://api.github.com/repos/owner/repo/issues/${12 + i}`,
     user: { login: author },
@@ -275,6 +276,7 @@ async function scenario(options) {
                     'In Progress',
                     'Ready for Code Review',
                     'Ready for Testing',
+                    'Sprint Backlog',
                   ].map((name) => ({ id: name, name })),
                 },
                 items: {
@@ -403,7 +405,7 @@ async function scenario(options) {
           workflow_runs: [
             {
               id: 1,
-              head_sha: sha,
+              head_sha: new URL(url).searchParams.get('head_sha') ?? sha,
               event: 'pull_request',
               path: '.github/workflows/ci.yml',
               repository: { full_name: 'owner/repo' },
@@ -418,7 +420,7 @@ async function scenario(options) {
       else data = { workflow_runs: [] };
     } else if (/\/pulls\/\d+$/.test(path)) {
       if (
-        options.freshReview &&
+        (options.freshReview || options.pushAfterFirst) &&
         opts.headers.Accept === 'application/vnd.github.diff'
       ) {
         return {
@@ -454,7 +456,10 @@ async function scenario(options) {
             : pr?.base,
         head: {
           ref: pr?.head?.ref,
-          sha: options.pushDuringReview && count >= 3 ? 'b'.repeat(40) : sha,
+          sha:
+            options.pushDuringReview && count >= 3
+              ? 'b'.repeat(40)
+              : pr?.head?.sha,
         },
       };
     } else throw new Error('Unexpected API: ' + path);
@@ -464,6 +469,11 @@ async function scenario(options) {
     process.exitCode = 0;
     await import(`./scripts/agent-review/run.mjs?qa-test=${i}`);
     calls.push('exit:' + (process.exitCode ?? 0));
+    if (i === 0 && options.pushAfterFirst) {
+      for (const pr of prs) pr.head.sha = 'b'.repeat(40);
+      for (const review of reviews) review.commit_id = 'b'.repeat(40);
+    }
+    if (i === options.resumeAfterRun) delete process.env.PAUSE_COPILOT_REVIEW;
     if (i === 0 && options.unstackAfterFirst)
       for (const pr of prs) pr.base = { ref: 'main' };
     if (i === 0 && options.replaceAfterFirst) {
@@ -748,6 +758,59 @@ test('a paused stack still hands off and requests QA only on its tip', () => {
   assert.deepEqual(r.requested, { 12: [], 13: ['MatejKrones'] });
   assert.deepEqual(r.freshQaWhilePaused, [true, true]);
   assert.deepEqual(r.freshQaAfterResuming, [false, false]);
+});
+
+test('restoring review revisits an open paused preview in Sprint Backlog', () => {
+  const r = run({
+    authors: ['developer'],
+    binaryOnly: true,
+    ciPassed: true,
+    freshReview: true,
+    pauseCopilot: true,
+    preview: true,
+    resumeAfterRun: 0,
+    runs: 2,
+  });
+  assert.equal(r.status, 'Sprint Backlog');
+  assert.deepEqual(
+    r.calls.filter((c) => c.startsWith('status:')),
+    [
+      'status:Sprint Backlog',
+      'status:Ready for Code Review',
+      'status:Sprint Backlog',
+    ],
+  );
+  assert.ok(r.prComments[12].some((c) => c.includes('result=pass')));
+  assert.deepEqual(r.handoffs, [0]);
+  assert.deepEqual(r.requested, { 12: [] });
+});
+
+test('a new preview head is tracked while paused even if its previous head passed', () => {
+  const r = run({
+    authors: ['developer'],
+    binaryOnly: true,
+    ciPassed: true,
+    pauseCopilot: true,
+    preview: true,
+    pushAfterFirst: true,
+    resumeAfterRun: 1,
+    runs: 3,
+  });
+  assert.equal(r.status, 'Sprint Backlog');
+  assert.equal(
+    r.calls.filter((c) => c === 'status:Ready for Code Review').length,
+    2,
+  );
+  assert.ok(
+    r.issueComments.some((c) =>
+      c.includes('state=storybook-preview-approved|12:bbbbbbb:skipped'),
+    ),
+  );
+  assert.ok(
+    r.prComments[12].some((c) =>
+      c.includes(`sha=${'b'.repeat(40)} result=pass`),
+    ),
+  );
 });
 
 test('only the exact enabled setting pauses review', () => {
