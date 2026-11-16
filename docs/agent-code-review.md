@@ -8,7 +8,7 @@ Technické zadání: [#78](https://github.com/applifting-vsecourse/team-4/issues
 2. Workflow reaguje na změny PR a odeslaná či zrušená review. Board navíc kontroluje plánovaně každých 5 minut; GitHub může plánované běhy zpozdit. Spouští se důvěryhodný kód z main, nikoli kód z PR.
 3. Pro každou issue v tomto sloupci najde všechny **otevřené PR propojené přes `Closes #N` nebo `Refs #N`** a každý z nich zrevidují agentem **GitHub Copilot CLI**. Agent dostane diff, název a popis PR, text issue a pravidla z `CLAUDE.md` a `DESIGN.md` z větve `main`. Nemá žádné nástroje a nespouští kód z PR.
 4. Výsledek se zapíše jako komentář **u PR** (revidovaný commit, blokující nálezy a poznámky) a odkaz na něj jako komentář **u issue**.
-5. Pokud **všechny** propojené PR prošly bez **blokujících** nálezů pro svůj aktuální commit nebo pro něj mají platnou ruční výjimku od Davida, karta se přesune do **Ready for Testing**. Bot zveřejní předání do QA a odešle GitHub žádost o review uživateli `MatejKrones`; u Matějových PR uživateli `darebakdavca`. Jinak karta zůstává v Ready for Code Review a komentář u issue uvádí důvod.
+5. Pokud **všechny** propojené PR prošly bez **blokujících** nálezů pro svůj aktuální commit nebo pro něj mají platnou ruční výjimku od člověka, karta se přesune do **Ready for Testing**. Bot zveřejní předání do QA a odešle GitHub žádost o review uživateli `MatejKrones`; u Matějových PR uživateli `darebakdavca`. Jinak karta zůstává v Ready for Code Review a komentář u issue uvádí důvod.
 
 Review nenahrazuje testování ani lidského reviewera.
 
@@ -48,13 +48,14 @@ Samotné dokončení běhu ani absence komentářů úspěch neznamená.
 
 ## Ruční výjimka z Copilot review
 
-Pouze `darebakdavca` může přímo na PR napsat samostatný komentář
-`/copilot-waive <celé aktuální SHA> <zdůvodnění>`. Platí pro tento commit daného
-PR; ostatní propojené PR musí splnit vlastní review podmínku. Výjimka se zapíše
-jako ruční rozhodnutí s odkazem na příkaz, nikoli jako Copilot `pass`; původní
-nálezy se nemažou. Schválení požadavků, CI a lidské QA po předání zůstávají
-povinné. Nový commit vyžaduje novou výjimku nebo úspěšné review. Úprava či smazání
-příkazu se znovu ověří; starý bot komentář výjimku neudržuje v platnosti.
+Každý člověk, který může na PR komentovat, včetně autora PR, může napsat
+samostatný komentář `/copilot-waive <celé aktuální SHA> <zdůvodnění>`. Platí pro
+tento commit daného PR; ostatní propojené PR musí splnit vlastní review podmínku.
+Boti se nepřijímají. Výjimka se zapíše jako ruční rozhodnutí s odkazem na příkaz,
+nikoli jako Copilot `pass`; původní nálezy se nemažou. Schválení požadavků, CI a
+lidské QA po předání zůstávají povinné. Nový commit vyžaduje novou výjimku nebo
+úspěšné review. Úprava či smazání příkazu se znovu ověří; starý bot komentář
+výjimku neudržuje v platnosti.
 Podrobnosti a pravidla QA jsou v [delivery workflow](delivery-workflow.md#manual-copilot-waiver).
 
 ## Ruční spuštění

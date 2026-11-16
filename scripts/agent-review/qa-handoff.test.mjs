@@ -684,10 +684,11 @@ test('owner waiver bypasses cached findings and requests QA with an explicit man
   );
 });
 
-test('owner waiver does not need a model verdict and works for David and Matej PRs', () => {
+test('a human waiver does not need a model verdict and works for David and Matej PRs', () => {
   const r = run({
     authors: ['darebakdavca', 'MatejKrones'],
     waiver: true,
+    waiverUser: 'MatejKrones',
     noVerdict: true,
   });
   assert.equal(r.status, 'Ready for Testing');
@@ -700,7 +701,6 @@ test('owner waiver does not need a model verdict and works for David and Matej P
 });
 
 for (const options of [
-  { waiverUser: 'MatejKrones' },
   { waiverSha: 'b'.repeat(40) },
   { draft: true },
   { unapproved: true },

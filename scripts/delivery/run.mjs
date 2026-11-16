@@ -572,6 +572,7 @@ for (let pr of candidates) {
         qaFrom.sha
     )
       throw new Error('Stack tip changed during evaluation');
+    const waiver = copilotWaiver({ pr, comments });
     const summary = result.pass
       ? severityFor(pr) === 'low'
         ? 'Low severity: issue linkage, requirements, code review and QA are not required; CI remains required.'
@@ -579,8 +580,8 @@ for (let pr of candidates) {
           ? 'Storybook design preview: CI, independent review and current PM approval passed; separate QA is skipped.'
           : qaFrom
             ? `Requirements and agent review passed; QA approved stack tip #${qaFrom.number}, which contains this PR.`
-            : copilotWaiver({ pr, comments })
-              ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
+            : waiver
+              ? `Requirements satisfied; Copilot review manually waived by @${waiver.actor}; QA approved this commit after handoff.`
               : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; agent review passed before QA approved this commit.`
       : result.reasons.join(' ');
     for (const issue of issues) {
