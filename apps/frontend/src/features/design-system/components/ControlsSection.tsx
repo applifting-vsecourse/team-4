@@ -20,6 +20,12 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@/components/ui/input-group"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Select,
@@ -129,17 +135,15 @@ function ValidationForm() {
           name="consent"
           render={({ field }) => (
             <FormItem>
-              <div className="flex items-start gap-2">
+              <Field orientation="horizontal">
                 <FormControl>
                   <Checkbox
                     checked={field.value}
                     onCheckedChange={(checked) => field.onChange(checked === true)}
                   />
                 </FormControl>
-                <FormLabel className="leading-snug font-normal">
-                  Souhlasím se zpracováním osobních údajů
-                </FormLabel>
-              </div>
+                <FormLabel>Souhlasím se zpracováním osobních údajů</FormLabel>
+              </Field>
               <FormMessage />
             </FormItem>
           )}
@@ -245,6 +249,21 @@ export function ControlsSection() {
                 id="ds-input-long"
                 defaultValue={LONG_TEXT}
               />
+            </Field>
+          </ShowcaseItem>
+          <ShowcaseItem label="InputGroup">
+            <Field>
+              <FieldLabel htmlFor="ds-input-group">Cena</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="ds-input-group"
+                  inputMode="numeric"
+                  defaultValue="4 500"
+                />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText>Kč</InputGroupText>
+                </InputGroupAddon>
+              </InputGroup>
             </Field>
           </ShowcaseItem>
           <ShowcaseItem label="Select">
