@@ -8,7 +8,8 @@ import {
 // Spike of S3-T3 (#181, spec v4 §9) for phase 1: the worst case the
 // evaluation must handle in 30 s per term. 200 participants over three
 // overlapping terms, many rooms of the same size, gender as the hard
-// attribute.
+// attribute. Room proposals (phase 2) have their own benchmark:
+// solver:proposal-benchmark.
 //
 //   pnpm backend solver:benchmark
 
