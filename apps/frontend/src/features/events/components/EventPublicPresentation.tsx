@@ -257,10 +257,10 @@ export function EventPublicPresentation({
                       </FormItem>
                     )}
                   />
-                </fieldset>
+                </FieldSet>
 
-                <fieldset className="space-y-4">
-                  <legend className="mb-4 text-base font-medium">Podmínky účasti</legend>
+                <FieldSet>
+                  <FieldLegend>Podmínky účasti</FieldLegend>
                   <FormField
                     control={form.control}
                     name="conditions"
