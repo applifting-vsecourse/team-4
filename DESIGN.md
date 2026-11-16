@@ -57,6 +57,7 @@ You are extending an existing product, not designing a new one. Most UI rework s
 
 ## Forms
 
+- **Use the shared `Field` primitives for every labeled control.** Pair `Field` with `FieldLabel`; use `FieldSet` and `FieldLegend` for related options, and horizontal `Field` rows for checkbox and radio choices. The React Hook Form helpers (`FormItem`, `FormLabel`, descriptions and messages) render through the same primitives.
 - **Guide input instead of only rejecting it.** Disable impossible choices (dates that overlap a stored term or end before the start) and reveal a follow-up field as soon as its option is picked (e.g. „Jiná odpověď“ → text input).
 - **Required fields are marked**, and an invalid submit moves focus to the first invalid field without clearing the other values.
 
@@ -94,7 +95,7 @@ You are extending an existing product, not designing a new one. Most UI rework s
 
 Import from `@/components/ui/<name>` and use the component meant for the job (`Button` for buttons, `Select` for selects, `Table` for tables, ...). The `/design-system` page shows what exists and how each looks in every state; its source in `src/features/design-system/components/` is a working usage example for each one, including a validated form (`react-hook-form` + `zod` + `Form`).
 
-Currently in the kit: alert, aspect-ratio, avatar, badge, breadcrumb, button, card, checkbox, command, dialog, dropdown-menu, empty, form, input, label, popover, progress, radio-group, select, separator, sheet, sidebar, skeleton, sonner (toasts), switch, table, tabs, textarea, tooltip.
+Currently in the kit: alert, aspect-ratio, avatar, badge, breadcrumb, button, card, checkbox, command, dialog, dropdown-menu, empty, field, form, input, label, popover, progress, radio-group, select, separator, sheet, sidebar, skeleton, sonner (toasts), switch, table, tabs, textarea, tooltip.
 
 Patterns built from them:
 
@@ -149,25 +150,25 @@ Light and dark values are defined in `global.css`. Utility class = `bg-`/`text-`
 
 The visual direction is **"Ticket stub"** (S3-T2): warm paper surfaces, dark warm ink for text and outlines, lime for action. Dark mode is **"Night ticket"**, a palette of its own rather than an inversion: cool, barely tinted slate surfaces (hue 262) so lime stays the only loud colour; elevation by lighter surfaces (sidebar < background < card < popover, hover and selection lighter still); off-white text instead of pure white; slightly desaturated accents and status colours in OKLCH. In dark mode cards are outlined in `border` and stand out by their surface; form controls and buttons keep the `input` outline. No large light areas in dark mode: tooltips use the `popover` surface there, paper-coloured illustrations are dimmed, and inverted panels become dark cards (see Shape).
 
-| Token                                       | Light                                                     | Dark                                                               | Use for                                                           |
-| ------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| `background` / `foreground`                 | `oklch(0.955 0.035 95)` paper / `oklch(0.17 0.03 60)` ink | `oklch(0.175 0.012 262)` slate / `oklch(0.93 0.006 262)` off-white | Page                                                              |
-| `card` / `card-foreground`                  | `oklch(0.99 0.018 95)` / ink                              | `oklch(0.212 0.014 262)` / off-white                               | Cards, tables, panels                                             |
-| `popover` / `popover-foreground`            | same as `card`                                            | `oklch(0.25 0.015 262)` / off-white                                | Menus, popovers, select lists                                     |
-| `primary` / `primary-foreground`            | `oklch(0.87 0.21 125)` lime / ink                         | `oklch(0.88 0.19 128)` / `oklch(0.21 0.035 135)`                   | Main action, active state (lime with ink text)                    |
-| `secondary`, `muted`, `accent`              | `oklch(0.91 0.04 95)`                                     | `oklch(0.262 0.014 262)`; `accent` `oklch(0.3 0.016 262)`          | Secondary buttons, subdued surfaces, light form field fill, hover |
-| `muted-foreground`                          | `oklch(0.42 0.04 60)`                                     | `oklch(0.74 0.015 262)`                                            | Secondary text, descriptions                                      |
-| `border`                                    | `oklch(0.78 0.04 85)`                                     | `oklch(0.33 0.014 262)`; also the card outline                     | Dividers, table rules                                             |
-| `input`                                     | ink                                                       | `oklch(0.54 0.016 262)`                                            | Form control outlines                                             |
-| `input-editable-surface`                    | `oklch(1 0 0)` white                                      | `oklch(0.15 0.012 262)` dark slate                                 | Editable text inputs                                              |
-| `ring`                                      | `oklch(0.55 0.2 30)` brick                                | `oklch(0.72 0.13 250)` blue                                        | Focus ring                                                        |
-| `destructive`                               | `#b91c1c`                                                 | `oklch(0.69 0.19 23)`                                              | Destructive actions, form errors                                  |
-| `destructive-subtle` / `-subtle-foreground` | `#fef2f2` / `#b91c1c`                                     | `oklch(0.285 0.07 23)` / `oklch(0.81 0.11 23)`                     | Failed, error status                                              |
-| `success` / `success-subtle`                | `#166534` / `#f0fdf4`                                     | `oklch(0.8 0.15 152)` / `oklch(0.28 0.055 155)`                    | Confirmed, paid                                                   |
-| `warning` / `warning-subtle`                | `#c2410c` / `#fff7ed`                                     | `oklch(0.82 0.14 72)` amber / `oklch(0.3 0.06 65)`                 | Waitlisted (náhradník), partially paid                            |
-| `sidebar*`                                  | page surface and text; warm active item                   | `oklch(0.155 0.011 262)`, below the page; active item on `accent`  | Organizer navigation                                              |
-| `chart-1` … `chart-5`                       | blue, lime, green, orange, gray                           | same                                                               | Charts only                                                       |
-| `overlay`                                   | black at 50 % opacity                                     | black at 65 % opacity                                              | Scrim behind dialogs and sheets                                   |
+| Token                                       | Light                                                     | Dark                                                               | Use for                                        |
+| ------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------- |
+| `background` / `foreground`                 | `oklch(0.955 0.035 95)` paper / `oklch(0.17 0.03 60)` ink | `oklch(0.175 0.012 262)` slate / `oklch(0.93 0.006 262)` off-white | Page                                           |
+| `card` / `card-foreground`                  | `oklch(0.99 0.018 95)` / ink                              | `oklch(0.212 0.014 262)` / off-white                               | Cards, tables, panels                          |
+| `popover` / `popover-foreground`            | same as `card`                                            | `oklch(0.25 0.015 262)` / off-white                                | Menus, popovers, select lists                  |
+| `primary` / `primary-foreground`            | `oklch(0.87 0.21 125)` lime / ink                         | `oklch(0.88 0.19 128)` / `oklch(0.21 0.035 135)`                   | Main action, active state (lime with ink text) |
+| `secondary`, `muted`, `accent`              | `oklch(0.91 0.04 95)`                                     | `oklch(0.262 0.014 262)`; `accent` `oklch(0.3 0.016 262)`          | Secondary buttons, subdued surfaces, hover     |
+| `muted-foreground`                          | `oklch(0.42 0.04 60)`                                     | `oklch(0.74 0.015 262)`                                            | Secondary text, descriptions                   |
+| `border`                                    | `oklch(0.78 0.04 85)`                                     | `oklch(0.33 0.014 262)`; also the card outline                     | Dividers, table rules                          |
+| `input`                                     | ink                                                       | `oklch(0.54 0.016 262)`                                            | Form control outlines                          |
+| `input-editable-surface`                    | `oklch(1 0 0)` white                                      | `oklch(0.15 0.012 262)` dark slate                                 | Editable form controls                         |
+| `ring`                                      | `oklch(0.55 0.2 30)` brick                                | `oklch(0.72 0.13 250)` blue                                        | Focus ring                                     |
+| `destructive`                               | `#b91c1c`                                                 | `oklch(0.69 0.19 23)`                                              | Destructive actions, form errors               |
+| `destructive-subtle` / `-subtle-foreground` | `#fef2f2` / `#b91c1c`                                     | `oklch(0.285 0.07 23)` / `oklch(0.81 0.11 23)`                     | Failed, error status                           |
+| `success` / `success-subtle`                | `#166534` / `#f0fdf4`                                     | `oklch(0.8 0.15 152)` / `oklch(0.28 0.055 155)`                    | Confirmed, paid                                |
+| `warning` / `warning-subtle`                | `#c2410c` / `#fff7ed`                                     | `oklch(0.82 0.14 72)` amber / `oklch(0.3 0.06 65)`                 | Waitlisted (náhradník), partially paid         |
+| `sidebar*`                                  | page surface and text; warm active item                   | `oklch(0.155 0.011 262)`, below the page; active item on `accent`  | Organizer navigation                           |
+| `chart-1` … `chart-5`                       | blue, lime, green, orange, gray                           | same                                                               | Charts only                                    |
+| `overlay`                                   | black at 50 % opacity                                     | black at 65 % opacity                                              | Scrim behind dialogs and sheets                |
 
 Status meaning, used consistently across the app:
 
@@ -185,7 +186,7 @@ Filled in by shadcn convention: `popover-foreground`, `accent-foreground`, `dest
 The ticket-stub shape is part of the components, set once in `global.css`; pages don't recreate it:
 
 - `Card`, filled and outline `Button`s, `Input`, `Textarea` and `Select` triggers have a 1.5 px `foreground` outline (focus and invalid states keep their own colour). Badges keep their 1 px border. A button keeps the shape as a trigger too (`DialogTrigger asChild` and the like): the rules match its variant and size, not its `data-slot`.
-- In light mode form fields (`Input`, `Textarea`, `Select` triggers, radios and unchecked checkboxes) take the `muted` surface, so they remain distinct from both the paper page and card panels. Editable text inputs may use the `editable` surface when the muted fill could read as disabled; it is white in light mode and dark slate in dark mode. Disabled inputs stay faded.
+- Editable form fields (`Input`, `Textarea`, `Select` triggers, date pickers, radio and checkbox controls, and input groups) use `input-editable-surface` by default: white in light mode and dark slate in dark mode. Cards keep the warm `card` surface, so fields remain outlined and distinguishable inside them. Checked checkboxes and radios keep the primary fill; disabled controls stay faded.
 - Cards and those buttons cast a small hard shadow (`2px 2px 0` in `foreground`); a pressed button shifts by 1 px. The `shadow-*` tokens are hard offset shadows in `foreground`, too. In dark mode there are no shadows: the `shadow-*` tokens are empty and depth comes from lighter surfaces and outlines. Ghost and link buttons have neither outline nor shadow.
 - A panel inverted with `bg-foreground`/`text-background` in light mode adds `dark:bg-card dark:text-card-foreground dark:border-border`, so it stays a dark card in dark mode instead of turning into a light block.
 - `h1`–`h3` and card titles are weight 800 with -0.03 em tracking.

@@ -1,7 +1,7 @@
 import { FormError } from "@/components/FormError"
 import { Card, CardContent } from "@/components/ui/card"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
-import { Label } from "@/components/ui/label"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 
 type PublicationSectionProps = {
@@ -27,15 +27,15 @@ export function PublicationSection({
       <Card>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <Label htmlFor="event-published">Zveřejnit ve veřejném katalogu</Label>
+            <Field orientation="horizontal">
+              <FieldLabel htmlFor="event-published">Zveřejnit ve veřejném katalogu</FieldLabel>
               <Switch
                 id="event-published"
                 checked={isPublished}
                 disabled={isPending}
                 onCheckedChange={onChange}
               />
-            </div>
+            </Field>
             {errorMessage ? <FormError message={errorMessage} /> : null}
           </div>
         </CardContent>

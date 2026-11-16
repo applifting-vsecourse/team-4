@@ -15,7 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
-import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Select,
@@ -152,20 +151,20 @@ export function QueueMoveDialog({
                 : { defaultValue: placement })}
               aria-label="Umístění"
             >
-              <div className="flex items-center gap-2">
+              <Field orientation="horizontal">
                 <RadioGroupItem
                   id="move-before"
                   value="before"
                 />
-                <Label htmlFor="move-before">Před osobu</Label>
-              </div>
-              <div className="flex items-center gap-2">
+                <FieldLabel htmlFor="move-before">Před osobu</FieldLabel>
+              </Field>
+              <Field orientation="horizontal">
                 <RadioGroupItem
                   id="move-after"
                   value="after"
                 />
-                <Label htmlFor="move-after">Za osobu</Label>
-              </div>
+                <FieldLabel htmlFor="move-after">Za osobu</FieldLabel>
+              </Field>
             </RadioGroup>
 
             <Field data-invalid={targetError ? true : undefined}>

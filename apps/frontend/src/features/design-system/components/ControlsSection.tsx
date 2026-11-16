@@ -9,6 +9,7 @@ import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DatePicker } from "@/components/ui/date-picker"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import {
   Form,
   FormControl,
@@ -19,7 +20,6 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Select,
@@ -153,14 +153,14 @@ function ValidationForm() {
 function DatePickerDemo() {
   const [value, setValue] = useState("")
   return (
-    <>
-      <Label htmlFor="ds-date">Začátek</Label>
+    <Field>
+      <FieldLabel htmlFor="ds-date">Začátek</FieldLabel>
       <DatePicker
         id="ds-date"
         value={value}
         onChange={setValue}
       />
-    </>
+    </Field>
   )
 }
 
@@ -207,85 +207,94 @@ export function ControlsSection() {
       >
         <div className="grid gap-6 sm:grid-cols-2">
           <ShowcaseItem label="Input">
-            <Label htmlFor="ds-input">Název akce</Label>
-            <Input
-              id="ds-input"
-              placeholder="Letní tábor 2027"
-            />
+            <Field>
+              <FieldLabel htmlFor="ds-input">Název akce</FieldLabel>
+              <Input
+                id="ds-input"
+                placeholder="Letní tábor 2027"
+              />
+            </Field>
           </ShowcaseItem>
           <ShowcaseItem label="Input · disabled">
-            <Label htmlFor="ds-input-disabled">Variabilní symbol</Label>
-            <Input
-              id="ds-input-disabled"
-              value="2027000142"
-              disabled
-              readOnly
-            />
+            <Field>
+              <FieldLabel htmlFor="ds-input-disabled">Variabilní symbol</FieldLabel>
+              <Input
+                id="ds-input-disabled"
+                value="2027000142"
+                disabled
+                readOnly
+              />
+            </Field>
           </ShowcaseItem>
           <ShowcaseItem label="Input · aria-invalid">
-            <Label htmlFor="ds-input-invalid">E-mail</Label>
-            <Input
-              id="ds-input-invalid"
-              defaultValue="jana.novakova@"
-              aria-invalid
-              aria-describedby="ds-input-invalid-msg"
-            />
-            <p
-              id="ds-input-invalid-msg"
-              className="text-sm text-destructive"
-            >
-              Zadejte platný e-mail
-            </p>
+            <Field data-invalid="true">
+              <FieldLabel htmlFor="ds-input-invalid">E-mail</FieldLabel>
+              <Input
+                id="ds-input-invalid"
+                defaultValue="jana.novakova@"
+                aria-invalid
+                aria-describedby="ds-input-invalid-msg"
+              />
+              <FieldError id="ds-input-invalid-msg">Zadejte platný e-mail</FieldError>
+            </Field>
           </ShowcaseItem>
           <ShowcaseItem label="Input · dlouhý text">
-            <Label htmlFor="ds-input-long">Název</Label>
-            <Input
-              id="ds-input-long"
-              defaultValue={LONG_TEXT}
-            />
+            <Field>
+              <FieldLabel htmlFor="ds-input-long">Název</FieldLabel>
+              <Input
+                id="ds-input-long"
+                defaultValue={LONG_TEXT}
+              />
+            </Field>
           </ShowcaseItem>
           <ShowcaseItem label="Select">
-            <Label htmlFor="ds-select">Organizace</Label>
-            <Select>
-              <SelectTrigger
-                id="ds-select"
-                className="w-full"
-              >
-                <SelectValue placeholder="Vyberte organizaci" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="a">Skautské středisko Javor</SelectItem>
-                <SelectItem value="b">{LONG_TEXT}</SelectItem>
-                <SelectItem
-                  value="c"
-                  disabled
+            <Field>
+              <FieldLabel htmlFor="ds-select">Organizace</FieldLabel>
+              <Select>
+                <SelectTrigger
+                  id="ds-select"
+                  className="w-full"
                 >
-                  Archivovaná organizace
-                </SelectItem>
-              </SelectContent>
-            </Select>
+                  <SelectValue placeholder="Vyberte organizaci" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="a">Skautské středisko Javor</SelectItem>
+                  <SelectItem value="b">{LONG_TEXT}</SelectItem>
+                  <SelectItem
+                    value="c"
+                    disabled
+                  >
+                    Archivovaná organizace
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
           </ShowcaseItem>
           <ShowcaseItem label="Textarea">
-            <Label htmlFor="ds-textarea">Poznámka</Label>
-            <Textarea
-              id="ds-textarea"
-              placeholder="Alergie, strava, …"
-            />
+            <Field>
+              <FieldLabel htmlFor="ds-textarea">Poznámka</FieldLabel>
+              <Textarea
+                id="ds-textarea"
+                placeholder="Alergie, strava, …"
+              />
+            </Field>
           </ShowcaseItem>
           <ShowcaseItem label="Checkbox">
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="ds-checkbox"
-                defaultChecked
-              />
-              <Label htmlFor="ds-checkbox">Zobrazit náhradníky</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="ds-checkbox-disabled"
-                disabled
-              />
-              <Label htmlFor="ds-checkbox-disabled">Zakázané</Label>
+            <div className="space-y-2">
+              <Field orientation="horizontal">
+                <Checkbox
+                  id="ds-checkbox"
+                  defaultChecked
+                />
+                <FieldLabel htmlFor="ds-checkbox">Zobrazit náhradníky</FieldLabel>
+              </Field>
+              <Field orientation="horizontal">
+                <Checkbox
+                  id="ds-checkbox-disabled"
+                  disabled
+                />
+                <FieldLabel htmlFor="ds-checkbox-disabled">Zakázané</FieldLabel>
+              </Field>
             </div>
           </ShowcaseItem>
           <ShowcaseItem label="RadioGroup">
@@ -293,36 +302,38 @@ export function ControlsSection() {
               defaultValue="transfer"
               aria-label="Způsob platby"
             >
-              <div className="flex items-center gap-2">
+              <Field orientation="horizontal">
                 <RadioGroupItem
                   id="ds-radio-transfer"
                   value="transfer"
                 />
-                <Label htmlFor="ds-radio-transfer">Bankovní převod</Label>
-              </div>
-              <div className="flex items-center gap-2">
+                <FieldLabel htmlFor="ds-radio-transfer">Bankovní převod</FieldLabel>
+              </Field>
+              <Field orientation="horizontal">
                 <RadioGroupItem
                   id="ds-radio-cash"
                   value="cash"
                 />
-                <Label htmlFor="ds-radio-cash">Hotově na místě</Label>
-              </div>
+                <FieldLabel htmlFor="ds-radio-cash">Hotově na místě</FieldLabel>
+              </Field>
             </RadioGroup>
           </ShowcaseItem>
           <ShowcaseItem label="Switch">
-            <div className="flex items-center gap-2">
-              <Switch
-                id="ds-switch"
-                defaultChecked
-              />
-              <Label htmlFor="ds-switch">Přihlášky otevřené</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="ds-switch-disabled"
-                disabled
-              />
-              <Label htmlFor="ds-switch-disabled">Zakázané</Label>
+            <div className="space-y-2">
+              <Field orientation="horizontal">
+                <Switch
+                  id="ds-switch"
+                  defaultChecked
+                />
+                <FieldLabel htmlFor="ds-switch">Přihlášky otevřené</FieldLabel>
+              </Field>
+              <Field orientation="horizontal">
+                <Switch
+                  id="ds-switch-disabled"
+                  disabled
+                />
+                <FieldLabel htmlFor="ds-switch-disabled">Zakázané</FieldLabel>
+              </Field>
             </div>
           </ShowcaseItem>
           <ShowcaseItem label="DatePicker">
