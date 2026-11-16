@@ -253,11 +253,13 @@ export function RegistrationForm({
           </div>
         </section>
 
-        <fieldset className="space-y-5">
-          <legend className="mb-5 flex w-full flex-wrap items-center gap-3 text-h4">
-            <span>Kontaktní údaje</span>
-            <Badge variant="outline">Povinné</Badge>
-          </legend>
+        <FieldSet>
+          <FieldLegend>
+            <span className="flex w-full flex-wrap items-center gap-3">
+              <span className="text-h4">Kontaktní údaje</span>
+              <Badge variant="outline">Povinné</Badge>
+            </span>
+          </FieldLegend>
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
               control={form.control}
@@ -333,7 +335,7 @@ export function RegistrationForm({
               </FormItem>
             )}
           />
-        </fieldset>
+        </FieldSet>
 
         <section
           aria-label="Doplňující údaje"
@@ -359,8 +361,8 @@ export function RegistrationForm({
             )}
           />
 
-          <fieldset className="space-y-4">
-            <legend className="sr-only">Doprava, strava a zdraví</legend>
+          <FieldSet>
+            <FieldLegend className="sr-only">Doprava, strava a zdraví</FieldLegend>
             <FormField
               control={form.control}
               name="needs"
@@ -377,7 +379,7 @@ export function RegistrationForm({
                 />
               )}
             />
-          </fieldset>
+          </FieldSet>
         </section>
 
         {submitError ? <SubmitErrorAlert error={submitError} /> : null}
