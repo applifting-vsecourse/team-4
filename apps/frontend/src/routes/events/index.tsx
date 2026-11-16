@@ -52,7 +52,7 @@ function CatalogPage() {
       {events.length === 0 ? (
         <EventCatalogEmpty />
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <EventCatalogFilters
             filter={filter}
             onChange={setFilter}

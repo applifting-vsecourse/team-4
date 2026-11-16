@@ -1,10 +1,10 @@
+import { normalizeSearch } from "@/lib/search"
+
 import type { CatalogFilter, CatalogItem } from "@/features/public-events/api/publicEventSchemas"
 
-const normalize = (text: string) => text.trim().toLocaleLowerCase("cs")
+const contains = (text: string, query: string) => normalizeSearch(text).includes(query)
 
-const contains = (text: string, query: string) => normalize(text).includes(query)
-
-const hasText = (value: string | undefined) => (value?.trim() ?? "") !== ""
+const hasText = (value: string | undefined) => normalizeSearch(value) !== ""
 
 /** Whether any search or filter is on, so "Zrušit filtry" has something to clear. */
 export function isCatalogFiltered(filter: CatalogFilter): boolean {
@@ -19,13 +19,14 @@ export function isCatalogFiltered(filter: CatalogFilter): boolean {
 
 /**
  * The published events matching the search and every active filter (F54-2b),
- * in the API order. Text matches ignore letter case. A period matches an event
- * when at least one term overlaps it, both end days included; the two ends may
- * be picked in either order.
+ * in the API order. Text matches a part of the name, organizer or place,
+ * ignoring letter case and diacritics like the other searches of the app. A
+ * period matches an event when at least one term overlaps it, both end days
+ * included; the two ends may be picked in either order.
  */
 export function filterCatalog(items: CatalogItem[], filter: CatalogFilter): CatalogItem[] {
-  const query = normalize(filter.q ?? "")
-  const place = normalize(filter.place ?? "")
+  const query = normalizeSearch(filter.q)
+  const place = normalizeSearch(filter.place)
   const [from, to] =
     filter.from && filter.to && filter.from > filter.to
       ? [filter.to, filter.from]

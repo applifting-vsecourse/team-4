@@ -43,6 +43,12 @@ describe("filterCatalog", () => {
     expect(ids(filterCatalog([tabor, vikend], { q: "Hlinsko" }))).toEqual([])
   })
 
+  it("ignores diacritics in the search and the place", () => {
+    const zdar = event("zdar", { location: "Žďár nad Sázavou" })
+    expect(ids(filterCatalog([tabor, vikend], { q: "letni tabor" }))).toEqual(["tabor"])
+    expect(ids(filterCatalog([tabor, zdar], { place: "zdar" }))).toEqual(["zdar"])
+  })
+
   it("matches the place within the stored location, ignoring letter case", () => {
     const praha = event("praha", { location: "DDM Praha 4, Praha" })
     expect(ids(filterCatalog([tabor, praha], { place: "praha" }))).toEqual(["praha"])

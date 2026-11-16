@@ -30,16 +30,19 @@ export const Catalog: Story = {
   },
 }
 
-/** Search and filters combined from the URL: every one of them must match (F54-2b). */
+/**
+ * Filters combined from the URL: every one of them must match (F54-2b). The
+ * search starts empty, so typing narrows the filtered list further.
+ */
 export const FilterCombination: Story = {
-  args: { url: "/events?q=t%C3%A1bor&place=praha&open=true" },
+  args: { url: "/events?place=praha&open=true" },
   beforeEach: ({ msw }) => {
     msw.use(...publicEventHandlers.catalogList())
   },
   play: async (context) => {
     await showsHeading("Katalog akcí")(context)
     const canvas = within(context.canvasElement)
-    await expect(canvas.getByRole("searchbox", { name: "Hledat akci" })).toHaveValue("tábor")
+    await expect(canvas.getByRole("searchbox", { name: "Hledat akci" })).toHaveValue("")
     await expect(canvas.getByLabelText("Místo")).toHaveValue("praha")
     await expect(
       canvas.getByRole("switch", { name: "Pouze akce s otevřeným přihlašováním" }),
@@ -47,13 +50,16 @@ export const FilterCombination: Story = {
     await expect(
       await canvas.findByRole("link", { name: "Příměstský tábor Město hrou" }),
     ).toHaveAttribute("href", "/e/mesto-hrou-2027")
-    await expect(
-      canvas.queryByRole("link", { name: "Letní tábor Modrá Hora 2027" }),
-    ).not.toBeInTheDocument()
+    for (const name of ["Letní tábor Modrá Hora 2027", "Podzimní víkend pro mladé organizátory"]) {
+      await expect(canvas.queryByRole("link", { name })).not.toBeInTheDocument()
+    }
   },
 }
 
-/** The switch hides published events whose registration is not open. */
+/**
+ * The switch hides published events whose registration is not open. The check
+ * turns it off again, so the story ends on the whole catalog, ready to search.
+ */
 export const OnlyOpenRegistration: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...publicEventHandlers.catalogList())
@@ -63,15 +69,27 @@ export const OnlyOpenRegistration: Story = {
     const canvas = within(context.canvasElement)
     const notOpen = "Podzimní víkend pro mladé organizátory"
     await expect(await canvas.findByRole("link", { name: notOpen })).toBeInTheDocument()
-    await userEvent.click(
-      canvas.getByRole("switch", { name: "Pouze akce s otevřeným přihlašováním" }),
-    )
+    await expect(canvas.queryByRole("button", { name: "Zrušit filtry" })).not.toBeInTheDocument()
+    const panel = canvas.getByRole("search", { name: "Hledání akcí" })
+    const height = panel.getBoundingClientRect().height
+    const onlyOpen = canvas.getByRole("switch", { name: "Pouze akce s otevřeným přihlašováním" })
+    await userEvent.click(onlyOpen)
     await waitFor(() =>
       expect(canvas.queryByRole("link", { name: notOpen })).not.toBeInTheDocument(),
     )
     await expect(
       canvas.getByRole("link", { name: "Letní tábor Modrá Hora 2027" }),
     ).toBeInTheDocument()
+    // The clear button appears and goes away without moving the results.
+    await expect(await canvas.findByRole("button", { name: "Zrušit filtry" })).toBeVisible()
+    await expect(panel.getBoundingClientRect().height).toBe(height)
+
+    await userEvent.click(onlyOpen)
+    await expect(await canvas.findByRole("link", { name: notOpen })).toBeInTheDocument()
+    await waitFor(() =>
+      expect(canvas.queryByRole("button", { name: "Zrušit filtry" })).not.toBeInTheDocument(),
+    )
+    await expect(panel.getBoundingClientRect().height).toBe(height)
   },
 }
 
@@ -100,9 +118,9 @@ export const NoMatch: Story = {
   },
 }
 
-/** A retry after a failed load keeps the search and filters. */
+/** A retry after a failed load keeps the filters; the search starts empty. */
 export const RetryKeepsFilters: Story = {
-  args: { url: "/events?q=t%C3%A1bor" },
+  args: { url: "/events?place=hlinsko" },
   beforeEach: ({ msw }) => {
     msw.use(...publicEventHandlers.catalogListFailedOnce())
   },
@@ -111,8 +129,8 @@ export const RetryKeepsFilters: Story = {
     await expect(await canvas.findByText("Katalog se nepodařilo načíst")).toBeInTheDocument()
     await userEvent.click(canvas.getByRole("button", { name: "Zkusit znovu" }))
     await expect(
-      await canvas.findByRole("searchbox", { name: "Hledat akci" }, { timeout: 5000 }),
-    ).toHaveValue("tábor")
+      await canvas.findByRole("textbox", { name: "Místo" }, { timeout: 5000 }),
+    ).toHaveValue("hlinsko")
     await expect(
       canvas.getByRole("link", { name: "Letní tábor Modrá Hora 2027" }),
     ).toBeInTheDocument()
