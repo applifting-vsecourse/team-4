@@ -42,4 +42,27 @@ describe("DatePicker", () => {
     expect(isMarked("2027-08-08")).toBe(false)
     expect(screen.getByText("Červeně: nelze")).toBeInTheDocument()
   })
+
+  it("does not let a day outside the allowed bounds be picked; the bounds themselves can", async () => {
+    const onChange = vi.fn()
+    render(
+      <DatePicker
+        aria-label="Termín do"
+        value=""
+        disabledBefore="2027-08-05"
+        disabledAfter="2027-08-25"
+        onChange={onChange}
+      />,
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Termín do" }))
+
+    const day = (date: string) => document.querySelector(`td[data-day="${date}"] button`)!
+    expect(day("2027-08-04")).toBeDisabled()
+    expect(day("2027-08-26")).toBeDisabled()
+    await userEvent.click(day("2027-08-04"))
+    expect(onChange).not.toHaveBeenCalled()
+
+    await userEvent.click(day("2027-08-05"))
+    expect(onChange).toHaveBeenCalledWith("2027-08-05")
+  })
 })

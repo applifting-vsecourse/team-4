@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { CalendarX, SearchX } from "lucide-react"
+import { CalendarX, SearchX, X } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { EmptyState } from "@/components/EmptyState"
@@ -22,13 +22,18 @@ export function EventCatalogEmpty() {
   )
 }
 
-/** Events exist, but the active filters match none of them. */
+/** Events exist, but the search and filters match none of them. */
 export function EventCatalogNoResults({ onClear }: { onClear: () => void }) {
   return (
     <EmptyState
       icon={SearchX}
-      title="Filtrům neodpovídá žádná akce"
-      action={<Button onClick={onClear}>Vymazat filtry</Button>}
+      title="Hledání a filtrům neodpovídá žádná akce"
+      action={
+        <Button onClick={onClear}>
+          <X />
+          Zrušit filtry
+        </Button>
+      }
     />
   )
 }

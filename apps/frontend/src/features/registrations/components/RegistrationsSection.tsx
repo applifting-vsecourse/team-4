@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table"
 import { formatPragueDateTime } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
+import { normalizeSearch } from "@/lib/search"
 
 import { eventRegistrationsQueryOptions } from "@/features/registrations/api/eventRegistrationQueryOptions"
 import {
@@ -289,12 +290,4 @@ function RegistrationsResult({
       </Card>
     </div>
   )
-}
-
-function normalizeSearch(value: string | undefined) {
-  return (value ?? "")
-    .trim()
-    .toLocaleLowerCase("cs-CZ")
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
 }
