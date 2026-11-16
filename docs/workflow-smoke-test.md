@@ -1,5 +1,5 @@
-# Copilot review workflow smoke test
+# Copilot review pause workflow smoke test
 
-This temporary document is linked to issue #423 to verify the `severity:standard` pull request gate.
+This temporary document is linked to issue #423 to verify the `severity:standard` pull request behavior added in #422.
 
-Expected behavior: the delivery workflow requests Copilot review for the pull request's current commit and does not hand the issue to QA until that review passes. This file does not change application behavior and should be removed when the smoke test is closed.
+With `PAUSE_COPILOT_REVIEW=true`, the delivery workflow should record that Copilot review was skipped for this commit. CI, the QA handoff, and the current-commit QA approval must still gate delivery. This file does not change application behavior and should be removed when the smoke test is closed.
