@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState"
 import { FormError } from "@/components/FormError"
 import { Notice } from "@/components/Notice"
 import { PendingButton } from "@/components/PendingButton"
+import { PhoneField } from "@/components/PhoneField"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -25,6 +26,7 @@ import { Input } from "@/components/ui/input"
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 import { toE164 } from "@/lib/phone"
+import { PHONE_FIELD_MESSAGE } from "@/lib/phoneCountries"
 
 import {
   genderOtherSchema,
@@ -34,15 +36,12 @@ import {
 } from "@/features/registrations/api/registrationSchemas"
 import { GenderField } from "@/features/registrations/components/GenderField"
 import { ParticipationConditionsField } from "@/features/registrations/components/ParticipationConditionsField"
-import { PhoneField } from "@/features/registrations/components/PhoneField"
 import { RegistrationNeedsFields } from "@/features/registrations/components/RegistrationNeedsFields"
 import {
   CONDITIONS_MESSAGE,
   type RegistrationSubmitError,
 } from "@/features/registrations/lib/registrationErrors"
 import { registrationNeedsFormSchema } from "@/features/registrations/lib/registrationNeeds"
-
-const PHONE_MESSAGE = "Zadejte platné telefonní číslo pro vybranou zemi, např. 777 123 456."
 
 const baseSchema = z.object({
   firstName: z
@@ -65,7 +64,7 @@ const baseSchema = z.object({
     .string()
     .trim()
     .min(1, "Vyplňte telefon.")
-    .refine((value) => toE164(value) !== null, PHONE_MESSAGE),
+    .refine((value) => toE164(value) !== null, PHONE_FIELD_MESSAGE),
   termIds: z.array(z.string()).min(1, "Vyberte alespoň jeden termín."),
   /** Voluntary (F64); null is "not answered". */
   gender: genderSchema.nullable(),
@@ -102,8 +101,11 @@ type RegistrationFormProps = {
   terms: SelectableTerm[]
   /** Participation terms of the event (F07); blank means nothing to confirm. */
   conditions: string
-  /** Values to start from, e.g. a draft kept for the browser tab; never a confirmation. */
-  initialValues?: Omit<RegistrationFormValues, "conditionsConfirmed"> | null
+  /**
+   * Values to start from, e.g. a draft kept for the browser tab or the contact
+   * details of the signed-in participant's profile; never a confirmation.
+   */
+  initialValues?: Partial<Omit<RegistrationFormValues, "conditionsConfirmed">> | null
   /** Every change of the typed values, e.g. to keep them as a draft. */
   onValuesChange?: (values: Omit<RegistrationFormValues, "conditionsConfirmed">) => void
   isSubmitting: boolean
@@ -130,7 +132,7 @@ export function RegistrationForm({
     resolver: zodResolver(schema),
     shouldFocusError: false,
     // A confirmation is never carried over from an earlier visit.
-    defaultValues: { ...(initialValues ?? EMPTY), conditionsConfirmed: false },
+    defaultValues: { ...EMPTY, ...initialValues, conditionsConfirmed: false },
   })
   const { setError } = form
   const selectedIds = useWatch({ control: form.control, name: "termIds" })

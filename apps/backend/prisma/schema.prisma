@@ -307,6 +307,11 @@ model ParticipantAccount {
   email     String   @unique @db.VarChar(320) // normalized: trimmed + lower-case
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
+  // Optional profile (S4-08): prefills a new registration, never changed by one.
+  firstName String? @db.VarChar(100)
+  lastName  String? @db.VarChar(100)
+  phone     String? @db.VarChar(16) // E.164
+
   registrations Registration[]
   magicLinks    ParticipantMagicLink[]
   sessions      ParticipantSession[]

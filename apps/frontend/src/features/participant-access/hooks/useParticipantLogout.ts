@@ -13,6 +13,8 @@ export function useParticipantLogout() {
     },
     onSuccess: () => {
       queryClient.setQueryData(participantKeys.session(), null)
+      // Nothing of the account stays in memory for the next visitor.
+      queryClient.removeQueries({ queryKey: participantKeys.profile() })
     },
   })
 }

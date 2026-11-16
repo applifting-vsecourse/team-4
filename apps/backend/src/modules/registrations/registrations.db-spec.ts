@@ -470,6 +470,41 @@ describe('one registration per e-mail and event', () => {
     expect([a.status, b.status]).toEqual([201, 201]);
     expect(await prisma.participantAccount.count({ where: { email } })).toBe(1);
   });
+
+  it('binds the registration to the account of its normalized e-mail and leaves its profile unchanged (S4-08)', async () => {
+    const event = await eventWith();
+    const email = `profile-${randomUUID().slice(0, 8)}@example.test`;
+    await prisma.participantAccount.create({
+      data: {
+        email,
+        firstName: 'Anna',
+        lastName: 'Nováková',
+        phone: '+420604123456',
+      },
+    });
+
+    const saved = await submit(
+      event.publicId,
+      form(event.termIds, {
+        email: `  ${email.toUpperCase()} `,
+        firstName: 'Jiná',
+        lastName: 'Osoba',
+        phone: '+421 902 123 456',
+      }),
+    );
+
+    expect(saved.status).toBe(201);
+    const account = await prisma.participantAccount.findUniqueOrThrow({
+      where: { email },
+      include: { registrations: { select: { firstName: true } } },
+    });
+    expect(account).toMatchObject({
+      firstName: 'Anna',
+      lastName: 'Nováková',
+      phone: '+420604123456',
+      registrations: [{ firstName: 'Jiná' }],
+    });
+  });
 });
 
 describe('repeating a submission', () => {

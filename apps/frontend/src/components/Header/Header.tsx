@@ -18,9 +18,14 @@ import {
 type HeaderProps = {
   /**
    * The page's own account action: the organizer's menu or the participant's
-   * "Odhlásit se". Passed as a slot so `components/` does not import features.
+   * account menu. Passed as a slot so `components/` does not import features.
    */
   account?: ReactNode
+  /**
+   * `participant`: the signed-in participant's portal (S4-08), with only the
+   * participant's own navigation and no organizer entry or audience pages.
+   */
+  variant?: "public" | "participant"
 }
 
 /**
@@ -28,46 +33,37 @@ type HeaderProps = {
  * The logo and audience links sit on the left. Entry buttons, theme and
  * account actions sit on the right.
  */
-export function Header({ account }: HeaderProps) {
+export function Header({ account, variant = "public" }: HeaderProps) {
+  const isParticipant = variant === "participant"
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background">
       <div className="mx-auto flex w-full max-w-280 items-center justify-between gap-3 px-4 py-4 md:px-8">
         <div className="flex items-center gap-3">
           <HeaderLogo />
-          <AudienceLinks />
+          {isParticipant ? null : <AudienceLinks />}
         </div>
         <div className="flex items-center gap-2">
           <nav
-            aria-label="Vstup do aplikace"
+            aria-label={isParticipant ? "Účastnický portál" : "Vstup do aplikace"}
             className="hidden items-center gap-2 lg:flex"
           >
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-            >
-              <Link to={ROUTES.catalog}>Katalog akcí</Link>
-            </Button>
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-            >
-              <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
-            </Button>
-            <Button
-              asChild
-              size="sm"
-            >
-              {/* Login offers organizer signup too; a signed-in organizer goes on to the organizations. */}
-              <Link to={ROUTES.login}>Organizátor</Link>
-            </Button>
+            <AppLinks isParticipant={isParticipant} />
+            {isParticipant ? null : (
+              <Button
+                asChild
+                size="sm"
+              >
+                {/* Login offers organizer signup too; a signed-in organizer goes on to the organizations. */}
+                <Link to={ROUTES.login}>Organizátor</Link>
+              </Button>
+            )}
           </nav>
           <div className="hidden lg:block">
             <ThemeSwitcher />
           </div>
           {account}
-          <MobileMenu />
+          <MobileMenu isParticipant={isParticipant} />
         </div>
       </div>
     </header>
@@ -102,7 +98,40 @@ function AudienceLinks({ isInMenu = false }: { isInMenu?: boolean }) {
   )
 }
 
-function MobileMenu() {
+const PUBLIC_LINKS = [
+  { to: ROUTES.catalog, label: "Katalog akcí" },
+  { to: ROUTES.myRegistrations, label: "Moje přihlášky" },
+] as const
+
+// The participant's own pages come first in the portal.
+const PARTICIPANT_LINKS = [
+  { to: ROUTES.myRegistrations, label: "Moje přihlášky" },
+  { to: ROUTES.catalog, label: "Katalog akcí" },
+] as const
+
+function AppLinks({
+  isParticipant,
+  isInMenu = false,
+}: {
+  isParticipant: boolean
+  isInMenu?: boolean
+}) {
+  return (isParticipant ? PARTICIPANT_LINKS : PUBLIC_LINKS).map(({ to, label }) => {
+    const link = <Link to={to}>{label}</Link>
+    return (
+      <Button
+        asChild
+        variant={isInMenu ? "outline" : "ghost"}
+        size={isInMenu ? "default" : "sm"}
+        key={to}
+      >
+        {isInMenu ? <SheetClose asChild>{link}</SheetClose> : link}
+      </Button>
+    )
+  })
+}
+
+function MobileMenu({ isParticipant }: { isParticipant: boolean }) {
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -122,32 +151,26 @@ function MobileMenu() {
         <SheetHeader>
           <SheetTitle>Menu</SheetTitle>
         </SheetHeader>
-        <AudienceLinks isInMenu />
+        {isParticipant ? null : <AudienceLinks isInMenu />}
         <nav
-          aria-label="Vstup do aplikace"
+          aria-label={isParticipant ? "Účastnický portál" : "Vstup do aplikace"}
           className="flex flex-col gap-2 px-4"
         >
-          <Button
-            asChild
-            variant="outline"
-          >
-            <Link to={ROUTES.catalog}>Katalog akcí</Link>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-          >
-            <Link to={ROUTES.myRegistrations}>Moje přihlášky</Link>
-          </Button>
+          <AppLinks
+            isParticipant={isParticipant}
+            isInMenu
+          />
         </nav>
-        <div className="px-4">
-          <Button
-            asChild
-            className="w-full"
-          >
-            <Link to={ROUTES.login}>Organizátor</Link>
-          </Button>
-        </div>
+        {isParticipant ? null : (
+          <div className="px-4">
+            <Button
+              asChild
+              className="w-full"
+            >
+              <Link to={ROUTES.login}>Organizátor</Link>
+            </Button>
+          </div>
+        )}
         <div className="flex items-center justify-between px-4">
           <span className="text-sm text-muted-foreground">Motiv</span>
           <ThemeSwitcher />
