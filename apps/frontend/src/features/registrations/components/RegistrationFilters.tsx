@@ -2,13 +2,13 @@ import { useRef } from "react"
 import { Search, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Field, FieldLabel } from "@/components/ui/field"
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group"
-import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -44,8 +44,8 @@ export function RegistrationFilters({ terms, filter, onChange }: RegistrationFil
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:items-end">
-        <div className="grid min-w-0 gap-1.5 lg:flex-1">
-          <Label htmlFor="filter-search">Hledat účastníka</Label>
+        <Field className="min-w-0 lg:flex-1">
+          <FieldLabel htmlFor="filter-search">Hledat účastníka</FieldLabel>
           <InputGroup>
             <InputGroupAddon>
               <Search
@@ -83,7 +83,7 @@ export function RegistrationFilters({ terms, filter, onChange }: RegistrationFil
               </InputGroupAddon>
             ) : null}
           </InputGroup>
-        </div>
+        </Field>
         <FilterSelect
           id="filter-term"
           label="Termín"
@@ -141,8 +141,8 @@ type FilterSelectProps = {
 
 function FilterSelect({ id, label, value, onValueChange, options, allLabel }: FilterSelectProps) {
   return (
-    <div className="grid min-w-0 gap-1.5 lg:flex-1">
-      <Label htmlFor={id}>{label}</Label>
+    <Field className="min-w-0 lg:flex-1">
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <Select
         value={value ?? ALL}
         onValueChange={onValueChange}
@@ -165,6 +165,6 @@ function FilterSelect({ id, label, value, onValueChange, options, allLabel }: Fi
           ))}
         </SelectContent>
       </Select>
-    </div>
+    </Field>
   )
 }

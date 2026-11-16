@@ -264,24 +264,22 @@
   ) {
   box-shadow: none;
 }
-/* In light mode form fields use the muted surface so they stay distinct on both the page and cards. */
-:root:not(.dark)
-  :is(
-    [data-slot="input"]:not([data-surface="editable"]),
-    [data-slot="input-group"],
-    [data-slot="textarea"],
-    [data-slot="select-trigger"],
-    [data-slot="radio-group-item"],
-    [data-slot="checkbox"]:not([data-state="checked"]),
-    [data-slot="date-picker"],
-    input[data-slot="form-control"],
-    textarea[data-slot="form-control"],
-    button[data-slot="form-control"]:not([role="checkbox"][data-state="checked"])
-  ) {
-  background-color: var(--muted);
-}
-/* Editable text inputs use their own surface: white on paper, raised slate in dark mode. */
-[data-slot="input"][data-surface="editable"]:not(:disabled) {
+/* Editable fields share one surface in both themes so every control reads consistently on cards. */
+:is(
+  [data-slot="input"],
+  [data-slot="input-group"],
+  [data-slot="textarea"],
+  [data-slot="select-trigger"],
+  [data-slot="radio-group-item"]:not([data-state="checked"]),
+  [data-slot="checkbox"]:not([data-state="checked"]),
+  [data-slot="date-picker"],
+  input[data-slot="form-control"],
+  textarea[data-slot="form-control"],
+  button[data-slot="form-control"]:not(
+      [role="checkbox"][data-state="checked"],
+      [role="radio"][data-state="checked"]
+    )
+) {
   background-color: var(--input-editable-surface);
 }
 [data-variant][data-size]:not(

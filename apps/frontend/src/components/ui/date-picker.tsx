@@ -34,6 +34,10 @@ type DatePickerProps = Omit<React.ComponentProps<typeof Button>, "value" | "onCh
   markedAfter?: string
   /** Explains the marked days under the calendar. */
   markedLegend?: string
+  /** Days before this date cannot be picked (`yyyy-MM-dd`), e.g. before the start of a period. */
+  disabledBefore?: string
+  /** Days after this date cannot be picked (`yyyy-MM-dd`), e.g. after the end of a period. */
+  disabledAfter?: string
 }
 
 /**
@@ -48,6 +52,8 @@ function DatePicker({
   markedLegend,
   markedBefore,
   markedAfter,
+  disabledBefore,
+  disabledAfter,
   className,
   ...props
 }: DatePickerProps) {
@@ -63,6 +69,12 @@ function DatePicker({
     }),
     ...(before ? [{ before }] : []),
     ...(after ? [{ after }] : []),
+  ]
+  const firstAllowed = disabledBefore ? toDate(disabledBefore) : undefined
+  const lastAllowed = disabledAfter ? toDate(disabledAfter) : undefined
+  const unavailable = [
+    ...(firstAllowed ? [{ before: firstAllowed }] : []),
+    ...(lastAllowed ? [{ after: lastAllowed }] : []),
   ]
 
   return (
@@ -95,7 +107,8 @@ function DatePicker({
           locale={cs}
           captionLayout="dropdown"
           selected={selected}
-          defaultMonth={selected}
+          defaultMonth={selected ?? firstAllowed ?? lastAllowed}
+          disabled={unavailable}
           endMonth={new Date(new Date().getFullYear() + YEARS_AHEAD, 11)}
           modifiers={{ marked }}
           modifiersClassNames={{
