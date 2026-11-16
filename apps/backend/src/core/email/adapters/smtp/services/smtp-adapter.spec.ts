@@ -46,8 +46,14 @@ describe('SMTPAdapter', () => {
       '<p/>',
     );
     await new SMTPAdapter(config).sendEmail('a@b.cz', 'S', '<p/>');
+    await new SMTPAdapter({ ...config, from: '' }).sendEmail(
+      'a@b.cz',
+      'S',
+      '<p/>',
+    );
 
     expect(sendMail.mock.calls[0][0].from).toBe('akc.io <u@x.cz>');
     expect(sendMail.mock.calls[1][0].from).toBe('u');
+    expect(sendMail.mock.calls[2][0].from).toBe('u');
   });
 });
