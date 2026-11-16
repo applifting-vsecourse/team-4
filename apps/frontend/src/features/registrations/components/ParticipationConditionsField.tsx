@@ -4,8 +4,7 @@ import { type Control } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { FormField, FormItem, FormMessage } from "@/components/ui/form"
-import { Label } from "@/components/ui/label"
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 
 import { type RegistrationFormValues } from "@/features/registrations/components/RegistrationForm"
 
@@ -23,8 +22,6 @@ export function ParticipationConditionsField({
   conditions,
 }: ParticipationConditionsFieldProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const id = "registration-conditions-confirmed"
-  const textId = "registration-conditions-text"
 
   return (
     <section
@@ -48,12 +45,11 @@ export function ParticipationConditionsField({
             variant="link"
             size="sm"
             className="-ml-3"
-            aria-controls={textId}
           >
             {isOpen ? "Skrýt podmínky" : "Zobrazit podmínky"}
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent id={textId}>
+        <CollapsibleContent>
           <p className="mt-3 rounded-md bg-muted p-3 text-sm break-words whitespace-pre-line">
             {conditions}
           </p>
@@ -63,21 +59,18 @@ export function ParticipationConditionsField({
       <FormField
         control={control}
         name="conditionsConfirmed"
-        render={({ field, fieldState }) => (
+        render={({ field }) => (
           <FormItem>
             <div className="flex items-start gap-3">
-              <Checkbox
-                id={id}
-                aria-invalid={fieldState.error ? true : undefined}
-                checked={field.value}
-                onCheckedChange={(checked) => field.onChange(checked === true)}
-              />
-              <Label
-                htmlFor={id}
-                className="min-w-0 flex-1 break-words"
-              >
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={(checked) => field.onChange(checked === true)}
+                />
+              </FormControl>
+              <FormLabel className="min-w-0 flex-1 break-words">
                 Potvrzuji, že jsem si přečetl/a podmínky účasti
-              </Label>
+              </FormLabel>
             </div>
             <FormMessage className="min-h-0" />
           </FormItem>

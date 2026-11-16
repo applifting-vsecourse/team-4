@@ -627,6 +627,22 @@ describe("participation terms (F07)", () => {
     expect(await screen.findByText("Potvrďte, že jste si přečetli podmínky účasti.")).toBeVisible()
   })
 
+  it("asks for a reload when the terms appeared after the form loaded", async () => {
+    post.mockReturnValue(
+      failWith(400, {
+        code: "conditions_unconfirmed",
+        message: "Potvrďte, že jste si přečetli podmínky účasti.",
+      }),
+    )
+    renderForm(TERMS, "")
+    await fillValid()
+
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText(/Akce má nově podmínky účasti/)).toBeVisible()
+    expect(screen.getByLabelText(/^Jméno/)).toHaveValue("Jana")
+  })
+
   it("never brings the confirmation back from the draft", async () => {
     const view = renderForm(TERMS, CONDITIONS)
     await user.click(screen.getByRole("checkbox", CHECKBOX))

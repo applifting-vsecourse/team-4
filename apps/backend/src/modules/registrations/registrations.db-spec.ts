@@ -695,6 +695,20 @@ describe('participation terms confirmation (F07)', () => {
     }
   });
 
+  it('returns the stored result for a replay even when the terms appeared since', async () => {
+    const f = await withConditions('');
+    const body = form(f.termIds);
+    const original = await submit(f.publicId, body);
+    await prisma.event.update({
+      where: { id: f.event.id },
+      data: { conditions: 'Nové podmínky.' },
+    });
+
+    const repeated = await submit(f.publicId, body);
+
+    expect(repeated).toEqual({ status: 200, body: original.body });
+  });
+
   it('refuses a confirmation that is not a boolean', async () => {
     const f = await withConditions('');
     const response = await submit(

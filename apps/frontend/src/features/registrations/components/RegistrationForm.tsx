@@ -404,7 +404,12 @@ export function RegistrationForm({
           />
         ) : null}
 
-        {submitError ? <SubmitErrorAlert error={submitError} /> : null}
+        {submitError ? (
+          <SubmitErrorAlert
+            error={submitError}
+            hasConditionsField={hasConditions}
+          />
+        ) : null}
 
         <PendingButton
           type="submit"
@@ -431,8 +436,21 @@ function RequiredMark() {
   )
 }
 
-function SubmitErrorAlert({ error }: { error: RegistrationSubmitError }) {
-  if (error.kind === "terms" || error.kind === "conditions") return null
+function SubmitErrorAlert({
+  error,
+  hasConditionsField,
+}: {
+  error: RegistrationSubmitError
+  hasConditionsField: boolean
+}) {
+  if (error.kind === "terms") return null
+  // The terms were added after this form loaded, so it has no checkbox to
+  // explain the refusal at: ask for a reload instead of failing silently.
+  if (error.kind === "conditions") {
+    return hasConditionsField ? null : (
+      <FormError message="Akce má nově podmínky účasti. Načtěte stránku znovu, přečtěte si je a potvrďte. Vyplněné údaje zůstanou zachované." />
+    )
+  }
   if (error.kind === "already_registered") {
     return (
       <Notice
