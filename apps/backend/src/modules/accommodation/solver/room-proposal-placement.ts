@@ -34,7 +34,9 @@ export function placeByPriority(
   }
 
   // Open rooms: a room with locked people keeps their value and its free beds;
-  // the others are interchangeable within their number of beds.
+  // the others are interchangeable within their number of beds. A mixed or
+  // over-capacity room is closed (O5) and allowed to nobody, so it is never
+  // open and its free beds below are never negative.
   const open = [...new Set(unlocked.flatMap((i) => prepared.allowed[i]!))];
   const lockedIn = rooms.map(() => [] as number[]);
   for (const [i, r] of locked) lockedIn[r]!.push(i);
