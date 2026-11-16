@@ -17,13 +17,15 @@ import { normalizeNeeds } from "@/features/registrations/lib/registrationNeeds"
 type PublicRegistrationProps = {
   publicId: string
   terms: SelectableTerm[]
+  /** Participation terms of the event (F07); empty when it has none. */
+  conditions: string
 }
 
 // The form until the server confirms the save, then its stored result.
 // One submission key per opened form: a retry after a lost response repeats
 // the same submission and gets the saved result back instead of a duplicate.
 // The typed values are kept for the tab until the registration is saved (F55).
-export function PublicRegistration({ publicId, terms }: PublicRegistrationProps) {
+export function PublicRegistration({ publicId, terms, conditions }: PublicRegistrationProps) {
   const [submissionKey] = useState(() => crypto.randomUUID())
   const [draft] = useState(() =>
     readDraft(
@@ -66,12 +68,14 @@ export function PublicRegistration({ publicId, terms }: PublicRegistrationProps)
       termIds: values.termIds,
       needs: normalizeNeeds(values.needs),
       ...toGenderAnswer(values),
+      conditionsConfirmed: values.conditionsConfirmed,
     })
   }
 
   return (
     <RegistrationForm
       terms={terms}
+      conditions={conditions}
       initialValues={draft}
       onValuesChange={(values) => saveDraft(publicId, values)}
       isSubmitting={submit.isPending}

@@ -90,13 +90,14 @@ const failWith = (status: number, body: unknown) => ({
   json: () => Promise.reject(new FakeHTTPError({ status }, body)),
 })
 
-function renderForm(terms: SelectableTerm[] = TERMS) {
+function renderForm(terms: SelectableTerm[] = TERMS, conditions = "") {
   const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
-  render(
+  return render(
     <QueryClientProvider client={queryClient}>
       <PublicRegistration
         publicId="abcdefghijkl"
         terms={terms}
+        conditions={conditions}
       />
     </QueryClientProvider>,
   )
@@ -541,6 +542,118 @@ describe("submitting", () => {
   })
 })
 
+describe("participation terms (F07)", () => {
+  const CONDITIONS = "Záloha je splatná do 7 dnů.\nPři stornu do 30 dnů vracíme celou zálohu."
+  const CHECKBOX = { name: /Potvrzuji, že jsem si přečetl\/a podmínky účasti/ }
+
+  async function fillValid() {
+    await user.click(screen.getByLabelText(/1\. turnus/))
+    await fillContact()
+  }
+
+  it("offers neither checkbox nor link when the event has no terms, and sends without a confirmation", async () => {
+    post.mockReturnValue(respondWith(RESULT))
+    renderForm(TERMS, "  \n ")
+    expect(screen.queryByRole("checkbox", CHECKBOX)).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Zobrazit podmínky" })).not.toBeInTheDocument()
+    await fillValid()
+
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+  })
+
+  it("starts with an unchecked checkbox and the text collapsed", () => {
+    renderForm(TERMS, CONDITIONS)
+
+    expect(screen.getByRole("checkbox", CHECKBOX)).not.toBeChecked()
+    expect(screen.getByRole("button", { name: "Zobrazit podmínky" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    )
+    expect(screen.queryByText(/Záloha je splatná/)).not.toBeInTheDocument()
+  })
+
+  it("opens and closes the text without losing typed values or ticking the checkbox", async () => {
+    renderForm(TERMS, CONDITIONS)
+    await user.type(screen.getByLabelText(/^Jméno/), "Jana")
+
+    await user.click(screen.getByRole("button", { name: "Zobrazit podmínky" }))
+    expect(screen.getByText(/Záloha je splatná/)).toBeVisible()
+    expect(screen.getByRole("checkbox", CHECKBOX)).not.toBeChecked()
+
+    await user.click(screen.getByRole("button", { name: "Skrýt podmínky" }))
+    expect(screen.queryByText(/Záloha je splatná/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/^Jméno/)).toHaveValue("Jana")
+  })
+
+  it("does not send without the confirmation and explains what to do", async () => {
+    renderForm(TERMS, CONDITIONS)
+    await fillValid()
+
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText("Potvrďte, že jste si přečetli podmínky účasti.")).toBeVisible()
+    expect(post).not.toHaveBeenCalled()
+    expect(screen.getByLabelText(/^Jméno/)).toHaveValue("Jana")
+  })
+
+  it("sends the confirmation once ticked, without opening the text", async () => {
+    post.mockReturnValue(respondWith(RESULT))
+    renderForm(TERMS, CONDITIONS)
+    await fillValid()
+    await user.click(screen.getByRole("checkbox", CHECKBOX))
+
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
+    expect(sentBody()).toMatchObject({ conditionsConfirmed: true })
+  })
+
+  it("puts a refusal by the server at the checkbox", async () => {
+    post.mockReturnValue(
+      failWith(400, {
+        code: "conditions_unconfirmed",
+        field: "conditionsConfirmed",
+        message: "Potvrďte, že jste si přečetli podmínky účasti.",
+      }),
+    )
+    renderForm(TERMS, CONDITIONS)
+    await fillValid()
+    await user.click(screen.getByRole("checkbox", CHECKBOX))
+
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText("Potvrďte, že jste si přečetli podmínky účasti.")).toBeVisible()
+  })
+
+  it("asks for a reload when the terms appeared after the form loaded", async () => {
+    post.mockReturnValue(
+      failWith(400, {
+        code: "conditions_unconfirmed",
+        message: "Potvrďte, že jste si přečetli podmínky účasti.",
+      }),
+    )
+    renderForm(TERMS, "")
+    await fillValid()
+
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+
+    expect(await screen.findByText(/Akce má nově podmínky účasti/)).toBeVisible()
+    expect(screen.getByLabelText(/^Jméno/)).toHaveValue("Jana")
+  })
+
+  it("never brings the confirmation back from the draft", async () => {
+    const view = renderForm(TERMS, CONDITIONS)
+    await user.click(screen.getByRole("checkbox", CHECKBOX))
+    view.unmount()
+
+    renderForm(TERMS, CONDITIONS)
+
+    expect(screen.getByRole("checkbox", CHECKBOX)).not.toBeChecked()
+  })
+})
+
 describe("draft for the browser tab (F55)", () => {
   it("brings back the typed values after leaving the form, and forgets them once saved", async () => {
     const first = renderAndLeave()
@@ -567,6 +680,7 @@ function renderAndLeave() {
       <PublicRegistration
         publicId="abcdefghijkl"
         terms={TERMS}
+        conditions=""
       />
     </QueryClientProvider>,
   )

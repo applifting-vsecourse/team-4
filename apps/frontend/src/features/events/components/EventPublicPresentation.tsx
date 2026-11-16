@@ -253,16 +253,20 @@ export function EventPublicPresentation({
                             Od prvního otevření přihlašování popis nelze měnit.
                           </FormDescription>
                         ) : null}
-                        <FormMessage />
+                        <FormMessage className="min-h-0" />
                       </FormItem>
                     )}
                   />
+                </FieldSet>
+
+                <FieldSet>
+                  <FieldLegend>Podmínky účasti</FieldLegend>
                   <FormField
                     control={form.control}
                     name="conditions"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Podmínky účasti</FormLabel>
+                        <FormLabel className="sr-only">Podmínky účasti</FormLabel>
                         <FormControl>
                           <Textarea
                             rows={4}
@@ -273,7 +277,7 @@ export function EventPublicPresentation({
                         <FormDescription>
                           Každou podmínku napište na samostatný řádek.
                         </FormDescription>
-                        <FormMessage />
+                        <FormMessage className="min-h-0" />
                       </FormItem>
                     )}
                   />
