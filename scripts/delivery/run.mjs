@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { severityFor, sameSeverity, validateSeverity } from './severity.mjs';
 import { eventScope } from '../automation/events.mjs';
 import {
@@ -336,6 +337,42 @@ for (let pr of candidates) {
             api(`/repos/${repo}/commits/${pr.head.sha}`),
           ])
         : null;
+      let expectedTreeSha;
+      if (syncCommits) {
+        execFileSync(
+          'git',
+          [
+            'fetch',
+            '--no-tags',
+            '--unshallow',
+            'origin',
+            'refs/heads/main',
+            `refs/heads/${pr.base.ref}`,
+          ],
+          {
+            stdio: 'ignore',
+            env: {
+              ...process.env,
+              GIT_CONFIG_COUNT: '1',
+              GIT_CONFIG_KEY_0: 'http.extraheader',
+              GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${Buffer.from(`x-access-token:${token}`).toString('base64')}`,
+            },
+          },
+        );
+        try {
+          expectedTreeSha = execFileSync(
+            'git',
+            ['merge-tree', '--write-tree', pr.base.sha, syncCommits[0].sha],
+            { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+          )
+            .trim()
+            .split(/\s/, 1)[0];
+        } catch {
+          // Conflicts require a human resolution, so they are never verified
+          // as a merge-only sync.
+          expectedTreeSha = undefined;
+        }
+      }
       const mainSync =
         syncCommits !== null &&
         isVerifiedMainSync({
@@ -343,6 +380,7 @@ for (let pr of candidates) {
           role,
           mainCommit: syncCommits[0],
           headCommit: syncCommits[1],
+          expectedTreeSha,
         });
       // The label still classifies the change; its gates apply to the parent PR.
       validateSeverity(pr, files);
@@ -402,7 +440,7 @@ for (let pr of candidates) {
       const summary = reasons.length
         ? reasons.join(' ')
         : mainSync
-          ? `Verified merge-only sync for #${role.parent}: head tree matches current main and contains no additional changes.`
+          ? `Verified merge-only sync for #${role.parent}: head tree matches the automatic merge of the current integration base and main.`
           : `${role.kind === 'child' ? `Child of #${role.parent}` : `Integration work for #${role.parent}`}: agent review passed; requirements, QA and human review happen on the parent PR.`;
       // Another PR can overwrite Delivery stages on a shared commit, but
       // it cannot satisfy the integration branch's separate required status.

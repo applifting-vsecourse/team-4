@@ -285,7 +285,9 @@ To start a feature:
    commit after the required checks pass to preserve ancestry. Delivery stages
    accepts enforcement files in a sync only for a merge-only branch named
    `sync/<parent>-main` whose merge commit directly joins the current integration
-   base and current `main`, and whose resulting tree exactly matches `main`.
+   base and current `main`, and whose resulting tree exactly matches Git's
+   automatic merge of those commits. This preserves work already on the
+   integration base and rejects manual edits or conflict resolutions.
    The linked issue must be the open parent owning that integration branch. The
    sync still needs the integration CI lanes, `child-verify`, and protected
    integration base. A sync with any other tree or ancestry gets the ordinary
@@ -323,8 +325,8 @@ fails, re-run it or close the sub-issue by hand.
 For these PRs Delivery stages requires a non-draft PR and a passing agent review
 (or manual Copilot waiver) on the current commit, made after the PR's latest
 retarget. A verified main sync is exempt from duplicate agent review because
-its tree is identical to protected `main`; the exact tree and merge parents are
-verified on every run. It does not require requirements
+its merge result is computed solely from the protected integration base and
+`main`; the exact tree and merge parents are verified on every run. It does not require requirements
 approval, technical review, QA or any other human review: those gates apply to the
 parent PR, which contains the whole feature. The severity label still has to be
 valid. Changes to review and merge enforcement paths are refused; they go
