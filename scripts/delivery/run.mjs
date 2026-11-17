@@ -1,4 +1,5 @@
 import { severityFor, sameSeverity, validateSeverity } from './severity.mjs';
+import { automaticMergeTreeSha, fetchMergeHistory } from './merge-tree.mjs';
 import { eventScope } from '../automation/events.mjs';
 import {
   evaluate,
@@ -23,6 +24,7 @@ import {
   childVerify,
   integrationRole,
   integrationStages,
+  isVerifiedMainSync,
   fromIntegrationBranch,
   isIntegrationBranch,
   isParentPr,
@@ -326,6 +328,32 @@ for (let pr of candidates) {
       const files = await list(`/repos/${repo}/pulls/${pr.number}/files`);
       if (files.length !== pr.changed_files)
         throw new Error('Incomplete changed-file coverage');
+      const syncCandidate =
+        role.kind === 'integration' &&
+        pr.head.ref === `sync/${role.parent}-main`;
+      const syncCommits = syncCandidate
+        ? await Promise.all([
+            api(`/repos/${repo}/commits/main`),
+            api(`/repos/${repo}/commits/${pr.head.sha}`),
+          ])
+        : null;
+      let expectedTreeSha;
+      if (syncCommits) {
+        fetchMergeHistory({ baseRef: pr.base.ref, token });
+        expectedTreeSha = automaticMergeTreeSha({
+          baseSha: pr.base.sha,
+          mainSha: syncCommits[0].sha,
+        });
+      }
+      const mainSync =
+        syncCommits !== null &&
+        isVerifiedMainSync({
+          pr,
+          role,
+          mainCommit: syncCommits[0],
+          headCommit: syncCommits[1],
+          expectedTreeSha,
+        });
       // The label still classifies the change; its gates apply to the parent PR.
       validateSeverity(pr, files);
       const comments = await list(
@@ -344,6 +372,7 @@ for (let pr of candidates) {
         waiver: copilotWaiver({ pr, comments }),
         sharedHead: shared,
         since,
+        mainSync,
         protectedBase: await protectedBranch(
           (path) => api(path),
           repo,
@@ -355,6 +384,7 @@ for (let pr of candidates) {
         current.head.sha !== pr.head.sha ||
         current.state !== 'open' ||
         current.base.ref !== pr.base.ref ||
+        current.base.sha !== pr.base.sha ||
         current.draft !== pr.draft ||
         current.body !== pr.body ||
         !sameSeverity(current, pr)
@@ -366,9 +396,24 @@ for (let pr of candidates) {
         JSON.stringify(await details()) !== JSON.stringify(issues)
       )
         throw new Error('Linked issue changed during evaluation');
+      if (mainSync) {
+        const [currentMain, currentBase] = await Promise.all([
+          api(`/repos/${repo}/commits/main`),
+          api(`/repos/${repo}/branches/${encodeURIComponent(pr.base.ref)}`),
+        ]);
+        if (
+          currentMain.sha !== syncCommits[0].sha ||
+          currentBase.commit?.sha !== pr.base.sha
+        )
+          reasons.push(
+            'main or the integration base advanced during sync evaluation; recheck the sync.',
+          );
+      }
       const summary = reasons.length
         ? reasons.join(' ')
-        : `${role.kind === 'child' ? `Child of #${role.parent}` : `Integration work for #${role.parent}`}: agent review passed; requirements, QA and human review happen on the parent PR.`;
+        : mainSync
+          ? `Verified merge-only sync for #${role.parent}: head tree matches the automatic merge of the current integration base and main.`
+          : `${role.kind === 'child' ? `Child of #${role.parent}` : `Integration work for #${role.parent}`}: agent review passed; requirements, QA and human review happen on the parent PR.`;
       // Another PR can overwrite Delivery stages on a shared commit, but
       // it cannot satisfy the integration branch's separate required status.
       if (verify.state === 'success' && reasons.length)

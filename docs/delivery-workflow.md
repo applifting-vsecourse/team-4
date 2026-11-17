@@ -283,8 +283,15 @@ To start a feature:
    from the integration branch, merge `origin/main` into that sync branch, and
    open a PR into the integration branch with `Refs #<parent>`. Use a merge
    commit after the required checks pass to preserve ancestry. Delivery stages
-   currently refuses sync PRs whose diff includes review or merge enforcement
-   files. Surface that blocker if it applies.
+   accepts enforcement files in a sync only for a merge-only branch named
+   `sync/<parent>-main` whose merge commit directly joins the current integration
+   base and current `main`, and whose resulting tree exactly matches Git's
+   automatic merge of those commits. This preserves work already on the
+   integration base and rejects manual edits or conflict resolutions.
+   The linked issue must be the open parent owning that integration branch. The
+   sync still needs the integration CI lanes, `child-verify`, and protected
+   integration base. A sync with any other tree or ancestry gets the ordinary
+   enforcement-file and agent-review gates.
 4. Fetch the integration branch again after any required sync. Branch each child
    from the fetched integration branch and open its
    PR into it with `Closes #<sub-issue>`. Merge after Delivery stages and
@@ -317,7 +324,9 @@ fails, re-run it or close the sub-issue by hand.
 
 For these PRs Delivery stages requires a non-draft PR and a passing agent review
 (or manual Copilot waiver) on the current commit, made after the PR's latest
-retarget. It does not require requirements
+retarget. A verified main sync is exempt from duplicate agent review because
+its merge result is computed solely from the protected integration base and
+`main`; the exact tree and merge parents are verified on every run. It does not require requirements
 approval, technical review, QA or any other human review: those gates apply to the
 parent PR, which contains the whole feature. The severity label still has to be
 valid. Changes to review and merge enforcement paths are refused; they go
@@ -573,8 +582,9 @@ from, and the deploy secrets are repository-wide, so this guard prevents mistake
 but does not stop a branch with an edited `deploy.yml`.
 
 The `integration/` branch prefix is reserved for feature integration branches.
-PRs into an `integration/` branch skip the E2E lane, so their `verify` fails by
-design; a PR to `main` runs every lane. To bump minor or major, publish the
+PRs into an `integration/` branch skip the E2E lane. The `verify` job accepts
+that one intentional skip only for integration-target PRs; every other lane
+must pass. A PR to `main` still requires every lane, including E2E. To bump minor or major, publish the
 higher tag by hand; the next merge continues from it.
 
 Redeploying an older version does not roll back database migrations.
