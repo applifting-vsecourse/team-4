@@ -40,6 +40,10 @@ export type RoomProposalProps = {
   layout?: RoomProposalLayout
   /** When the shown layout was proposed, e.g. "dnes 14:32". */
   proposedAt?: string
+  /** The shown layout no longer matches the term (a later run failed after a change). */
+  isShownStale?: boolean
+  /** The hard attribute, e.g. "Pohlaví"; for the reason H. */
+  attribute?: string | null
   /** The term could not be loaded; nothing else is shown as valid. */
   isLoadFailed?: boolean
   /** The term is loading: the term tabs stay, the content is a placeholder. */
@@ -80,7 +84,7 @@ function Summary({ layout }: { layout: RoomProposalLayout }) {
           />
           <Stat
             label="Bez pokoje"
-            value={summary.unplaced + summary.lockConflicts}
+            value={summary.unplaced}
           />
           <Stat
             label="Obsazené pokoje"
@@ -188,7 +192,13 @@ function RoomsTable({ layout }: { layout: RoomProposalLayout }) {
   )
 }
 
-function UnplacedTable({ layout }: { layout: RoomProposalLayout }) {
+function UnplacedTable({
+  layout,
+  attribute,
+}: {
+  layout: RoomProposalLayout
+  attribute?: string | null
+}) {
   return (
     <section
       aria-labelledby="room-proposal-unplaced-heading"
@@ -209,6 +219,50 @@ function UnplacedTable({ layout }: { layout: RoomProposalLayout }) {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {layout.unplaced.map((person) => (
+              <TableRow key={person.id}>
+                <TableCell className="whitespace-normal">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <PersonName person={person} />
+                    {person.change === "removed" ? (
+                      <Badge variant="destructive-subtle">Přijde o pokoj {person.savedRoom}</Badge>
+                    ) : null}
+                  </div>
+                </TableCell>
+                <TableCell className="whitespace-normal">
+                  {unplacedReasonText(person.reason, attribute)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </section>
+  )
+}
+
+// Spec §6: listed apart from the unplaced; applying a proposal never changes the lock.
+function LockConflicts({ layout }: { layout: RoomProposalLayout }) {
+  return (
+    <section
+      aria-labelledby="room-proposal-conflicts-heading"
+      className="space-y-2"
+    >
+      <h3
+        id="room-proposal-conflicts-heading"
+        className="text-sm font-medium"
+      >
+        Konflikty zámků
+      </h3>
+      <Card padding="none">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Účastník</TableHead>
+              <TableHead>Konflikt</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {layout.lockConflicts.map((conflict) => (
               <TableRow key={conflict.id}>
                 <TableCell className="whitespace-normal">
@@ -221,23 +275,7 @@ function UnplacedTable({ layout }: { layout: RoomProposalLayout }) {
                   </span>
                 </TableCell>
                 <TableCell className="whitespace-normal">
-                  Zámek do pokoje {conflict.room}, který v termínu není dostupný. Umístění zůstane,
-                  dokud zámek nezměníte.
-                </TableCell>
-              </TableRow>
-            ))}
-            {layout.unplaced.map((person) => (
-              <TableRow key={person.id}>
-                <TableCell className="whitespace-normal">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <PersonName person={person} />
-                    {person.change === "removed" ? (
-                      <Badge variant="destructive-subtle">Přijde o pokoj {person.savedRoom}</Badge>
-                    ) : null}
-                  </div>
-                </TableCell>
-                <TableCell className="whitespace-normal">
-                  {unplacedReasonText(person.reason)}
+                  Zámek do nedostupného pokoje {conflict.room}
                 </TableCell>
               </TableRow>
             ))}
@@ -252,8 +290,8 @@ function StatusNotice({
   status,
   mode,
   hasLayout,
-  onPropose,
-}: Pick<RoomProposalProps, "status" | "mode" | "onPropose"> & { hasLayout: boolean }) {
+  isShownStale,
+}: Pick<RoomProposalProps, "status" | "mode" | "isShownStale"> & { hasLayout: boolean }) {
   switch (status) {
     case "stale":
       return (
@@ -268,16 +306,22 @@ function StatusNotice({
       )
     case "failed":
     case "timeout":
+      // "Navrhnout pokoje" above is the retry.
       return (
-        <LoadError
+        <Notice
+          tone="error"
           title={
             status === "failed"
-              ? "Návrh pokojů se nezdařil"
-              : "Návrh pokojů nedoběhl v časovém limitu"
+              ? "Návrh pokojů se nezdařil. Zkuste to znovu tlačítkem Navrhnout pokoje."
+              : "Návrh pokojů nedoběhl v časovém limitu. Zkuste to znovu tlačítkem Navrhnout pokoje."
           }
-          description={hasLayout ? "Níže je poslední dokončený návrh." : undefined}
-          onRetry={onPropose}
-        />
+        >
+          {hasLayout
+            ? isShownStale
+              ? "Níže je poslední dokončený návrh; podklady se od něj změnily."
+              : "Níže je poslední dokončený návrh."
+            : null}
+        </Notice>
       )
     case "none":
       return (
@@ -307,6 +351,8 @@ export function RoomProposal({
   status,
   layout,
   proposedAt,
+  isShownStale = false,
+  attribute,
   isLoadFailed = false,
   isLoading = false,
   isSwitching = false,
@@ -374,7 +420,9 @@ export function RoomProposal({
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {proposedAt ? `Návrh z ${proposedAt} · ` : ""}
-                        {mode === "automatic" ? "Navrhuje se automaticky" : "Navrhuje se ručně"}
+                        {mode === "automatic"
+                          ? "Automatický návrh zapnutý"
+                          : "Automatický návrh vypnutý"}
                       </p>
                     </div>
                     <PendingButton
@@ -400,23 +448,23 @@ export function RoomProposal({
                 status={status}
                 mode={mode}
                 hasLayout={layout !== undefined}
-                onPropose={onPropose}
+                isShownStale={isShownStale}
               />
 
               {layout ? (
                 layout.isEmpty ? (
                   <EmptyState
                     icon={Users}
-                    title="V termínu zatím nejsou potvrzení účastníci"
-                    description="Návrh rozděluje do pokojů jen potvrzené účastníky."
+                    title="V termínu nejsou potvrzení účastníci"
                   />
                 ) : layout.rooms.length === 0 ? (
+                  // Everyone has the reason N: one message instead of a row each.
                   <>
                     <EmptyState
                       icon={BedDouble}
                       title="Termín nemá dostupný pokoj"
                     />
-                    <UnplacedTable layout={layout} />
+                    {layout.lockConflicts.length > 0 ? <LockConflicts layout={layout} /> : null}
                   </>
                 ) : (
                   <>
@@ -431,9 +479,13 @@ export function RoomProposal({
                     ) : null}
                     <Summary layout={layout} />
                     <RoomsTable layout={layout} />
-                    {layout.unplaced.length + layout.lockConflicts.length > 0 ? (
-                      <UnplacedTable layout={layout} />
+                    {layout.unplaced.length > 0 ? (
+                      <UnplacedTable
+                        layout={layout}
+                        attribute={attribute}
+                      />
                     ) : null}
+                    {layout.lockConflicts.length > 0 ? <LockConflicts layout={layout} /> : null}
                   </>
                 )
               ) : null}

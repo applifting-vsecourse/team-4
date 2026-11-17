@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 
@@ -20,9 +21,12 @@ const STILL_APPLIES = {
 export function EvaluationModeSection({
   organizationId,
   eventId,
+  children,
 }: {
   organizationId: string
   eventId: string
+  /** Further automation of the event beside the evaluation mode, e.g. room proposals. */
+  children?: ReactNode
 }) {
   const mode = useQuery(evaluationModeQueryOptions(organizationId, eventId))
   const save = useSaveEvaluationMode(organizationId, eventId)
@@ -55,7 +59,10 @@ export function EvaluationModeSection({
       headingId="automation-heading"
       title="Automatizace"
     >
-      {content}
+      <div className="space-y-4">
+        {content}
+        {children}
+      </div>
     </CollapsibleSection>
   )
 }

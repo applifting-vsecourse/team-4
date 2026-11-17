@@ -1,8 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect, within } from "storybook/test"
 
+import { PageSection } from "@/components/PageSection"
 import { OrganizerEventPage } from "@/not-implemented/OrganizerEventPage"
 
+import {
+  EvaluationModeSettings,
+  type EvaluationMode,
+} from "@/features/accommodation/components/EvaluationModeSettings"
 import {
   RoomProposal,
   type RoomProposalProps,
@@ -38,8 +43,10 @@ function propsOf(preset: ProposalPreset): Omit<RoomProposalProps, "terms" | "sel
   return {
     mode: data.mode,
     status: data.status,
+    attribute: "Pohlaví",
     layout: shown?.layout ? toProposalLayout(shown.layout) : undefined,
     proposedAt: shown ? "12. 3. 2027 14:32" : undefined,
+    isShownStale: shown ? !shown.isCurrent : false,
   }
 }
 
@@ -111,6 +118,20 @@ export const Running: Story = {
   },
 }
 
+/** The first proposal of the term runs: nothing below yet. */
+export const RunningFirst: Story = {
+  args: propsOf("runningFirst"),
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole("button", { name: "Navrhuje se…" })).toBeDisabled()
+  },
+}
+
+/** An automatic proposal runs after a layout change. */
+export const RunningAutomatic: Story = {
+  args: { ...propsOf("running"), mode: "automatic" },
+  play: shows(/Automatický návrh zapnutý/),
+}
+
 /** The term was never proposed, manual mode. */
 export const NoProposal: Story = {
   args: propsOf("none"),
@@ -126,19 +147,31 @@ export const NoProposalAutomatic: Story = {
 /** No confirmed participant in the term. */
 export const NoConfirmed: Story = {
   args: propsOf("empty"),
-  play: shows("V termínu zatím nejsou potvrzení účastníci"),
+  play: shows("V termínu nejsou potvrzení účastníci"),
+}
+
+/** No room is available in the term: everyone has the reason N. */
+export const NoRooms: Story = {
+  args: propsOf("noRooms"),
+  play: shows("Termín nemá dostupný pokoj"),
 }
 
 /** The proposal failed: a retry, and the last finished proposal below. */
 export const Failed: Story = {
   args: propsOf("failed"),
-  play: shows("Návrh pokojů se nezdařil"),
+  play: shows("Níže je poslední dokončený návrh."),
+}
+
+/** It failed after a layout change: the last finished proposal is out of date. */
+export const FailedAfterChange: Story = {
+  args: propsOf("failedStale"),
+  play: shows("Níže je poslední dokončený návrh; podklady se od něj změnily."),
 }
 
 /** U1 did not finish in time: nothing usable, a retry. */
 export const Timeout: Story = {
   args: propsOf("timeout"),
-  play: shows("Návrh pokojů nedoběhl v časovém limitu"),
+  play: shows(/Návrh pokojů nedoběhl v časovém limitu/),
 }
 
 /** "Navrhnout pokoje" could not start; the shown proposal stays. */
@@ -172,29 +205,52 @@ export const LoadFailed: Story = {
   play: shows("Návrh pokojů se nepodařilo načíst"),
 }
 
-/** Nastavení → Automatizace: the room proposal mode, independent of the evaluation mode. */
-export const AutomationSetting: StoryObj<typeof RoomProposalModeSettings> = {
-  render: (args) => (
+type AutomationProps = {
+  evaluationMode: EvaluationMode
+  roomMode: EvaluationMode
+  roomSaveError?: string
+}
+
+/** Nastavení → Automatizace: both settings side by side, each saved on its own. */
+function Automation({ evaluationMode, roomMode, roomSaveError }: AutomationProps) {
+  return (
     <OrganizerEventPage
       section="Nastavení"
       crumbs={["Nastavení"]}
       title="Nastavení"
     >
-      <RoomProposalModeSettings {...args} />
+      <PageSection title="Automatizace">
+        <div className="space-y-4">
+          <EvaluationModeSettings mode={evaluationMode} />
+          <RoomProposalModeSettings
+            mode={roomMode}
+            saveError={roomSaveError}
+          />
+        </div>
+      </PageSection>
     </OrganizerEventPage>
-  ),
-  args: { mode: "manual" },
+  )
+}
+
+/** A new event: evaluation automatic, room proposals manual; the two are independent. */
+export const AutomationSetting: StoryObj<typeof Automation> = {
+  render: (args) => <Automation {...args} />,
+  args: { evaluationMode: "automatic", roomMode: "manual" },
   play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
     await expect(
-      within(canvasElement).getByRole("radio", {
-        name: "Navrhnout pokoje jen tlačítkem Navrhnout pokoje",
-      }),
+      canvas.getByRole("radio", { name: "Přepočítat návrh automaticky po každé změně" }),
     ).toBeChecked()
+    await expect(canvas.getByRole("radio", { name: "Navrhovat pokoje jen ručně" })).toBeChecked()
   },
 }
 
-export const AutomationSaveFailed: StoryObj<typeof RoomProposalModeSettings> = {
-  ...AutomationSetting,
-  args: { mode: "manual", saveError: "Pokoje se dál navrhují jen tlačítkem Navrhnout pokoje." },
+export const AutomationSaveFailed: StoryObj<typeof Automation> = {
+  render: (args) => <Automation {...args} />,
+  args: {
+    evaluationMode: "automatic",
+    roomMode: "manual",
+    roomSaveError: "Pokoje se dál navrhují jen ručně.",
+  },
   play: shows("Režim návrhu pokojů se nepodařilo uložit"),
 }

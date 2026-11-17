@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { makeTermRoomProposal } from "@/features/accommodation/fixtures/roomProposal"
-import { toProposalLayout } from "@/features/accommodation/lib/roomProposalView"
+import { toProposalLayout, unplacedReasonText } from "@/features/accommodation/lib/roomProposalView"
 
 const layoutOf = (preset: Parameters<typeof makeTermRoomProposal>[0]) =>
   toProposalLayout(makeTermRoomProposal(preset).lastSolved!.layout!)
@@ -37,6 +37,14 @@ describe("toProposalLayout", () => {
       { name: "Tomáš Král", reason: "K", change: "removed", savedRoom: "Chata Buk" },
     ])
     expect(layout.lockConflicts).toMatchObject([{ name: "Eliška Malá", room: "Chata Lípa" }])
+    // A lock conflict is in no room.
+    expect(people.map((p) => p.name)).not.toContain("Eliška Malá")
+  })
+
+  it("words the reason H with the hard attribute when it is known", () => {
+    expect(unplacedReasonText("H", "Pohlaví")).toBe(
+      "Volné lůžko je jen v pokoji s jinou hodnotou „Pohlaví“ nebo v pokoji uzavřeném zámkem.",
+    )
   })
 
   it("marks a proposal without confirmed people as empty", () => {

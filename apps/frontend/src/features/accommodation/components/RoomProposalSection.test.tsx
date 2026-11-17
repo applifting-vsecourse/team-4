@@ -81,9 +81,48 @@ describe("RoomProposalSection", () => {
     get.mockReturnValue(answer(makeTermRoomProposal("failed")))
     renderSection()
 
-    expect(await screen.findByText("Návrh pokojů se nezdařil")).toBeInTheDocument()
+    expect(await screen.findByText(/Návrh pokojů se nezdařil/)).toBeInTheDocument()
     expect(screen.getByText("Níže je poslední dokončený návrh.")).toBeInTheDocument()
     expect(screen.getByRole("cell", { name: "Chata Buk" })).toBeInTheDocument()
+  })
+
+  it("says the last finished proposal is out of date when a later one failed", async () => {
+    get.mockReturnValue(answer(makeTermRoomProposal("failedStale")))
+    renderSection()
+
+    expect(
+      await screen.findByText("Níže je poslední dokončený návrh; podklady se od něj změnily."),
+    ).toBeInTheDocument()
+  })
+
+  it("shows nothing usable after a timeout without an earlier proposal", async () => {
+    get.mockReturnValue(answer(makeTermRoomProposal("timeout")))
+    renderSection()
+
+    expect(await screen.findByText(/nedoběhl v časovém limitu/)).toBeInTheDocument()
+    expect(screen.queryByRole("table")).not.toBeInTheDocument()
+  })
+
+  it("lists lock conflicts apart from the people without a room", async () => {
+    get.mockReturnValue(answer(makeTermRoomProposal("withSaved")))
+    renderSection()
+
+    const conflicts = await screen.findByRole("region", { name: "Konflikty zámků" })
+    expect(within(conflicts).getByText("Eliška Malá")).toBeInTheDocument()
+    expect(
+      within(conflicts).getByText("Zámek do nedostupného pokoje Chata Lípa"),
+    ).toBeInTheDocument()
+    const unplaced = screen.getByRole("region", { name: "Bez pokoje v návrhu" })
+    expect(within(unplaced).queryByText("Eliška Malá")).not.toBeInTheDocument()
+    expect(within(unplaced).getByText("Přijde o pokoj Chata Buk")).toBeInTheDocument()
+  })
+
+  it("shows one message when the term has no available room", async () => {
+    get.mockReturnValue(answer(makeTermRoomProposal("noRooms")))
+    renderSection()
+
+    expect(await screen.findByText("Termín nemá dostupný pokoj")).toBeInTheDocument()
+    expect(screen.queryByRole("table")).not.toBeInTheDocument()
   })
 
   it("says when proposing could not start, and keeps the shown proposal", async () => {
@@ -101,9 +140,7 @@ describe("RoomProposalSection", () => {
     get.mockReturnValue(answer(makeTermRoomProposal("empty")))
     renderSection()
 
-    expect(
-      await screen.findByText("V termínu zatím nejsou potvrzení účastníci"),
-    ).toBeInTheDocument()
+    expect(await screen.findByText("V termínu nejsou potvrzení účastníci")).toBeInTheDocument()
   })
 
   it("offers a reload when the term cannot be read", async () => {

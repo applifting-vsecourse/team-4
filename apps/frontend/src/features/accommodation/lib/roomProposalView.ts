@@ -61,14 +61,14 @@ export const PROPOSAL_STATUS_BADGE: Record<
 }
 
 /** Why a confirmed person has no room (phase-2 spec §6). */
-export function unplacedReasonText(reason: UnplacedReason): string {
+export function unplacedReasonText(reason: UnplacedReason, attribute?: string | null): string {
   switch (reason) {
     case "N":
       return "Termín nemá dostupný pokoj."
     case "K":
       return "Všechna lůžka jsou obsazená."
     case "H":
-      return "Volná lůžka jsou jen v pokojích jiné skupiny podle pravidel ubytování nebo v zamčených pokojích."
+      return `Volné lůžko je jen v pokoji s jinou hodnotou ${attribute ? `„${attribute}“` : "pravidla ubytování"} nebo v pokoji uzavřeném zámkem.`
   }
 }
 

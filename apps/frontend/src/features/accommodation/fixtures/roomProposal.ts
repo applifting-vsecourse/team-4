@@ -70,38 +70,58 @@ const LAYOUT: ProposalLayoutData = {
   },
 }
 
+/** The rooms' people follow each person's proposed room, as the API builds them. */
+const withPeople = (
+  layout: ProposalLayoutData,
+  people: ProposalLayoutData["people"],
+): ProposalLayoutData => ({
+  ...layout,
+  people,
+  rooms: layout.rooms.map((room) => ({
+    ...room,
+    personIds: people.filter((person) => person.roomId === room.id).map((person) => person.id),
+  })),
+})
+
 /** The same term once placements are saved: one move, one lock, one lost room. */
 const WITH_SAVED: ProposalLayoutData = {
-  ...LAYOUT,
-  people: LAYOUT.people.map((person) => {
-    switch (person.id) {
-      case uuid(201):
-        return { ...person, savedRoomId: ROOMS.javor, isLocked: true, change: "unchanged" as const }
-      case uuid(202):
-      case uuid(203):
-        return { ...person, savedRoomId: ROOMS.javor, change: "unchanged" as const }
-      case uuid(204):
-        return { ...person, savedRoomId: ROOMS.dub, change: "moved" as const }
-      case uuid(207):
-        return {
-          ...person,
-          savedRoomId: ROOMS.lipa,
-          isLocked: true,
-          roomId: null,
-          isLockConflict: true,
-          change: null,
-        }
-      case uuid(208):
-        return {
-          ...person,
-          savedRoomId: ROOMS.buk,
-          reason: "K" as const,
-          change: "removed" as const,
-        }
-      default:
-        return person
-    }
-  }),
+  ...withPeople(
+    LAYOUT,
+    LAYOUT.people.map((person) => {
+      switch (person.id) {
+        case uuid(201):
+          return {
+            ...person,
+            savedRoomId: ROOMS.javor,
+            isLocked: true,
+            change: "unchanged" as const,
+          }
+        case uuid(202):
+        case uuid(203):
+          return { ...person, savedRoomId: ROOMS.javor, change: "unchanged" as const }
+        case uuid(204):
+          return { ...person, savedRoomId: ROOMS.dub, change: "moved" as const }
+        case uuid(207):
+          return {
+            ...person,
+            savedRoomId: ROOMS.lipa,
+            isLocked: true,
+            roomId: null,
+            isLockConflict: true,
+            change: null,
+          }
+        case uuid(208):
+          return {
+            ...person,
+            savedRoomId: ROOMS.buk,
+            reason: "K" as const,
+            change: "removed" as const,
+          }
+        default:
+          return person
+      }
+    }),
+  ),
   summary: { ...LAYOUT.summary, placed: 6, lockConflicts: 1, added: 2, moved: 1, removed: 1 },
 }
 
@@ -129,6 +149,9 @@ export type ProposalPreset =
   | "failed"
   | "timeout"
   | "empty"
+  | "noRooms"
+  | "runningFirst"
+  | "failedStale"
 
 /** The room proposal of Turnus 1 in one of the states #385 shows. */
 export function makeTermRoomProposal(
@@ -152,6 +175,28 @@ export function makeTermRoomProposal(
     running: base("running", stored({ isCurrent: false, layoutVersion: 3 })),
     none: base("none", null),
     failed: { ...base("failed", failed), lastSolved: stored() },
+    failedStale: {
+      ...base("failed", failed),
+      lastSolved: stored({ isCurrent: false, layoutVersion: 3 }),
+    },
+    runningFirst: base("running", null),
+    noRooms: base(
+      "current",
+      stored({
+        layout: {
+          ...withPeople(
+            { ...LAYOUT, rooms: LAYOUT.rooms.map((room) => ({ ...room, isAvailable: false })) },
+            LAYOUT.people.map((person) => ({
+              ...person,
+              roomId: null,
+              reason: "N" as const,
+              change: null,
+            })),
+          ),
+          summary: { ...LAYOUT.summary, placed: 0, unplaced: 8, added: 0, rooms: 0 },
+        },
+      }),
+    ),
     timeout: base("timeout", stored({ status: "timeout", layout: null })),
     empty: base(
       "current",

@@ -11,7 +11,7 @@ import { useSaveRoomProposalMode } from "@/features/accommodation/hooks/useSaveR
 
 const STILL_APPLIES = {
   automatic: "Pokoje se dál navrhují automaticky.",
-  manual: "Pokoje se dál navrhují jen tlačítkem Navrhnout pokoje.",
+  manual: "Pokoje se dál navrhují jen ručně.",
 }
 
 // Nastavení → Automatizace (#385): the saved room proposal mode of the event,

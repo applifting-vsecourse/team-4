@@ -44,7 +44,7 @@ export function RoomProposalModeSettings({
                 value="automatic"
               />
               <FieldLabel htmlFor="room-proposal-mode-automatic">
-                Navrhnout pokoje automaticky po každé změně
+                Navrhovat pokoje automaticky po každé změně
               </FieldLabel>
             </Field>
             <Field orientation="horizontal">
@@ -53,7 +53,7 @@ export function RoomProposalModeSettings({
                 value="manual"
               />
               <FieldLabel htmlFor="room-proposal-mode-manual">
-                Navrhnout pokoje jen tlačítkem Navrhnout pokoje
+                Navrhovat pokoje jen ručně
               </FieldLabel>
             </Field>
           </RadioGroup>

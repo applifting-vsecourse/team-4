@@ -46,11 +46,9 @@ describe("RoomProposalModeSection", () => {
     put.mockReturnValue(answer({ mode: "automatic" }))
     renderSection()
 
-    expect(
-      await screen.findByRole("radio", { name: "Navrhnout pokoje jen tlačítkem Navrhnout pokoje" }),
-    ).toBeChecked()
+    expect(await screen.findByRole("radio", { name: "Navrhovat pokoje jen ručně" })).toBeChecked()
     await userEvent.click(
-      screen.getByRole("radio", { name: "Navrhnout pokoje automaticky po každé změně" }),
+      screen.getByRole("radio", { name: "Navrhovat pokoje automaticky po každé změně" }),
     )
     await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
 
@@ -68,13 +66,11 @@ describe("RoomProposalModeSection", () => {
     renderSection()
 
     await userEvent.click(
-      await screen.findByRole("radio", { name: "Navrhnout pokoje automaticky po každé změně" }),
+      await screen.findByRole("radio", { name: "Navrhovat pokoje automaticky po každé změně" }),
     )
     await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
 
     expect(await screen.findByText("Režim návrhu pokojů se nepodařilo uložit")).toBeInTheDocument()
-    expect(
-      screen.getByText("Pokoje se dál navrhují jen tlačítkem Navrhnout pokoje."),
-    ).toBeInTheDocument()
+    expect(screen.getByText("Pokoje se dál navrhují jen ručně.")).toBeInTheDocument()
   })
 })
