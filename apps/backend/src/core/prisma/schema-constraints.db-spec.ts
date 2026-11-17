@@ -391,6 +391,76 @@ describe('payment', () => {
     ).rejects.toThrow(/payment_recorded_by_chk/);
   });
 
+  it('ties a bank transfer to one transaction, and a reason to a manual pairing', async () => {
+    const { organizerId, registration } = await setup();
+    const transaction = await prisma.bankTransaction.create({
+      data: {
+        organizationId: registration.organizationId,
+        eventId: registration.eventId,
+        bankTransactionId: randomUUID().slice(0, 30),
+        bookedOn: new Date('2026-10-01T00:00:00Z'),
+        amountMinor: 100,
+        importedById: organizerId,
+      },
+    });
+    const base = {
+      organizationId: registration.organizationId,
+      registrationId: registration.id,
+      amountMinor: 100,
+      receivedOn: new Date('2026-10-01T00:00:00Z'),
+    };
+    const create = (data: {
+      source: 'organizer' | 'bank_transfer';
+      recordedById?: string;
+      bankTransactionId?: string;
+      assignmentReason?: string;
+    }): Promise<unknown> =>
+      prisma.payment.create({
+        data: { ...base, submissionKey: randomUUID(), ...data },
+      });
+
+    await expect(create({ source: 'bank_transfer' })).rejects.toThrow(
+      /payment_bank_transfer_chk/,
+    );
+    await expect(
+      create({
+        source: 'organizer',
+        recordedById: organizerId,
+        bankTransactionId: transaction.id,
+      }),
+    ).rejects.toThrow(/payment_bank_transfer_chk/);
+    // By hand: the organizer and a reason together, never one without the other.
+    await expect(
+      create({
+        source: 'bank_transfer',
+        bankTransactionId: transaction.id,
+        recordedById: organizerId,
+      }),
+    ).rejects.toThrow(/payment_recorded_by_chk/);
+    await expect(
+      create({
+        source: 'bank_transfer',
+        bankTransactionId: transaction.id,
+        recordedById: organizerId,
+        assignmentReason: '   ',
+      }),
+    ).rejects.toThrow(/payment_assignment_reason_chk/);
+    await expect(
+      create({
+        source: 'organizer',
+        recordedById: organizerId,
+        assignmentReason: 'Důvod',
+      }),
+    ).rejects.toThrow(/payment_assignment_reason_chk/);
+    await expect(
+      create({ source: 'bank_transfer', bankTransactionId: transaction.id }),
+    ).resolves.toBeDefined();
+    // A transaction is credited at most once.
+    await expect(
+      create({ source: 'bank_transfer', bankTransactionId: transaction.id }),
+    ).rejects.toThrow(/Unique constraint/);
+  });
+
   it('records a double submit at most once', async () => {
     const { organizerId, registration } = await setup();
     const payment = await createPayment(prisma, {

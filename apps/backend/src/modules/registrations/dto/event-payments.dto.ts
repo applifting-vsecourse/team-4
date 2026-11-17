@@ -46,7 +46,9 @@ export class EventPaymentDto {
 
   @ApiProperty({
     enum: PAYMENT_SOURCES,
-    description: '`qr_link` for a payment made through the QR link.',
+    description:
+      '`qr_link` for a payment made through the QR link, `bank_transfer` ' +
+      'for a paired bank transaction.',
   })
   source!: PaymentSource;
 

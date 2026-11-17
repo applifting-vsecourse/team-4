@@ -1,4 +1,4 @@
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 
 import { PageHeader } from "@/components/PageHeader"
@@ -13,13 +13,14 @@ import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
 import { BankTransactionsSection } from "@/features/payments/components/BankTransactionsSection"
+import { eventRegistrationKeys } from "@/features/registrations/api/eventRegistrationQueryOptions"
 import { PaymentsOverviewSection } from "@/features/registrations/components/PaymentsOverviewSection"
 
 // An empty payments overview points at the statement import below it.
 const STATEMENT_IMPORT_HEADING_ID = "statement-import-heading"
 
-// Správa akce → Platby: received payments and balances (S4-09) and the import
-// of bank statements (F23).
+// Správa akce → Platby: received payments and balances (S4-09), the import of
+// bank statements (F23) and the queue of unpaired transactions (F24).
 export const Route = createFileRoute(
   "/_ProtectedPages/organizations/$organizationId/events/$eventId/payments",
 )({
@@ -36,6 +37,7 @@ function PaymentsPage() {
   const { organizationId, eventId } = Route.useParams()
   const { data: organization } = useSuspenseQuery(organizationQueryOptions(organizationId))
   const { data: event } = useSuspenseQuery(eventQueryOptions(organizationId, eventId))
+  const queryClient = useQueryClient()
 
   return (
     <WorkspacePage>
@@ -63,6 +65,13 @@ function PaymentsPage() {
           organizationId={organizationId}
           eventId={eventId}
           headingId={STATEMENT_IMPORT_HEADING_ID}
+          // A paired transaction is a received payment of a registration: the
+          // overview, the registration list and the detail show it (F24).
+          onPaymentsChanged={() =>
+            void queryClient.invalidateQueries({
+              queryKey: eventRegistrationKeys.event(organizationId, eventId),
+            })
+          }
         />
       </div>
     </WorkspacePage>

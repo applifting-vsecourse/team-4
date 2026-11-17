@@ -57,5 +57,7 @@ import { RegistrationsService } from './services/registrations.service';
     QrPaymentsService,
     QrPaymentsRepository,
   ],
+  // Bank pairing (F24) tells the participant about a received payment.
+  exports: [ParticipantUpdateService],
 })
 export class RegistrationsModule {}

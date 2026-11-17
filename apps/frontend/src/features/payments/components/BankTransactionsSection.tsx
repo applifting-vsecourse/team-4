@@ -33,17 +33,21 @@ type BankTransactionsSectionProps = {
   eventId: string
   /** Only when a link points at the import (`#…`). */
   headingId?: string
+  /** An import or a pairing may have added payments to registrations. */
+  onPaymentsChanged?: () => void
 }
 
-// Správa akce → Platby (F23): import of a bank statement and the received
-// transactions it brought. Pairing them with registrations comes later (F24).
+// Správa akce → Platby: the import of a bank statement (F23) and the queue of
+// transactions it could not pair by variable symbol, each to be paired with a
+// registration by hand (F24). Paired transactions are received payments.
 export function BankTransactionsSection({
   organizationId,
   eventId,
   headingId,
+  onPaymentsChanged,
 }: BankTransactionsSectionProps) {
   const transactions = useQuery(bankTransactionsQueryOptions(organizationId, eventId))
-  const statementImport = useStatementImport(organizationId, eventId)
+  const statementImport = useStatementImport(organizationId, eventId, onPaymentsChanged)
   const [fileError, setFileError] = useState<string | null>(null)
 
   const importFile = (file: File) => {
@@ -61,7 +65,7 @@ export function BankTransactionsSection({
 
   return (
     <PageSection
-      title="Přijaté transakce"
+      title="Nespárované transakce"
       headingId={headingId}
       isBusy={transactions.isFetching && !transactions.isPending}
       actions={
@@ -98,7 +102,7 @@ export function BankTransactionsSection({
         ) : transactions.data.length === 0 ? (
           <EmptyState
             icon={Landmark}
-            title="Zatím žádné přijaté transakce"
+            title="Žádné nespárované transakce"
           />
         ) : (
           <>
@@ -110,7 +114,12 @@ export function BankTransactionsSection({
                 onRetry={transactions.refetch}
               />
             ) : null}
-            <BankTransactionsTable transactions={transactions.data} />
+            <BankTransactionsTable
+              organizationId={organizationId}
+              eventId={eventId}
+              transactions={transactions.data}
+              onPaired={onPaymentsChanged}
+            />
           </>
         )}
       </div>

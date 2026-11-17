@@ -99,7 +99,7 @@ Currently in the kit: alert, aspect-ratio, avatar, badge, breadcrumb, button, ca
 
 Patterns built from them:
 
-- **Searchable select (combobox):** `Popover` + `Command`, see `EventCombobox` in the preview.
+- **Searchable select (combobox):** `Combobox` from `src/components/ui/combobox.tsx`, composed of `Popover` + `Command`; see `EventCombobox` in the preview. Inside a form it takes the label, `aria-invalid` and `aria-describedby` on its trigger.
 - **Collapsible section:** `CollapsibleSection` from `src/components/ui/collapsible-section.tsx` for consistent full-row triggers and animated content height.
 - **Status labels:** `Badge` with a status variant (table below).
 - **Table labels:** Place a badge that leads a left-aligned cell directly inside `TableCell`. Its text aligns with the column header and the fill extends into the gutter.
