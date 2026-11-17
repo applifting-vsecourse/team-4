@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState"
 import { FormError } from "@/components/FormError"
 import { Notice } from "@/components/Notice"
 import { PendingButton } from "@/components/PendingButton"
+import { PhoneField } from "@/components/PhoneField"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -25,6 +26,7 @@ import { Input } from "@/components/ui/input"
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 import { toE164 } from "@/lib/phone"
+import { PHONE_FIELD_MESSAGE } from "@/lib/phoneCountries"
 
 import {
   genderOtherSchema,
@@ -34,15 +36,12 @@ import {
 } from "@/features/registrations/api/registrationSchemas"
 import { GenderField } from "@/features/registrations/components/GenderField"
 import { ParticipationConditionsField } from "@/features/registrations/components/ParticipationConditionsField"
-import { PhoneField } from "@/features/registrations/components/PhoneField"
 import { RegistrationNeedsFields } from "@/features/registrations/components/RegistrationNeedsFields"
 import {
   CONDITIONS_MESSAGE,
   type RegistrationSubmitError,
 } from "@/features/registrations/lib/registrationErrors"
 import { registrationNeedsFormSchema } from "@/features/registrations/lib/registrationNeeds"
-
-const PHONE_MESSAGE = "Zadejte platné telefonní číslo pro vybranou zemi, např. 777 123 456."
 
 const baseSchema = z.object({
   firstName: z
@@ -65,7 +64,7 @@ const baseSchema = z.object({
     .string()
     .trim()
     .min(1, "Vyplňte telefon.")
-    .refine((value) => toE164(value) !== null, PHONE_MESSAGE),
+    .refine((value) => toE164(value) !== null, PHONE_FIELD_MESSAGE),
   termIds: z.array(z.string()).min(1, "Vyberte alespoň jeden termín."),
   /** Voluntary (F64); null is "not answered". */
   gender: genderSchema.nullable(),
@@ -102,8 +101,11 @@ type RegistrationFormProps = {
   terms: SelectableTerm[]
   /** Participation terms of the event (F07); blank means nothing to confirm. */
   conditions: string
-  /** Values to start from, e.g. a draft kept for the browser tab; never a confirmation. */
-  initialValues?: Omit<RegistrationFormValues, "conditionsConfirmed"> | null
+  /**
+   * Values to start from, e.g. a draft kept for the browser tab or the contact
+   * details of the signed-in participant's profile; never a confirmation.
+   */
+  initialValues?: Partial<Omit<RegistrationFormValues, "conditionsConfirmed">> | null
   /** Every change of the typed values, e.g. to keep them as a draft. */
   onValuesChange?: (values: Omit<RegistrationFormValues, "conditionsConfirmed">) => void
   isSubmitting: boolean
@@ -130,7 +132,7 @@ export function RegistrationForm({
     resolver: zodResolver(schema),
     shouldFocusError: false,
     // A confirmation is never carried over from an earlier visit.
-    defaultValues: { ...(initialValues ?? EMPTY), conditionsConfirmed: false },
+    defaultValues: { ...EMPTY, ...initialValues, conditionsConfirmed: false },
   })
   const { setError } = form
   const selectedIds = useWatch({ control: form.control, name: "termIds" })
@@ -138,20 +140,27 @@ export function RegistrationForm({
   const totalMinor = selected.reduce((sum, term) => sum + term.priceMinor, 0)
   const needsErrors = form.formState.errors.needs
 
-  const typed = useWatch({ control: form.control })
+  const genderOther = useWatch({ control: form.control, name: "genderOther" })
+
+  // Only a change is reported, not the opened form: prefilled values that were
+  // never touched are no draft (S4-08).
   useEffect(() => {
-    onValuesChange?.({
-      firstName: typed.firstName ?? "",
-      lastName: typed.lastName ?? "",
-      email: typed.email ?? "",
-      phone: typed.phone ?? "",
-      termIds: (typed.termIds ?? []).filter((id): id is string => typeof id === "string"),
-      gender: typed.gender ?? null,
-      genderOther: typed.genderOther ?? null,
-      // Complete, unlike the watched copy, which types every part as optional.
-      needs: form.getValues("needs"),
+    if (!onValuesChange) return
+    const subscription = form.watch((typed) => {
+      onValuesChange({
+        firstName: typed.firstName ?? "",
+        lastName: typed.lastName ?? "",
+        email: typed.email ?? "",
+        phone: typed.phone ?? "",
+        termIds: (typed.termIds ?? []).filter((id): id is string => typeof id === "string"),
+        gender: typed.gender ?? null,
+        genderOther: typed.genderOther ?? null,
+        // Complete, unlike the watched copy, which types every part as optional.
+        needs: form.getValues("needs"),
+      })
     })
-  }, [typed, onValuesChange])
+    return () => subscription.unsubscribe()
+  }, [form, onValuesChange])
 
   useEffect(() => {
     if (submitError?.kind === "terms") {
@@ -376,7 +385,7 @@ export function RegistrationForm({
             render={({ field }) => (
               <GenderField
                 id="registration-gender"
-                value={{ gender: field.value, genderOther: typed.genderOther ?? null }}
+                value={{ gender: field.value, genderOther: genderOther ?? null }}
                 onChange={(answer) => {
                   field.onChange(answer.gender)
                   form.setValue("genderOther", answer.genderOther)

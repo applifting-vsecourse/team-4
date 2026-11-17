@@ -101,6 +101,11 @@ erDiagram
 - `Registration` keeps its **own copy** of first/last name, e-mail as typed and phone.
   The account is the login key, while the registration holds the personal data of that
   submission (R11).
+- `ParticipantAccount` also holds an optional **profile** (S4-08): `firstName`,
+  `lastName` and `phone` (E.164), each `NULL` when not filled in. CHECK constraints
+  refuse a blank name and a phone outside E.164. The profile only prefills a new
+  registration form; saving a registration never writes it, and editing the
+  profile never changes existing registrations or the account e-mail.
 - **Tokens are stored only as SHA-256 hashes** (`tokenHash`). The raw token exists
   only in the e-mail link or the cookie.
   - Magic link: `expiresAt = createdAt + 15 min`. It is consumed with
@@ -779,6 +784,11 @@ model ParticipantAccount {
   id        String   @id @default(uuid(7)) @db.Uuid
   email     String   @unique @db.VarChar(320) // normalized: trimmed + lower-case
   createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  // Optional profile (S4-08): prefills a new registration, never changed by one.
+  firstName String? @db.VarChar(100)
+  lastName  String? @db.VarChar(100)
+  phone     String? @db.VarChar(16) // E.164
 
   registrations Registration[]
   magicLinks    ParticipantMagicLink[]

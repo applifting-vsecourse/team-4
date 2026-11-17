@@ -3,6 +3,7 @@ import { queryOptions } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 
 import {
+  eventPaymentsSchema,
   registrationDetailSchema,
   registrationListSchema,
   type RegistrationFilter,
@@ -18,6 +19,8 @@ export const eventRegistrationKeys = {
     [...eventRegistrationKeys.event(organizationId, eventId), "list", filter] as const,
   detail: (organizationId: string, eventId: string, registrationId: string) =>
     [...eventRegistrationKeys.event(organizationId, eventId), "detail", registrationId] as const,
+  payments: (organizationId: string, eventId: string) =>
+    [...eventRegistrationKeys.event(organizationId, eventId), "payments"] as const,
 }
 
 const registrationsPath = (organizationId: string, eventId: string) =>
@@ -92,4 +95,17 @@ export const registrationChangesQueryOptions = (
           .get(`${registrationsPath(organizationId, eventId)}/${registrationId}/changes`)
           .json(),
       ).changes,
+  })
+
+/**
+ * Received payments and balances of the event (S4-09). Under `event(...)`, so
+ * a payment recorded in the detail refreshes the overview too.
+ */
+export const eventPaymentsQueryOptions = (organizationId: string, eventId: string) =>
+  queryOptions({
+    queryKey: eventRegistrationKeys.payments(organizationId, eventId),
+    queryFn: async () =>
+      eventPaymentsSchema.parse(
+        await api.get(`organizations/${organizationId}/events/${eventId}/payments`).json(),
+      ),
   })

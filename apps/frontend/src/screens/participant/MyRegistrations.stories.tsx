@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { http, HttpResponse } from "msw"
-import { expect } from "storybook/test"
+import { expect, within } from "storybook/test"
 
 import { apiUrl, failOn, failsOnRefresh, neverAnswer } from "@/screens/msw"
 import { screenMeta, showsHeading } from "@/screens/screenMeta"
@@ -27,7 +27,15 @@ type Story = StoryObj<typeof meta>
 
 /** The verified participant's current and past registrations (S2-14). */
 export const MyRegistrations: Story = {
-  play: showsHeading("Jarní výlet na Sněžku"),
+  play: async (context) => {
+    await showsHeading("Jarní výlet na Sněžku")(context)
+    // The way back to the catalogue sits above the title.
+    const page = within(context.canvasElement.querySelector("main")!)
+    await expect(page.getByRole("link", { name: "Katalog akcí" })).toHaveAttribute(
+      "href",
+      "/events",
+    )
+  },
 }
 
 export const Loading: Story = {
