@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router"
 import { ChevronDown, ClipboardList } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { BackLink } from "@/components/BackLink"
 import { EmptyState } from "@/components/EmptyState"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
@@ -57,6 +58,7 @@ export function ParticipantRegistrationList({
       aria-busy={query.isFetching}
       className="space-y-4"
     >
+      <BackLink to={ROUTES.catalog}>Katalog akcí</BackLink>
       <PageHeader
         title="Moje přihlášky"
         description={<p className="wrap-break-word">{email}</p>}

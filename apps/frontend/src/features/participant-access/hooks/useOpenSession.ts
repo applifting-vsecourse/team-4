@@ -23,7 +23,11 @@ export function useOpenSession(token: string | undefined): OpenSessionStatus {
     if (!token) return
     request.current ??= api
       .post("participant/session", { json: { token } })
-      .then(() => queryClient.invalidateQueries({ queryKey: participantKeys.session() }))
+      .then(() => {
+        // The link may belong to another account than a cached profile.
+        queryClient.removeQueries({ queryKey: participantKeys.profile() })
+        return queryClient.invalidateQueries({ queryKey: participantKeys.session() })
+      })
       .then(() => undefined)
 
     let isCurrent = true

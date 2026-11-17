@@ -20,6 +20,7 @@ export const ROUTES = {
   myRegistrations: "/my-registrations",
   myRegistration: "/my-registrations/$registrationId",
   myRegistrationEdit: "/my-registrations/$registrationId/edit",
+  myProfile: "/my-profile",
   qrPayment: "/platba/$token",
   login: "/login",
   signup: "/signup",
