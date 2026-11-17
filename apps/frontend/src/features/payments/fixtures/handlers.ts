@@ -6,7 +6,9 @@ import type { BankTransaction } from "@/features/payments/api/paymentSchemas"
 import { BANK_TRANSACTIONS, STATEMENT_IMPORTED } from "@/features/payments/fixtures/payments"
 
 // MSW handlers for Správa akce → Platby. Install with `msw.use(...)` in a
-// story's `beforeEach`.
+// story's `beforeEach`. The pairing dialog reads the event's registrations
+// from the registrations handlers; a pairing changes both features' data, so
+// its stories compose their own backend.
 
 const TRANSACTIONS = `${env.VITE_API_URL}/organizations/:organizationId/events/:eventId/bank-transactions`
 

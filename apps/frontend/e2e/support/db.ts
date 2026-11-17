@@ -103,6 +103,16 @@ export async function registrationIdOf(email: string): Promise<string> {
   return rows[0]!.id
 }
 
+/** The registration's variable symbol, which a bank statement refers to (F24). */
+export async function variableSymbolOf(registrationId: string): Promise<string> {
+  const { rows } = await db().query<{ variableSymbol: string }>(
+    `SELECT "variableSymbol" FROM registration WHERE id = $1`,
+    [registrationId],
+  )
+  if (rows.length !== 1) throw new Error(`No registration ${registrationId}`)
+  return rows[0]!.variableSymbol
+}
+
 /** The id of a registration's term labelled `label`, for terms created in the UI. */
 export async function termIdOf(registrationId: string, label: string): Promise<string> {
   const { rows } = await db().query<{ id: string }>(

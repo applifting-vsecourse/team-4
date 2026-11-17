@@ -4,6 +4,7 @@ import { Payment, Registration } from '@/generated/prisma/client';
 import { BankTransactionsController } from '@/modules/payments/controllers/bank-transactions.controller';
 import { BankTransactionsRepository } from '@/modules/payments/repositories/bank-transactions.repository';
 import { BankTransactionsService } from '@/modules/payments/services/bank-transactions.service';
+import { Mailbox, updateProviders } from '@/testing/confirmation-mail';
 import {
   createEvent,
   createOrganization,
@@ -14,9 +15,16 @@ import {
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
-// F23 through the HTTP API against a real database: the upload, parsing,
-// the unique index against duplicates and the event scope together. Only the
-// BetterAuth session is replaced: the `x-test-user` header names the caller.
+// react-email's renderer cannot load under jest (see `render-markup.ts`).
+jest.mock('@/core/email/render', () => ({
+  renderEmail: (_template: unknown, props: object): Promise<string> =>
+    Promise.resolve(JSON.stringify(props)),
+}));
+
+// F23 and F24 through the HTTP API against a real database: the upload,
+// parsing, the unique index against duplicates, pairing with registrations
+// and the event scope together. Only the BetterAuth session is replaced: the
+// `x-test-user` header names the caller.
 // Needs a migrated Postgres in DATABASE_URL: `pnpm backend test:db`.
 
 // The real guard pulls in BetterAuth, which is ESM-only and cannot load under
@@ -49,7 +57,11 @@ beforeAll(async () => {
   const moduleRef = await Test.createTestingModule({
     imports: [PrismaModule],
     controllers: [BankTransactionsController],
-    providers: [BankTransactionsService, BankTransactionsRepository],
+    providers: [
+      BankTransactionsService,
+      BankTransactionsRepository,
+      ...updateProviders(new Mailbox()),
+    ],
   }).compile();
   app = moduleRef.createNestApplication();
   await app.listen(0);
@@ -165,7 +177,13 @@ describe('Import výpisu (F23)', () => {
     );
     expect(result).toEqual({
       status: 200,
-      body: { received: 1, imported: 1, duplicates: 0, skippedOutgoing: 0 },
+      body: {
+        received: 1,
+        imported: 1,
+        duplicates: 0,
+        skippedOutgoing: 0,
+        paired: 0,
+      },
     });
   });
 
@@ -204,19 +222,22 @@ describe('Import výpisu (F23)', () => {
   it('does not duplicate transactions or payments on a repeated import', async () => {
     const { ownerId, eventId, path, paidRegistration } = await ownEvent();
     const registration = await paidRegistration();
-    const payments = await paymentsOf(registration.id);
     const file = statement(
       movement(bankId(), '02.03.2027', '100,00', registration.variableSymbol),
       movement(bankId(), '03.03.2027', '200,00'),
     );
     expect((await upload(ownerId, path, file)).body).toMatchObject({
       imported: 2,
+      paired: 1,
     });
+    const payments = await paymentsOf(registration.id);
+    expect(payments).toHaveLength(2);
     expect((await upload(ownerId, path, file)).body).toEqual({
       received: 2,
       imported: 0,
       duplicates: 2,
       skippedOutgoing: 0,
+      paired: 0,
     });
     expect(await storedCount(eventId)).toBe(2);
     expect(await paymentsOf(registration.id)).toEqual(payments);
@@ -228,7 +249,13 @@ describe('Import výpisu (F23)', () => {
     const payments = await paymentsOf(registration.id);
     expect(await upload(ownerId, path, statement())).toEqual({
       status: 200,
-      body: { received: 0, imported: 0, duplicates: 0, skippedOutgoing: 0 },
+      body: {
+        received: 0,
+        imported: 0,
+        duplicates: 0,
+        skippedOutgoing: 0,
+        paired: 0,
+      },
     });
     expect(await storedCount(eventId)).toBe(0);
     expect(await paymentsOf(registration.id)).toEqual(payments);
@@ -321,5 +348,233 @@ describe('Import výpisu (F23)', () => {
     expect(
       (await upload(second.ownerId, second.path, file)).body.imported,
     ).toBe(1);
+  });
+});
+
+const pair = async (
+  userId: string,
+  path: string,
+  transactionId: string,
+  body: Record<string, unknown>,
+): Promise<Call> => {
+  const response = await fetch(
+    `${baseUrl}/${path}/bank-transactions/${transactionId}/pairing`,
+    {
+      method: 'POST',
+      headers: { 'x-test-user': userId, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  );
+  const text = await response.text();
+  return { status: response.status, body: text ? JSON.parse(text) : null };
+};
+
+/** The stored events of received payments of a registration (S4-06). */
+const paymentEventsOf = (registrationId: string): Promise<number> =>
+  prisma.emailDelivery.count({
+    where: { registrationId, dedupKey: { startsWith: 'payment:' } },
+  });
+
+/** A confirmed registration of the event without payments. */
+const registrationOf = async (eventId: string): Promise<Registration> => {
+  const event = await prisma.event.findUniqueOrThrow({
+    where: { id: eventId },
+    include: { terms: true },
+  });
+  return createRegistration(prisma, {
+    event,
+    terms: [{ term: event.terms[0]!, status: 'confirmed' }],
+  });
+};
+
+/** Imports one movement and returns the stored transaction's id. */
+const importOne = async (
+  own: OwnEvent,
+  vs = '',
+  amount = '500,00',
+): Promise<string> => {
+  const id = bankId();
+  await upload(
+    own.ownerId,
+    own.path,
+    statement(movement(id, '05.03.2027', amount, vs)),
+  );
+  const stored = await prisma.bankTransaction.findFirstOrThrow({
+    where: { eventId: own.eventId, bankTransactionId: id },
+  });
+  return stored.id;
+};
+
+describe('Párování plateb (F24)', () => {
+  it('pairs a transaction by the variable symbol of a registration of the event', async () => {
+    const own = await ownEvent();
+    const registration = await registrationOf(own.eventId);
+    const result = await upload(
+      own.ownerId,
+      own.path,
+      statement(
+        movement(bankId(), '05.03.2027', '500,00', registration.variableSymbol),
+        movement(bankId(), '06.03.2027', '300,00', '9999999'),
+        movement(bankId(), '07.03.2027', '200,00'),
+      ),
+    );
+    expect(result.body).toMatchObject({ imported: 3, paired: 1 });
+    expect(await paymentsOf(registration.id)).toEqual([
+      expect.objectContaining({
+        amountMinor: 50000,
+        source: 'bank_transfer',
+        recordedById: null,
+        assignmentReason: null,
+      }),
+    ]);
+    expect(await paymentEventsOf(registration.id)).toBe(1);
+    // Without a match or without a symbol, both wait in the queue.
+    const { body } = await list(own.ownerId, own.path);
+    expect(
+      body.transactions.map((t: { amountMinor: number }) => t.amountMinor),
+    ).toEqual([20000, 30000]);
+  });
+
+  it('ignores leading zeros of the variable symbol', async () => {
+    const own = await ownEvent();
+    const registration = await registrationOf(own.eventId);
+    await importOne(own, `000${registration.variableSymbol}`);
+    expect(await paymentsOf(registration.id)).toHaveLength(1);
+  });
+
+  it("leaves a symbol of another event's registration unpaired", async () => {
+    const own = await ownEvent();
+    const other = await ownEvent();
+    const foreign = await registrationOf(other.eventId);
+    await importOne(own, foreign.variableSymbol);
+    expect(await paymentsOf(foreign.id)).toEqual([]);
+    expect((await list(own.ownerId, own.path)).body.transactions).toHaveLength(
+      1,
+    );
+  });
+
+  it('pairs a waiting transaction on a later import once its registration exists', async () => {
+    const own = await ownEvent();
+    // A symbol no registration has yet; a registration then gets it.
+    const symbol = String(Math.floor(Math.random() * 9e9) + 1e9);
+    await importOne(own, symbol);
+    const registration = await prisma.registration.update({
+      where: { id: (await registrationOf(own.eventId)).id },
+      data: { variableSymbol: symbol },
+    });
+    const result = await upload(own.ownerId, own.path, statement());
+    expect(result.body).toMatchObject({ imported: 0, paired: 1 });
+    expect(await paymentsOf(registration.id)).toHaveLength(1);
+  });
+
+  it('pairs a queued transaction by hand with a reason and recomputes the balance', async () => {
+    const own = await ownEvent();
+    const registration = await registrationOf(own.eventId);
+    const transactionId = await importOne(own, '', '1 500,00');
+    expect(await paymentsOf(registration.id)).toEqual([]);
+
+    const result = await pair(own.ownerId, own.path, transactionId, {
+      registrationId: registration.id,
+      reason: '  Platba od babičky bez VS  ',
+    });
+    expect(result.status).toBe(204);
+    expect(await paymentsOf(registration.id)).toEqual([
+      expect.objectContaining({
+        amountMinor: 150000,
+        receivedOn: new Date('2027-03-05T00:00:00.000Z'),
+        source: 'bank_transfer',
+        bankTransactionId: transactionId,
+        recordedById: own.ownerId,
+        assignmentReason: 'Platba od babičky bez VS',
+      }),
+    ]);
+    expect(await paymentEventsOf(registration.id)).toBe(1);
+    expect((await list(own.ownerId, own.path)).body.transactions).toEqual([]);
+  });
+
+  it('credits a transaction at most once', async () => {
+    const own = await ownEvent();
+    const [first, second] = [
+      await registrationOf(own.eventId),
+      await registrationOf(own.eventId),
+    ];
+    const transactionId = await importOne(own);
+    const results = await Promise.all([
+      pair(own.ownerId, own.path, transactionId, {
+        registrationId: first.id,
+        reason: 'Podle zprávy',
+      }),
+      pair(own.ownerId, own.path, transactionId, {
+        registrationId: second.id,
+        reason: 'Podle jména',
+      }),
+    ]);
+    expect(results.map((r) => r.status).sort()).toEqual([204, 409]);
+    expect(
+      await prisma.payment.count({
+        where: { bankTransactionId: transactionId },
+      }),
+    ).toBe(1);
+    const again = await pair(own.ownerId, own.path, transactionId, {
+      registrationId: first.id,
+      reason: 'Znovu',
+    });
+    expect(again).toMatchObject({
+      status: 409,
+      body: { code: 'transaction_already_paired' },
+    });
+    // Importing the same statement again creates no further payment event.
+    expect(
+      (await paymentEventsOf(first.id)) + (await paymentEventsOf(second.id)),
+    ).toBe(1);
+  });
+
+  it('requires a reason', async () => {
+    const own = await ownEvent();
+    const registration = await registrationOf(own.eventId);
+    const transactionId = await importOne(own);
+    for (const reason of [undefined, '', '   ', 'x'.repeat(501)]) {
+      const result = await pair(own.ownerId, own.path, transactionId, {
+        registrationId: registration.id,
+        reason,
+      });
+      expect(result.status).toBe(400);
+    }
+    expect(await paymentsOf(registration.id)).toEqual([]);
+  });
+
+  it('refuses a registration of another event, even when asked directly', async () => {
+    const own = await ownEvent();
+    const other = await ownEvent();
+    const foreign = await registrationOf(other.eventId);
+    const transactionId = await importOne(own);
+    const result = await pair(own.ownerId, own.path, transactionId, {
+      registrationId: foreign.id,
+      reason: 'Omyl',
+    });
+    expect(result).toMatchObject({
+      status: 400,
+      body: { code: 'registration_unavailable' },
+    });
+    expect(await paymentsOf(foreign.id)).toEqual([]);
+  });
+
+  it("neither shows nor pairs another organizer's transaction", async () => {
+    const own = await ownEvent();
+    const foreign = await ownEvent();
+    const registration = await registrationOf(foreign.eventId);
+    const transactionId = await importOne(foreign);
+    const asStranger = await pair(own.ownerId, foreign.path, transactionId, {
+      registrationId: registration.id,
+      reason: 'Cizí',
+    });
+    expect(asStranger.status).toBe(404);
+    // A transaction of another event under the caller's own event path.
+    const mixed = await pair(own.ownerId, own.path, transactionId, {
+      registrationId: registration.id,
+      reason: 'Cizí',
+    });
+    expect(mixed.status).toBe(404);
+    expect(await paymentsOf(registration.id)).toEqual([]);
   });
 });

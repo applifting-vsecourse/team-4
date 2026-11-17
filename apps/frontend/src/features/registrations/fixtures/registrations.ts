@@ -1,7 +1,9 @@
 import {
+  eventPaymentsSchema,
   registrationDetailSchema,
   registrationListSchema,
   registrationSummarySchema,
+  type EventPayments,
   type RegistrationDetail,
   type RegistrationList,
   type RegistrationSummary,
@@ -118,4 +120,87 @@ export function makeRegistrationDetail(
     requiresManualAccommodation: false,
     ...overrides,
   })
+}
+
+// The payments overview (S4-09) is derived from the list above, so its amounts
+// and links match what the registration list and detail show. Variable symbols
+// match the bank transaction fixtures.
+const paymentRegistration = (registration: RegistrationSummary, index: number) => ({
+  id: registration.id,
+  firstName: registration.firstName,
+  lastName: registration.lastName,
+  variableSymbol: registration.amountDueMinor > 0 ? `100${index + 1}` : null,
+})
+
+const balancesOf = (registrations: RegistrationSummary[]) =>
+  registrations.flatMap((registration, index) =>
+    registration.paymentState === "none"
+      ? []
+      : [
+          {
+            registration: paymentRegistration(registration, index),
+            amountDueMinor: registration.amountDueMinor,
+            paidMinor: registration.paidMinor,
+            balanceMinor: registration.balanceMinor,
+            paymentState: registration.paymentState,
+          },
+        ],
+  )
+
+/** Payments of the partial, the paid and the overpaid registration, newest first. */
+export function makeEventPayments(): EventPayments {
+  const registrations = makeRegistrationList().registrations
+  const of = (index: number) => {
+    const registration = registrations[index]
+    if (!registration) throw new Error(`The registration list has no row ${index}`)
+    return paymentRegistration(registration, index)
+  }
+  return eventPaymentsSchema.parse({
+    payments: [
+      {
+        id: uuid(803),
+        receivedOn: "2027-03-15",
+        amountMinor: 450_000,
+        source: "organizer",
+        registration: of(2),
+      },
+      {
+        id: uuid(805),
+        receivedOn: "2027-03-12",
+        amountMinor: 50_000,
+        source: "qr_link",
+        registration: of(3),
+      },
+      {
+        id: uuid(802),
+        receivedOn: "2027-03-09",
+        amountMinor: 200_000,
+        source: "organizer",
+        registration: of(1),
+      },
+      {
+        id: uuid(804),
+        receivedOn: "2027-03-07",
+        amountMinor: 450_000,
+        source: "organizer",
+        registration: of(3),
+      },
+    ],
+    balances: balancesOf(registrations),
+  })
+}
+
+/** Nothing received yet: every registration with an obligation still owes all of it. */
+export function makeEventWithoutPayments(): EventPayments {
+  const unpaid = makeRegistrationList().registrations.map((registration) =>
+    registration.paymentState === "none"
+      ? registration
+      : {
+          ...registration,
+          paidMinor: 0,
+          balanceMinor: registration.amountDueMinor,
+          paymentState: "unpaid" as const,
+        },
+  )
+  return eventPaymentsSchema.parse({ payments: [], balances: balancesOf(unpaid) })
 }

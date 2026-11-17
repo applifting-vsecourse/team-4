@@ -33,8 +33,11 @@ export const paymentInstructionsSchema = z.object({
   reminderAt: z.string(),
 })
 
-/** Entered by the organizer, or paid through the QR link (F21-1). */
-export const paymentSourceSchema = z.enum(["organizer", "qr_link"])
+/**
+ * Entered by the organizer, paid through the QR link (F21-1), or an imported
+ * bank transaction paired with the registration (F24).
+ */
+export const paymentSourceSchema = z.enum(["organizer", "qr_link", "bank_transfer"])
 
 export const receivedPaymentSchema = z.object({
   id: z.string().uuid(),
