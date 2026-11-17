@@ -12,6 +12,7 @@ import {
   PARTICIPANT,
   PROFILE,
 } from "@/features/participant-access/fixtures/participant"
+import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
 
 const PROFILE_PATH = "/participant/profile"
 const TIMEOUT = { timeout: 5000 }
@@ -58,7 +59,7 @@ export const MyProfile: Story = {
 /** Nothing filled in yet: every field is optional and the profile saves empty. */
 export const EmptyProfile: Story = {
   beforeEach: ({ msw }) => {
-    msw.use(...participantHandlers.profile(EMPTY_PROFILE))
+    msw.use(...participantHandlers.profile(EMPTY_PROFILE), ...registrationHandlers.own())
   },
   play: async (context) => {
     await expect(await firstName(context)).toHaveValue("")
@@ -67,15 +68,33 @@ export const EmptyProfile: Story = {
   },
 }
 
-/** Saving confirms with a toast and keeps the values in the form. */
+/**
+ * Saving confirms with a toast and returns the participant to the page they
+ * came from; opened directly, that is Moje přihlášky.
+ */
 export const Saved: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.own())
+  },
   play: async (context) => {
     const input = await firstName(context)
     await userEvent.clear(input)
     await userEvent.type(input, "Anička")
     await userEvent.click(context.canvas.getByRole("button", { name: "Uložit profil" }))
     await showsSavedToast()
-    await expect(input).toHaveValue("Anička")
+    await showsHeading("Moje přihlášky")(context)
+  },
+}
+
+/** The way back to Moje přihlášky sits above the title. */
+export const BackToRegistrations: Story = {
+  play: async (context) => {
+    await showsHeading("Můj profil")(context)
+    const page = within(context.canvasElement.querySelector("main")!)
+    await expect(page.getByRole("link", { name: "Moje přihlášky" })).toHaveAttribute(
+      "href",
+      "/my-registrations",
+    )
   },
 }
 

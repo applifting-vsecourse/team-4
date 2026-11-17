@@ -41,6 +41,11 @@ vi.mock("@tanstack/react-router", () => ({
       {children}
     </a>
   ),
+  createLink:
+    (Anchor: React.ComponentType<React.AnchorHTMLAttributes<HTMLAnchorElement>>) =>
+    ({ children, to }: { children: React.ReactNode; to: string }) => (
+      <Anchor href={to}>{children}</Anchor>
+    ),
 }))
 
 const T1 = "0190c0de-0000-7000-8000-000000000001"

@@ -47,8 +47,10 @@ test("the participant saves a profile that prefills the next registration", asyn
   await page.getByLabel("Telefon").fill("777 123 456")
   await page.getByRole("button", { name: "Uložit profil" }).click()
   await expect(page.getByText("Profil uložen")).toBeVisible()
+  // Saving returns to the page the profile was opened from.
+  await expect(page.getByRole("heading", { name: "Moje přihlášky", level: 1 })).toBeVisible()
 
-  await page.reload()
+  await page.goto("/my-profile")
   await expect(page.getByLabel("Jméno")).toHaveValue("Jana")
   await expect(page.getByLabel("Příjmení")).toHaveValue("Nováková")
 
@@ -80,6 +82,8 @@ test("after logging out no registration form is prefilled, not even going back",
   await page.getByLabel("Jméno").fill("Olga")
   await page.getByRole("button", { name: "Uložit profil" }).click()
   await expect(page.getByText("Profil uložen")).toBeVisible()
+  // Opened directly, the saved profile leads to Moje přihlášky.
+  await expect(page.getByRole("heading", { name: "Moje přihlášky", level: 1 })).toBeVisible()
 
   // A started form keeps a draft for the tab (F55).
   await page.goto(`/e/${event.publicId}/registration`)

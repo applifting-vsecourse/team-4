@@ -48,7 +48,7 @@ export function Header({ account, variant = "public" }: HeaderProps) {
             aria-label={isParticipant ? "Účastnický portál" : "Vstup do aplikace"}
             className="hidden items-center gap-2 lg:flex"
           >
-            <AppLinks isParticipant={isParticipant} />
+            <AppLinks />
             {isParticipant ? null : (
               <Button
                 asChild
@@ -98,25 +98,14 @@ function AudienceLinks({ isInMenu = false }: { isInMenu?: boolean }) {
   )
 }
 
-const PUBLIC_LINKS = [
+// One order in every header, signed in or not.
+const APP_LINKS = [
   { to: ROUTES.catalog, label: "Katalog akcí" },
   { to: ROUTES.myRegistrations, label: "Moje přihlášky" },
 ] as const
 
-// The participant's own pages come first in the portal.
-const PARTICIPANT_LINKS = [
-  { to: ROUTES.myRegistrations, label: "Moje přihlášky" },
-  { to: ROUTES.catalog, label: "Katalog akcí" },
-] as const
-
-function AppLinks({
-  isParticipant,
-  isInMenu = false,
-}: {
-  isParticipant: boolean
-  isInMenu?: boolean
-}) {
-  return (isParticipant ? PARTICIPANT_LINKS : PUBLIC_LINKS).map(({ to, label }) => {
+function AppLinks({ isInMenu = false }: { isInMenu?: boolean }) {
+  return APP_LINKS.map(({ to, label }) => {
     const link = <Link to={to}>{label}</Link>
     return (
       <Button
@@ -156,10 +145,7 @@ function MobileMenu({ isParticipant }: { isParticipant: boolean }) {
           aria-label={isParticipant ? "Účastnický portál" : "Vstup do aplikace"}
           className="flex flex-col gap-2 px-4"
         >
-          <AppLinks
-            isParticipant={isParticipant}
-            isInMenu
-          />
+          <AppLinks isInMenu />
         </nav>
         {isParticipant ? null : (
           <div className="px-4">

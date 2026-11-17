@@ -1,8 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useCanGoBack, useNavigate, useRouter } from "@tanstack/react-router"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { ROUTES } from "@/app/routes"
 import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { FormError } from "@/components/FormError"
 import { PendingButton } from "@/components/PendingButton"
@@ -53,6 +55,9 @@ type ParticipantProfileFormProps = {
 // The stored values are the form's start; a failed save keeps what was typed.
 export function ParticipantProfileForm({ profile }: ParticipantProfileFormProps) {
   const save = useSaveParticipantProfile()
+  const router = useRouter()
+  const canGoBack = useCanGoBack()
+  const navigate = useNavigate()
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
@@ -62,9 +67,15 @@ export function ParticipantProfileForm({ profile }: ParticipantProfileFormProps)
     },
   })
 
+  // A saved profile returns the participant to the page they came from,
+  // or to Moje přihlášky when the profile was opened directly.
   const onSubmit = (values: ProfileFormValues) => {
     save.mutate(toInput(values), {
-      onSuccess: () => toast.success("Profil uložen"),
+      onSuccess: () => {
+        toast.success("Profil uložen")
+        if (canGoBack) router.history.back()
+        else void navigate({ to: ROUTES.myRegistrations })
+      },
     })
   }
 

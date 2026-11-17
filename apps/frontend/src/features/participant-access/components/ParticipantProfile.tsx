@@ -1,6 +1,8 @@
 import type { ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 
+import { ROUTES } from "@/app/routes"
+import { BackLink } from "@/components/BackLink"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { PageHeader } from "@/components/PageHeader"
@@ -23,6 +25,7 @@ export function ParticipantProfile({ sessionEnded }: ParticipantProfileProps) {
 
   return (
     <section className="space-y-6">
+      <BackLink to={ROUTES.myRegistrations}>Moje přihlášky</BackLink>
       <PageHeader title="Můj profil" />
       {query.data ? (
         // Another account starts its own form, never with the previous values.
