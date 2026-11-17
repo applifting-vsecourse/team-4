@@ -3,7 +3,10 @@ import { http, HttpResponse } from "msw"
 import { env } from "@/config/env"
 
 import type { TermEvaluationData } from "@/features/accommodation/api/evaluationSchemas"
-import type { TermRoomProposalData } from "@/features/accommodation/api/roomProposalSchemas"
+import type {
+  RoomProposalPreferences,
+  TermRoomProposalData,
+} from "@/features/accommodation/api/roomProposalSchemas"
 import {
   makeHardAttributeSetting,
   makeMoves,
@@ -12,7 +15,10 @@ import {
   makeRuns,
   makeTermEvaluation,
 } from "@/features/accommodation/fixtures/evaluation"
-import { makeTermRoomProposal } from "@/features/accommodation/fixtures/roomProposal"
+import {
+  makeRoomProposalPreferences,
+  makeTermRoomProposal,
+} from "@/features/accommodation/fixtures/roomProposal"
 
 // MSW handlers for the term evaluation of an event (S3-01, S3-03). Install with
 // `msw.use(...)` in a story's `beforeEach`.
@@ -32,7 +38,16 @@ export const accommodationHandlers = {
       HttpResponse.json(makeHardAttributeSetting(hardAttribute)),
     ),
   ],
+  /** The soft preferences of the room proposal (#389); a save keeps the sent list. */
+  roomProposalPreferences: (setting: RoomProposalPreferences = makeRoomProposalPreferences()) => [
+    http.get(`${BASE}/room-proposal-preferences`, () => HttpResponse.json(setting)),
+    http.put(`${BASE}/room-proposal-preferences`, async ({ request }) => {
+      const { preferences } = (await request.json()) as Pick<RoomProposalPreferences, "preferences">
+      return HttpResponse.json({ ...setting, preferences })
+    }),
+  ],
   evaluation: () => [
+    ...accommodationHandlers.roomProposalPreferences(),
     http.get(`${BASE}/evaluation-mode`, () => HttpResponse.json({ mode: "automatic" })),
     http.get(`${BASE}/hard-attribute`, () => HttpResponse.json(makeHardAttributeSetting())),
     http.put(`${BASE}/hard-attribute`, async ({ request }) => {

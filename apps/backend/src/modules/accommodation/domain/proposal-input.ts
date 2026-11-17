@@ -1,9 +1,12 @@
-import { GENDER_ATTRIBUTE } from '@/modules/accommodation/domain/determination';
 import {
   effectiveValue,
   HardAttribute,
   ManualValue,
 } from '@/modules/accommodation/domain/effective-value';
+import {
+  SoftNeutralValues,
+  WISHES_PREFERENCE,
+} from '@/modules/accommodation/domain/room-proposal-preferences';
 import {
   ProposalRoom,
   RoommateWish,
@@ -15,22 +18,13 @@ import {
 // with it (§7.3). Who takes part is decided already: only the confirmed
 // participants of the term are laid out.
 
-/** The soft preference "Přání" in `accommodation_rules.softAttributes` (spec §9). */
-export const WISHES_PREFERENCE = 'roommate-wishes';
-
-/**
- * Answers of a categorical soft attribute that never count (spec §5.4); the
- * organizer sets them with #389. For gender: "Jiná odpověď", "Nechci uvést".
- */
-const NEUTRAL_ANSWERS: Record<string, readonly string[]> = {
-  [GENDER_ATTRIBUTE]: ['other', 'undisclosed'],
-};
-
 /** Pravidla ubytování as the room proposal reads them. */
 export type ProposalRules = {
   hardAttribute: HardAttribute | null;
-  /** Ranked soft preferences, most important first. */
+  /** Ranked soft preferences, most important first (#389). */
   softAttributes: readonly string[];
+  /** The neutral answers of each listed soft attribute (§5.4). */
+  softNeutralValues: SoftNeutralValues;
 };
 
 /** A room of the event with its beds in the term; unavailable ones too (O6). */
@@ -59,22 +53,15 @@ export type ProposalSnapshot = {
   input: RoomProposalInput;
 };
 
-/**
- * The ranked list of the room proposal. Until the organizer can set it
- * (#389) an empty list is the default of a new event: only "Přání" (spec
- * §5).
- */
+/** The ranked list of the room proposal; an empty one skips U3 (spec §5). */
 export function preferencesOf(rules: ProposalRules): SoftPreference[] {
-  const list = rules.softAttributes.length
-    ? rules.softAttributes
-    : [WISHES_PREFERENCE];
-  return list.map((id) =>
+  return rules.softAttributes.map((id) =>
     id === WISHES_PREFERENCE
       ? { kind: 'wishes' }
       : {
           kind: 'attribute',
           id,
-          neutralValues: [...(NEUTRAL_ANSWERS[id] ?? [])],
+          neutralValues: [...(rules.softNeutralValues[id] ?? [])],
         },
   );
 }

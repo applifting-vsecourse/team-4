@@ -27,10 +27,10 @@ import {
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
-// #384 through the HTTP API against a real database: choosing none or one
-// hard attribute, what a change makes stale, and the story's verification
-// case (rooms of 1 and 15 beds) through the evaluation and the bulk
-// confirmation. The guard is replaced: `x-test-user` names the organizer.
+// #384 and #389 through the HTTP API against a real database: choosing none
+// or one hard attribute, ranking the soft preferences of the room proposal,
+// what a change makes stale, and the story's verification case (rooms of 1
+// and 15 beds) through the evaluation and the bulk confirmation. The guard is replaced: `x-test-user` names the organizer.
 // Needs a migrated Postgres in DATABASE_URL: `pnpm backend test:db`.
 
 jest.mock('@/shared/auth/guards/authenticated-user.guard', () => ({
@@ -346,6 +346,169 @@ describe('choosing the hard attribute', () => {
     ).toBe(404);
     expect((await call(stranger.ownerId, 'GET', foreign)).status).toBe(404);
     expect(await versions(f)).toEqual([0, 0]);
+  });
+});
+
+const layoutVersions = async (f: Fixture): Promise<number[]> => {
+  const states = await prisma.accommodationTermState.findMany({
+    where: { eventId: f.event.id },
+  });
+  return f.terms.map(
+    (term) => states.find((s) => s.termId === term.id)?.layoutVersion ?? 0,
+  );
+};
+
+const preferencesPath = (f: Fixture): string =>
+  `${f.base}/accommodation/room-proposal-preferences`;
+
+const rank = (f: Fixture, preferences: unknown): Promise<Call> =>
+  call(f.ownerId, 'PUT', preferencesPath(f), { preferences });
+
+const SOFT_GENDER = {
+  attribute: 'gender',
+  values: ['female', 'male', 'other', 'undisclosed'],
+  defaultNeutralValues: ['other', 'undisclosed'],
+};
+
+describe('the soft preferences of the room proposal (#389)', () => {
+  it('ranks only "Přání" for a new event and offers gender', async () => {
+    const f = await setup();
+
+    expect(await call(f.ownerId, 'GET', preferencesPath(f))).toEqual({
+      status: 200,
+      body: {
+        preferences: [{ id: 'roommate-wishes' }],
+        wishes: 'roommate-wishes',
+        attributes: [SOFT_GENDER],
+      },
+    });
+  });
+
+  it('keeps the order and neutral answers per event and makes only the room proposals stale', async () => {
+    const f = await setup();
+    const other = await setup();
+    await prisma.event.update({
+      where: { id: f.event.id },
+      data: { isRoomProposalAutomatic: true },
+    });
+    const list = [
+      { id: 'gender', neutralValues: ['other', 'undisclosed'] },
+      { id: 'roommate-wishes' },
+    ];
+
+    expect(await rank(f, list)).toEqual({
+      status: 200,
+      body: {
+        preferences: list,
+        wishes: 'roommate-wishes',
+        attributes: [SOFT_GENDER],
+      },
+    });
+    expect(
+      (await call(f.ownerId, 'GET', preferencesPath(f))).body,
+    ).toMatchObject({ preferences: list });
+    expect(
+      await prisma.accommodationRules.findUnique({
+        where: { eventId: f.event.id },
+      }),
+    ).toMatchObject({
+      hardAttribute: null,
+      softAttributes: ['gender', 'roommate-wishes'],
+      softNeutralValues: { gender: ['other', 'undisclosed'] },
+    });
+    // Every room proposal is stale and due again 10 s later; the evaluation
+    // of participation is not (spec §7.1).
+    expect(await layoutVersions(f)).toEqual([1, 1]);
+    expect(await versions(f)).toEqual([0, 0]);
+    const states = await prisma.accommodationTermState.findMany({
+      where: { eventId: f.event.id },
+    });
+    expect(
+      states.every((s) => s.proposalDueAt !== null && s.dueAt === null),
+    ).toBe(true);
+    expect(await layoutVersions(other)).toEqual([0, 0]);
+
+    // The same list again, neutral answers in another order, changes nothing.
+    await rank(f, [
+      { id: 'gender', neutralValues: ['undisclosed', 'other'] },
+      { id: 'roommate-wishes' },
+    ]);
+    expect(await layoutVersions(f)).toEqual([1, 1]);
+
+    // An empty list is allowed: the proposal skips the soft preferences.
+    expect((await rank(f, [])).body.preferences).toEqual([]);
+    expect(await layoutVersions(f)).toEqual([2, 2]);
+  });
+
+  it('refuses an unknown, repeated or malformed item and saves nothing', async () => {
+    const f = await setup();
+
+    for (const preferences of [
+      [{ id: 'shoe-size', neutralValues: [] }],
+      [{ id: 'roommate-wishes' }, { id: 'roommate-wishes' }],
+      [{ id: 'gender', neutralValues: ['tall'] }],
+      [{ id: 'gender', neutralValues: ['other', 'other'] }],
+      [{ id: 'roommate-wishes', neutralValues: ['other'] }],
+      [{ id: 1 }],
+      'gender',
+    ]) {
+      expect((await rank(f, preferences)).status).toBe(400);
+    }
+    expect((await call(f.ownerId, 'PUT', preferencesPath(f), {})).status).toBe(
+      400,
+    );
+    expect(
+      (await call(f.ownerId, 'GET', preferencesPath(f))).body.preferences,
+    ).toEqual([{ id: 'roommate-wishes' }]);
+    expect(await layoutVersions(f)).toEqual([0, 0]);
+  });
+
+  it('never ranks the hard attribute; choosing it removes it from the list', async () => {
+    const f = await setup();
+    await rank(f, [
+      { id: 'roommate-wishes' },
+      { id: 'gender', neutralValues: ['other'] },
+    ]);
+    expect(await layoutVersions(f)).toEqual([1, 1]);
+
+    // Gender becomes the hard attribute: it leaves the soft list, and the
+    // room proposals are stale as well as the evaluations.
+    await choose(f, 'gender');
+    expect(await call(f.ownerId, 'GET', preferencesPath(f))).toEqual({
+      status: 200,
+      body: {
+        preferences: [{ id: 'roommate-wishes' }],
+        wishes: 'roommate-wishes',
+        attributes: [],
+      },
+    });
+    expect(
+      await prisma.accommodationRules.findUnique({
+        where: { eventId: f.event.id },
+      }),
+    ).toMatchObject({ softNeutralValues: {} });
+    expect(await layoutVersions(f)).toEqual([2, 2]);
+    expect(await versions(f)).toEqual([1, 1]);
+
+    const refused = await rank(f, [{ id: 'gender', neutralValues: [] }]);
+    expect(refused).toMatchObject({
+      status: 409,
+      body: { message: 'Tvrdé pravidlo nelze přidat mezi měkké preference.' },
+    });
+    expect(await layoutVersions(f)).toEqual([2, 2]);
+  });
+
+  it('treats a foreign event like a missing one', async () => {
+    const f = await setup();
+    const stranger = await setup();
+
+    expect(
+      (await call(stranger.ownerId, 'GET', preferencesPath(f))).status,
+    ).toBe(404);
+    expect((await rank({ ...f, ownerId: stranger.ownerId }, [])).status).toBe(
+      404,
+    );
+    expect(await layoutVersions(f)).toEqual([0, 0]);
   });
 });
 

@@ -34,12 +34,12 @@ const overview = (rooms: typeof ROOMS_OVERVIEW.rooms) => [
 export const Rooms: Story = {
   play: async (context) => {
     await showsHeading("Pokoje")(context)
-    // The context "Nastavení" opens the event settings at the accommodation rules (#384).
+    // The context "Nastavení" opens the event settings at Návrh pokojů (#384, #389).
     const settings = context.canvas.getAllByRole("link", { name: "Nastavení" })
     await expect(
       settings
         .map((link) => link.getAttribute("href"))
-        .filter((href) => href?.endsWith("/settings#accommodation-rules-heading")),
+        .filter((href) => href?.endsWith("/settings#room-proposal-settings-heading")),
     ).toHaveLength(1)
   },
 }

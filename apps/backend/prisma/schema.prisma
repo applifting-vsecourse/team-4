@@ -622,15 +622,21 @@ model EmailDelivery {
 
 // ─── Accommodation evaluation (S3-T3 spec v4 §9, S3-T4) ─────────────────────
 
-// Pravidla ubytování of an event (§2). No row: no hard attribute, no soft rules.
+// Pravidla ubytování of an event (§2). No row: no hard attribute, and the
+// room proposal ranks only "Přání" (phase 2 §5).
 model AccommodationRules {
   eventId              String   @id @db.Uuid
   // The categorical question that splits rooms; null when none does.
   hardAttribute        String?  @db.VarChar(64)
   // Answers of the hard attribute that do not determine a room.
   nonDeterminingValues String[] @default([]) @db.VarChar(100)
-  // Ranked soft attributes, most important first (phase 2).
-  softAttributes       String[] @default([]) @db.VarChar(64)
+  // Ranked soft preferences of the room proposal, most important first
+  // (phase 2 §5): `roommate-wishes` ("Přání") or a categorical question.
+  // Empty: the proposal skips U3.
+  softAttributes       String[] @default(["roommate-wishes"]) @db.VarChar(64)
+  // The neutral answers of each listed soft attribute (phase 2 §5.4), as
+  // { attribute: [answer, …] }; a missing answer is always neutral.
+  softNeutralValues    Json     @default("{}")
   updatedAt            DateTime @updatedAt @db.Timestamptz(3)
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Restrict)

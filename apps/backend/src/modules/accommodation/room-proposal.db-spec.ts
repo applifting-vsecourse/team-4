@@ -4,10 +4,8 @@ import {
   AccommodationTermState,
   Registration,
 } from '@/generated/prisma/client';
-import {
-  ProposalPlacements,
-  WISHES_PREFERENCE,
-} from '@/modules/accommodation/domain/proposal-input';
+import { ProposalPlacements } from '@/modules/accommodation/domain/proposal-input';
+import { WISHES_PREFERENCE } from '@/modules/accommodation/domain/room-proposal-preferences';
 import { ProposalQueueRepository } from '@/modules/accommodation/repositories/proposal-queue.repository';
 import {
   RoomProposalModel,
@@ -116,7 +114,18 @@ type Fixture = CreatedEvent & { ownerId: string };
 
 const setup = async (
   rooms: RoomInput[],
-  { gender = true, automatic = false, softAttributes = [] as string[] } = {},
+  {
+    gender = true,
+    automatic = false,
+    softAttributes,
+    softNeutralValues,
+  }: {
+    gender?: boolean;
+    automatic?: boolean;
+    /** The ranked list; the default of a new event when omitted. */
+    softAttributes?: string[];
+    softNeutralValues?: Record<string, string[]>;
+  } = {},
 ): Promise<Fixture> => {
   const organization = await createOrganization(prisma);
   const created = await createEvent(prisma, {
@@ -142,13 +151,14 @@ const setup = async (
     where: { id: created.event.id },
     data: { isRoomProposalAutomatic: automatic },
   });
-  if (gender || softAttributes.length) {
+  if (gender || softAttributes) {
     await prisma.accommodationRules.create({
       data: {
         eventId: created.event.id,
         hardAttribute: gender ? 'gender' : null,
         nonDeterminingValues: gender ? ['other', 'undisclosed'] : [],
         softAttributes,
+        softNeutralValues,
       },
     });
   }
@@ -274,10 +284,11 @@ describe('the room proposal of a term', () => {
     expect(result.rooms[jana.id]).toBe(roomB!.id);
   });
 
-  it('reads soft answers for the ranked attributes and keeps the list order', async () => {
+  it('reads soft answers for the ranked attributes and keeps the list order and neutral answers', async () => {
     const f = await setup([{ label: 'A', baseBeds: 2, termIndexes: [0] }], {
       gender: false,
       softAttributes: ['gender', WISHES_PREFERENCE],
+      softNeutralValues: { gender: ['undisclosed'] },
     });
     const jana = await person(f, 'female');
 
@@ -287,15 +298,40 @@ describe('the room proposal of a term', () => {
       {
         kind: 'attribute',
         id: 'gender',
-        neutralValues: ['other', 'undisclosed'],
+        neutralValues: ['undisclosed'],
       },
       { kind: 'wishes' },
     ]);
+    expect(stored.input.rules).toMatchObject({
+      softAttributes: ['gender', WISHES_PREFERENCE],
+      softNeutralValues: { gender: ['undisclosed'] },
+    });
     expect(stored.input.input.participants[0]).toMatchObject({
       id: jana.id,
       value: null,
       softValues: { gender: 'female' },
     });
+  });
+
+  it('ranks only "Přání" without rules, and nothing for an emptied list', async () => {
+    const plain = await setup([{ label: 'A', baseBeds: 2, termIndexes: [0] }], {
+      gender: false,
+    });
+    await person(plain, 'female');
+    const emptied = await setup(
+      [{ label: 'A', baseBeds: 2, termIndexes: [0] }],
+      {
+        gender: false,
+        softAttributes: [],
+      },
+    );
+    await person(emptied, 'female');
+
+    expect((await propose(plain)).input.input.preferences).toEqual([
+      { kind: 'wishes' },
+    ]);
+    // An empty list skips the soft preferences (spec §5), never "Přání".
+    expect((await propose(emptied)).input.input.preferences).toEqual([]);
   });
 
   it('shows a term without confirmed people as an empty layout', async () => {

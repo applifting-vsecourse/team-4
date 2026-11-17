@@ -14,7 +14,6 @@ const GENDER = {
     attribute: 'gender',
     nonDeterminingValues: ['other', 'undisclosed'],
   },
-  softAttributes: [],
 };
 
 const stats = { millis: 1, solves: 1, complete: true };
