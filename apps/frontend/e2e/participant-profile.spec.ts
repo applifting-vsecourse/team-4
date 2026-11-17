@@ -64,6 +64,39 @@ test("the participant saves a profile that prefills the next registration", asyn
   await expect(page.getByLabel("Jméno")).toHaveValue("Jana")
 })
 
+test("after logging out no registration form is prefilled, not even going back", async ({
+  browser,
+  page,
+}) => {
+  const organizerContext = await browser.newContext()
+  const event = await setUpEvent(organizerContext.request, { terms })
+  const olga = newParticipant("Olga")
+  await register(organizerContext.request, event.publicId, olga, event.termIds)
+  await organizerContext.close()
+
+  await page.goto(`/my-registrations/verify?token=${await createMagicLink(olga.email)}`)
+  await expect(page.getByRole("heading", { name: "Moje přihlášky", level: 1 })).toBeVisible()
+  await page.goto("/my-profile")
+  await page.getByLabel("Jméno").fill("Olga")
+  await page.getByRole("button", { name: "Uložit profil" }).click()
+  await expect(page.getByText("Profil uložen")).toBeVisible()
+
+  // A started form keeps a draft for the tab (F55).
+  await page.goto(`/e/${event.publicId}/registration`)
+  await expect(page.getByLabel("Jméno")).toHaveValue("Olga")
+  await page.getByLabel(/Turnus/).check()
+  await page.getByRole("banner").getByRole("link", { name: "Moje přihlášky" }).click()
+  await page.getByRole("button", { name: "Účet" }).click()
+  await page.getByRole("menuitem", { name: "Odhlásit se" }).click()
+  await expect(page.getByRole("button", { name: "Účet" })).toBeHidden()
+
+  await page.goBack()
+  await expect(page.getByLabel("Jméno")).toHaveValue("")
+  await expect(page.getByLabel("E-mail")).toHaveValue("")
+  await page.reload()
+  await expect(page.getByLabel("Jméno")).toHaveValue("")
+})
+
 test("after logging out the profile asks for a new link", async ({ browser, page }) => {
   const organizerContext = await browser.newContext()
   const event = await setUpEvent(organizerContext.request, { terms })

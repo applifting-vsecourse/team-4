@@ -25,7 +25,11 @@ export function ParticipantProfile({ sessionEnded }: ParticipantProfileProps) {
     <section className="space-y-6">
       <PageHeader title="Můj profil" />
       {query.data ? (
-        <ParticipantProfileForm profile={query.data} />
+        // Another account starts its own form, never with the previous values.
+        <ParticipantProfileForm
+          key={query.data.email}
+          profile={query.data}
+        />
       ) : query.isError ? (
         <LoadError
           title="Profil se nepodařilo načíst"

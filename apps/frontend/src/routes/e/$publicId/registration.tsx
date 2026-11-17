@@ -37,6 +37,9 @@ export const Route = createFileRoute("/e/$publicId/registration")({
     ])
     return { contact: profile ? contactOf(profile) : null }
   },
+  // Every visit reads the profile again: a cached match would prefill values
+  // from before a logout or a profile change.
+  gcTime: 0,
   component: PublicRegistrationPage,
   errorComponent: PublicRegistrationErrorPage,
 })

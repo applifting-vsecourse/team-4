@@ -140,20 +140,27 @@ export function RegistrationForm({
   const totalMinor = selected.reduce((sum, term) => sum + term.priceMinor, 0)
   const needsErrors = form.formState.errors.needs
 
-  const typed = useWatch({ control: form.control })
+  const genderOther = useWatch({ control: form.control, name: "genderOther" })
+
+  // Only a change is reported, not the opened form: prefilled values that were
+  // never touched are no draft (S4-08).
   useEffect(() => {
-    onValuesChange?.({
-      firstName: typed.firstName ?? "",
-      lastName: typed.lastName ?? "",
-      email: typed.email ?? "",
-      phone: typed.phone ?? "",
-      termIds: (typed.termIds ?? []).filter((id): id is string => typeof id === "string"),
-      gender: typed.gender ?? null,
-      genderOther: typed.genderOther ?? null,
-      // Complete, unlike the watched copy, which types every part as optional.
-      needs: form.getValues("needs"),
+    if (!onValuesChange) return
+    const subscription = form.watch((typed) => {
+      onValuesChange({
+        firstName: typed.firstName ?? "",
+        lastName: typed.lastName ?? "",
+        email: typed.email ?? "",
+        phone: typed.phone ?? "",
+        termIds: (typed.termIds ?? []).filter((id): id is string => typeof id === "string"),
+        gender: typed.gender ?? null,
+        genderOther: typed.genderOther ?? null,
+        // Complete, unlike the watched copy, which types every part as optional.
+        needs: form.getValues("needs"),
+      })
     })
-  }, [typed, onValuesChange])
+    return () => subscription.unsubscribe()
+  }, [form, onValuesChange])
 
   useEffect(() => {
     if (submitError?.kind === "terms") {
@@ -378,7 +385,7 @@ export function RegistrationForm({
             render={({ field }) => (
               <GenderField
                 id="registration-gender"
-                value={{ gender: field.value, genderOther: typed.genderOther ?? null }}
+                value={{ gender: field.value, genderOther: genderOther ?? null }}
                 onChange={(answer) => {
                   field.onChange(answer.gender)
                   form.setValue("genderOther", answer.genderOther)
