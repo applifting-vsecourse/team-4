@@ -51,7 +51,10 @@ function Combobox({
   const selected = options.find((option) => option.value === value)
 
   return (
+    // Modal, so the list scrolls inside a dialog, whose scroll lock would
+    // otherwise swallow the wheel over the portalled list.
     <Popover
+      modal
       open={isOpen}
       onOpenChange={setIsOpen}
     >

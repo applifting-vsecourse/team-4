@@ -8,7 +8,8 @@ import type { ManualPairing } from "@/features/payments/api/paymentSchemas"
 /**
  * Pairs a queued transaction with a registration by hand (F24). The queue is
  * reloaded afterwards, also after a refusal, which may mean that the
- * transaction was paired meanwhile.
+ * transaction was paired meanwhile. The reload is not awaited, so the caller
+ * handles the answer before the row can leave the queue.
  */
 export function usePairTransaction(organizationId: string, eventId: string, transactionId: string) {
   const queryClient = useQueryClient()
@@ -18,9 +19,10 @@ export function usePairTransaction(organizationId: string, eventId: string, tran
         json: pairing,
       })
     },
-    onSettled: () =>
-      queryClient.invalidateQueries({
+    onSettled: () => {
+      void queryClient.invalidateQueries({
         queryKey: paymentKeys.transactions(organizationId, eventId),
-      }),
+      })
+    },
   })
 }

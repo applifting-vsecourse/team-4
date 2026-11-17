@@ -7,7 +7,8 @@ import { BANK_TRANSACTIONS, STATEMENT_IMPORTED } from "@/features/payments/fixtu
 
 // MSW handlers for Správa akce → Platby. Install with `msw.use(...)` in a
 // story's `beforeEach`. The pairing dialog reads the event's registrations
-// from the registrations handlers.
+// from the registrations handlers; a pairing changes both features' data, so
+// its stories compose their own backend.
 
 const TRANSACTIONS = `${env.VITE_API_URL}/organizations/:organizationId/events/:eventId/bank-transactions`
 
@@ -18,15 +19,4 @@ export const paymentHandlers = {
   import: (result = STATEMENT_IMPORTED) => [
     http.post(`${TRANSACTIONS}/import`, () => HttpResponse.json(result)),
   ],
-  /** A pairing is accepted; the queue then answers without the transaction. */
-  pairing: (transactions: BankTransaction[] = BANK_TRANSACTIONS) => {
-    let queue = transactions
-    return [
-      http.get(TRANSACTIONS, () => HttpResponse.json({ transactions: queue })),
-      http.post(`${TRANSACTIONS}/:transactionId/pairing`, ({ params }) => {
-        queue = queue.filter((transaction) => transaction.id !== params.transactionId)
-        return new HttpResponse(null, { status: 204 })
-      }),
-    ]
-  },
 }

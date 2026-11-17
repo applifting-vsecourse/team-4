@@ -29,18 +29,20 @@ import { usePairTransaction } from "@/features/payments/hooks/usePairTransaction
 
 const FAILED = "Transakci se nepodařilo přiřadit. Zkuste to prosím znovu."
 
-type Failure = { message: string; isRegistration: boolean }
+const ALREADY_PAIRED = "Transakce už je přiřazená k přihlášce."
+
+type Failure = { message: string; kind: "registration" | "alreadyPaired" | "other" }
 
 /** The server's message for a refused pairing; a generic one for a lost request. */
 export const pairingFailure = (error: unknown): Failure => {
   const { code, message } = readApiError(error)
   if (code === "registration_unavailable") {
-    return { message: message ?? "Vyberte přihlášku této akce.", isRegistration: true }
+    return { message: message ?? "Vyberte přihlášku této akce.", kind: "registration" }
   }
-  if (code === "transaction_already_paired" && message) {
-    return { message, isRegistration: false }
+  if (code === "transaction_already_paired") {
+    return { message: message ?? ALREADY_PAIRED, kind: "alreadyPaired" }
   }
-  return { message: FAILED, isRegistration: false }
+  return { message: FAILED, kind: "other" }
 }
 
 type PairTransactionDialogProps = {
@@ -54,7 +56,8 @@ type PairTransactionDialogProps = {
 // „Přiřadit“ of an unpaired transaction (F24): the organizer picks a
 // registration of the same event and says why. The form is mounted only
 // while the dialog is open, so it starts empty every time; a failed save
-// keeps the dialog and the values.
+// keeps the dialog and the values. A transaction paired meanwhile (another
+// tab, an import) leaves the queue: the dialog closes and says so.
 export function PairTransactionDialog({
   organizationId,
   eventId,
@@ -84,14 +87,24 @@ export function PairTransactionDialog({
       await pair.mutateAsync(pairing)
       const registration = options.data?.find((option) => option.id === pairing.registrationId)
       setIsOpen(false)
+      // Plain colours, as in TermDialog: the rich success colours fail the
+      // contrast check.
       toast.success(
         registration
           ? `Transakce přiřazena k přihlášce ${registration.firstName} ${registration.lastName}`
           : "Transakce přiřazena",
+        { richColors: false },
       )
       onPaired?.()
     } catch (error) {
-      setFailure(pairingFailure(error))
+      const refusal = pairingFailure(error)
+      if (refusal.kind === "alreadyPaired") {
+        setIsOpen(false)
+        toast.error(refusal.message, { richColors: false })
+        onPaired?.()
+      } else {
+        setFailure(refusal)
+      }
     } finally {
       isSending.current = false
     }
@@ -144,8 +157,8 @@ export function PairTransactionDialog({
             <PairTransactionForm
               options={options.data}
               isLoading={pair.isPending}
-              errorMessage={failure && !failure.isRegistration ? failure.message : undefined}
-              registrationError={failure?.isRegistration ? failure.message : undefined}
+              errorMessage={failure?.kind === "other" ? failure.message : undefined}
+              registrationError={failure?.kind === "registration" ? failure.message : undefined}
               onSubmit={(pairing) => void handleSubmit(pairing)}
             />
           )
