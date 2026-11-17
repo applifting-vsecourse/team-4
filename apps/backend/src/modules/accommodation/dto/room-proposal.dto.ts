@@ -2,6 +2,7 @@ import {
   PlacementChange,
   ProposalLayoutView,
   ProposalViewStatus,
+  StoredProposalView,
 } from '@/modules/accommodation/domain/proposal-view';
 import { RunActorDto } from '@/modules/accommodation/dto/term-evaluation.dto';
 import { EvaluationMode } from '@/modules/accommodation/repositories/term-evaluation.repository';
@@ -81,7 +82,11 @@ export class ProposalPersonDto {
   @ApiProperty({ format: 'uuid', description: 'The registration.' })
   id!: string;
 
-  @ApiProperty({ description: 'Today’s name; not an input of the proposal.' })
+  @ApiProperty({
+    description:
+      'Today’s name; not an input of the proposal. Empty for a registration ' +
+      'that no longer exists.',
+  })
   firstName!: string;
 
   @ApiProperty()
@@ -257,6 +262,15 @@ export class StoredProposalDto {
     description: 'For a solved proposal.',
   })
   layout!: ProposalLayoutDto | null;
+
+  static from(proposal: StoredProposalView): StoredProposalDto {
+    return {
+      ...proposal,
+      startedAt: proposal.startedAt.toISOString(),
+      finishedAt: proposal.finishedAt.toISOString(),
+      layout: proposal.layout && ProposalLayoutDto.from(proposal.layout),
+    };
+  }
 }
 
 export class TermRoomProposalDto {
@@ -290,19 +304,23 @@ export class TermRoomProposalDto {
   })
   proposal!: StoredProposalDto | null;
 
+  @ApiProperty({
+    type: StoredProposalDto,
+    nullable: true,
+    description:
+      'The newest solved proposal, still shown when a later run failed or ' +
+      'timed out; `proposal` itself when that is solved.',
+  })
+  lastSolved!: StoredProposalDto | null;
+
   static from(view: TermRoomProposal): TermRoomProposalDto {
-    const { proposal } = view;
     return {
       mode: view.mode,
       status: view.status,
       layoutVersion: view.layoutVersion,
       scheduledAt: view.scheduledAt?.toISOString() ?? null,
-      proposal: proposal && {
-        ...proposal,
-        startedAt: proposal.startedAt.toISOString(),
-        finishedAt: proposal.finishedAt.toISOString(),
-        layout: proposal.layout && ProposalLayoutDto.from(proposal.layout),
-      },
+      proposal: view.proposal && StoredProposalDto.from(view.proposal),
+      lastSolved: view.lastSolved && StoredProposalDto.from(view.lastSolved),
     };
   }
 }

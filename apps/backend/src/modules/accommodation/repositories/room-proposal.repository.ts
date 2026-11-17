@@ -81,7 +81,9 @@ export type ProposalTermState = {
   /** When the next proposal is due; null when none is scheduled. */
   scheduledAt: Date | null;
   latest: StoredProposal | null;
-  /** Of the people in the latest proposal. */
+  /** The newest solved proposal; the latest one when it is solved. */
+  lastSolved: StoredProposal | null;
+  /** Of the people in those proposals. */
   names: Names;
 };
 
@@ -219,6 +221,11 @@ export class RoomProposalRepository {
       });
       if (count !== 1) return false;
       if (!automatic) {
+        // The state rows in term order, as termLayoutChanged locks them.
+        await tx.$queryRaw`
+          SELECT "termId" FROM "accommodation_term_state"
+          WHERE "eventId" = ${scope.eventId}::uuid
+          ORDER BY "termId" FOR UPDATE`;
         await tx.accommodationTermState.updateMany({
           where: { eventId: scope.eventId, proposalRequestedById: null },
           data: { proposalDueAt: null },
@@ -244,38 +251,23 @@ export class RoomProposalRepository {
             proposalRequestedById: true,
           },
         },
-        roomProposals: {
-          orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
-          take: 1,
-          select: {
-            id: true,
-            status: true,
-            triggeredBy: { select: { id: true, name: true } },
-            startedAt: true,
-            finishedAt: true,
-            layoutVersion: true,
-            input: true,
-            result: true,
-          },
-        },
       },
     });
     if (!term) return null;
     const state = term.accommodationState;
-    const row = term.roomProposals[0];
-    const latest: StoredProposal | null = row
-      ? {
-          id: row.id,
-          status: row.status,
-          triggeredBy: row.triggeredBy,
-          startedAt: row.startedAt,
-          finishedAt: row.finishedAt,
-          layoutVersion: row.layoutVersion,
-          input: (row.input as unknown as ProposalSnapshot).input,
-          result: row.result as RoomProposalResult | null,
-        }
-      : null;
-    const ids = latest?.input.participants.map((p) => p.id) ?? [];
+    const latest = await this.findStored(termId, {});
+    // A failed or timed-out rerun never hides the last usable proposal.
+    const lastSolved =
+      latest === null || latest.status === 'solved'
+        ? latest
+        : await this.findStored(termId, { status: 'solved' });
+    const ids = [
+      ...new Set(
+        [latest, lastSolved].flatMap(
+          (p) => p?.input.participants.map((person) => person.id) ?? [],
+        ),
+      ),
+    ];
     const registrations = ids.length
       ? await this.prisma.registration.findMany({
           where: { id: { in: ids }, eventId: scope.eventId },
@@ -289,9 +281,38 @@ export class RoomProposalRepository {
       ),
       scheduledAt: state?.proposalDueAt ?? null,
       latest,
+      lastSolved,
       names: new Map(
         registrations.map(({ id, ...name }) => [id, name] as const),
       ),
     };
+  }
+
+  /** The newest proposal of the term matching `where`. */
+  private async findStored(
+    termId: string,
+    where: Prisma.AccommodationRoomProposalWhereInput,
+  ): Promise<StoredProposal | null> {
+    const row = await this.prisma.accommodationRoomProposal.findFirst({
+      where: { ...where, termId },
+      orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+      select: {
+        id: true,
+        status: true,
+        triggeredBy: { select: { id: true, name: true } },
+        startedAt: true,
+        finishedAt: true,
+        layoutVersion: true,
+        input: true,
+        result: true,
+      },
+    });
+    return row
+      ? {
+          ...row,
+          input: (row.input as unknown as ProposalSnapshot).input,
+          result: row.result as RoomProposalResult | null,
+        }
+      : null;
   }
 }

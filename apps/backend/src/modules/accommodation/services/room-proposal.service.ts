@@ -26,8 +26,11 @@ export type ProposalOptions = {
   triggeredById: string | null;
   /** The id of a claimed proposal; generated otherwise. */
   proposalId?: string;
-  /** The layout version the proposal stands for; the term's current one otherwise. */
-  layoutVersion?: number;
+  /**
+   * The layout version the proposal stands for: the claim's, read before the
+   * input, so a change in between makes the proposal stale, never falsely current.
+   */
+  layoutVersion: number;
   /** Wall-clock limit of the solver (spec: 30 s per term). */
   timeLimitMs?: number;
 };
@@ -111,7 +114,7 @@ export class RoomProposalService {
       input: snapshot,
       result,
       error,
-      layoutVersion: layoutVersion ?? term.layoutVersion,
+      layoutVersion,
       startedAt,
       finishedAt: new Date(),
     });

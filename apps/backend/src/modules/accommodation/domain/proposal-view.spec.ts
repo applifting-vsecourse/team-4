@@ -96,8 +96,9 @@ const view = (
   latest: StoredProposal | null,
   layoutVersion = 3,
   isRunning = false,
+  lastSolved = latest?.status === 'solved' ? latest : null,
 ): ProposalTermView =>
-  buildProposalView({ latest, layoutVersion, isRunning, names });
+  buildProposalView({ latest, lastSolved, layoutVersion, isRunning, names });
 
 describe('the status of a term’s room proposal', () => {
   const proposal = stored([person('A', 0)], solved({ A: 'r2' }));
@@ -107,6 +108,7 @@ describe('the status of a term’s room proposal', () => {
       status: 'none',
       layoutVersion: 3,
       proposal: null,
+      lastSolved: null,
     });
   });
 
@@ -139,6 +141,23 @@ describe('the status of a term’s room proposal', () => {
       status: 'timeout',
       proposal: { layout: null },
     });
+  });
+  it('keeps the last solved proposal when a later run failed', () => {
+    const failed = stored([person('A', 0)], null, { id: 'failed' });
+    const result = view(failed, 3, false, proposal);
+
+    expect(result.status).toBe('failed');
+    expect(result.proposal).toMatchObject({ id: 'failed', layout: null });
+    expect(result.lastSolved).toMatchObject({
+      id: 'proposal',
+      isCurrent: true,
+      layout: { summary: { placed: 1 } },
+    });
+  });
+
+  it('gives the solved latest proposal as the last solved one', () => {
+    const result = view(proposal);
+    expect(result.lastSolved).toBe(result.proposal);
   });
 });
 

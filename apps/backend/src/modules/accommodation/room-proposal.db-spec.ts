@@ -27,6 +27,7 @@ import {
 } from '@/modules/accommodation/services/room-proposal.service';
 import { TermRoomProposalService } from '@/modules/accommodation/services/term-room-proposal.service';
 import { RoommateWish } from '@/modules/accommodation/solver/room-proposal.types';
+import * as runner from '@/modules/accommodation/solver/solver-runner';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import {
   CreatedEvent,
@@ -178,6 +179,7 @@ const person = async (
 const propose = async (f: Fixture): Promise<RoomProposalModel> =>
   (await service.proposeTerm(f.event.id, f.terms[0].id, {
     triggeredById: f.ownerId,
+    layoutVersion: (await stateOf(f))?.layoutVersion ?? 0,
   })) as RoomProposalModel;
 
 type Solved = {
@@ -313,6 +315,7 @@ describe('the room proposal of a term', () => {
     expect(
       await service.proposeTerm(f.event.id, other.terms[0].id, {
         triggeredById: null,
+        layoutVersion: 0,
       }),
     ).toBeNull();
   });
@@ -362,6 +365,85 @@ describe('the proposal queue', () => {
     await queue.release(f.terms[0].id, claimed!.proposalId);
     const [next] = await queue.claimDue(1, f.event.id);
     expect(next).toMatchObject({ layoutVersion: 1, triggeredById: null });
+  });
+
+  it('runs an automatic proposal 10 s after a layout change, as the system', async () => {
+    const f = await setup([{ label: 'A', baseBeds: 2, termIndexes: [0] }], {
+      automatic: true,
+    });
+    await person(f, 'female');
+    await prisma.$transaction((tx) =>
+      termLayoutChanged(tx, f.event.id, [f.terms[0].id]),
+    );
+    await worker.drain(f.event.id);
+    expect(
+      await prisma.accommodationRoomProposal.count({
+        where: { termId: f.terms[0].id },
+      }),
+    ).toBe(0);
+
+    await prisma.accommodationTermState.update({
+      where: { termId: f.terms[0].id },
+      data: { proposalDueAt: new Date(Date.now() - 1000) },
+    });
+    await worker.drain(f.event.id);
+
+    expect(
+      await prisma.accommodationRoomProposal.findMany({
+        where: { termId: f.terms[0].id },
+      }),
+    ).toMatchObject([
+      { status: 'solved', triggeredById: null, layoutVersion: 1 },
+    ]);
+  });
+
+  it('takes over a proposal abandoned for 120 s; the old process’s release changes nothing', async () => {
+    const f = await setup([]);
+    await queue.request(f.event.id, f.terms[0].id, f.ownerId);
+    const [first] = await queue.claimDue(1, f.event.id);
+    await prisma.accommodationTermState.update({
+      where: { termId: f.terms[0].id },
+      data: { proposalRunningSince: new Date(Date.now() - 121_000) },
+    });
+
+    const [second] = await queue.claimDue(1, f.event.id);
+    expect(second).toMatchObject({ triggeredById: f.ownerId });
+    expect(second!.proposalId).not.toBe(first!.proposalId);
+
+    await queue.release(f.terms[0].id, first!.proposalId);
+    expect(await stateOf(f)).toMatchObject({
+      proposalRunningId: second!.proposalId,
+    });
+  });
+
+  it('stores a failed or timed-out solve without a layout and frees the term', async () => {
+    const f = await setup([{ label: 'A', baseBeds: 2, termIndexes: [0] }]);
+    await person(f, 'female');
+    const solve = jest.spyOn(runner, 'solveRoomProposalInWorker');
+    solve.mockRejectedValueOnce(new Error('worker crashed'));
+    solve.mockResolvedValueOnce({
+      status: 'timeout',
+      stats: { millis: 30_000, solves: 1, complete: false },
+    });
+
+    for (let run = 0; run < 2; run++) {
+      await queue.request(f.event.id, f.terms[0].id, f.ownerId);
+      await worker.drain(f.event.id);
+    }
+    solve.mockRestore();
+
+    const stored = await prisma.accommodationRoomProposal.findMany({
+      where: { termId: f.terms[0].id },
+      orderBy: { startedAt: 'asc' },
+    });
+    expect(stored).toMatchObject([
+      { status: 'failed', error: 'worker crashed', result: null },
+      { status: 'timeout', error: null, result: { status: 'timeout' } },
+    ]);
+    expect(await stateOf(f)).toMatchObject({
+      proposalRunningId: null,
+      proposalDueAt: null,
+    });
   });
 });
 
@@ -448,6 +530,34 @@ describe('the organizer’s room proposal (Návrh pokojů)', () => {
       status: 'stale',
       proposal: { isCurrent: false },
     });
+    // Reading never proposes.
+    expect(await stateOf(f)).toMatchObject({ proposalDueAt: null });
+  });
+
+  it('keeps showing the last solved proposal after a failed rerun', async () => {
+    const f = await setup([{ label: 'A', baseBeds: 2, termIndexes: [0] }]);
+    const scope = scopeOf(f);
+    await person(f, 'female');
+    await organizer.propose(scope, f.terms[0].id);
+    await worker.drain(f.event.id);
+    const solve = jest
+      .spyOn(runner, 'solveRoomProposalInWorker')
+      .mockRejectedValueOnce(new Error('worker crashed'));
+
+    await organizer.propose(scope, f.terms[0].id);
+    await worker.drain(f.event.id);
+    solve.mockRestore();
+
+    const view = await organizer.term(scope, f.terms[0].id);
+    expect(view).toMatchObject({
+      status: 'failed',
+      proposal: { status: 'failed', layout: null },
+      lastSolved: {
+        status: 'solved',
+        isCurrent: true,
+        layout: { summary: { placed: 1 } },
+      },
+    });
   });
 
   it('is not available for a foreign event or a term of another event', async () => {
@@ -464,6 +574,9 @@ describe('the organizer’s room proposal (Návrh pokojů)', () => {
     await expect(
       organizer.saveMode(scopeOf(f, other.ownerId), 'automatic'),
     ).rejects.toThrow(NotFoundException);
+    await expect(organizer.mode(scopeOf(f, other.ownerId))).rejects.toThrow(
+      NotFoundException,
+    );
     await expect(
       organizer.propose(scopeOf(f), other.terms[0].id),
     ).rejects.toThrow(NotFoundException);

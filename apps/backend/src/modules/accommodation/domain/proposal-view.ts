@@ -102,7 +102,13 @@ export type ProposalTermView = {
   status: ProposalViewStatus;
   /** The term's layout version now (§7.1). */
   layoutVersion: number;
+  /** The last proposal, whatever its status. */
   proposal: StoredProposalView | null;
+  /**
+   * The newest solved proposal: the one to show and apply (§7.2) even when
+   * a later run failed or timed out. The same as `proposal` when that is solved.
+   */
+  lastSolved: StoredProposalView | null;
 };
 
 export type StoredProposal = {
@@ -196,42 +202,58 @@ export function buildLayout(
   };
 }
 
+function storedView(
+  stored: StoredProposal,
+  layoutVersion: number,
+  names: Names,
+): StoredProposalView {
+  return {
+    id: stored.id,
+    status: stored.status,
+    triggeredBy: stored.triggeredBy,
+    startedAt: stored.startedAt,
+    finishedAt: stored.finishedAt,
+    layoutVersion: stored.layoutVersion,
+    isCurrent: stored.layoutVersion === layoutVersion,
+    layout:
+      stored.result?.status === 'solved'
+        ? buildLayout(stored.input, stored.result, names)
+        : null,
+  };
+}
+
 export function buildProposalView({
   latest,
+  lastSolved,
   layoutVersion,
   isRunning,
   names,
 }: {
   latest: StoredProposal | null;
+  lastSolved: StoredProposal | null;
   layoutVersion: number;
   isRunning: boolean;
   names: Names;
 }): ProposalTermView {
-  const isCurrent = latest !== null && latest.layoutVersion === layoutVersion;
+  const proposal = latest && storedView(latest, layoutVersion, names);
   const status: ProposalViewStatus = isRunning
     ? 'running'
-    : latest === null
+    : proposal === null
       ? 'none'
-      : latest.status === 'solved'
-        ? isCurrent
+      : proposal.status === 'solved'
+        ? proposal.isCurrent
           ? 'current'
           : 'stale'
-        : latest.status;
+        : proposal.status;
   return {
     status,
     layoutVersion,
-    proposal: latest && {
-      id: latest.id,
-      status: latest.status,
-      triggeredBy: latest.triggeredBy,
-      startedAt: latest.startedAt,
-      finishedAt: latest.finishedAt,
-      layoutVersion: latest.layoutVersion,
-      isCurrent,
-      layout:
-        latest.result?.status === 'solved'
-          ? buildLayout(latest.input, latest.result, names)
-          : null,
-    },
+    proposal,
+    lastSolved:
+      lastSolved === null
+        ? null
+        : lastSolved.id === latest?.id
+          ? proposal
+          : storedView(lastSolved, layoutVersion, names),
   };
 }
