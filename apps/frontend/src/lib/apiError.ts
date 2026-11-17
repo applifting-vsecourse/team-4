@@ -16,6 +16,7 @@ export type ApiErrorCode =
   | "room_label_taken"
   | "capacity_below_confirmed"
   | "term_unknown"
+  | "conditions_unconfirmed"
   | "event_unavailable"
   | "already_registered"
   | "submission_key_reused"
@@ -56,6 +57,9 @@ export type ApiErrorCode =
   | "programme_unavailable"
   | "programme_date_out_of_term"
   | "programme_date_invalid"
+  | "statement_format"
+  | "statement_invalid"
+  | "statement_too_large"
 
 export type ApiError = {
   status: number | null

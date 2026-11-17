@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { ChevronLeft } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { BackLink } from "@/components/BackLink"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { Notice } from "@/components/Notice"
+import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCalendarRange } from "@/lib/date"
@@ -15,7 +18,6 @@ import { participantRegistrationQueryOptions } from "@/features/registrations/ap
 import { type ParticipantRegistrationDetail } from "@/features/registrations/api/participantRegistrationSchemas"
 import { type ChangeProposal } from "@/features/registrations/api/registrationChangeSchemas"
 import { ChangeReviewDialog } from "@/features/registrations/components/ChangeReviewDialog"
-import { LoadFailedAlert } from "@/features/registrations/components/LoadFailedAlert"
 import {
   RegistrationChangeForm,
   type ChangeableTerm,
@@ -75,22 +77,15 @@ export function ParticipantRegistrationEdit({
 
   return (
     <section className="space-y-6">
-      <Button
-        variant="ghost"
-        size="sm"
-        asChild
+      <BackLink
+        to={ROUTES.myRegistration}
+        params={{ registrationId }}
       >
-        <Link
-          to={ROUTES.myRegistration}
-          params={{ registrationId }}
-        >
-          <ChevronLeft />
-          Detail přihlášky
-        </Link>
-      </Button>
+        Detail přihlášky
+      </BackLink>
 
       {query.isError ? (
-        <LoadFailedAlert
+        <LoadError
           shownFrom={data ? query.dataUpdatedAt : undefined}
           isRetrying={query.isFetching}
           onRetry={() => query.refetch()}
@@ -99,10 +94,10 @@ export function ParticipantRegistrationEdit({
 
       {data ? (
         <>
-          <div className="space-y-2">
-            <h1 className="text-h2">Úprava přihlášky</h1>
-            <p className="text-sm text-muted-foreground">{data.event.name}</p>
-          </div>
+          <PageHeader
+            title="Úprava přihlášky"
+            description={data.event.name}
+          />
           {data.canChange ? (
             // A reloaded registration (new version) starts a fresh form.
             <EditForm
@@ -112,24 +107,24 @@ export function ParticipantRegistrationEdit({
               onLeave={onLeave}
             />
           ) : (
-            <Alert>
-              <AlertDescription>
-                {data.isCancelled
+            <Notice
+              tone="info"
+              title={
+                data.isCancelled
                   ? "Přihláška je odhlášená, úpravy nejsou dostupné."
-                  : "Žádost o změnu čeká na schválení organizátora. Dokud není vyřízená, nelze přihlášku dál měnit."}
-              </AlertDescription>
-            </Alert>
+                  : "Žádost o změnu čeká na schválení organizátora. Dokud není vyřízená, nelze přihlášku dál měnit."
+              }
+            />
           )}
         </>
       ) : query.isPending ? (
-        <div
+        <LoadingBlock
+          label="Načítání přihlášky"
           className="space-y-4"
-          role="status"
-          aria-label="Načítání přihlášky"
         >
           <Skeleton className="h-10 w-2/3" />
           <Skeleton className="h-48 w-full" />
-        </div>
+        </LoadingBlock>
       ) : null}
     </section>
   )

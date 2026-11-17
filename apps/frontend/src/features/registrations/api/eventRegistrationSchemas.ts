@@ -72,6 +72,7 @@ export const registrationFilterSchema = z.object({
   termId: z.string().uuid().optional().catch(undefined),
   status: activeParticipationStatusSchema.optional().catch(undefined),
   payment: paymentStateSchema.optional().catch(undefined),
+  q: z.string().max(120).optional().catch(undefined),
 })
 
 export type RegistrationFilter = z.infer<typeof registrationFilterSchema>

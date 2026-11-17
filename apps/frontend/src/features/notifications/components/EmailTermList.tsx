@@ -1,30 +1,23 @@
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { PARTICIPATION_LABELS, type TermParticipation } from "@/lib/participation"
 
 // Participant e-mails (F45-1). Design only: one row per chosen term with its own status.
-
-export type EmailTermStatus = "confirmed" | "waitlisted" | "pending" | "cancelled"
 
 export type EmailTerm = {
   id: string
   name: string
   dates: string
-  status: EmailTermStatus
+  status: TermParticipation
 }
 
-const LABELS: Record<EmailTermStatus, string> = {
-  confirmed: "Potvrzeno",
-  waitlisted: "Náhradník",
-  pending: "Čeká na schválení",
-  cancelled: "Odhlášeno",
-}
-
+// The e-mail keeps its own badge colours: a pending term is outlined.
 const VARIANTS = {
   confirmed: "success",
   waitlisted: "warning",
   pending: "outline",
   cancelled: "secondary",
-} as const satisfies Record<EmailTermStatus, string>
+} as const satisfies Record<TermParticipation, string>
 
 export type EmailTermListProps = {
   title: string
@@ -44,7 +37,7 @@ export function EmailTermList({ title, terms }: EmailTermListProps) {
                 <p className="text-sm font-medium">{term.name}</p>
                 <p className="text-sm text-muted-foreground">{term.dates}</p>
               </div>
-              <Badge variant={VARIANTS[term.status]}>{LABELS[term.status]}</Badge>
+              <Badge variant={VARIANTS[term.status]}>{PARTICIPATION_LABELS[term.status]}</Badge>
             </div>
           </li>
         ))}

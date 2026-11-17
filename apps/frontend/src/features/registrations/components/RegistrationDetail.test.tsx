@@ -115,7 +115,7 @@ describe("RegistrationDetail", () => {
     expect(valueOf("Variabilní symbol")).toBe("2027094")
     expect(screen.queryByText(/Splatnost/)).not.toBeInTheDocument()
 
-    const payments = screen.getByText("Přijaté platby").closest<HTMLElement>("[data-slot=card]")!
+    const payments = screen.getByRole("heading", { name: "Přijaté platby" }).parentElement!
     expect(
       within(payments)
         .getAllByRole("listitem")
@@ -169,7 +169,7 @@ describe("RegistrationDetail", () => {
 
   it("keeps the last data after a failed reload without calling them fresh", async () => {
     const { onRefresh } = renderDetail(MIXED, { hasRefreshFailed: true })
-    expect(screen.getByText("Data se nepodařilo načíst. Zkuste to znovu.")).toBeInTheDocument()
+    expect(screen.getByText("Data se nepodařilo načíst")).toBeInTheDocument()
     expect(screen.queryByText(/aktualizováno/)).not.toBeInTheDocument()
     expect(valueOf("Dluh")).toBe("6 000 Kč")
     await userEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }))

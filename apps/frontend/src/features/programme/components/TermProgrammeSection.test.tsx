@@ -82,7 +82,7 @@ describe("TermProgrammeSection", () => {
   it("shows a failed load with a retry, never an empty programme", async () => {
     requests.get.mockReturnValueOnce(await refuse(500, {}))
     renderSection()
-    expect(await screen.findByText("Program se nepodařilo načíst.")).toBeInTheDocument()
+    expect(await screen.findByText("Program se nepodařilo načíst")).toBeInTheDocument()
     expect(screen.queryByText("Program zatím nemá žádné položky")).not.toBeInTheDocument()
 
     requests.get.mockReturnValue(respond(programme(["Večeře"])))
@@ -148,16 +148,16 @@ describe("TermProgrammeSection", () => {
     requests.get.mockReturnValue(respond(programme(["Večeře"])))
     requests.delete.mockReturnValueOnce(await refuse(500, {}))
     renderSection()
-    await userEvent.click(await screen.findByRole("button", { name: "Smazat položku Večeře" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Odstranit položku Večeře" }))
     const dialog = await screen.findByRole("dialog")
-    await userEvent.click(within(dialog).getByRole("button", { name: "Smazat" }))
+    await userEvent.click(within(dialog).getByRole("button", { name: "Odstranit" }))
     expect(
-      await within(dialog).findByText("Položku se nepodařilo smazat. Zkuste to prosím znovu."),
+      await within(dialog).findByText("Položku se nepodařilo odstranit. Zkuste to prosím znovu."),
     ).toBeInTheDocument()
     expect(toast.success).not.toHaveBeenCalled()
 
     requests.delete.mockReturnValue(respond({ items: [] }))
-    await userEvent.click(within(dialog).getByRole("button", { name: "Smazat" }))
+    await userEvent.click(within(dialog).getByRole("button", { name: "Odstranit" }))
     await waitFor(() =>
       expect(screen.getByText("Program zatím nemá žádné položky")).toBeInTheDocument(),
     )

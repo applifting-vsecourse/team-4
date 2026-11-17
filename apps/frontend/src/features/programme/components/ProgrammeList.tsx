@@ -84,7 +84,7 @@ export function ProgrammeList({ days, isEditable = false, onEdit, onDelete }: Pr
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label={`Smazat položku ${item.title}`}
+                      aria-label={`Odstranit položku ${item.title}`}
                       onClick={() => onDelete?.(item.id)}
                     >
                       <Trash2 />

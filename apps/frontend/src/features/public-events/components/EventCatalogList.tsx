@@ -3,7 +3,6 @@ import { CalendarDays, MapPin } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { AspectRatio } from "@/components/ui/aspect-ratio"
-import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 
 export type CatalogEventItem = {
@@ -13,8 +12,6 @@ export type CatalogEventItem = {
   location: string
   /** Already formatted, one entry per term. */
   terms: string[]
-  /** Shown only once the catalog filters by age group (F54-2b). */
-  ageGroup?: string
   /** Image uploaded by the organizer; `null` shows the default image. */
   imageUrl: string | null
 }
@@ -93,11 +90,6 @@ export function EventCatalogCard({
                 </li>
               ))}
             </ul>
-          </div>
-        ) : null}
-        {event.ageGroup ? (
-          <div className="mt-auto pt-1">
-            <Badge variant="secondary">{event.ageGroup}</Badge>
           </div>
         ) : null}
       </div>

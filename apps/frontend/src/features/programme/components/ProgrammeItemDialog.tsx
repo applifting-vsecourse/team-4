@@ -1,15 +1,12 @@
 import { useState, type FormEvent } from "react"
-import { Loader2 } from "lucide-react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+import { DialogActions } from "@/components/DialogActions"
+import { FormError } from "@/components/FormError"
 import { DatePicker } from "@/components/ui/date-picker"
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -134,11 +131,7 @@ function ProgrammeItemForm({
       className="space-y-4"
       onSubmit={submit}
     >
-      {errorMessage ? (
-        <Alert variant="destructive">
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-      ) : null}
+      {errorMessage ? <FormError message={errorMessage} /> : null}
       <FieldGroup>
         <Field data-invalid={errors.title ? true : undefined}>
           <FieldLabel htmlFor="programme-title">Název</FieldLabel>
@@ -194,23 +187,10 @@ function ProgrammeItemForm({
           <FieldError>{errors.description}</FieldError>
         </Field>
       </FieldGroup>
-      <DialogFooter>
-        <DialogClose asChild>
-          <Button
-            type="button"
-            variant="outline"
-          >
-            Zrušit
-          </Button>
-        </DialogClose>
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
-          Uložit položku
-        </Button>
-      </DialogFooter>
+      <DialogActions
+        submitLabel="Uložit položku"
+        isPending={isSubmitting}
+      />
     </form>
   )
 }

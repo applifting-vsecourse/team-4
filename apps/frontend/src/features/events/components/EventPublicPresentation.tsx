@@ -1,13 +1,14 @@
 import { useEffect, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ImageOff, ImagePlus, Loader2, Trash2, TriangleAlert } from "lucide-react"
+import { ImageOff, ImagePlus, Trash2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { Alert, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Card, CardContent } from "@/components/ui/card"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
+import { FieldLegend, FieldSet } from "@/components/ui/field"
 import {
   Form,
   FormControl,
@@ -175,22 +176,19 @@ export function EventPublicPresentation({
                       className="space-y-2"
                     >
                       <PhotoPreview photo={photo} />
-                      <Button
+                      <PendingButton
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="w-full"
+                        className="w-full max-w-sm"
+                        isPending={removingPhotoId === photo.id}
+                        icon={<Trash2 aria-hidden />}
                         disabled={removingPhotoId !== null}
                         onClick={() => onRemovePhoto(photo.id)}
                       >
-                        {removingPhotoId === photo.id ? (
-                          <Loader2 className="animate-spin" />
-                        ) : (
-                          <Trash2 aria-hidden />
-                        )}
                         Odebrat
                         <span className="sr-only"> {photo.alt}</span>
-                      </Button>
+                      </PendingButton>
                     </li>
                   ))}
                 </ul>
@@ -210,24 +208,20 @@ export function EventPublicPresentation({
                     if (file) onAddPhoto(file)
                   }}
                 />
-                <Button
+                <PendingButton
                   type="button"
                   variant="outline"
+                  isPending={isUploading}
+                  icon={<ImagePlus aria-hidden />}
                   disabled={!canAddPhoto}
                   onClick={() => fileInput.current?.click()}
                 >
-                  {isUploading ? <Loader2 className="animate-spin" /> : <ImagePlus aria-hidden />}
                   {isUploading ? "Nahrávám…" : "Přidat fotku"}
-                </Button>
+                </PendingButton>
                 <p className="text-sm text-muted-foreground">
                   JPEG, PNG nebo WebP do 5 MB, nejvýše {MAX_PHOTOS} fotky.
                 </p>
-                {photoError ? (
-                  <Alert variant="destructive">
-                    <TriangleAlert />
-                    <AlertTitle>{photoError}</AlertTitle>
-                  </Alert>
-                ) : null}
+                {photoError ? <FormError message={photoError} /> : null}
               </div>
             </section>
 
@@ -238,8 +232,8 @@ export function EventPublicPresentation({
                 onSubmit={form.handleSubmit(submit)}
                 className="space-y-8"
               >
-                <fieldset className="space-y-4">
-                  <legend className="mb-4 text-base font-medium">O akci</legend>
+                <FieldSet>
+                  <FieldLegend>O akci</FieldLegend>
                   <FormField
                     control={form.control}
                     name="description"
@@ -259,16 +253,20 @@ export function EventPublicPresentation({
                             Od prvního otevření přihlašování popis nelze měnit.
                           </FormDescription>
                         ) : null}
-                        <FormMessage />
+                        <FormMessage className="min-h-0" />
                       </FormItem>
                     )}
                   />
+                </FieldSet>
+
+                <FieldSet>
+                  <FieldLegend>Podmínky účasti</FieldLegend>
                   <FormField
                     control={form.control}
                     name="conditions"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Podmínky účasti</FormLabel>
+                        <FormLabel className="sr-only">Podmínky účasti</FormLabel>
                         <FormControl>
                           <Textarea
                             rows={4}
@@ -279,14 +277,14 @@ export function EventPublicPresentation({
                         <FormDescription>
                           Každou podmínku napište na samostatný řádek.
                         </FormDescription>
-                        <FormMessage />
+                        <FormMessage className="min-h-0" />
                       </FormItem>
                     )}
                   />
-                </fieldset>
+                </FieldSet>
 
-                <fieldset className="space-y-4">
-                  <legend className="mb-4 text-base font-medium">Veřejný kontakt</legend>
+                <FieldSet>
+                  <FieldLegend>Veřejný kontakt</FieldLegend>
                   <p className="text-sm text-muted-foreground">
                     Zobrazí se na veřejném detailu akce. Kontakt vašeho účtu se nezveřejňuje.
                   </p>
@@ -342,22 +340,16 @@ export function EventPublicPresentation({
                       </FormItem>
                     )}
                   />
-                </fieldset>
+                </FieldSet>
 
-                {errorMessage ? (
-                  <Alert variant="destructive">
-                    <TriangleAlert />
-                    <AlertTitle>{errorMessage}</AlertTitle>
-                  </Alert>
-                ) : null}
+                {errorMessage ? <FormError message={errorMessage} /> : null}
                 <div className="flex justify-end">
-                  <Button
+                  <PendingButton
                     type="submit"
-                    disabled={isSaving}
+                    isPending={isSaving}
                   >
-                    {isSaving ? <Loader2 className="animate-spin" /> : null}
                     {isSaving ? "Ukládám…" : "Uložit"}
-                  </Button>
+                  </PendingButton>
                 </div>
               </form>
             </Form>

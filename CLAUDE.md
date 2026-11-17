@@ -11,9 +11,26 @@ Organize backend features into controllers, DTOs, services, domain models and re
 
 ## Story context
 
-Before implementing a story, read the GitHub issue and its sprint decisions. Identify the access area (public, participant, organization or event), data scope, existing destination and entry/exit paths before choosing routes or adding screens. The story defines the implementation scope.
+Before implementing a story, read its active GitHub issue and sprint decisions. Identify the access area (public, participant, organization or event), data scope, existing destination and entry/exit paths before choosing routes or adding screens. The active story defines scope unless the PM gives a later, explicit direction.
 
-Reuse the relevant existing page. Report conflicts or proposed structural changes to the PM before changing the navigation structure. GitHub issue titles and bodies are the single source of truth for user stories, including navigation context. Local Markdown copies are private PM working material, ignored by Git; they are not required for implementation and must not override the issue.
+When the PM approves a requirement that conflicts with a closed issue's acceptance criteria, follow the current requirement. Closed issues record historical scope; their criteria do not block later changes. Track the current decision in the active issue or PO feedback tracker. Do not reopen or edit a closed issue just to reconcile its old criteria unless the PM asks.
+
+```mermaid
+flowchart LR
+  PM["Current PM-approved requirement"] --> Scope["Current implementation scope"]
+  Closed["Closed issue criteria"] --> History["Historical record"]
+  History -. "not a blocker" .-> Scope
+```
+
+Reuse the relevant existing page. Report conflicts or proposed structural changes to the PM before changing the navigation structure. For active stories, GitHub issue titles and bodies are the source of truth, including navigation context. Local Markdown copies are private PM working material, ignored by Git; they are not required for implementation and must not override the active issue.
+
+## Architecture decisions
+
+Significant architectural decisions are recorded as ADRs in [`docs/adr/`](docs/adr/README.md); its README says when one is needed and how it is accepted.
+
+- Before designing a change, check the accepted ADRs for its area and follow them. A conflict with an accepted ADR is a structural change: report it to the tech lead (architecture) instead of working around it.
+- When your work makes a decision that meets the README's criteria, propose an ADR with status `Proposed` from [`docs/adr/template.md`](docs/adr/template.md), in the PR that introduces the decision or before it, and point the tech lead to it.
+- Set an ADR to `Accepted` only when its text is final and ready for an `/adr-accept NNNN` Comment review by the tech lead or the PM; never post that review or claim acceptance yourself. Any later change to the file needs a fresh acceptance. Do not rewrite an accepted ADR: supersede it with a new one.
 
 ## Commands
 
@@ -36,9 +53,11 @@ Do not retain or introduce backward compatibility for previous product names, st
 
 Deliberately sparse — this file grows as the team learns what it expects from generated code. Add rules here when you find yourself repeating the same review feedback.
 
+When updating notes on PO or teacher feedback, keep each note concise and factual: add one status label, then state the team decision or current status in one or two sentences. Use only these labels: `Hotovo`, `Rozpracováno`, `Zamítnuto` and `Čeká`. Use the team’s voice; do not attribute decisions to or name individuals. Omit implementation details already visible in the UI or Storybook and conversational history.
+
 ### Sync with main before starting an issue
 
-Before starting work on any issue, fetch the latest `origin/main` and merge it into the issue's working branch. Create new issue branches from the latest `origin/main`. Resolve any merge conflicts before implementation so the work uses the current shared UI, components and application behavior. Preserve unrelated local changes; do not discard them to make the merge possible. If they prevent a safe merge, report the blocker before starting implementation.
+Before starting work on an issue, read its current GitHub labels along with its body and native parent relationship. Use the labels to identify the assigned scope and delivery workflow. Then fetch the latest `origin/main`. For ordinary issues, create new branches from it and merge it into existing working branches. For frontend and backend child issues, follow [Feature integration branches](#feature-integration-branches). Resolve merge conflicts before implementation and preserve unrelated local changes.
 
 ### User stories are owned by the PM
 
@@ -54,10 +73,10 @@ When the PM authorizes story creation or refinement, keep issues concise and use
 
 - `User story` — who needs what and why.
 - `Akceptační kritéria` — observable, verifiable completion conditions, including relevant empty and error states.
-- `Podklady` — required for UI stories; may initially be empty. After the issue enters Sprint Backlog, the UX designer adds the Storybook entry names for the proposed screens and relevant states (for example, `Designs / F11-1 Room capacity`). UI implementation starts only once the necessary design references are available on that story.
+- `Podklady` — optional references such as screenshots, audit findings or an existing screen to follow.
 - `Mimo rozsah` — include only when needed to clarify boundaries.
 
-Keep navigation context to a concrete destination where needed (for example, `Umístění: správa akce → Pokoje`). Shared background and source materials can remain on the parent issue; Storybook entry names for the specific UI belong on the implementing story. Keep the GitHub issue template short; workflow instructions belong here rather than in template comments. Resolve outstanding product decisions with the PM before dependent implementation and incorporate the agreed behavior into the acceptance criteria. Do not add an `Otevřené otázky` section. Avoid provenance prose, duplicate status information and separate `Stav refinementu` sections. Track status and sprint assignment in GitHub Projects.
+Keep navigation context to a concrete destination where needed (for example, `Umístění: správa akce → Pokoje`). Shared background and source materials can remain on the parent issue. Keep the GitHub issue template short; workflow instructions belong here rather than in template comments. Resolve outstanding product decisions with the PM before dependent implementation and incorporate the agreed behavior into the acceptance criteria. Do not add an `Otevřené otázky` section. Avoid provenance prose, duplicate status information and separate `Stav refinementu` sections. Track status and sprint assignment in GitHub Projects.
 
 Select existing product backlog issues for a sprint directly when their whole scope fits; do not create sprint-specific copies. When a broader requirement needs splitting, retain it as a parent issue and use GitHub's native parent/sub-issue relationship for independently acceptable product outcomes. Preserve deferred acceptance criteria in open sub-issues in Product Backlog without a sprint. Assign selected sub-issues to the sprint; keep the parent open without a sprint until its full retained scope is delivered and accepted. Do not duplicate relationship links or explanatory comments manually. A completed sprint slice does not complete its broader parent; removing a requirement requires an explicit PM decision.
 
@@ -70,16 +89,9 @@ Frontend stack (`apps/frontend`): Vite + React 19, Tailwind v4, shadcn/ui, TypeS
 - Semantic tokens only (`bg-background`, `text-muted-foreground`, `bg-destructive`, …). No raw palette colors, arbitrary values (`p-[13px]`) or inline styles.
 - Pages control layout only. Appearance comes from component variants and sizes; if none fits, ask instead of restyling with `className`.
 - Do not, without asking the developer: add theme tokens, add lint-disable comments, edit the lint config (including `SHADCN_LEGACY_FILES`), or edit `src/components/ui` just to make a violation go away.
-- Every screen has a light desktop preview in Storybook (`pnpm storybook`). Its data comes from fixtures parsed with the feature's zod schemas and served through MSW; an API request without a handler fails instead of reaching the backend. `pnpm frontend test:stories` renders every story in Chromium with its `play` checks and the accessibility check; it is the evidence for UI work, and agents run it through the Storybook MCP server too. While iterating, run only the affected file (`pnpm frontend test:stories <path>`).
+- UI is implemented directly from the issue and [`DESIGN.md`](DESIGN.md); there is no separate design-preview step. Follow the existing screens of the same area.
+- Every screen has a light desktop story in Storybook (`pnpm storybook`). Its data comes from fixtures parsed with the feature's zod schemas and served through MSW; an API request without a handler fails instead of reaching the backend. `pnpm frontend test:stories` renders every story in Chromium with its `play` checks and the accessibility check; it is the evidence for UI work, and agents run it through the Storybook MCP server too. While iterating, run only the affected file (`pnpm frontend test:stories <path>`).
 - After any UI change, run `pnpm check` and fix every error before finishing. `pnpm check-all` still gates handoff; UI work additionally runs `pnpm check-stories` once, at the end.
-
-### Storybook UI handoff
-
-- For UI-preparation work, create an isolated Storybook preview using existing design-system components and mocked data. Show the relevant states and interactions without wiring the preview into a product route, API or persistence.
-- Before implementing UI, read the issue and its `Podklady` Storybook entry names, then launch Storybook with `pnpm storybook`. The issue's acceptance criteria define behavior; the approved Storybook stories define the visual reference and the states to implement.
-- Do not start UI implementation when required Storybook references are missing, unapproved or conflict with the issue. Report the gap or conflict to the PM instead of guessing or expanding scope.
-- Reuse or adapt suitable preview components during implementation. Keep stories aligned with the implemented components and their relevant states so the UI is not maintained twice.
-- Issue titles, bodies and approval metadata are PM-owned. Add or change Storybook entry names or change issue status only with the PM's explicit authorization; otherwise hand the reference name to the PM to add.
 
 ### UI controls come from the kit
 
@@ -120,13 +132,13 @@ service, adds a package/dependency, or makes a comparable shared infrastructure
 or tooling change that needs Bogdan's technical sign-off. Apply it when creating
 the PR, or immediately afterward if the creation tool cannot set labels. Routine
 feature work such as adding a page does not need this label. For non-draft PRs,
-the workflow requests `rmnskb` as soon as the labeled PR is opened or labeled,
-and requires
-his approval on the current commit before QA handoff and
-merge until that review is recorded. Once applied, removing the label does not
-remove the approval requirement; Bogdan's current-commit approval satisfies it.
-PRs Bogdan authors are exempt from the technical approval (he cannot approve his
-own PR); still label them, and every other gate applies.
+the workflow requests `rmnskb` once CI and the agent review of the current
+commit have passed (never earlier), and requires
+an approval from Bogdan or David (`darebakdavca`) on the current commit before QA
+handoff and merge; one is enough and nobody approves their own PR. The workflow
+never requests David automatically. On PRs Bogdan authors, David approves the
+current commit after a manual request. Once applied, removing the label does not
+remove the approval requirement.
 Before opening a non-draft PR, launch a fresh independent agent with no access to
 the implementation conversation or plan to review the final diff. Give it the
 issue description and acceptance criteria, the diff, and only the repository
@@ -134,7 +146,7 @@ instructions needed to assess them. Resolve its actionable findings or record
 why each finding is not applicable before opening the PR. If you cannot launch
 an independent agent, do not open the non-draft PR; report the blocker.
 Low requires CI but skips linked issues, requirements approval, code review and
-QA. It is limited to documentation/text and isolated test files; executable or
+QA; a changed ADR still needs its `/adr-accept` review. It is limited to documentation/text and isolated test files; executable or
 configuration changes cannot use Low. Enforcement changes always require High.
 Standard requires an issue link (`Closes #N` for completed work or `Refs #N` for
 partial work), independent Copilot review and current-commit QA, without
@@ -142,13 +154,18 @@ requirements approval. An isolated Storybook design-preview PR marked
 `design:storybook-preview` replaces separate QA with current-commit PM approval;
 see the [delivery workflow](docs/delivery-workflow.md) for its scope and rules.
 High additionally requires issue-level scope approval
-from David (`darebakdavca`) or Bogdan (`rmnskb`) before code review, with no
-PR-author exemption. Either may approve via a linked PR review or an explicit
+from David (`darebakdavca`) or Bogdan (`rmnskb`), requested only after CI, agent
+review and any required human code review have passed on the current commit
+(the order is in the delivery workflow), with no PR-author exemption. Either may approve via a linked PR review or an explicit
 `/requirements-approve` issue or linked PR comment. PR commands approve linked
 issues and are recorded on those issues. Collaborators may request fresh scope review
 with `/requirements-rereview`. Requirement/title changes invalidate scope approval;
 checkbox and `Evidence dokončení` updates do not. Implementation commits preserve
 unchanged scope approval but require fresh code review and QA.
+
+A standard Dependabot PR (`dependencies`, `severity:standard`) needs no issue,
+agent review, human approval or QA: it merges automatically once CI passes on the
+current commit.
 
 `MatejKrones` approves QA after the testing handoff; on Matej's PRs, David performs
 QA. Request QA only after independent review passes and the current commit receives
@@ -161,11 +178,15 @@ receive no automated QA request. CODEOWNERS routes
 David enforcement-path requests; code-owner approval is disabled. GitHub's
 blanket approval count is zero after severity installation; Delivery stages
 enforces the named approvals. See [the delivery workflow](docs/delivery-workflow.md).
-Only `darebakdavca` may waive Copilot review with a standalone PR comment
+Any human GitHub user who can comment on a PR, including its author, may waive
+Copilot review with a standalone PR comment
 `/copilot-waive <full-current-SHA> <reason>`. A waiver replaces only Copilot review
 for that PR commit; CI and severity-specific requirements/QA still apply. Preserve
 findings and record a manual waiver, never a fabricated Copilot pass. A new
 commit needs a new waiver or review; recheck edited/deleted commands.
+During a Copilot outage, a repository administrator may set the Actions secret
+`PAUSE_COPILOT_REVIEW` to `true` to skip only Copilot for delivery to `main`,
+including stacks. See the [pause procedure](docs/delivery-workflow.md#pause-copilot-review-for-main).
 Never manufacture passing gate evidence or bypass merge protection.
 
 ### Stacked PRs
@@ -201,7 +222,21 @@ When a feature is split into frontend and backend sub-issues (`area:frontend`,
 `integration/<parent>-<slug>` branch; the flow is in
 [`docs/delivery-workflow.md`](docs/delivery-workflow.md#feature-integration-branches).
 
-- Branch each child from the integration branch and open its PR into it with
+- Verify that the child has exactly one of `area:frontend` or `area:backend`
+  and that its open parent links the intended integration branch. The area label
+  determines the child scope and CI lanes. If the labels or parent link are
+  missing, ambiguous, or inconsistent with the issue, report the discrepancy.
+- Fetch the linked integration branch and `origin/main`. If the child needs
+  changes from `main` that the integration branch lacks, reuse an open sync PR
+  that brings them in or create one from a
+  sync branch based on the integration branch. Merge `origin/main` into the sync
+  branch and target the integration branch with `Refs #<parent>`. Follow the
+  normal delivery gates and use a merge commit so Git retains the ancestry.
+  If Delivery stages blocks the sync, report the specific reason.
+- Start from the fetched integration branch. If the child needs a sync, fetch
+  it again after the sync lands. Create the child branch from that remote ref,
+  or merge it into an existing child branch.
+  Open the child PR into the integration branch with
   `Closes #<sub-issue>`. The frontend child delivers components and Storybook
   states with fixtures or mocks; live API and route wiring belongs to the parent.
 - Integrate both sides through PRs into the integration branch with

@@ -1,12 +1,14 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { PencilLine, Plus } from "lucide-react"
 
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
+import { LoadError } from "@/components/LoadError"
 import { Button } from "@/components/ui/button"
 import { formatPragueDateTime } from "@/lib/date"
 
 import { registrationAccommodationQueryOptions } from "@/features/accommodation/api/evaluationQueryOptions"
 import { DeterminationDialog } from "@/features/accommodation/components/DeterminationDialog"
-import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
 import { valueLabel } from "@/features/accommodation/lib/evaluationView"
 
 type RegistrationDeterminationPanelProps = {
@@ -37,9 +39,10 @@ export function RegistrationDeterminationPanel({
   if (accommodation.isPending) return null
   if (accommodation.isError) {
     return (
-      <RetryAlert
+      <LoadError
         title="Určení ubytování se nepodařilo načíst"
-        onRetry={() => void accommodation.refetch()}
+        isRetrying={accommodation.isFetching}
+        onRetry={() => accommodation.refetch()}
       />
     )
   }
@@ -52,30 +55,26 @@ export function RegistrationDeterminationPanel({
   return (
     <div className="space-y-3">
       {valid ? (
-        <dl className="space-y-3 text-sm">
-          <div className="space-y-1">
-            <dt className="text-muted-foreground">Ubytovat jako</dt>
-            <dd>{valueLabel(hardAttribute.attribute, valid.value)}, všechny termíny</dd>
-          </div>
-          <div className="space-y-1">
-            <dt className="text-muted-foreground">Důvod určení</dt>
-            <dd className="break-words">{valid.reason}</dd>
-          </div>
-          <div className="space-y-1">
-            <dt className="text-muted-foreground">Určil(a)</dt>
-            <dd>
-              {valid.createdBy.name}, {formatPragueDateTime(valid.createdAt)}
-            </dd>
-          </div>
-        </dl>
+        <DefinitionList layout="stacked">
+          <DefinitionRow label="Ubytovat jako">
+            {valueLabel(hardAttribute.attribute, valid.value)}, všechny termíny
+          </DefinitionRow>
+          <DefinitionRow label="Důvod určení">{valid.reason}</DefinitionRow>
+          <DefinitionRow label="Určil(a)">
+            {valid.createdBy.name}, {formatPragueDateTime(valid.createdAt)}
+          </DefinitionRow>
+        </DefinitionList>
       ) : null}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setIsOpen(true)}
-      >
-        {valid ? "Změnit určení" : "Určit ubytování"}
-      </Button>
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsOpen(true)}
+        >
+          {valid ? <PencilLine /> : <Plus />}
+          {valid ? "Změnit určení" : "Určit ubytování"}
+        </Button>
+      </div>
       {isOpen ? (
         <DeterminationDialog
           organizationId={organizationId}

@@ -1,6 +1,7 @@
 import { useState } from "react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
+import { ParticipationBadge } from "@/components/ParticipationBadge"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,15 +22,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { type TermParticipation } from "@/lib/participation"
 
 import {
   type Gender,
   type GenderAnswer,
-  type ParticipationStatus,
   type RegistrationNeeds,
 } from "@/features/registrations/api/registrationSchemas"
 import { GenderField } from "@/features/registrations/components/GenderField"
-import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
 import { RegistrationNeedsFields } from "@/features/registrations/components/RegistrationNeedsFields"
 import { type RegistrationNeedsErrors } from "@/features/registrations/lib/registrationNeeds"
 
@@ -57,7 +57,7 @@ export type ChangeableTerm = {
   label: string
   /** Already formatted, e.g. "20. 11. – 22. 11. 2026 · 2 400 Kč". */
   details: string
-  status: ParticipationStatus
+  status: TermParticipation
   /** The current term first, then the other terms of the event. */
   options: TermOption[]
   selectedTermId: string
@@ -170,7 +170,7 @@ export function RegistrationChangeForm({
               <Field>
                 <FieldLabel
                   htmlFor="change-email"
-                  className="items-center"
+                  className="h-6 items-center"
                 >
                   E-mail přihlášení
                   <Badge variant="outline">Neměnný</Badge>
@@ -184,7 +184,12 @@ export function RegistrationChangeForm({
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="change-phone">Telefon</FieldLabel>
+                <FieldLabel
+                  htmlFor="change-phone"
+                  className="h-6 items-center"
+                >
+                  Telefon
+                </FieldLabel>
                 <Input
                   id="change-phone"
                   type="tel"
@@ -286,11 +291,7 @@ export function RegistrationChangeForm({
         </CardContent>
       </Card>
 
-      {errorMessage ? (
-        <Alert variant="destructive">
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-      ) : null}
+      {errorMessage ? <FormError message={errorMessage} /> : null}
 
       <div className="flex flex-wrap justify-end gap-2">
         <Button
