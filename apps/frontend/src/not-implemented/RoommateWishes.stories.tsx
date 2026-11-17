@@ -196,6 +196,21 @@ export const Saving: Story = {
   },
 }
 
+/** A failed save keeps the selection in the form. */
+export const SaveFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("put", WISHES))
+  },
+  play: async ({ canvas }) => {
+    const form = await startEditing(canvas)
+    await pick(form, "Veronika Pokorná")
+    await userEvent.click(form.getByRole("button", { name: "Uložit" }))
+    await showsText("Spolubydlící se nepodařilo uložit. Výběr zůstává, zkuste to prosím znovu.")
+    const selected = within(form.getByRole("list", { name: "Vybraní spolubydlící" }))
+    await expect(selected.getByText("Veronika Pokorná")).toBeVisible()
+  },
+}
+
 /** A failed save keeps the selection; the next try stores it. */
 export const SaveFailedThenRetried: Story = {
   beforeEach: ({ msw }) => {
