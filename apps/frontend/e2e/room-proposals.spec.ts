@@ -45,6 +45,8 @@ async function confirmed(
 }
 
 test("proposing rooms by hand, stale after a change, and automatically", async ({ page }) => {
+  // Two solver runs and the 10 s debounce of the automatic one.
+  test.slow()
   const event = await setUpEvent(page.request, { terms, rooms })
   await setHardAttribute(page.request, event, "gender")
   await confirmed(page, event, "Tereza", "female")

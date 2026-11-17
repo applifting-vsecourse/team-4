@@ -167,6 +167,8 @@ export const Proposal: Story = {
   play: async ({ canvas, userEvent: user }) => {
     const section = within(await canvas.findByRole("region", { name: "Návrh pokojů" }))
     await expect(await section.findByText("Aktuální návrh")).toBeVisible()
+    // Reason H names the event's hard attribute.
+    await expect(await section.findByText(/hodnotou „Pohlaví“/)).toBeVisible()
     // The term is in the URL; switching it stays on Ubytování.
     const [first, second] = section.getAllByRole("tab")
     await expect(first).toHaveAttribute("aria-selected", "true")
@@ -297,7 +299,9 @@ export const ProposalLoading: Story = {
   },
   play: async ({ canvas }) => {
     const section = within(await canvas.findByRole("region", { name: "Návrh pokojů" }))
-    await expect(await section.findByRole("status")).toBeVisible()
+    await expect(
+      await section.findByRole("status", { name: "Načítání návrhu pokojů" }),
+    ).toBeVisible()
   },
 }
 

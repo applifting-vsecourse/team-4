@@ -48,7 +48,8 @@ function RoomsPage() {
   const rooms = useSuspenseQuery(roomsQueryOptions(organizationId, eventId))
   const { term } = Route.useSearch()
   const navigate = Route.useNavigate()
-  // The reason H names the hard attribute; without one it never applies.
+  // The reason H names the hard attribute; while it loads or if it fails,
+  // the reason keeps its generic wording ("pravidla ubytování") on purpose.
   const { data: rules } = useQuery(hardAttributeQueryOptions(organizationId, eventId))
   const termId = event.terms.find((t) => t.id === term)?.id ?? event.terms[0]?.id ?? ""
   // The term capacities on the event page are derived from these rooms.
