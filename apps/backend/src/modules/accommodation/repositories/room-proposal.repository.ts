@@ -11,6 +11,10 @@ import {
   ProposalStatus,
   StoredProposal,
 } from '@/modules/accommodation/domain/proposal-view';
+import {
+  DEFAULT_SOFT_ATTRIBUTES,
+  readNeutralValues,
+} from '@/modules/accommodation/domain/room-proposal-preferences';
 import { ownedEvent } from '@/modules/accommodation/repositories/term-evaluation.repository';
 import { RoomProposalResult } from '@/modules/accommodation/solver/room-proposal.types';
 import { EventScope } from '@/modules/events/repositories/events.repository';
@@ -110,6 +114,7 @@ export class RoomProposalRepository {
                 hardAttribute: true,
                 nonDeterminingValues: true,
                 softAttributes: true,
+                softNeutralValues: true,
               },
             },
             rooms: {
@@ -154,7 +159,9 @@ export class RoomProposalRepository {
               nonDeterminingValues: rules.nonDeterminingValues,
             }
           : null,
-        softAttributes: rules?.softAttributes ?? [],
+        // No rules yet: the list of a new event (#389).
+        softAttributes: rules?.softAttributes ?? DEFAULT_SOFT_ATTRIBUTES,
+        softNeutralValues: readNeutralValues(rules?.softNeutralValues),
       },
       rooms: term.event.rooms.map((room) => {
         const inTerm = room.availabilities[0];
