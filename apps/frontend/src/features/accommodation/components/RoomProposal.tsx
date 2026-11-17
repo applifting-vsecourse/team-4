@@ -52,6 +52,8 @@ export type RoomProposalProps = {
   isSwitching?: boolean
   onSelectTerm?: (termId: string) => void
   onPropose?: () => void
+  /** "Použít návrh" (#390), shown beside "Navrhnout pokoje" for a current proposal. */
+  applyAction?: ReactNode
   /** "Navrhnout pokoje" was refused or failed, already worded; the shown data stay. */
   proposeError?: string
   onRetryLoad?: () => void
@@ -358,6 +360,7 @@ export function RoomProposal({
   isSwitching = false,
   onSelectTerm,
   onPropose,
+  applyAction,
   proposeError,
   onRetryLoad,
 }: RoomProposalProps) {
@@ -425,14 +428,17 @@ export function RoomProposal({
                           : "Automatický návrh vypnutý"}
                       </p>
                     </div>
-                    <PendingButton
-                      variant="outline"
-                      isPending={isRunning}
-                      icon={<Sparkles />}
-                      onClick={onPropose}
-                    >
-                      {isRunning ? "Navrhuje se…" : "Navrhnout pokoje"}
-                    </PendingButton>
+                    <div className="flex flex-wrap gap-2">
+                      <PendingButton
+                        variant="outline"
+                        isPending={isRunning}
+                        icon={<Sparkles />}
+                        onClick={onPropose}
+                      >
+                        {isRunning ? "Navrhuje se…" : "Navrhnout pokoje"}
+                      </PendingButton>
+                      {status === "current" ? applyAction : null}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -94,5 +94,9 @@ export const accommodationHandlers = {
     http.post(`${BASE}/terms/:termId/room-proposal`, () =>
       HttpResponse.json(makeTermRoomProposal("running"), { status: 202 }),
     ),
+    // "Použít návrh" (#390): the contract proposed for #365.
+    http.post(`${BASE}/terms/:termId/room-proposal/apply`, () =>
+      HttpResponse.json({ added: 2, moved: 1, removed: 1, layoutVersion: 5 }),
+    ),
   ],
 }
