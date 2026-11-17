@@ -1,4 +1,5 @@
 import { severityFor, sameSeverity, validateSeverity } from './severity.mjs';
+import { automaticMergeTreeSha, fetchMergeHistory } from './merge-tree.mjs';
 import { eventScope } from '../automation/events.mjs';
 import {
   evaluate,
@@ -336,6 +337,14 @@ for (let pr of candidates) {
             api(`/repos/${repo}/commits/${pr.head.sha}`),
           ])
         : null;
+      let expectedTreeSha;
+      if (syncCommits) {
+        fetchMergeHistory({ baseRef: pr.base.ref, token });
+        expectedTreeSha = automaticMergeTreeSha({
+          baseSha: pr.base.sha,
+          mainSha: syncCommits[0].sha,
+        });
+      }
       const mainSync =
         syncCommits !== null &&
         isVerifiedMainSync({
@@ -343,6 +352,7 @@ for (let pr of candidates) {
           role,
           mainCommit: syncCommits[0],
           headCommit: syncCommits[1],
+          expectedTreeSha,
         });
       // The label still classifies the change; its gates apply to the parent PR.
       validateSeverity(pr, files);
@@ -402,7 +412,7 @@ for (let pr of candidates) {
       const summary = reasons.length
         ? reasons.join(' ')
         : mainSync
-          ? `Verified merge-only sync for #${role.parent}: head tree matches current main and contains no additional changes.`
+          ? `Verified merge-only sync for #${role.parent}: head tree matches the automatic merge of the current integration base and main.`
           : `${role.kind === 'child' ? `Child of #${role.parent}` : `Integration work for #${role.parent}`}: agent review passed; requirements, QA and human review happen on the parent PR.`;
       // Another PR can overwrite Delivery stages on a shared commit, but
       // it cannot satisfy the integration branch's separate required status.
