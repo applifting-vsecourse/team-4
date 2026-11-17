@@ -25,7 +25,7 @@ You are extending an existing product, not designing a new one. Most UI rework s
 ## Layout and navigation
 
 - **One container per area.** Render pages inside the area's shell and do not add your own `mx-auto max-w-*` page wrapper. A narrow form sits inside the page, left-aligned with the header. _Why: breadcrumbs and titles must not jump when moving between sibling routes._
-- **Fixed page anatomy.** `PageHeader`: breadcrumb, title with status badge, actions on the right. At most one primary (lime) button per view. Actions of a card or row sit at its trailing end; Cancel (`outline`) comes before the confirming button.
+- **Fixed page anatomy.** Every page title is a `PageHeader`: breadcrumb (organization shell only), title with status badge, actions on the right, short lines under the title. Auth, error, landing and e-mail pages keep their own layout. At most one primary (lime) button per view. Actions of a card or row sit at its trailing end; Cancel (`outline`) comes before the confirming button.
 - **A way back from every page.** Event management uses the breadcrumb. Public and participant sub-pages (detail, form, payment) start with a back link above the title: `Button variant="ghost" size="sm"` with `ArrowLeft`, label "Zpět na …" naming the target.
 - **Show the result of an action.** After creating or changing something, land where the result is visible (a term added from Přehled → the term list) and confirm with a toast.
 - **State that should survive refresh or Back/Forward lives in the URL**: tab, view, filters, selected term or queue, sort. Validate it in the route's `validateSearch` (zod, `.catch(undefined)`). Keep only transient UI (open dialog, hover) in component state.
@@ -57,6 +57,7 @@ You are extending an existing product, not designing a new one. Most UI rework s
 
 ## Forms
 
+- **Use the shared `Field` primitives for every labeled control.** Pair `Field` with `FieldLabel`; use `FieldSet` and `FieldLegend` for related options, and horizontal `Field` rows for checkbox and radio choices. The React Hook Form helpers (`FormItem`, `FormLabel`, descriptions and messages) render through the same primitives.
 - **Guide input instead of only rejecting it.** Disable impossible choices (dates that overlap a stored term or end before the start) and reveal a follow-up field as soon as its option is picked (e.g. „Jiná odpověď“ → text input).
 - **Required fields are marked**, and an invalid submit moves focus to the first invalid field without clearing the other values.
 
@@ -84,7 +85,7 @@ You are extending an existing product, not designing a new one. Most UI rework s
 - **shadcn/ui is the design system.** Every control is a shadcn component from `src/components/ui/`. Nothing is hand-rolled, not even where a native element would do.
 - **Semantic tokens only.** Use classes like `bg-background`, `text-muted-foreground`, `border-border`, `bg-success-subtle`. No hex values, no arbitrary colours (`bg-[#...]`).
 - **Accessible by default.** Keyboard reachable, visible focus, accessible names, errors shown at the field without losing the other values. `eslint-plugin-jsx-a11y` is on.
-- **States are part of the design.** Data views have loading (`Skeleton`), empty (`Empty`) and error (`Alert`) states; controls have disabled and invalid states.
+- **States are part of the design.** Data views have loading (`LoadingBlock` with `Skeleton`), empty (`EmptyState`) and error (`LoadError`) states; controls have disabled and invalid states.
 - **Czech UI copy, brand "akc.io".** Amounts in CZK; times in Prague local time.
 - **Light and dark.** Both themes are defined in `global.css` (`.dark` class via `next-themes`). Using tokens makes both work; check new UI in both with the theme switcher.
 
@@ -94,7 +95,7 @@ You are extending an existing product, not designing a new one. Most UI rework s
 
 Import from `@/components/ui/<name>` and use the component meant for the job (`Button` for buttons, `Select` for selects, `Table` for tables, ...). The `/design-system` page shows what exists and how each looks in every state; its source in `src/features/design-system/components/` is a working usage example for each one, including a validated form (`react-hook-form` + `zod` + `Form`).
 
-Currently in the kit: alert, aspect-ratio, avatar, badge, breadcrumb, button, card, checkbox, command, dialog, dropdown-menu, empty, form, input, label, popover, progress, radio-group, select, separator, sheet, sidebar, skeleton, sonner (toasts), switch, table, tabs, textarea, tooltip.
+Currently in the kit: alert, aspect-ratio, avatar, badge, breadcrumb, button, card, checkbox, command, dialog, dropdown-menu, empty, field, form, input, label, popover, progress, radio-group, select, separator, sheet, sidebar, skeleton, sonner (toasts), switch, table, tabs, textarea, tooltip.
 
 Patterns built from them:
 
@@ -102,8 +103,30 @@ Patterns built from them:
 - **Collapsible section:** `CollapsibleSection` from `src/components/ui/collapsible-section.tsx` for consistent full-row triggers and animated content height.
 - **Status labels:** `Badge` with a status variant (table below).
 - **Table labels:** Place a badge that leads a left-aligned cell directly inside `TableCell`. Its text aligns with the column header and the fill extends into the gutter.
-- **Confirmation of destructive actions:** `Dialog` with a `destructive` button.
+- **Confirmation of destructive actions:** `ConfirmDeleteDialog` (below).
 - **Feedback after an action:** `toast` from `sonner` (the `Toaster` is mounted in `__root.tsx`).
+
+### Shared app components
+
+Recurring states and page actions have one component each in `src/components/`. Use them instead of composing `Alert`, `Empty` or `Skeleton` in a feature; `Alert` is imported only by `Notice` and `FormError`.
+
+| Need                                      | Component                                                          | Rule                                                                                                                                                                                   |
+| ----------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| In-page message                           | `Notice tone="info" \| "success" \| "warning" \| "error"`          | The tone picks the icon and colour; `title` is always set (a one-sentence notice is a title only); details and actions go in children; `icon` only for an extra meaning (`Lock`).      |
+| Failed save or action of a form or dialog | `FormError message title? action?`                                 | At the form, above its buttons. `action` only for a way on that differs from submitting again (a retry that checks a lost response). Success is a `toast`, never a dialog or a notice. |
+| Failed load or refresh                    | `LoadError title? description? shownFrom? onRetry action? variant` | `inline` in a section, `page` instead of the whole content. With old data still shown, pass `shownFrom`. Never shown as an empty state.                                                |
+| Loading placeholder                       | `LoadingBlock label` around `Skeleton`s                            | Always a named `role="status"`; never an `aria-label` without a role, never the empty state while loading.                                                                             |
+| Empty list or section                     | `EmptyState icon title description? action?`                       | One frame, a dashed border, never inside a `Card`. Title without a trailing period. Never shown while loading or after a failed load.                                                  |
+| Missing or foreign record                 | `RecordUnavailable title? icon? action?`                           | Same look for a missing and a foreign record.                                                                                                                                          |
+| Confirming a deletion                     | `ConfirmDeleteDialog title consequence errorMessage? onConfirm`    | One verb: „Odstranit“. Its failure stays in the dialog.                                                                                                                                |
+| Button whose action takes a while         | `PendingButton isPending icon?` + `Button` props                   | Disabled with a spinner before the label while pending; the spinner replaces `icon`. The label stays, or says what is running („Ukládám…“).                                            |
+| Footer of a dialog confirming one action  | `DialogActions submitLabel isPending onSubmit? submitVariant?`     | „Zrušit“, then the confirming `PendingButton`; without `onSubmit` it submits the dialog's form. Footers with other or alternating buttons compose `DialogFooter`.                      |
+| Reloading a list or detail                | `RefreshButton`                                                    | „Aktualizovat“ / „Aktualizuji…“.                                                                                                                                                       |
+| Way back to the parent page               | `BackLink to params`                                               | Ghost button with `ArrowLeft` above the page heading.                                                                                                                                  |
+| Titled part of a page                     | `PageSection title description? actions? isBusy? headingId?`       | A region named by its `h2`; actions on the right of the heading. `headingId` only when a link points at the section. Subsections with an `h3` stay hand-written.                       |
+| Labels and values of a record             | `DefinitionList layout?` with `DefinitionRow label isEmphasised?`  | `inline` (label left, value right) for short values such as amounts and dates; `stacked` (label above) for longer text. `isEmphasised` for the total, e.g. „Zbývá zaplatit“.           |
+| State of a registration's term            | `ParticipationBadge status`                                        | One type and label set in `src/lib/participation.ts` for every screen; a screen that cannot show a state narrows the type with `Exclude`.                                              |
+| Amount of money from haléře               | `Money minor isEmphasised?`                                        | Monospaced digits of equal width. Components that receive an already formatted amount keep it as text.                                                                                 |
 
 ### Adding or composing
 
@@ -113,7 +136,7 @@ Patterns built from them:
    - Check the diff afterwards. The CLI has resolved `@/lib/utils` to an npm package named `cn` (`import { cn } from "cn"`) and added `cn` to `package.json`; fix the import to `@/lib/utils` and remove the dependency.
    - The CLI may append CSS variables to `global.css`; replace their values with the tokens documented here.
    - Run `pnpm prettier --write` on the new files; `src/components/ui/` is excluded from ESLint (vendored code) but not from Prettier.
-2. **A reusable composition** (a new variant, or a component made of several kit primitives used across features): put it in `src/components/ui/` too, built only from kit primitives and tokens. Example: the `success`, `warning` and `destructive-subtle` variants added to `badge.tsx`.
+2. **A reusable variant or generic composition** of kit primitives: put it in `src/components/ui/` too, built only from kit primitives and tokens. Example: the `success`, `warning` and `destructive-subtle` variants added to `badge.tsx`, and the `success` and `warning` variants of `alert.tsx` (icon in the status colour). An app component with akc.io copy or behaviour that several features share goes to `src/components/` (see Shared app components).
 3. **Something used by one feature only:** a feature component in `src/features/<feature>/components/`, built from the kit.
 4. Show any new component or variant on the `/design-system` page.
 
@@ -127,24 +150,25 @@ Light and dark values are defined in `global.css`. Utility class = `bg-`/`text-`
 
 The visual direction is **"Ticket stub"** (S3-T2): warm paper surfaces, dark warm ink for text and outlines, lime for action. Dark mode is **"Night ticket"**, a palette of its own rather than an inversion: cool, barely tinted slate surfaces (hue 262) so lime stays the only loud colour; elevation by lighter surfaces (sidebar < background < card < popover, hover and selection lighter still); off-white text instead of pure white; slightly desaturated accents and status colours in OKLCH. In dark mode cards are outlined in `border` and stand out by their surface; form controls and buttons keep the `input` outline. No large light areas in dark mode: tooltips use the `popover` surface there, paper-coloured illustrations are dimmed, and inverted panels become dark cards (see Shape).
 
-| Token                                       | Light                                                     | Dark                                                               | Use for                                                           |
-| ------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| `background` / `foreground`                 | `oklch(0.955 0.035 95)` paper / `oklch(0.17 0.03 60)` ink | `oklch(0.175 0.012 262)` slate / `oklch(0.93 0.006 262)` off-white | Page                                                              |
-| `card` / `card-foreground`                  | `oklch(0.99 0.018 95)` / ink                              | `oklch(0.212 0.014 262)` / off-white                               | Cards, tables, panels                                             |
-| `popover` / `popover-foreground`            | same as `card`                                            | `oklch(0.25 0.015 262)` / off-white                                | Menus, popovers, select lists                                     |
-| `primary` / `primary-foreground`            | `oklch(0.87 0.21 125)` lime / ink                         | `oklch(0.88 0.19 128)` / `oklch(0.21 0.035 135)`                   | Main action, active state (lime with ink text)                    |
-| `secondary`, `muted`, `accent`              | `oklch(0.91 0.04 95)`                                     | `oklch(0.262 0.014 262)`; `accent` `oklch(0.3 0.016 262)`          | Secondary buttons, subdued surfaces, light form field fill, hover |
-| `muted-foreground`                          | `oklch(0.42 0.04 60)`                                     | `oklch(0.74 0.015 262)`                                            | Secondary text, descriptions                                      |
-| `border`                                    | `oklch(0.78 0.04 85)`                                     | `oklch(0.33 0.014 262)`; also the card outline                     | Dividers, table rules                                             |
-| `input`                                     | ink                                                       | `oklch(0.54 0.016 262)`                                            | Form control outlines                                             |
-| `ring`                                      | `oklch(0.55 0.2 30)` brick                                | `oklch(0.72 0.13 250)` blue                                        | Focus ring                                                        |
-| `destructive`                               | `#b91c1c`                                                 | `oklch(0.69 0.19 23)`                                              | Destructive actions, form errors                                  |
-| `destructive-subtle` / `-subtle-foreground` | `#fef2f2` / `#b91c1c`                                     | `oklch(0.285 0.07 23)` / `oklch(0.81 0.11 23)`                     | Failed, error status                                              |
-| `success` / `success-subtle`                | `#166534` / `#f0fdf4`                                     | `oklch(0.8 0.15 152)` / `oklch(0.28 0.055 155)`                    | Confirmed, paid                                                   |
-| `warning` / `warning-subtle`                | `#c2410c` / `#fff7ed`                                     | `oklch(0.82 0.14 72)` amber / `oklch(0.3 0.06 65)`                 | Waitlisted (náhradník), partially paid                            |
-| `sidebar*`                                  | page surface and text; warm active item                   | `oklch(0.155 0.011 262)`, below the page; active item on `accent`  | Organizer navigation                                              |
-| `chart-1` … `chart-5`                       | blue, lime, green, orange, gray                           | same                                                               | Charts only                                                       |
-| `overlay`                                   | black at 50 % opacity                                     | black at 65 % opacity                                              | Scrim behind dialogs and sheets                                   |
+| Token                                       | Light                                                     | Dark                                                               | Use for                                        |
+| ------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------- |
+| `background` / `foreground`                 | `oklch(0.955 0.035 95)` paper / `oklch(0.17 0.03 60)` ink | `oklch(0.175 0.012 262)` slate / `oklch(0.93 0.006 262)` off-white | Page                                           |
+| `card` / `card-foreground`                  | `oklch(0.99 0.018 95)` / ink                              | `oklch(0.212 0.014 262)` / off-white                               | Cards, tables, panels                          |
+| `popover` / `popover-foreground`            | same as `card`                                            | `oklch(0.25 0.015 262)` / off-white                                | Menus, popovers, select lists                  |
+| `primary` / `primary-foreground`            | `oklch(0.87 0.21 125)` lime / ink                         | `oklch(0.88 0.19 128)` / `oklch(0.21 0.035 135)`                   | Main action, active state (lime with ink text) |
+| `secondary`, `muted`, `accent`              | `oklch(0.91 0.04 95)`                                     | `oklch(0.262 0.014 262)`; `accent` `oklch(0.3 0.016 262)`          | Secondary buttons, subdued surfaces, hover     |
+| `muted-foreground`                          | `oklch(0.42 0.04 60)`                                     | `oklch(0.74 0.015 262)`                                            | Secondary text, descriptions                   |
+| `border`                                    | `oklch(0.78 0.04 85)`                                     | `oklch(0.33 0.014 262)`; also the card outline                     | Dividers, table rules                          |
+| `input`                                     | ink                                                       | `oklch(0.54 0.016 262)`                                            | Form control outlines                          |
+| `input-editable-surface`                    | `oklch(1 0 0)` white                                      | `oklch(0.15 0.012 262)` dark slate                                 | Editable form controls                         |
+| `ring`                                      | `oklch(0.55 0.2 30)` brick                                | `oklch(0.72 0.13 250)` blue                                        | Focus ring                                     |
+| `destructive`                               | `#b91c1c`                                                 | `oklch(0.69 0.19 23)`                                              | Destructive actions, form errors               |
+| `destructive-subtle` / `-subtle-foreground` | `#fef2f2` / `#b91c1c`                                     | `oklch(0.285 0.07 23)` / `oklch(0.81 0.11 23)`                     | Failed, error status                           |
+| `success` / `success-subtle`                | `#166534` / `#f0fdf4`                                     | `oklch(0.8 0.15 152)` / `oklch(0.28 0.055 155)`                    | Confirmed, paid                                |
+| `warning` / `warning-subtle`                | `#c2410c` / `#fff7ed`                                     | `oklch(0.82 0.14 72)` amber / `oklch(0.3 0.06 65)`                 | Waitlisted (náhradník), partially paid         |
+| `sidebar*`                                  | page surface and text; warm active item                   | `oklch(0.155 0.011 262)`, below the page; active item on `accent`  | Organizer navigation                           |
+| `chart-1` … `chart-5`                       | blue, lime, green, orange, gray                           | same                                                               | Charts only                                    |
+| `overlay`                                   | black at 50 % opacity                                     | black at 65 % opacity                                              | Scrim behind dialogs and sheets                |
 
 Status meaning, used consistently across the app:
 
@@ -162,7 +186,7 @@ Filled in by shadcn convention: `popover-foreground`, `accent-foreground`, `dest
 The ticket-stub shape is part of the components, set once in `global.css`; pages don't recreate it:
 
 - `Card`, filled and outline `Button`s, `Input`, `Textarea` and `Select` triggers have a 1.5 px `foreground` outline (focus and invalid states keep their own colour). Badges keep their 1 px border. A button keeps the shape as a trigger too (`DialogTrigger asChild` and the like): the rules match its variant and size, not its `data-slot`.
-- In light mode form fields (`Input`, `Textarea`, `Select` triggers, radios and unchecked checkboxes) take the `muted` surface, so they remain distinct from both the paper page and card panels. Dark mode keeps its lighter control fill.
+- Editable form fields (`Input`, `Textarea`, `Select` triggers, date pickers, radio and checkbox controls, and input groups) use `input-editable-surface` by default: white in light mode and dark slate in dark mode. Cards keep the warm `card` surface, so fields remain outlined and distinguishable inside them. Checked checkboxes and radios keep the primary fill; disabled controls stay faded.
 - Cards and those buttons cast a small hard shadow (`2px 2px 0` in `foreground`); a pressed button shifts by 1 px. The `shadow-*` tokens are hard offset shadows in `foreground`, too. In dark mode there are no shadows: the `shadow-*` tokens are empty and depth comes from lighter surfaces and outlines. Ghost and link buttons have neither outline nor shadow.
 - A panel inverted with `bg-foreground`/`text-background` in light mode adds `dark:bg-card dark:text-card-foreground dark:border-border`, so it stays a dark card in dark mode instead of turning into a light block.
 - `h1`–`h3` and card titles are weight 800 with -0.03 em tracking.

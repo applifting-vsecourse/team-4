@@ -4,6 +4,7 @@ import { AccommodationModule } from './modules/accommodation/accommodation.modul
 import { EventsModule } from './modules/events/events.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { ParticipantAccessModule } from './modules/participant-access/participant-access.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { ProgrammeModule } from './modules/programme/programme.module';
 import { RegistrationsModule } from './modules/registrations/registrations.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
@@ -19,6 +20,7 @@ const imports = [
   AccommodationModule,
   ProgrammeModule,
   RegistrationsModule,
+  PaymentsModule,
   ParticipantAccessModule,
   OrganizationsModule,
   WelcomeModule,

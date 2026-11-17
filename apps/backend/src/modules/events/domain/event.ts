@@ -136,6 +136,8 @@ export class PublicEventModel {
     >[],
     /** Listed in the catalog, so the form can link to the public detail. */
     public readonly isPublished: boolean,
+    /** Participation terms (F07); empty means nothing to confirm. */
+    public readonly conditions: string,
   ) {}
 }
 
@@ -174,6 +176,8 @@ export class PublicCatalogItemModel {
     public readonly location: string,
     /** The first photo of the presentation, shown on the card; null without. */
     public readonly coverPhotoId: string | null,
+    /** Lets the catalog show only events open for registration (F54-2b). */
+    public readonly registrationStatus: PublicRegistrationStatus,
     public readonly terms: Pick<
       EventTermModel,
       'id' | 'label' | 'startDate' | 'endDate'

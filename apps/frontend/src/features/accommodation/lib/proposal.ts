@@ -3,6 +3,8 @@
 // (spec v4 §5, §7): a run is solved, infeasible, timeout or failed, and a
 // solved proposal is current only while the term's inputs are unchanged.
 
+import { type TermParticipation } from "@/lib/participation"
+
 /**
  * current / stale: the shown proposal matches / no longer matches the term's inputs.
  * running: a run is in progress; a shown older proposal is stale.
@@ -18,7 +20,8 @@ export type ReasonCode = "A" | "B" | "C" | "N" | "R"
 
 export type ProposalResult = "suitable" | "unsuitable" | "manual"
 
-export type ParticipationState = "pending" | "waitlisted"
+/** Only unconfirmed people take part in an evaluation. */
+export type ParticipationState = Extract<TermParticipation, "pending" | "waitlisted">
 
 export const STATUS_BADGE: Record<
   EvaluationStatus,
@@ -43,11 +46,6 @@ export const RESULT_BADGE: Record<
   suitable: { label: "Vhodný", variant: "success" },
   unsuitable: { label: "Neubytovatelný", variant: "destructive-subtle" },
   manual: { label: "Ruční určení", variant: "warning" },
-}
-
-export const STATE_LABEL: Record<ParticipationState, string> = {
-  pending: "Čeká na rozhodnutí",
-  waitlisted: "Náhradník",
 }
 
 /** The reason as the spec words it; `attribute` is the hard attribute, e.g. "Pohlaví". */

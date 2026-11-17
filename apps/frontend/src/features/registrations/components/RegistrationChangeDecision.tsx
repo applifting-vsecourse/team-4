@@ -1,12 +1,15 @@
 import { useQuery } from "@tanstack/react-query"
 import { Check, X } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
+import { LoadError } from "@/components/LoadError"
+import { Notice } from "@/components/Notice"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { readApiError } from "@/lib/apiError"
 
 import { registrationChangesQueryOptions } from "@/features/registrations/api/eventRegistrationQueryOptions"
+import { type RegistrationChange } from "@/features/registrations/api/registrationChangeSchemas"
 import { ChangeRequestCard } from "@/features/registrations/components/ChangeRequestCard"
 import { RegistrationHistory } from "@/features/registrations/components/RegistrationHistory"
 import { useDecideChange } from "@/features/registrations/hooks/useRegistrationChange"
@@ -21,6 +24,8 @@ type RegistrationChangeDecisionProps = {
   organizationId: string
   eventId: string
   registrationId: string
+  /** Keep the history beside the decision on legacy screens; detail pages put it at the bottom. */
+  shouldShowHistory?: boolean
 }
 
 const DECISION_FAILED = "Rozhodnutí se nepodařilo uložit. Zkuste to prosím znovu."
@@ -32,6 +37,7 @@ export function RegistrationChangeDecision({
   organizationId,
   eventId,
   registrationId,
+  shouldShowHistory = true,
 }: RegistrationChangeDecisionProps) {
   const query = useQuery(registrationChangesQueryOptions(organizationId, eventId, registrationId))
   const decide = useDecideChange(organizationId, eventId, registrationId)
@@ -45,19 +51,11 @@ export function RegistrationChangeDecision({
   return (
     <div className="space-y-6">
       {query.isError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Změny přihlášky se nepodařilo načíst.</AlertTitle>
-          <AlertDescription>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() => void query.refetch()}
-            >
-              Zkusit znovu
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <LoadError
+          title="Změny přihlášky se nepodařilo načíst"
+          isRetrying={query.isFetching}
+          onRetry={() => query.refetch()}
+        />
       ) : null}
 
       {shown ? (
@@ -68,24 +66,22 @@ export function RegistrationChangeDecision({
           summary={toSummaryProps(shown.summary)}
           notice={
             shown.isStale ? (
-              <Alert>
-                <AlertTitle>
-                  Přihláška se po odeslání žádosti změnila, žádost proto nelze schválit. Můžete ji
-                  zamítnout a účastník ji podá znovu.
-                </AlertTitle>
-              </Alert>
+              <Notice
+                tone="warning"
+                title="Přihláška se po odeslání žádosti změnila, žádost proto nelze schválit. Můžete ji zamítnout a účastník ji podá znovu."
+              />
             ) : failure ? (
-              <Alert variant="destructive">
-                <AlertDescription>
-                  {failure.code === "change_already_decided"
+              <FormError
+                message={
+                  failure.code === "change_already_decided"
                     ? "O žádosti už bylo rozhodnuto jinak. Načtěte stránku znovu."
                     : isConsentMissing
                       ? "Účastník nesouhlasil se ztrátou potvrzeného místa. Žádost lze jen zamítnout."
                       : failure.code === "change_invalid"
                         ? (failure.message ?? DECISION_FAILED)
-                        : DECISION_FAILED}
-                </AlertDescription>
-              </Alert>
+                        : DECISION_FAILED
+                }
+              />
             ) : undefined
           }
           actions={
@@ -110,22 +106,39 @@ export function RegistrationChangeDecision({
         />
       ) : null}
 
-      {changes.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Historie změn</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RegistrationHistory
-              entries={changes.map((change) => ({
-                id: change.id,
-                at: formatChangeTime(change.decidedAt ?? change.createdAt),
-                text: describeHistoryEntry(change),
-              }))}
-            />
-          </CardContent>
-        </Card>
-      ) : null}
+      {shouldShowHistory ? <RegistrationChangeHistoryCard changes={changes} /> : null}
     </div>
+  )
+}
+
+/** The registration's past requests, rendered separately so the current request can stay prominent. */
+export function RegistrationChangeHistory({
+  organizationId,
+  eventId,
+  registrationId,
+}: Pick<RegistrationChangeDecisionProps, "organizationId" | "eventId" | "registrationId">) {
+  const query = useQuery(registrationChangesQueryOptions(organizationId, eventId, registrationId))
+  const changes = query.data ?? []
+  return <RegistrationChangeHistoryCard changes={changes} />
+}
+
+function RegistrationChangeHistoryCard({ changes }: { changes: RegistrationChange[] }) {
+  if (!changes.length) return null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Historie změn</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <RegistrationHistory
+          entries={changes.map((change) => ({
+            id: change.id,
+            at: formatChangeTime(change.decidedAt ?? change.createdAt),
+            text: describeHistoryEntry(change),
+          }))}
+        />
+      </CardContent>
+    </Card>
   )
 }

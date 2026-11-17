@@ -1,22 +1,12 @@
-import { Badge } from "@/components/ui/badge"
-
-export type ParticipantTermState = "confirmed" | "pending" | "waitlisted"
+import { ParticipationBadge } from "@/components/ParticipationBadge"
+import { type TermParticipation } from "@/lib/participation"
 
 export type ParticipantTermStatesItem = {
   id: string
   label: string
   /** Already formatted, e.g. "4.–11. 7. 2027 · 4 800 Kč". */
   details: string
-  state: ParticipantTermState
-}
-
-const STATE_BADGE: Record<
-  ParticipantTermState,
-  { label: string; variant: "success" | "warning" | "secondary" }
-> = {
-  confirmed: { label: "Potvrzeno", variant: "success" },
-  pending: { label: "Čeká na rozhodnutí organizátora", variant: "secondary" },
-  waitlisted: { label: "Náhradník", variant: "warning" },
+  state: Exclude<TermParticipation, "cancelled">
 }
 
 // Výsledek odeslání přihlášky and Moje přihlášky → Detail přihlášky → Termíny
@@ -35,7 +25,7 @@ export function ParticipantTermStates({ terms }: { terms: ParticipantTermStatesI
             <p className="font-medium wrap-break-word">{term.label}</p>
             <p className="text-muted-foreground">{term.details}</p>
           </div>
-          <Badge variant={STATE_BADGE[term.state].variant}>{STATE_BADGE[term.state].label}</Badge>
+          <ParticipationBadge status={term.state} />
         </li>
       ))}
     </ul>

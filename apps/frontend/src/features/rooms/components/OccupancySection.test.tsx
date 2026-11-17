@@ -103,7 +103,7 @@ describe("OccupancySection", () => {
 
     expect(screen.getByText("Aktualizace se nezdařila")).toBeInTheDocument()
     expect(
-      screen.getByText("Zobrazené počty jsou z posledního úspěšného načtení (20. 10. 2026 14:03)."),
+      screen.getByText("Zobrazené údaje jsou z posledního úspěšného načtení (20. 10. 2026 14:03)."),
     ).toBeInTheDocument()
     expect(screen.queryByText(/^Aktualizováno/)).not.toBeInTheDocument()
     expect(countsOf("T1")).toEqual(["2", "2", "0", "1"])

@@ -1,8 +1,7 @@
-import { TriangleAlert } from "lucide-react"
-
-import { Alert, AlertTitle } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
 import { Card, CardContent } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
+import { CollapsibleSection } from "@/components/ui/collapsible-section"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Switch } from "@/components/ui/switch"
 
 type PublicationSectionProps = {
@@ -21,34 +20,26 @@ export function PublicationSection({
   onChange,
 }: PublicationSectionProps) {
   return (
-    <section aria-labelledby="publication-heading">
-      <h2
-        id="publication-heading"
-        className="mb-4 text-h4"
-      >
-        Publikace
-      </h2>
+    <CollapsibleSection
+      headingId="publication-heading"
+      title="Publikace"
+    >
       <Card>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <Label htmlFor="event-published">Zveřejnit ve veřejném katalogu</Label>
+            <Field orientation="horizontal">
+              <FieldLabel htmlFor="event-published">Zveřejnit ve veřejném katalogu</FieldLabel>
               <Switch
                 id="event-published"
                 checked={isPublished}
                 disabled={isPending}
                 onCheckedChange={onChange}
               />
-            </div>
-            {errorMessage ? (
-              <Alert variant="destructive">
-                <TriangleAlert />
-                <AlertTitle>{errorMessage}</AlertTitle>
-              </Alert>
-            ) : null}
+            </Field>
+            {errorMessage ? <FormError message={errorMessage} /> : null}
           </div>
         </CardContent>
       </Card>
-    </section>
+    </CollapsibleSection>
   )
 }

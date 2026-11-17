@@ -1,8 +1,7 @@
 import { useState } from "react"
-import { Info, TriangleAlert } from "lucide-react"
 import { toast } from "sonner"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Notice } from "@/components/Notice"
 import { Card, CardContent } from "@/components/ui/card"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { readApiError } from "@/lib/apiError"
@@ -67,19 +66,18 @@ export function PaymentSettingsSection({ organizationId, event }: PaymentSetting
         <CardContent className="space-y-4">
           {event.paymentSettings === null ? (
             isFree ? (
-              <Alert>
-                <Info />
-                <AlertTitle>Bezplatná akce nepotřebuje platební nastavení</AlertTitle>
-                <AlertDescription>
-                  Všechny termíny stojí 0 Kč, přihlašování lze otevřít bez bankovního účtu. Jakmile
-                  bude některý termín zpoplatněn, bude nastavení potřeba.
-                </AlertDescription>
-              </Alert>
+              <Notice
+                tone="info"
+                title="Bezplatná akce nepotřebuje platební nastavení"
+              >
+                Všechny termíny stojí 0 Kč, přihlašování lze otevřít bez bankovního účtu. Jakmile
+                bude některý termín zpoplatněn, bude nastavení potřeba.
+              </Notice>
             ) : (
-              <Alert>
-                <TriangleAlert />
-                <AlertTitle>Bez platebního nastavení nelze otevřít přihlašování</AlertTitle>
-              </Alert>
+              <Notice
+                tone="warning"
+                title="Bez platebního nastavení nelze otevřít přihlašování"
+              />
             )
           ) : null}
           <PaymentSettingsForm
@@ -89,14 +87,13 @@ export function PaymentSettingsSection({ organizationId, event }: PaymentSetting
             fieldError={fieldError}
             onSubmit={handleSubmit}
           />
-          <Alert>
-            <Info />
-            <AlertTitle>Změna platí jen pro nové přihlášky</AlertTitle>
-            <AlertDescription>
-              Přihlášky, které už akce přijala, si ponechávají původní účet, počet dní i datum
-              připomenutí platby.
-            </AlertDescription>
-          </Alert>
+          <Notice
+            tone="info"
+            title="Změna platí jen pro nové přihlášky"
+          >
+            Přihlášky, které už akce přijala, si ponechávají původní účet, počet dní i datum
+            připomenutí platby.
+          </Notice>
         </CardContent>
       </Card>
     </CollapsibleSection>

@@ -9,6 +9,7 @@ import { OPEN_EVENT } from "@/features/events/fixtures/events"
 import { eventHandlers } from "@/features/events/fixtures/handlers"
 import { organizationHandlers } from "@/features/organizations/fixtures/handlers"
 import { ORGANIZATION } from "@/features/organizations/fixtures/organizations"
+import { paymentHandlers } from "@/features/payments/fixtures/handlers"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
 import { roomHandlers } from "@/features/rooms/fixtures/handlers"
 
@@ -29,6 +30,8 @@ export const organizerBackend = () => [
   ...organizationHandlers.list(),
   ...eventHandlers.list(),
   ...roomHandlers.overview(),
+  ...paymentHandlers.transactions(),
+  ...paymentHandlers.import(),
   ...registrationHandlers.event(),
   ...accommodationHandlers.evaluation(),
 ]

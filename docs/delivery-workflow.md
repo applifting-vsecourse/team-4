@@ -25,6 +25,9 @@ and re-evaluates on label changes, pushes, reviews and scheduled reconciliation.
 | Technical approval                       | Not allowed | If labeled         | If labeled                        |
 | ADR acceptance, if the PR changes an ADR | Required    | Required           | Required                          |
 
+Copilot review for PRs delivering to `main` can be
+[paused during an outage](#pause-copilot-review-for-main).
+
 The `technical-review` PR label is an additional gate for Standard and High PRs. Use it
 for a new or replaced Docker Compose service, a newly added package/dependency,
 or comparable shared infrastructure/tooling changes that need technical
@@ -93,8 +96,9 @@ risks. A label is not an automatic assessment of code behavior.
 Checks on a non-draft PR run in this order, each on the current commit:
 
 1. CI (`verify`) and the independent agent review (or its manual waiver, or a
-   review carried over under [Stacked PRs](#stacked-prs) and the integration
-   rules). The agent review does not wait for scope approval.
+   [repository pause](#pause-copilot-review-for-main), or a review carried over
+   under [Stacked PRs](#stacked-prs) and the integration rules). Agent review
+   does not wait for scope approval.
 2. Human code review. Only PRs with `technical-review` have it: after step 1
    succeeds the workflow requests `rmnskb`, and never before. A pending,
    failing or blocking agent review sends no request. A new commit restarts
@@ -279,8 +283,15 @@ To start a feature:
    from the integration branch, merge `origin/main` into that sync branch, and
    open a PR into the integration branch with `Refs #<parent>`. Use a merge
    commit after the required checks pass to preserve ancestry. Delivery stages
-   currently refuses sync PRs whose diff includes review or merge enforcement
-   files. Surface that blocker if it applies.
+   accepts enforcement files in a sync only for a merge-only branch named
+   `sync/<parent>-main` whose merge commit directly joins the current integration
+   base and current `main`, and whose resulting tree exactly matches Git's
+   automatic merge of those commits. This preserves work already on the
+   integration base and rejects manual edits or conflict resolutions.
+   The linked issue must be the open parent owning that integration branch. The
+   sync still needs the integration CI lanes, `child-verify`, and protected
+   integration base. A sync with any other tree or ancestry gets the ordinary
+   enforcement-file and agent-review gates.
 4. Fetch the integration branch again after any required sync. Branch each child
    from the fetched integration branch and open its
    PR into it with `Closes #<sub-issue>`. Merge after Delivery stages and
@@ -313,7 +324,9 @@ fails, re-run it or close the sub-issue by hand.
 
 For these PRs Delivery stages requires a non-draft PR and a passing agent review
 (or manual Copilot waiver) on the current commit, made after the PR's latest
-retarget. It does not require requirements
+retarget. A verified main sync is exempt from duplicate agent review because
+its merge result is computed solely from the protected integration base and
+`main`; the exact tree and merge parents are verified on every run. It does not require requirements
 approval, technical review, QA or any other human review: those gates apply to the
 parent PR, which contains the whole feature. The severity label still has to be
 valid. Changes to review and merge enforcement paths are refused; they go
@@ -322,15 +335,16 @@ slice on top of the parent PR. Its head must be its own: commit statuses belong
 to the commit, so the PR is refused while another open PR has the same head
 commit or branch.
 
-The `child-verify` status is published only on PRs into an integration branch. It
-passes when the latest CI run made for this PR into its current base (the latest
-attempt of each job) passed the lanes for the PR's role:
+The integration branch's `child-verify` status passes when the PR satisfies
+its delivery policy and the latest CI run for this PR into its current base
+(the latest attempt of each job) passed the lanes for the PR's role:
 `checks` and `stories` for frontend, `checks` and `database` for backend, and
 `checks`, `database` and `stories` for integration PRs. E2E does not run on these
 PRs. Any other link fails it. CI does not re-run on a retarget, so a run from
 before the PR's latest base change never counts: push a commit, or close and
 reopen the PR. PRs from forks are not supported, because GitHub does not
-associate their CI runs with the PR.
+associate their CI runs with the PR. A PR that skips Copilot on its way to
+`main` clears any earlier successful `child-verify` status on that commit.
 
 The agent-review runner reviews these PRs like any other, but records no
 requirements step, posts no QA handoff and requests no QA. A review from before
@@ -370,24 +384,49 @@ reviewed frontend and backend changes do not break each other: integration probl
 (including E2E) and QA of the parent PR. QA of the parent commit is still
 required.
 
+## Pause Copilot review for main
+
+When Copilot credits are exhausted, a repository administrator can set
+`PAUSE_COPILOT_REVIEW` to exactly `true` in **Settings → Secrets and variables →
+Actions → Repository secrets**. Unset it, delete it, or set it to `false` to
+restore the requirement.
+
+This applies to PRs delivering to `main`, including stacks. After CI passes,
+the workflow skips Copilot for those PRs and records the pause in the QA
+handoff and delivery verdict. Existing findings stay visible, and no Copilot
+pass is created. A valid existing Copilot pass keeps its normal handoff, and
+a valid manual waiver still applies. The `verify` and `Delivery stages` checks
+remain required, as do applicable scope, human review, ADR and QA approvals. PRs into `integration/*` still
+need review evidence or a manual waiver under the integration rules.
+
+After changing the secret, start a **new run** of **Agent code review** with
+**dry run** turned off. That workflow also reconciles **Delivery stages**.
+Scheduled runs also pick up the change. When restoring the requirement, first
+remove the secret, then let all previously queued or running **Agent code
+review** and **Delivery stage enforcement** runs finish or cancel them.
+[GitHub reads repository secrets when it queues a run](https://docs.github.com/en/actions/reference/security/secrets#when-github-actions-reads-secrets).
+Start a fresh **Agent code review** run after those earlier runs clear and
+check each affected PR's `Delivery stages` result before merging. An open PR that relied on a paused
+handoff needs review or a valid waiver and the corresponding QA handoff.
+
 ## Manual Copilot waiver
 
-Only David (`darebakdavca`) can waive Copilot review, on any PR, by posting a
-standalone comment on that PR:
+Any human GitHub user who can comment on a PR, including the PR author, can waive
+Copilot review by posting a standalone comment on that PR:
 
 ```text
 /copilot-waive <full-current-40-character-sha> <reason>
 ```
 
 Replace the placeholders with the PR's current full SHA and a non-empty reason
-on the same line. The automation reads the actual GitHub comment author and PR
-container. Commands from other users or bots, quoted commands, issue text and
-short or stale SHAs do not grant a waiver. This is separate from requirements
-approval and does not grant QA approval.
+on the same line. The automation reads the actual human GitHub comment author and
+PR container. Bot comments, quoted commands, issue text and short or stale SHAs
+do not grant a waiver. This is separate from requirements approval and does not
+grant QA approval.
 
 The agent-review workflow rechecks the live command before handing the commit
-to QA. Every linked PR still needs either a valid Copilot pass or its own current
-waiver. The bot records the manual waiver, its reason and command link in the
+to QA. Unless review is paused for main, every linked PR still needs either a valid
+Copilot pass or its own current waiver. The bot records the manual waiver, its reason and command link in the
 QA handoff and issue summary, and requests the normal QA owner. It never writes
 a fake Copilot pass or deletes earlier findings. CI and branch protection remain
 unchanged; QA must approve the exact commit after the waiver and matching handoff.
@@ -495,7 +534,10 @@ and every package under `apps/*`.
 - **Frequency:** weekly, on Monday at 06:00 (Europe/Prague), with at most five
   open version-update PRs.
 - **Groups:** minor and patch updates are combined into one `minor-and-patch` PR.
-  Major updates get their own PR so breaking changes are reviewed separately.
+  Major updates are separate by default, with compatible framework families
+  grouped together: `vitest` and `@vitest/*` in `vitest-major`, and `@nestjs/*`
+  in `nestjs-major`. TypeScript major updates are ignored until the project is
+  ready to migrate; patch and minor TypeScript updates remain enabled.
 - **Security updates:** Dependabot opens these as soon as an advisory applies,
   independent of the schedule. Grouping applies to version updates only, so
   security PRs are not combined. They require Dependabot alerts and
@@ -540,8 +582,9 @@ from, and the deploy secrets are repository-wide, so this guard prevents mistake
 but does not stop a branch with an edited `deploy.yml`.
 
 The `integration/` branch prefix is reserved for feature integration branches.
-PRs into an `integration/` branch skip the E2E lane, so their `verify` fails by
-design; a PR to `main` runs every lane. To bump minor or major, publish the
+PRs into an `integration/` branch skip the E2E lane. The `verify` job accepts
+that one intentional skip only for integration-target PRs; every other lane
+must pass. A PR to `main` still requires every lane, including E2E. To bump minor or major, publish the
 higher tag by hand; the next merge continues from it.
 
 Redeploying an older version does not roll back database migrations.

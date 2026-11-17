@@ -1,7 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query"
+import { CalendarX } from "lucide-react"
 
-import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
+import { EmptyState } from "@/components/EmptyState"
+import { LoadError } from "@/components/LoadError"
 import { readApiError } from "@/lib/apiError"
 import { formatCalendarRange, formatPragueDateTime } from "@/lib/date"
 
@@ -23,7 +25,6 @@ import {
   ParticipationDecisionDialog,
   type ParticipationDecisionTarget,
 } from "@/features/accommodation/components/ParticipationDecisionDialog"
-import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
 import { RunEvidenceSheet } from "@/features/accommodation/components/RunEvidenceSheet"
 import {
   TermEvaluation,
@@ -129,11 +130,10 @@ export function TermEvaluationSection({
   if (terms.length === 0) {
     return (
       <TermEvaluationFrame>
-        <Empty>
-          <EmptyHeader>
-            <EmptyTitle>Akce zatím nemá žádný termín</EmptyTitle>
-          </EmptyHeader>
-        </Empty>
+        <EmptyState
+          icon={CalendarX}
+          title="Akce zatím nemá žádný termín"
+        />
       </TermEvaluationFrame>
     )
   }
@@ -319,9 +319,10 @@ export function TermEvaluationSection({
           onOpenRun={setOpenRunId}
         />
         {evidence.isError ? (
-          <RetryAlert
+          <LoadError
             title="Doklad se nepodařilo načíst"
-            onRetry={() => void evidence.refetch()}
+            isRetrying={evidence.isFetching}
+            onRetry={() => evidence.refetch()}
           />
         ) : null}
       </TermEvaluation>

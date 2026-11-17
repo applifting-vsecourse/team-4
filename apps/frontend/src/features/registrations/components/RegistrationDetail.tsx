@@ -1,9 +1,11 @@
 import type { ReactNode } from "react"
-import { Loader2, RefreshCw } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
+import { LoadError } from "@/components/LoadError"
+import { Money } from "@/components/Money"
+import { ParticipationBadge } from "@/components/ParticipationBadge"
+import { RefreshButton } from "@/components/RefreshButton"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   formatCalendarDate,
   formatCalendarRange,
@@ -13,7 +15,6 @@ import {
 import { formatCzk } from "@/lib/money"
 
 import { type RegistrationDetail as Detail } from "@/features/registrations/api/eventRegistrationSchemas"
-import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
 import { PaymentStateBadge } from "@/features/registrations/components/PaymentStateBadge"
 import { SimulatedPaymentHistory } from "@/features/registrations/components/SimulatedPaymentHistory"
 import { describeBalance } from "@/features/registrations/lib/balance"
@@ -62,103 +63,80 @@ export function RegistrationDetail({
           obdržena {formatPragueDateTime(registration.receivedAt)}
           {hasRefreshFailed ? null : ` · aktualizováno ${updated}`}
         </p>
-        <Button
-          variant="outline"
-          onClick={() => onRefresh()}
-          disabled={isRefreshing}
-        >
-          {isRefreshing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw />}
-          {isRefreshing ? "Aktualizuji…" : "Aktualizovat"}
-        </Button>
+        <RefreshButton
+          isRefreshing={isRefreshing}
+          onRefresh={onRefresh}
+        />
       </div>
 
       {hasRefreshFailed ? (
-        <Alert variant="destructive">
-          <AlertTitle>Data se nepodařilo načíst. Zkuste to znovu.</AlertTitle>
-          <AlertDescription>
-            <p>Zobrazené údaje jsou z posledního úspěšného načtení ({updated}).</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() => onRefresh()}
-              disabled={isRefreshing}
-            >
-              Zkusit znovu
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <LoadError
+          shownFrom={updatedAt}
+          isRetrying={isRefreshing}
+          onRetry={onRefresh}
+        />
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Kontaktní údaje</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="space-y-2 text-sm">
-                <Row label="Jméno a příjmení">
+      <Card>
+        <CardHeader>
+          <CardTitle>Údaje účastníka</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <section aria-label="Kontaktní údaje">
+              <h2 className="mb-3 text-sm font-semibold">Kontaktní údaje</h2>
+              <DefinitionList>
+                <DefinitionRow label="Jméno a příjmení">
                   {registration.firstName} {registration.lastName}
-                </Row>
-                <Row label="E-mail">{registration.email}</Row>
-                <Row label="Telefon">{registration.phone}</Row>
-              </dl>
-            </CardContent>
-          </Card>
+                </DefinitionRow>
+                <DefinitionRow label="E-mail">{registration.email}</DefinitionRow>
+                <DefinitionRow label="Telefon">{registration.phone}</DefinitionRow>
+              </DefinitionList>
+            </section>
+            {accommodation}
+          </div>
+        </CardContent>
+      </Card>
 
-          {accommodation}
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Termíny a platby</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {terms ?? (
+                <section aria-label="Termíny">
+                  <h2 className="mb-3 text-sm font-semibold">Termíny</h2>
+                  <ul className="divide-y divide-border text-sm">
+                    {registration.terms.map((term) => (
+                      <li
+                        key={term.termId}
+                        className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0"
+                      >
+                        <div>
+                          <p className="font-medium">{term.label}</p>
+                          <p className="text-muted-foreground">
+                            {formatCalendarRange(term.startDate, term.endDate)} ·{" "}
+                            {formatCzk(term.priceMinor)}
+                          </p>
+                        </div>
+                        <ParticipationBadge status={term.status} />
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              <div className="border-t border-border pt-6">
+                <PaymentSummary registration={registration} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {terms ?? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Termíny</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="divide-y divide-border text-sm">
-                  {registration.terms.map((term) => (
-                    <li
-                      key={term.termId}
-                      className="flex flex-wrap items-center justify-between gap-2 py-3"
-                    >
-                      <div>
-                        <p className="font-medium">{term.label}</p>
-                        <p className="text-muted-foreground">
-                          {formatCalendarRange(term.startDate, term.endDate)} ·{" "}
-                          {formatCzk(term.priceMinor)}
-                        </p>
-                      </div>
-                      <ParticipationBadge status={term.status} />
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-          {history}
+        {needs}
 
-          {needs}
-        </div>
-
-        <div className="space-y-6">
-          <PaymentSummary registration={registration} />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Přijaté platby</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SimulatedPaymentHistory
-                payments={registration.payments.map((payment) => ({
-                  id: payment.id,
-                  date: formatCalendarDate(payment.receivedOn),
-                  amount: formatCzk(payment.amountMinor),
-                  isSimulated: payment.source === "qr_link",
-                }))}
-              />
-            </CardContent>
-          </Card>
-        </div>
+        {history}
       </div>
     </div>
   )
@@ -169,61 +147,56 @@ function PaymentSummary({ registration }: { registration: Detail }) {
   const hasNoObligation = registration.paymentState === "none"
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Platba</CardTitle>
-        <CardAction>
-          <PaymentStateBadge state={registration.paymentState} />
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <dl className="space-y-2 text-sm">
-            <Row label="Cena vybraných termínů">
-              <span className="font-mono tabular-nums">
-                {formatCzk(registration.selectedPriceMinor)}
-              </span>
-            </Row>
-            <Row label="Částka za potvrzené termíny">
-              <span className="font-mono tabular-nums">
-                {formatCzk(registration.amountDueMinor)}
-              </span>
-            </Row>
-            <Row label="Zaplaceno">
-              <span className="font-mono tabular-nums">{formatCzk(registration.paidMinor)}</span>
-            </Row>
-            {hasNoObligation ? null : (
-              <Row label={balance.label}>
-                <span className="font-mono font-medium tabular-nums">
-                  {balance.amount ?? formatCzk(0)}
-                </span>
-              </Row>
-            )}
-            {registration.reminderAt ? (
-              <Row label="Datum připomenutí platby">
-                {formatPragueDate(registration.reminderAt)}
-              </Row>
-            ) : null}
-            {registration.variableSymbol ? (
-              <Row label="Variabilní symbol">
-                <span className="font-mono">{registration.variableSymbol}</span>
-              </Row>
-            ) : null}
-          </dl>
-          {hasNoObligation ? (
-            <p className="text-sm text-muted-foreground">Bez platební povinnosti</p>
+    <section aria-label="Platba">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold">Platba</h2>
+        <PaymentStateBadge state={registration.paymentState} />
+      </div>
+      <div className="space-y-3">
+        <DefinitionList>
+          <DefinitionRow label="Cena vybraných termínů">
+            <Money minor={registration.selectedPriceMinor} />
+          </DefinitionRow>
+          <DefinitionRow label="Částka za potvrzené termíny">
+            <Money minor={registration.amountDueMinor} />
+          </DefinitionRow>
+          <DefinitionRow label="Zaplaceno">
+            <Money minor={registration.paidMinor} />
+          </DefinitionRow>
+          {hasNoObligation ? null : (
+            <DefinitionRow label={balance.label}>
+              <Money
+                minor={Math.abs(registration.balanceMinor)}
+                isEmphasised
+              />
+            </DefinitionRow>
+          )}
+          {registration.reminderAt ? (
+            <DefinitionRow label="Datum připomenutí platby">
+              {formatPragueDate(registration.reminderAt)}
+            </DefinitionRow>
           ) : null}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="text-right">{children}</dd>
-    </div>
+          {registration.variableSymbol ? (
+            <DefinitionRow label="Variabilní symbol">
+              <span className="font-mono">{registration.variableSymbol}</span>
+            </DefinitionRow>
+          ) : null}
+        </DefinitionList>
+        {hasNoObligation ? (
+          <p className="text-sm text-muted-foreground">Bez platební povinnosti</p>
+        ) : null}
+      </div>
+      <div className="mt-4 space-y-3 border-t border-border pt-4">
+        <h3 className="text-sm font-semibold">Přijaté platby</h3>
+        <SimulatedPaymentHistory
+          payments={registration.payments.map((payment) => ({
+            id: payment.id,
+            date: formatCalendarDate(payment.receivedOn),
+            amount: formatCzk(payment.amountMinor),
+            isSimulated: payment.source === "qr_link",
+          }))}
+        />
+      </div>
+    </section>
   )
 }

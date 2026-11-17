@@ -28,6 +28,7 @@ const update = (
 ): ParticipantUpdatePayload => ({
   reason: 'evaluation',
   eventName: 'Letní tábor Lipnice 2027',
+  selectedPriceMinor: 900_000,
   organizer: {
     name: 'Spolek Lipnice',
     email: 'tabor@example.cz',
@@ -69,7 +70,7 @@ const text = (html: string): string =>
     .replace(/[\s\u00a0]+/g, ' ');
 
 describe('ParticipantUpdate', () => {
-  it('shows each term with its own status, the debt, the bank details and a QR code', async () => {
+  it('shows each term with its own status, the compact payment summary, bank details and a QR code', async () => {
     const html = await render(update());
     const out = text(html);
 
@@ -77,7 +78,10 @@ describe('ParticipantUpdate', () => {
     expect(out).toContain('1. turnus');
     expect(out).toContain('Potvrzeno');
     expect(out).toContain('Náhradník');
-    expect(out).toContain('Zbývá uhradit 3 000 Kč');
+    expect(out).toContain('Cena celkem 9 000 Kč');
+    expect(out).toContain('Zbývá zaplatit 3 000 Kč');
+    expect(out).not.toContain('Celkem přijato');
+    expect(out).not.toContain('Přijatá platba');
     expect(out).toContain('2301234567/2010');
     expect(out).toContain('2027014');
     expect(out).toContain('Datum připomenutí platby');
@@ -88,7 +92,7 @@ describe('ParticipantUpdate', () => {
     expect(out).not.toMatch(/undefined|null|\{\{/);
   });
 
-  it('asks for no payment when every term is on the waitlist', async () => {
+  it('shows the selected total but no payment instructions when every term is waitlisted', async () => {
     const out = text(
       await render(
         update(
@@ -99,7 +103,10 @@ describe('ParticipantUpdate', () => {
     );
 
     expect(out).not.toContain('Platební údaje');
-    expect(out).not.toContain('Platby');
+    expect(out).toContain('Cena celkem 9 000 Kč');
+    expect(out).toContain('Zbývá zaplatit 0 Kč');
+    expect(out).toContain('Nyní není co hradit');
+    expect(out).not.toContain('Celkem přijato');
     expect(out).not.toContain('Vše je uhrazeno');
   });
 
@@ -117,8 +124,10 @@ describe('ParticipantUpdate', () => {
     const out = text(html);
 
     expect(out).toContain('Přijali jsme vaši platbu');
-    expect(out).toContain('Přijatá platba 4 500 Kč');
-    expect(out).toContain('Celkem přijato 7 500 Kč');
+    expect(out).toContain('Cena celkem 9 000 Kč');
+    expect(out).toContain('Zbývá zaplatit 0 Kč');
+    expect(out).not.toContain('Přijatá platba');
+    expect(out).not.toContain('Celkem přijato');
     expect(out).toContain('Vše je uhrazeno');
     expect(out).not.toContain('Platební údaje');
     expect(html).not.toContain('akcio-payment-qr');
@@ -138,7 +147,9 @@ describe('ParticipantUpdate', () => {
       ),
     );
 
-    expect(out).toContain('Přeplatek 500 Kč');
+    expect(out).toContain('Cena celkem 9 000 Kč');
+    expect(out).toContain('Zbývá zaplatit 0 Kč');
+    expect(out).not.toContain('Přeplatek 500 Kč');
     expect(out).toContain('domluvte s organizátorem');
     expect(out).not.toMatch(/vrát|refund/i);
     expect(out).not.toContain('Platební údaje');

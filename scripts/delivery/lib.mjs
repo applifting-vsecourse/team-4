@@ -167,6 +167,21 @@ export function readyMarker(pr, sha, issue) {
   return `<!-- delivery-ready pr=${pr} sha=${sha} issue=${issue} -->`;
 }
 
+// Give paused handoffs a separate marker so they cannot count as reviewed
+// handoffs when Copilot becomes required again.
+export function qaHandoffMarker(
+  pr,
+  sha,
+  issue,
+  { waiver, copilotReviewPaused } = {},
+) {
+  const ready = readyMarker(pr, sha, issue);
+  if (waiver) return ready + '\n' + waiverMarker(waiver);
+  return copilotReviewPaused
+    ? ready.replace('delivery-ready ', 'delivery-ready-copilot-paused ')
+    : ready;
+}
+
 const verdictPrefix = ({ pr, sha, issue }) =>
   `<!-- agent-review-scope issue=${issue} -->\n<!-- agent-review pr=${pr} sha=${sha} result=`;
 
@@ -192,8 +207,16 @@ export function agentReviewPassed({ comments, pr, sha, issue }) {
 // `qaFrom` ({ review, sha, number }) lets a stacked PR take its QA from the
 // stack tip: the tip contains this PR, so one approval of the tip commit covers
 // the whole stack. Everything else is still judged on this PR's own head.
-export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
+export function evaluate({
+  pr,
+  issues,
+  reviews,
+  comments,
+  qaFrom,
+  copilotReviewPaused = false,
+}) {
   const reasons = [];
+  let copilotReviewSkipped = false;
   let severity;
   try {
     severity = severityFor(pr);
@@ -268,38 +291,30 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
         ? markerFor(reviewStartApproval(scoped, reviews))
         : requirement;
     const requirementRecordRequired = severity === 'high' || !storybookPreview;
-    // A fresh, bot-authored readiness record proves requirements and agent
-    // review passed together before QA. A board column alone proves nothing.
+    const evidence = { comments, pr: pr.number, sha, issue: issue.number };
+    const verdict = agentVerdict(evidence);
+    const reviewed =
+      verdict &&
+      (!start ||
+        Date.parse(verdict.created_at) >= Date.parse(start.created_at)) &&
+      agentReviewPassed(evidence);
+    const paused = copilotReviewPaused && !reviewed && !waiver;
+    copilotReviewSkipped ||= paused;
+    // A previously reviewed commit can keep its normal QA handoff.
+    const handoffMarker = qaHandoffMarker(pr.number, sha, issue.number, {
+      waiver,
+      copilotReviewPaused: paused,
+    });
     const ready = comments
       .filter(
         (c) =>
           c.user?.login === 'github-actions[bot]' &&
-          (c.body ?? '').startsWith(
-            readyMarker(pr.number, sha, issue.number) +
-              '\n' +
-              (waiver ? waiverMarker(waiver) + '\n' : ''),
-          ),
+          (c.body ?? '').startsWith(handoffMarker + '\n'),
       )
       .at(-1);
-    const verdict = agentVerdict({
-      comments,
-      pr: pr.number,
-      sha,
-      issue: issue.number,
-    });
-    const reviewedAt = waiver?.at ?? verdict?.created_at;
-    if (
-      !waiver &&
-      (!verdict ||
-        (start &&
-          Date.parse(verdict.created_at) < Date.parse(start.created_at)) ||
-        !agentReviewPassed({
-          comments,
-          pr: pr.number,
-          sha,
-          issue: issue.number,
-        }))
-    ) {
+    const reviewedAt =
+      waiver?.at ?? (paused ? start?.created_at : verdict?.created_at);
+    if (!waiver && !paused && !reviewed) {
       reasons.push(
         `Independent agent review has not passed for issue #${issue.number} on this commit.`,
       );
@@ -349,5 +364,5 @@ export function evaluate({ pr, issues, reviews, comments, qaFrom }) {
       }
     }
   }
-  return { pass: reasons.length === 0, reasons };
+  return { pass: reasons.length === 0, reasons, copilotReviewSkipped };
 }

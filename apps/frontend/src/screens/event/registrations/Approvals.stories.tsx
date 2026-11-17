@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
-import { expect, waitFor } from "storybook/test"
+import { expect } from "storybook/test"
 
 import { failOn, failsOnRefresh, neverAnswer } from "@/screens/msw"
 import { eventUrl, organizerBackend, screenMeta } from "@/screens/screenMeta"
@@ -41,19 +41,12 @@ export const Queue: Story = {
   },
 }
 
-/**
- * Known defect kept visible: the loading placeholder has an aria-label without a
- * role (aria-prohibited-attr), so a11y reports it instead of failing.
- */
 export const Loading: Story = {
-  parameters: { a11y: { test: "todo" } },
   beforeEach: ({ msw }) => {
     msw.use(...neverAnswer("get", CHANGES))
   },
-  play: async ({ canvasElement }) => {
-    await waitFor(() =>
-      expect(canvasElement.querySelector('[aria-label="Načítání žádostí"]')).not.toBeNull(),
-    )
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("status", { name: "Načítání žádostí" })).toBeVisible()
   },
 }
 
@@ -61,14 +54,14 @@ export const EmptyQueue: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...registrationHandlers.eventChangeRequests([]))
   },
-  play: () => showsText("Žádné změny nečekají na schválení."),
+  play: () => showsText("Žádné změny nečekají na schválení"),
 }
 
 export const LoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", CHANGES))
   },
-  play: () => showsText("Data se nepodařilo načíst. Zkuste to znovu."),
+  play: () => showsText("Data se nepodařilo načíst"),
 }
 
 export const RefreshFailed: Story = {
@@ -78,6 +71,6 @@ export const RefreshFailed: Story = {
   play: async ({ canvas }) => {
     await showsText("Jana Nováková")
     await refresh(canvas)
-    await showsText("Data se nepodařilo načíst. Zkuste to znovu.")
+    await showsText("Data se nepodařilo načíst")
   },
 }

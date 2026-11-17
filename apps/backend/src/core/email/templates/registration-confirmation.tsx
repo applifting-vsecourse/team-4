@@ -133,9 +133,6 @@ export const RegistrationConfirmation = ({
                         </Text>
                       </td>
                       <td className="align-top text-right">
-                        <Text className="m-0 text-sm text-gray-900">
-                          {formatMoney(term.priceMinor)}
-                        </Text>
                         <Text
                           className={`m-0 text-xs font-semibold ${STATUS_TONE[term.status]}`}
                         >
@@ -151,12 +148,12 @@ export const RegistrationConfirmation = ({
 
             <Section className="mt-3">
               <Row
-                label="Cena výběru"
+                label="Cena celkem"
                 value={formatMoney(selectedPriceMinor)}
               />
               {payment ? (
                 <Row
-                  label="K úhradě za potvrzené termíny"
+                  label="Zbývá zaplatit"
                   value={formatMoney(payment.amountMinor)}
                   strong
                 />
@@ -182,7 +179,6 @@ export const RegistrationConfirmation = ({
                 <Text className="text-base font-semibold text-gray-900 m-0 mb-2">
                   Platební instrukce
                 </Text>
-                <Row label="Částka" value={formatMoney(payment.amountMinor)} />
                 <Row
                   label="Datum připomenutí platby"
                   value={formatPragueDate(payment.reminderAt)}

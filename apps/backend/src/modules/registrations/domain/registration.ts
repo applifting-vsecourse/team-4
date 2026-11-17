@@ -30,6 +30,11 @@ export type RegistrationInput = {
   gender?: Gender | null;
   /** The own words for `other` only; left out or null is none. */
   genderOther?: string | null;
+  /**
+   * The participant ticked "I have read the participation terms" (F07). Only
+   * checked while saving; deliberately not stored and not part of the hash.
+   */
+  conditionsConfirmed?: boolean;
 };
 
 /** One registration per e-mail and event: trimmed and lower-cased (T1). */

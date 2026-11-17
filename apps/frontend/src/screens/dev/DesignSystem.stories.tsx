@@ -15,12 +15,7 @@ const meta = {
 
 export default meta
 
-/**
- * The kit and tokens in one page; development builds only (#79). Known defect
- * kept visible: its loading example has an aria-label without a role
- * (aria-prohibited-attr), the same pattern as several screens, so a11y reports it.
- */
+/** The kit, the shared components and tokens in one page; development builds only (#79). */
 export const DesignSystem: StoryObj<typeof meta> = {
-  parameters: { a11y: { test: "todo" } },
   play: showsHeading("akc.io design system"),
 }

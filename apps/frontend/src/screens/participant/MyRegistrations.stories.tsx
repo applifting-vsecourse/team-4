@@ -25,7 +25,7 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-/** The verified participant's registrations (S2-14). */
+/** The verified participant's current and past registrations (S2-14). */
 export const MyRegistrations: Story = {
   play: showsHeading("Jarní výlet na Sněžku"),
 }
@@ -43,7 +43,7 @@ export const Empty: Story = {
   beforeEach: ({ msw }) => {
     msw.use(http.get(apiUrl(LIST), () => HttpResponse.json({ registrations: [] })))
   },
-  play: () => showsText("Zatím nemáte žádné přihlášky."),
+  play: () => showsText("Zatím nemáte žádné přihlášky"),
 }
 
 /** The first load failed: an error, never an empty list. */
@@ -51,7 +51,7 @@ export const LoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", LIST))
   },
-  play: () => showsText("Data se nepodařilo načíst. Zkuste to znovu."),
+  play: () => showsText("Data se nepodařilo načíst"),
 }
 
 /** A refresh failed: the loaded registrations stay, with their time. */

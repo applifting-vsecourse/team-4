@@ -1,13 +1,11 @@
 import { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+import { DialogActions } from "@/components/DialogActions"
+import { FormError } from "@/components/FormError"
 import { DatePicker } from "@/components/ui/date-picker"
-import { DialogClose, DialogFooter } from "@/components/ui/dialog"
 import {
   Form,
   FormControl,
@@ -73,11 +71,7 @@ export function RecordPaymentForm({
         })}
         className="space-y-4"
       >
-        {errorMessage ? (
-          <Alert variant="destructive">
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        ) : null}
+        {errorMessage ? <FormError message={errorMessage} /> : null}
 
         <FormField
           control={form.control}
@@ -117,23 +111,10 @@ export function RecordPaymentForm({
           )}
         />
 
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button
-              type="button"
-              variant="outline"
-            >
-              Zrušit
-            </Button>
-          </DialogClose>
-          <Button
-            type="submit"
-            disabled={isLoading}
-          >
-            {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}
-            Uložit platbu
-          </Button>
-        </DialogFooter>
+        <DialogActions
+          submitLabel="Uložit platbu"
+          isPending={isLoading}
+        />
       </form>
     </Form>
   )
