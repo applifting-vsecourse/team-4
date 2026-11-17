@@ -316,3 +316,31 @@ test('a carried-over comment is a pass for the new commit and names its source',
   assert.match(body, /bbbbbbb/);
   assert.match(body, /převzato/);
 });
+
+test('selectRules keeps review sections, gates DESIGN.md on frontend, summarises CI', async () => {
+  const { selectRules } = await import('./lib.mjs');
+  const rules = [
+    {
+      name: 'CLAUDE.md',
+      content:
+        '# A\nintro\n\n## UI rules\nuse tokens\n\n## Delivery\nsecret process\n',
+    },
+    { name: 'DESIGN.md', content: 'design' },
+    { name: '.github/workflows/ci.yml', content: 'name: ci\n'.repeat(500) },
+  ];
+  const be = selectRules(
+    rules,
+    'diff --git a/apps/backend/x.ts b/apps/backend/x.ts',
+  );
+  assert.deepEqual(
+    be.map((r) => r.name),
+    ['CLAUDE.md', 'CI'],
+  );
+  assert.match(be[0].content, /use tokens/);
+  assert.doesNotMatch(be[0].content, /secret process/);
+  const fe = selectRules(
+    rules,
+    'diff --git a/apps/frontend/x.ts b/apps/frontend/x.ts',
+  );
+  assert.ok(fe.some((r) => r.name === 'DESIGN.md'));
+});

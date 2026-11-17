@@ -5,9 +5,51 @@
 export const STATUS_REVIEW = 'Ready for Code Review';
 export const STATUS_TESTING = 'Ready for Testing';
 
-// A single argv entry is capped at 128 KiB on Linux, and the prompt is passed
-// to `copilot -p` as one argument — stay well below it.
+// A single argv entry is capped at 128 KiB on Linux, and by default the prompt
+// is passed to `copilot -p` as one argument — stay well below it. Piping the
+// prompt over stdin (COPILOT_PROMPT_TRANSPORT=stdin) is not bound by argv.
 export const MAX_PROMPT_BYTES = 100_000;
+export const MAX_STDIN_PROMPT_BYTES = 400_000;
+
+// Only these CLAUDE.md sections guide a code review; process sections
+// (delivery gates, PRs, issues, stacks) are left out of the prompt.
+const REVIEW_SECTIONS = [
+  'Architecture decisions',
+  'Product identity and compatibility',
+  'UI rules',
+  'UI controls come from the kit',
+];
+
+export const CI_SUMMARY = `CI runs pnpm check-all (lint, type-check, unit tests, build), story tests for UI changes, migration and database-constraint checks against Postgres, and Playwright e2e. Formatting and lint are enforced there.`;
+
+export function reviewSections(markdown) {
+  const parts = markdown.split(/^(?=#{2,3} )/m);
+  return parts
+    .filter((part) => {
+      const title = /^#{2,3} (.+)/.exec(part)?.[1].trim();
+      return title && REVIEW_SECTIONS.includes(title);
+    })
+    .map((part) => part.trim())
+    .join('\n\n');
+}
+
+const touchesFrontend = (diff) => /^diff --git a\/apps\/frontend\//m.test(diff);
+
+// Trim raw rule files to review-relevant guidance. DESIGN.md only matters when
+// the diff touches the frontend; the CI workflow becomes a short summary.
+export function selectRules(rules, diff) {
+  return rules
+    .map((r) => {
+      if (r.name === 'CLAUDE.md')
+        return { ...r, content: reviewSections(r.content) };
+      if (r.name === 'DESIGN.md')
+        return touchesFrontend(diff) ? r : { ...r, content: '' };
+      if (r.name === '.github/workflows/ci.yml')
+        return { name: 'CI', content: CI_SUMMARY };
+      return r;
+    })
+    .filter((r) => r.content.trim() !== '');
+}
 export const MAX_ATTEMPTS = 3;
 
 const BOT_LOGIN = 'github-actions[bot]';
@@ -269,7 +311,7 @@ export function formatPrComment({
 }) {
   const marker = prMarker({ pr, sha, result, attempt, slice });
   const skippedBlock = skipped.length
-    ? `\n\n<details><summary>Skipped binaries (${skipped.length})</summary>\n\n${skipped.map((path) => '- ' + path).join('\n')}\n\n</details>`
+    ? `\n\n<details><summary>Skipped binaries and lockfiles (${skipped.length})</summary>\n\n${skipped.map((path) => '- ' + path).join('\n')}\n\n</details>`
     : '';
   const head = `Revidovaný commit: \`${sha.slice(0, 7)}\` · Reviewer: ${binaryOnly ? 'text policy' : 'GitHub Copilot CLI'} · Issue: #${issue}${coverage ? `\nReview coverage: ${coverage}` : ''}${skippedBlock}`;
   const blockers = (findings ?? []).filter(isBlocker);
