@@ -4,6 +4,7 @@ import {
   childVerify,
   integrationRole,
   integrationStages,
+  isVerifiedMainSync,
   isIntegrationBranch,
   isParentPr,
   parentReasons,
@@ -175,6 +176,58 @@ test('child-verify fails for invalid PRs and PRs outside integration branches', 
   });
 });
 
+test('a main sync is verified only for an exact protected-main merge commit', () => {
+  const baseSha = 'a'.repeat(40);
+  const mainSha = 'b'.repeat(40);
+  const treeSha = 'd'.repeat(40);
+  const syncPr = pr({
+    base: { ref: BRANCH, sha: baseSha, repo: REPO },
+    head: { ref: 'sync/400-main', sha, repo: REPO },
+  });
+  const mainCommit = { sha: mainSha, commit: { tree: { sha: treeSha } } };
+  const headCommit = {
+    sha,
+    commit: { tree: { sha: treeSha } },
+    parents: [{ sha: baseSha }, { sha: mainSha }],
+  };
+  const role = integrationRole({ pr: syncPr, issues: [parentIssue()] });
+
+  assert.equal(
+    isVerifiedMainSync({ pr: syncPr, role, mainCommit, headCommit }),
+    true,
+  );
+
+  const invalid = [
+    {
+      headCommit: { ...headCommit, commit: { tree: { sha: 'e'.repeat(40) } } },
+    },
+    { headCommit: { ...headCommit, parents: [{ sha: baseSha }, { sha }] } },
+    {
+      headCommit: { ...headCommit, parents: [...headCommit.parents, { sha }] },
+    },
+    { pr: { ...syncPr, head: { ...syncPr.head, sha: 'e'.repeat(40) } } },
+    { pr: { ...syncPr, head: { ...syncPr.head, ref: 'feature/400-work' } } },
+    {
+      pr: {
+        ...syncPr,
+        head: { ...syncPr.head, repo: { full_name: 'fork/repo' } },
+      },
+    },
+    { role: integrationRole({ pr: syncPr, issues: [sub()] }) },
+  ];
+  for (const overrides of invalid)
+    assert.equal(
+      isVerifiedMainSync({
+        pr: syncPr,
+        role,
+        mainCommit,
+        headCommit,
+        ...overrides,
+      }),
+      false,
+    );
+});
+
 test('integration stages need only a current agent review pass', () => {
   const role = integrationRole({ pr: pr(), issues: [sub()] });
   const files = [{ filename: 'apps/frontend/src/features/rooms/RoomList.tsx' }];
@@ -284,6 +337,31 @@ test('integration stages block drafts, enforcement changes and invalid links', (
       comments,
     }).length,
     1,
+  );
+});
+
+test('a verified main sync may import enforcement files without duplicate agent review', () => {
+  const role = integrationRole({ pr: pr(), issues: [parentIssue()] });
+  assert.deepEqual(
+    integrationStages({
+      pr: pr(),
+      role,
+      files: [{ filename: '.github/workflows/ci.yml' }],
+      comments: [],
+      mainSync: true,
+    }),
+    [],
+  );
+  assert.match(
+    integrationStages({
+      pr: pr(),
+      role,
+      files: [{ filename: '.github/workflows/ci.yml' }],
+      comments: [],
+      mainSync: true,
+      sharedHead: [{ number: 60 }],
+    }).join(' '),
+    /#60 share this head/,
   );
 });
 
