@@ -150,7 +150,8 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # Branch protection requires verify. A failed or skipped lane must fail it.
+  # Main-target PRs require every lane. Integration PRs intentionally skip E2E;
+  # ci-verify allows only that skip while requiring all other lanes.
   verify:
     needs: [checks, database, stories, e2e]
     if: always()
@@ -162,10 +163,5 @@ jobs:
           DATABASE: ${{ needs.database.result }}
           STORIES: ${{ needs.stories.result }}
           E2E: ${{ needs.e2e.result }}
-        run: |
-          for result in "$CHECKS" "$DATABASE" "$STORIES" "$E2E"; do
-            if [ "$result" != success ]; then
-              echo "CI lane finished with: $result"
-              exit 1
-            fi
-          done
+          BASE_REF: ${{ github.base_ref }}
+        run: node scripts/delivery/ci-verify.mjs

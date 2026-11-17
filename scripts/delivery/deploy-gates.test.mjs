@@ -43,11 +43,16 @@ function step(source, jobName, stepName) {
   return next === -1 ? rest : rest.slice(0, next + 1);
 }
 
-test('verify requires every CI lane and fails on skipped ones', () => {
+test('verify checks every CI lane with the base-aware CI gate', () => {
   const verify = job(ci, 'verify');
   assert.ok(verify.includes('needs: [checks, database, stories, e2e]'));
   assert.equal(condition(ci, 'verify'), 'always()');
-  assert.ok(verify.includes('if [ "$result" != success ]; then'));
+  assert.ok(verify.includes('BASE_REF: ${{ github.base_ref }}'));
+  assert.ok(
+    step(ci, 'verify', 'Require every CI lane').includes(
+      'node scripts/delivery/ci-verify.mjs',
+    ),
+  );
   for (const lane of ['checks', 'database', 'stories', 'e2e'])
     assert.ok(verify.includes(`needs.${lane}.result`));
 });

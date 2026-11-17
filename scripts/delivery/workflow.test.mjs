@@ -29,9 +29,11 @@ test('review reconciles its own scoped verdict even after errors, but never on d
   assert.ok(review.includes('ref: main'));
 });
 
-test('stacked PR events are received by both workflows', () => {
-  assert.ok(!workflow.includes('branches: [main]'));
+test('main pushes recheck delivery syncs without filtering stacked PR events', () => {
+  assert.ok(workflow.includes('  push:\n    branches: [main]'));
   assert.ok(!review.includes('branches: [main]'));
+  assert.ok(workflow.includes('  pull_request_target:'));
+  assert.ok(workflow.includes('        opened,'));
 });
 
 test('both workflows reconcile severity label additions and removals', () => {
