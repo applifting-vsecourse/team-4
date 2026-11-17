@@ -52,7 +52,11 @@ export type RoomProposalProps = {
   isSwitching?: boolean
   onSelectTerm?: (termId: string) => void
   onPropose?: () => void
-  /** "Použít návrh" (#390), shown beside "Navrhnout pokoje" for a current proposal. */
+  /**
+   * "Použít návrh" (#390) beside "Navrhnout pokoje". Always rendered: the
+   * action hides its own button, so its dialog outlives a refetch that makes
+   * the proposal stale.
+   */
   applyAction?: ReactNode
   /** "Navrhnout pokoje" was refused or failed, already worded; the shown data stay. */
   proposeError?: string
@@ -437,7 +441,7 @@ export function RoomProposal({
                       >
                         {isRunning ? "Navrhuje se…" : "Navrhnout pokoje"}
                       </PendingButton>
-                      {status === "current" ? applyAction : null}
+                      {applyAction}
                     </div>
                   </div>
                 </CardContent>

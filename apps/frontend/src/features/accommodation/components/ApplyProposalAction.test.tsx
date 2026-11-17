@@ -31,7 +31,10 @@ const failure = (status: number, data: unknown = {}) => ({
 const layoutOf = (preset: Parameters<typeof makeTermRoomProposal>[0]) =>
   toProposalLayout(makeTermRoomProposal(preset).lastSolved!.layout!)
 
-function renderAction(preset: Parameters<typeof makeTermRoomProposal>[0] = "withSaved") {
+function renderAction(
+  preset: Parameters<typeof makeTermRoomProposal>[0] = "withSaved",
+  canApply = true,
+) {
   const onPropose = vi.fn()
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const invalidate = vi.spyOn(client, "invalidateQueries")
@@ -44,6 +47,7 @@ function renderAction(preset: Parameters<typeof makeTermRoomProposal>[0] = "with
         term="Turnus 1, 4.–17. 7. 2027"
         proposalId="proposal-1"
         layout={layoutOf(preset)}
+        canApply={canApply}
         onPropose={onPropose}
       />
     </QueryClientProvider>,
@@ -114,7 +118,48 @@ describe("ApplyProposalAction", () => {
 
   it("shows no button when nothing would change", () => {
     renderAction("empty")
-
     expect(screen.queryByRole("button", { name: "Použít návrh" })).not.toBeInTheDocument()
+  })
+
+  it("shows no button for a stale proposal", () => {
+    renderAction("withSaved", false)
+    expect(screen.queryByRole("button", { name: "Použít návrh" })).not.toBeInTheDocument()
+  })
+
+  it("keeps the dialog with its result when the proposal turns stale meanwhile", async () => {
+    post.mockReturnValue(failure(409, { code: "proposal_stale" }))
+    const client = new QueryClient()
+    const props = {
+      organizationId: "org",
+      eventId: "event",
+      termId: "term",
+      term: "Turnus 1",
+      proposalId: "proposal-1",
+      layout: layoutOf("withSaved"),
+      onPropose: vi.fn(),
+    }
+    const { rerender } = render(
+      <QueryClientProvider client={client}>
+        <ApplyProposalAction
+          {...props}
+          canApply
+        />
+      </QueryClientProvider>,
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Použít návrh" }))
+    // The reload after the refusal shows the proposal as stale.
+    rerender(
+      <QueryClientProvider client={client}>
+        <ApplyProposalAction
+          {...props}
+          canApply={false}
+        />
+      </QueryClientProvider>,
+    )
+    await userEvent.click(applyInDialog())
+
+    expect(
+      await screen.findByText("Návrh pokojů je neaktuální, nic se neuložilo"),
+    ).toBeInTheDocument()
   })
 })

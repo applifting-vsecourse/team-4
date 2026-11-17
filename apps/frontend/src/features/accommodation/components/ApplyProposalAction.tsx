@@ -22,16 +22,23 @@ export type ApplyProposalActionProps = {
   termId: string
   /** Already formatted, e.g. "1. turnus, 4.–17. 7. 2027". */
   term: string
-  /** The current proposal the organizer reviewed. */
+  /** The shown proposal the organizer reviews. */
   proposalId: string
   layout: RoomProposalLayout
+  /**
+   * The shown proposal is still current: its layout version is the term's.
+   * A stale one has no button; the server would refuse it.
+   */
+  canApply: boolean
   /** Starts a new proposal after a refusal as stale. */
   onPropose: () => void
 }
 
 // "Použít návrh" of a current room proposal (#390): the button, the review of
-// the changes and the one explicit step. Nothing to change, no button. The
-// key is new for every opening of the dialog and kept for its retries.
+// the changes and the one explicit step. A stale proposal or nothing to
+// change, no button. The dialog stays mounted while open, so the refetch
+// after applying (which makes the proposal stale) cannot close it before it
+// shows the result. The key is new for every opening and kept for retries.
 export function ApplyProposalAction({
   organizationId,
   eventId,
@@ -39,14 +46,13 @@ export function ApplyProposalAction({
   term,
   proposalId,
   layout,
+  canApply,
   onPropose,
 }: ApplyProposalActionProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [submissionKey, setSubmissionKey] = useState("")
   const apply = useApplyProposal(organizationId, eventId, termId)
   const changes = toApplyChanges(layout)
-
-  if (!hasApplyChanges(changes)) return null
 
   const state: ApplyProposalState = apply.isPending
     ? "saving"
@@ -64,10 +70,12 @@ export function ApplyProposalAction({
 
   return (
     <>
-      <Button onClick={open}>
-        <Check />
-        Použít návrh
-      </Button>
+      {canApply && hasApplyChanges(changes) ? (
+        <Button onClick={open}>
+          <Check />
+          Použít návrh
+        </Button>
+      ) : null}
       <ApplyProposalDialog
         isOpen={isOpen}
         state={state}

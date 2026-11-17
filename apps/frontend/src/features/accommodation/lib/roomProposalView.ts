@@ -121,9 +121,9 @@ export function toProposalLayout(layout: ProposalLayoutData): RoomProposalLayout
 
 /** What "Použít návrh" changes in the saved placements (#390), by kind. */
 export type ApplyChanges = {
-  added: { name: string; room: string }[]
-  moved: { name: string; from: string; to: string }[]
-  removed: { name: string; from: string }[]
+  added: { id: string; name: string; room: string }[]
+  moved: { id: string; name: string; from: string; to: string }[]
+  removed: { id: string; name: string; from: string }[]
 }
 
 /** The changes of a layout against the saved placements; locked people never change. */
@@ -134,13 +134,18 @@ export function toApplyChanges(layout: RoomProposalLayout): ApplyChanges {
   return {
     added: placed
       .filter(({ person }) => person.change === "new")
-      .map(({ person, room }) => ({ name: person.name, room })),
+      .map(({ person, room }) => ({ id: person.id, name: person.name, room })),
     moved: placed
       .filter(({ person }) => person.change === "moved")
-      .map(({ person, room }) => ({ name: person.name, from: person.savedRoom ?? "", to: room })),
+      .map(({ person, room }) => ({
+        id: person.id,
+        name: person.name,
+        from: person.savedRoom ?? "",
+        to: room,
+      })),
     removed: layout.unplaced
       .filter((person) => person.change === "removed")
-      .map((person) => ({ name: person.name, from: person.savedRoom ?? "" })),
+      .map((person) => ({ id: person.id, name: person.name, from: person.savedRoom ?? "" })),
   }
 }
 

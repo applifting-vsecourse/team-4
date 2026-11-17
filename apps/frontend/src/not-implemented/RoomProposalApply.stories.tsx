@@ -51,6 +51,7 @@ function Proposal({ preset }: { preset: ProposalPreset }) {
               term={`${TERM.label}, ${TERM.dates}`}
               proposalId={shown.id}
               layout={layout}
+              canApply={shown.isCurrent}
               onPropose={() => undefined}
             />
           ) : null
@@ -143,6 +144,16 @@ export const StaleProposal: Story = {
     const canvas = within(canvasElement)
     await expect(await canvas.findByText("Podklady se od návrhu změnily")).toBeVisible()
     await expect(canvas.queryByRole("button", { name: "Použít návrh" })).not.toBeInTheDocument()
+  },
+}
+
+/** The latest run failed; the last finished proposal is still current and can be applied. */
+export const AfterFailedRerun: Story = {
+  args: { preset: "failed" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText("Níže je poslední dokončený návrh.")).toBeVisible()
+    await expect(canvas.getByRole("button", { name: "Použít návrh" })).toBeVisible()
   },
 }
 

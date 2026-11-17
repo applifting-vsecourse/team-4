@@ -36,7 +36,7 @@ export type ApplyProposalDialogProps = {
   onPropose?: () => void
 }
 
-function ChangeList({ title, items }: { title: string; items: string[] }) {
+function ChangeList({ title, items }: { title: string; items: { id: string; text: string }[] }) {
   if (items.length === 0) return null
   return (
     <div className="space-y-1">
@@ -45,7 +45,7 @@ function ChangeList({ title, items }: { title: string; items: string[] }) {
       </p>
       <ul className="list-disc space-y-1 pl-6">
         {items.map((item) => (
-          <li key={item}>{item}</li>
+          <li key={item.id}>{item.text}</li>
         ))}
       </ul>
     </div>
@@ -90,15 +90,18 @@ export function ApplyProposalDialog({
           <div className="space-y-4 text-sm">
             <ChangeList
               title="Nová umístění"
-              items={changes.added.map((change) => `${change.name}: ${change.room}`)}
+              items={changes.added.map((c) => ({ id: c.id, text: `${c.name}: ${c.room}` }))}
             />
             <ChangeList
               title="Přesuny"
-              items={changes.moved.map((change) => `${change.name}: ${change.from} → ${change.to}`)}
+              items={changes.moved.map((c) => ({
+                id: c.id,
+                text: `${c.name}: ${c.from} → ${c.to}`,
+              }))}
             />
             <ChangeList
               title="Odebraná umístění"
-              items={changes.removed.map((change) => `${change.name}: ${change.from}`)}
+              items={changes.removed.map((c) => ({ id: c.id, text: `${c.name}: ${c.from}` }))}
             />
             <p className="text-muted-foreground">
               Zamčená umístění, účast ani zveřejnění pokojů se nezmění.

@@ -61,7 +61,8 @@ describe("toApplyChanges", () => {
   it("lists new placements, moves and lost rooms; locked and unchanged people stay out", () => {
     const changes = toApplyChanges(layoutOf("withSaved"))
 
-    expect(changes).toEqual({
+    // Each change also carries the person's id, the key of its row.
+    expect(changes).toMatchObject({
       added: [
         { name: "Petr Svoboda", room: "Chata Buk" },
         { name: "Ondřej Černý", room: "Chata Buk" },
