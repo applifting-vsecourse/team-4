@@ -201,6 +201,14 @@ const decide = (
     { submissionKey: key, ...body },
   );
 
+/** The layout version of a term's room proposal (phase-2 spec §7.1). */
+const layoutVersion = async (f: Fixture, index = 0): Promise<number> =>
+  (
+    await prisma.accommodationTermState.findUnique({
+      where: { termId: f.terms[index].id },
+    })
+  )?.layoutVersion ?? 0;
+
 const statusIn = async (
   registration: Registration,
   f: Fixture,
@@ -242,6 +250,9 @@ describe('Potvrdit všechny vhodné', () => {
     expect(await statusIn(second, f)).toBe('confirmed');
     expect(await statusIn(third, f)).toBe('pending');
     expect(await statusIn(first, f, 1)).toBe('pending');
+    // Bulk confirmation changes the layout of that term only.
+    expect(await layoutVersion(f)).toBe(1);
+    expect(await layoutVersion(f, 1)).toBe(0);
 
     // Payment obligation: the reminder starts with the first confirmation.
     const saved = await prisma.registration.findUniqueOrThrow({
@@ -438,10 +449,13 @@ describe('deciding one person', () => {
       200,
     );
     expect(await statusIn(person, f)).toBe('waitlisted');
+    // The room proposal lays out the confirmed only (phase-2 spec §7.1).
+    expect(await layoutVersion(f)).toBe(0);
     const again = await decide(f, person, { decision: 'waitlist' });
     expect(again.body.code).toBe('already_waitlisted');
     expect((await decide(f, person, { decision: 'confirm' })).status).toBe(200);
     expect(await statusIn(person, f)).toBe('confirmed');
+    expect(await layoutVersion(f)).toBe(1);
   });
 
   it('explains missing capacity without saving anything', async () => {

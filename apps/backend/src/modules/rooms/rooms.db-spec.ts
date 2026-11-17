@@ -559,6 +559,14 @@ describe('protecting confirmed capacity', () => {
   it('lets capacity grow and delete an unneeded room, in an open event', async () => {
     const f = await setup();
     await confirm(f, [0]);
+    const layoutVersions = async (): Promise<number[]> =>
+      (
+        await prisma.accommodationTermState.findMany({
+          where: { termId: { in: f.termIds } },
+          orderBy: { termId: 'asc' },
+        })
+      ).map((state) => state.layoutVersion);
+    const before = await layoutVersions();
 
     const grown = await call(f.ownerId, 'PUT', `${f.path}/${f.smallId}`, {
       label: 'Malý',
@@ -569,6 +577,11 @@ describe('protecting confirmed capacity', () => {
     const removed = await call(f.ownerId, 'DELETE', `${f.path}/${f.smallId}`);
     expect(removed.status).toBe(200);
     expect(capacities(removed.body)).toEqual({ T1: 3, T2: 3 });
+    // Rooms and beds are layout inputs of every term's room proposal (phase-2
+    // spec §7.1); each change made them stale.
+    expect(await layoutVersions()).toEqual(
+      before.map((version) => version + 2),
+    );
   });
 
   it('keeps waitlisted registrations as they were when capacity grows', async () => {

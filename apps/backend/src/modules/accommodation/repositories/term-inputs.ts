@@ -44,3 +44,57 @@ export async function termInputsChanged(
           OR EXCLUDED."dueAt" IS NULL THEN "accommodation_term_state"."dueAt"
         ELSE EXCLUDED."dueAt" END`;
 }
+
+/**
+ * Records that the layout inputs of terms changed (phase 2, spec §7.1): what
+ * a room proposal depends on, e.g. rooms and their beds, a confirmation, the
+ * answer or determination of a confirmed participant. Their layout version
+ * goes up, which makes their room proposals stale; with automatic proposals
+ * on, each becomes due 10 s after the last change, while one the organizer
+ * asked for keeps its time. Same transaction and lock order as
+ * `termInputsChanged`. Without `termIds`, every term of the event.
+ */
+export async function termLayoutChanged(
+  tx: Prisma.TransactionClient,
+  eventId: string,
+  termIds?: readonly string[],
+): Promise<void> {
+  if (termIds?.length === 0) return;
+  await tx.$queryRaw`
+    SELECT "id" FROM "event_term"
+    WHERE "eventId" = ${eventId}::uuid
+      AND (${termIds ?? null}::uuid[] IS NULL OR "id" = ANY(${termIds ?? null}::uuid[]))
+    ORDER BY "id" FOR KEY SHARE`;
+  await tx.$executeRaw`
+    INSERT INTO "accommodation_term_state" ("termId", "eventId", "layoutVersion", "proposalDueAt")
+    SELECT t."id", t."eventId", 1,
+           CASE WHEN e."isRoomProposalAutomatic"
+                THEN now() + make_interval(secs => ${DEBOUNCE_SECONDS}) END
+    FROM "event_term" t JOIN "event" e ON e."id" = t."eventId"
+    WHERE t."eventId" = ${eventId}::uuid
+      AND (${termIds ?? null}::uuid[] IS NULL OR t."id" = ANY(${termIds ?? null}::uuid[]))
+    ORDER BY t."id"
+    ON CONFLICT ("termId") DO UPDATE SET
+      "layoutVersion" = "accommodation_term_state"."layoutVersion" + 1,
+      "proposalDueAt" = CASE
+        WHEN "accommodation_term_state"."proposalRequestedById" IS NOT NULL
+          OR EXCLUDED."proposalDueAt" IS NULL THEN "accommodation_term_state"."proposalDueAt"
+        ELSE EXCLUDED."proposalDueAt" END`;
+}
+
+/** The terms among `termIds` in which the registration is confirmed now. */
+export async function confirmedTermsOf(
+  tx: Prisma.TransactionClient,
+  registrationId: string,
+  termIds?: readonly string[],
+): Promise<string[]> {
+  const rows = await tx.registrationTerm.findMany({
+    where: {
+      registrationId,
+      status: 'confirmed',
+      ...(termIds ? { termId: { in: [...termIds] } } : {}),
+    },
+    select: { termId: true },
+  });
+  return rows.map((row) => row.termId);
+}

@@ -9,7 +9,11 @@ import {
   effectiveValue,
   HardAttribute,
 } from '@/modules/accommodation/domain/effective-value';
-import { termInputsChanged } from '@/modules/accommodation/repositories/term-inputs';
+import {
+  confirmedTermsOf,
+  termInputsChanged,
+  termLayoutChanged,
+} from '@/modules/accommodation/repositories/term-inputs';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import { Injectable } from '@nestjs/common';
 
@@ -266,6 +270,12 @@ export class RegistrationAccommodationRepository {
       tx,
       row.eventId,
       row.terms.map((term) => term.termId),
+    );
+    // A room proposal depends on it only where the person is confirmed.
+    await termLayoutChanged(
+      tx,
+      row.eventId,
+      await confirmedTermsOf(tx, registrationId),
     );
     return { kind: 'determined' };
   }
