@@ -1,6 +1,8 @@
 name: Delivery stage enforcement
 
 on:
+  push:
+    branches: [main]
   issues:
     types: [edited]
   issue_comment:
