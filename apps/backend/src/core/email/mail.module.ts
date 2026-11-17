@@ -4,10 +4,12 @@ import { ConsoleMailerAdapterFactory } from './adapters/console-mailer/console-m
 import { SMTPAdapterFactory } from './adapters/smtp/smtp.adapter.factory';
 import { EmailModule } from './email.module';
 import { EmailService } from './interfaces/email-service.interface';
+import { ReservedDomainEmailService } from './services/reserved-domain-email.service';
 
 /**
  * Picks an email adapter based on env:
- *   SMTP_HOST + USERNAME + PASS  → SMTP (Gmail, or any SMTP server)
+ *   SMTP_HOST + USERNAME + PASS  → SMTP (Gmail, or any SMTP server); mail to
+ *                                  reserved test domains is not sent
  *   otherwise                    → Console (logs emails to stdout, dev only)
  *
  * Import this module whenever you need to inject `'EmailService'`.
@@ -29,7 +31,7 @@ export class MailModule {}
 
 function createAdapter(config: Config): EmailService {
   if (config.smtpHost && config.smtpUsername && config.smtpPassword) {
-    return SMTPAdapterFactory.create({
+    const smtp = SMTPAdapterFactory.create({
       host: config.smtpHost,
       port: config.smtpPort,
       secure: config.smtpSecure,
@@ -37,6 +39,7 @@ function createAdapter(config: Config): EmailService {
       pass: config.smtpPassword,
       from: config.emailFrom,
     });
+    return new ReservedDomainEmailService(smtp);
   }
   return ConsoleMailerAdapterFactory.create();
 }

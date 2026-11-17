@@ -671,6 +671,32 @@ describe("draft for the browser tab (F55)", () => {
     expect(await screen.findByText("Přihláška je uložená")).toBeInTheDocument()
     expect(window.sessionStorage.getItem("akcio:registration-draft:abcdefghijkl")).toBeNull()
   })
+
+  it("keeps no draft of a profile prefill until the participant edits the form (S4-08)", async () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <PublicRegistration
+          publicId="abcdefghijkl"
+          terms={TERMS}
+          conditions=""
+          contact={{
+            firstName: "Jana",
+            lastName: "Nováková",
+            email: "jana@example.com",
+            phone: "777 123 456",
+          }}
+        />
+      </QueryClientProvider>,
+    )
+    expect(screen.getByLabelText(/^Jméno/)).toHaveValue("Jana")
+    expect(window.sessionStorage.getItem("akcio:registration-draft:abcdefghijkl")).toBeNull()
+
+    await user.click(screen.getByLabelText(/1\. turnus/))
+
+    expect(window.sessionStorage.getItem("akcio:registration-draft:abcdefghijkl")).toContain(
+      "Nováková",
+    )
+  })
 })
 
 function renderAndLeave() {

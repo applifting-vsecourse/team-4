@@ -31,7 +31,18 @@ const overview = (rooms: typeof ROOMS_OVERVIEW.rooms) => [
 ]
 
 /** Rooms, beds and occupancy per term (S2-05, S2-10). */
-export const Rooms: Story = { play: showsHeading("Pokoje") }
+export const Rooms: Story = {
+  play: async (context) => {
+    await showsHeading("Pokoje")(context)
+    // The context "Nastavení" opens the event settings at the accommodation rules (#384).
+    const settings = context.canvas.getAllByRole("link", { name: "Nastavení" })
+    await expect(
+      settings
+        .map((link) => link.getAttribute("href"))
+        .filter((href) => href?.endsWith("/settings#accommodation-rules-heading")),
+    ).toHaveLength(1)
+  },
+}
 
 export const NoRooms: Story = {
   beforeEach: ({ msw }) => {

@@ -1,11 +1,13 @@
 import { z } from "zod"
 
 import {
+  hardAttributeSettingSchema,
   moveRecordSchema,
   registrationAccommodationSchema,
   runEvidenceSchema,
   runListSchema,
   termEvaluationSchema,
+  type HardAttributeSetting,
   type MoveRecord,
   type RegistrationAccommodation,
   type RunEvidence,
@@ -226,5 +228,21 @@ export function makeRegistrationAccommodation(
     ],
     moves: [],
     ...overrides,
+  })
+}
+
+/** Nastavení → Pravidla ubytování (#384): gender is the only option yet. */
+export function makeHardAttributeSetting(
+  hardAttribute: string | null = "gender",
+): HardAttributeSetting {
+  return hardAttributeSettingSchema.parse({
+    hardAttribute,
+    options: [
+      {
+        attribute: "gender",
+        values: ["female", "male", "other", "undisclosed"],
+        nonDeterminingValues: ["other", "undisclosed"],
+      },
+    ],
   })
 }

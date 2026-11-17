@@ -60,6 +60,7 @@ export type ApiErrorCode =
   | "statement_format"
   | "statement_invalid"
   | "statement_too_large"
+  | "transaction_already_paired"
 
 export type ApiError = {
   status: number | null

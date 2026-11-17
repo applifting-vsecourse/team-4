@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+import { REGISTRATION_DRAFT_PREFIX } from "@/lib/registrationDraftStorage"
+
 import {
   genderOtherSchema,
   genderSchema,
@@ -24,7 +26,7 @@ const draftSchema = z.object({
 
 export type RegistrationDraft = z.infer<typeof draftSchema>
 
-const key = (publicId: string) => `akcio:registration-draft:${publicId}`
+const key = (publicId: string) => `${REGISTRATION_DRAFT_PREFIX}${publicId}`
 
 /** Terms that no longer exist are dropped, so only selectable ones come back. */
 export function readDraft(publicId: string, termIds: string[]): RegistrationDraft | null {
