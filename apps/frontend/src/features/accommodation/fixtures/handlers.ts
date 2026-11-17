@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw"
 import { env } from "@/config/env"
 
 import type { TermEvaluationData } from "@/features/accommodation/api/evaluationSchemas"
+import type { TermRoomProposalData } from "@/features/accommodation/api/roomProposalSchemas"
 import {
   makeMoves,
   makeRegistrationAccommodation,
@@ -10,6 +11,7 @@ import {
   makeRuns,
   makeTermEvaluation,
 } from "@/features/accommodation/fixtures/evaluation"
+import { makeTermRoomProposal } from "@/features/accommodation/fixtures/roomProposal"
 
 // MSW handlers for the term evaluation of an event (S3-01, S3-03). Install with
 // `msw.use(...)` in a story's `beforeEach`.
@@ -22,6 +24,23 @@ export const accommodationHandlers = {
   /** The evaluation of the term, changed for one story (stale, failed, conflict…). */
   termEvaluation: (evaluation: TermEvaluationData) => [
     http.get(`${BASE}/terms/:termId/evaluation`, () => HttpResponse.json(evaluation)),
+  ],
+  /** The room proposal of the term, changed for one story (stale, failed…). */
+  termRoomProposal: (proposal: TermRoomProposalData) => [
+    http.get(`${BASE}/terms/:termId/room-proposal`, () => HttpResponse.json(proposal)),
+  ],
+  /** The room proposal mode and the proposal of a term (#365, #385). */
+  roomProposal: () => [
+    http.get(`${BASE}/room-proposal-mode`, () => HttpResponse.json({ mode: "manual" })),
+    http.put(`${BASE}/room-proposal-mode`, async ({ request }) =>
+      HttpResponse.json(await request.json()),
+    ),
+    http.get(`${BASE}/terms/:termId/room-proposal`, () =>
+      HttpResponse.json(makeTermRoomProposal()),
+    ),
+    http.post(`${BASE}/terms/:termId/room-proposal`, () =>
+      HttpResponse.json(makeTermRoomProposal("running"), { status: 202 }),
+    ),
   ],
   evaluation: () => [
     http.get(`${BASE}/evaluation-mode`, () => HttpResponse.json({ mode: "automatic" })),
