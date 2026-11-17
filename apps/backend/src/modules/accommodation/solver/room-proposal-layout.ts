@@ -20,6 +20,12 @@ const collator = new Intl.Collator('cs', {
 /** Code-point order, independent of the runtime locale. */
 const byCode = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
+/** Room order (§2): label in Czech collation with numbers, then id. */
+export const compareRooms = (
+  a: Pick<ProposalRoom, 'id' | 'label'>,
+  b: Pick<ProposalRoom, 'id' | 'label'>,
+): number => collator.compare(a.label, b.label) || byCode(a.id, b.id);
+
 export const capacity = (room: ProposalRoom): number =>
   room.baseBeds + room.extraBeds;
 
@@ -47,9 +53,7 @@ export type PreparedProposal = {
 };
 
 export function prepareProposal(input: RoomProposalInput): PreparedProposal {
-  const rooms = input.rooms
-    .filter((room) => room.available)
-    .sort((a, b) => collator.compare(a.label, b.label) || byCode(a.id, b.id));
+  const rooms = input.rooms.filter((room) => room.available).sort(compareRooms);
   const roomIndex = new Map(rooms.map((room, r) => [room.id, r]));
   const sorted = [...input.participants].sort(
     (a, b) => a.position - b.position || byCode(a.id, b.id),

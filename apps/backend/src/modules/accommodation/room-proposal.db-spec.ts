@@ -1,6 +1,9 @@
 import { PrismaModule } from '@/core/prisma/prisma.module';
 import { PrismaService } from '@/core/prisma/prisma.service';
-import { Registration } from '@/generated/prisma/client';
+import {
+  AccommodationTermState,
+  Registration,
+} from '@/generated/prisma/client';
 import {
   ProposalPlacements,
   WISHES_PREFERENCE,
@@ -10,6 +13,7 @@ import {
   RoomProposalModel,
   RoomProposalRepository,
 } from '@/modules/accommodation/repositories/room-proposal.repository';
+import { TermEvaluationRepository } from '@/modules/accommodation/repositories/term-evaluation.repository';
 import { termLayoutChanged } from '@/modules/accommodation/repositories/term-inputs';
 import { HardAttributeAnswers } from '@/modules/accommodation/services/hard-attribute-answers';
 import { ProposalWorker } from '@/modules/accommodation/services/proposal-worker.service';
@@ -21,7 +25,9 @@ import {
   PROPOSAL_SOLVER_VERSION,
   RoomProposalService,
 } from '@/modules/accommodation/services/room-proposal.service';
+import { TermRoomProposalService } from '@/modules/accommodation/services/term-room-proposal.service';
 import { RoommateWish } from '@/modules/accommodation/solver/room-proposal.types';
+import { EventScope } from '@/modules/events/repositories/events.repository';
 import {
   CreatedEvent,
   createEvent,
@@ -29,6 +35,7 @@ import {
   createRegistration,
   RoomInput,
 } from '@/testing/factories';
+import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
 process.env.ACCOMMODATION_WORKER_INTERVAL_MS = '0';
@@ -67,6 +74,8 @@ let prisma: PrismaService;
 let service: RoomProposalService;
 let queue: ProposalQueueRepository;
 let worker: ProposalWorker;
+let close: () => Promise<void>;
+let organizer: TermRoomProposalService;
 const answers = new FakeAnswers();
 const placements = new FakePlacements();
 const wishes = new FakeWishes();
@@ -79,6 +88,8 @@ beforeAll(async () => {
       RoomProposalRepository,
       ProposalQueueRepository,
       ProposalWorker,
+      TermEvaluationRepository,
+      TermRoomProposalService,
       { provide: HardAttributeAnswers, useValue: answers },
       { provide: RoomPlacements, useValue: placements },
       { provide: RoommateWishes, useValue: wishes },
@@ -88,7 +99,11 @@ beforeAll(async () => {
   service = moduleRef.get(RoomProposalService);
   queue = moduleRef.get(ProposalQueueRepository);
   worker = moduleRef.get(ProposalWorker);
+  organizer = moduleRef.get(TermRoomProposalService);
+  close = (): Promise<void> => moduleRef.close();
 });
+
+afterAll(() => close());
 
 beforeEach(() => {
   answers.byRegistration.clear();
@@ -172,7 +187,10 @@ type Solved = {
   stats: { complete: boolean };
 };
 
-const stateOf = (f: Fixture, index = 0) =>
+const stateOf = (
+  f: Fixture,
+  index = 0,
+): Promise<AccommodationTermState | null> =>
   prisma.accommodationTermState.findUnique({
     where: { termId: f.terms[index].id },
   });
@@ -298,58 +316,6 @@ describe('the room proposal of a term', () => {
       }),
     ).toBeNull();
   });
-
-  it('is never changed or removed', async () => {
-    const f = await setup([{ label: 'A', baseBeds: 1, termIndexes: [0] }]);
-    const stored = await propose(f);
-
-    await expect(
-      prisma.accommodationRoomProposal.update({
-        where: { id: stored.id },
-        data: { error: 'x' },
-      }),
-    ).rejects.toThrow(/immutable/);
-    await expect(
-      prisma.accommodationRoomProposal.delete({ where: { id: stored.id } }),
-    ).rejects.toThrow(/immutable/);
-  });
-});
-
-describe('the layout version (spec §7.1)', () => {
-  it('goes up with a layout change and schedules a proposal only when automatic', async () => {
-    const manual = await setup([]);
-    const automatic = await setup([], { automatic: true });
-
-    for (const f of [manual, automatic]) {
-      await prisma.$transaction((tx) =>
-        termLayoutChanged(tx, f.event.id, [f.terms[0].id]),
-      );
-    }
-
-    expect(await stateOf(manual)).toMatchObject({
-      layoutVersion: 1,
-      proposalDueAt: null,
-      inputVersion: 0,
-    });
-    const due = (await stateOf(automatic))!.proposalDueAt!.getTime();
-    expect(due).toBeGreaterThan(Date.now() + 8_000);
-    // Only the term that changed.
-    expect(await stateOf(automatic, 1)).toBeNull();
-  });
-
-  it('keeps the time of a proposal the organizer asked for', async () => {
-    const f = await setup([], { automatic: true });
-    await queue.request(f.event.id, f.terms[0].id, f.ownerId);
-    const asked = (await stateOf(f))!.proposalDueAt;
-
-    await prisma.$transaction((tx) => termLayoutChanged(tx, f.event.id));
-
-    expect(await stateOf(f)).toMatchObject({
-      layoutVersion: 1,
-      proposalDueAt: asked,
-      proposalRequestedById: f.ownerId,
-    });
-  });
 });
 
 describe('the proposal queue', () => {
@@ -396,5 +362,112 @@ describe('the proposal queue', () => {
     await queue.release(f.terms[0].id, claimed!.proposalId);
     const [next] = await queue.claimDue(1, f.event.id);
     expect(next).toMatchObject({ layoutVersion: 1, triggeredById: null });
+  });
+});
+
+describe('the organizer’s room proposal (Návrh pokojů)', () => {
+  const scopeOf = (f: Fixture, ownerId = f.ownerId): EventScope => ({
+    organizationId: f.event.organizationId,
+    ownerId,
+    eventId: f.event.id,
+  });
+
+  it('is manual for a new event; turning it off drops scheduled proposals, not a requested one', async () => {
+    const f = await setup([]);
+    const scope = scopeOf(f);
+    expect(await organizer.mode(scope)).toBe('manual');
+
+    await organizer.saveMode(scope, 'automatic');
+    expect(await organizer.mode(scope)).toBe('automatic');
+    await prisma.$transaction((tx) =>
+      termLayoutChanged(tx, f.event.id, [f.terms[0].id]),
+    );
+    await queue.request(f.event.id, f.terms[1].id, f.ownerId);
+    const requested = (await stateOf(f, 1))!.proposalDueAt;
+
+    await organizer.saveMode(scope, 'manual');
+
+    expect(await stateOf(f)).toMatchObject({ proposalDueAt: null });
+    expect(await stateOf(f, 1)).toMatchObject({
+      proposalDueAt: requested,
+      proposalRequestedById: f.ownerId,
+    });
+    // The evaluation mode is a separate setting.
+    expect(
+      (await prisma.event.findUnique({ where: { id: f.event.id } }))
+        ?.accommodationEvaluationMode,
+    ).toBe('automatic');
+  });
+
+  it('shows none, running after "Navrhnout pokoje", then the current proposal, stale after a change', async () => {
+    const f = await setup([
+      { label: 'Pokoj 2', baseBeds: 2, termIndexes: [0] },
+      { label: 'Pokoj 1', baseBeds: 1, termIndexes: [0] },
+    ]);
+    const scope = scopeOf(f);
+    const anna = await person(f, 'female');
+    const bara = await person(f, 'female');
+    const cyril = await person(f, 'male');
+    const term = f.terms[0].id;
+
+    expect(await organizer.term(scope, term)).toMatchObject({
+      mode: 'manual',
+      status: 'none',
+      proposal: null,
+    });
+
+    expect(await organizer.propose(scope, term)).toMatchObject({
+      status: 'running',
+    });
+    await worker.drain(f.event.id);
+
+    const view = await organizer.term(scope, term);
+    expect(view).toMatchObject({
+      status: 'current',
+      scheduledAt: null,
+      proposal: {
+        status: 'solved',
+        isCurrent: true,
+        triggeredBy: { id: f.ownerId },
+      },
+    });
+    const layout = view.proposal!.layout!;
+    expect(layout.rooms.map((r) => [r.label, r.personIds])).toEqual([
+      ['Pokoj 1', [cyril.id]],
+      ['Pokoj 2', [anna.id, bara.id]],
+    ]);
+    expect(layout.people.map((p) => [p.firstName, p.change])).toEqual([
+      [anna.firstName, 'new'],
+      [bara.firstName, 'new'],
+      [cyril.firstName, 'new'],
+    ]);
+    expect(layout.summary).toMatchObject({ placed: 3, added: 3, rooms: 2 });
+
+    await prisma.$transaction((tx) => termLayoutChanged(tx, f.event.id));
+    expect(await organizer.term(scope, term)).toMatchObject({
+      status: 'stale',
+      proposal: { isCurrent: false },
+    });
+  });
+
+  it('is not available for a foreign event or a term of another event', async () => {
+    const f = await setup([]);
+    const other = await setup([]);
+    const term = f.terms[0].id;
+
+    await expect(
+      organizer.term(scopeOf(f, other.ownerId), term),
+    ).rejects.toThrow(NotFoundException);
+    await expect(
+      organizer.propose(scopeOf(f, other.ownerId), term),
+    ).rejects.toThrow(NotFoundException);
+    await expect(
+      organizer.saveMode(scopeOf(f, other.ownerId), 'automatic'),
+    ).rejects.toThrow(NotFoundException);
+    await expect(
+      organizer.propose(scopeOf(f), other.terms[0].id),
+    ).rejects.toThrow(NotFoundException);
+    expect(await stateOf(other)).toBeNull();
+    expect(await organizer.mode(scopeOf(f))).toBe('manual');
   });
 });

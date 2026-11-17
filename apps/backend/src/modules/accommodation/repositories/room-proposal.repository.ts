@@ -6,6 +6,14 @@ import {
   ProposalSnapshot,
   ProposalTermRoom,
 } from '@/modules/accommodation/domain/proposal-input';
+import {
+  Names,
+  ProposalStatus,
+  StoredProposal,
+} from '@/modules/accommodation/domain/proposal-view';
+import { ownedEvent } from '@/modules/accommodation/repositories/term-evaluation.repository';
+import { RoomProposalResult } from '@/modules/accommodation/solver/room-proposal.types';
+import { EventScope } from '@/modules/events/repositories/events.repository';
 import { Injectable } from '@nestjs/common';
 
 /** What the room proposal of one term reads, before answers and placements. */
@@ -22,8 +30,6 @@ export type ProposalTermData = {
   /** The term's layout version now (spec §7.1); 0 before its first change. */
   layoutVersion: number;
 };
-
-export type ProposalStatus = 'solved' | 'timeout' | 'failed';
 
 /** A stored room proposal of a term (spec §7.3). */
 export type RoomProposalModel = {
@@ -66,6 +72,18 @@ const toProposal = (
   ...row,
   input: row.input as unknown as ProposalSnapshot,
 });
+
+/** What the organizer's view of a term's proposal reads (spec §7). */
+export type ProposalTermState = {
+  layoutVersion: number;
+  /** A proposal runs, or the organizer asked for one. */
+  isRunning: boolean;
+  /** When the next proposal is due; null when none is scheduled. */
+  scheduledAt: Date | null;
+  latest: StoredProposal | null;
+  /** Of the people in the latest proposal. */
+  names: Names;
+};
 
 const asJson = (value: unknown): Prisma.InputJsonValue =>
   JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -178,5 +196,102 @@ export class RoomProposalRepository {
       select: proposalSelect,
     });
     return toProposal(row);
+  }
+  /** Null when the event is not in an organization of the caller. */
+  async findAutomatic(scope: EventScope): Promise<boolean | null> {
+    const event = await this.prisma.event.findFirst({
+      where: ownedEvent(scope),
+      select: { isRoomProposalAutomatic: true },
+    });
+    return event?.isRoomProposalAutomatic ?? null;
+  }
+
+  /**
+   * False when the event is not in an organization of the caller. Turning
+   * it off drops the proposals a layout change scheduled; a "Navrhnout
+   * pokoje" stays. Turning it on schedules nothing by itself.
+   */
+  async saveAutomatic(scope: EventScope, automatic: boolean): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.event.updateMany({
+        where: ownedEvent(scope),
+        data: { isRoomProposalAutomatic: automatic },
+      });
+      if (count !== 1) return false;
+      if (!automatic) {
+        await tx.accommodationTermState.updateMany({
+          where: { eventId: scope.eventId, proposalRequestedById: null },
+          data: { proposalDueAt: null },
+        });
+      }
+      return true;
+    });
+  }
+
+  /** The term's proposal state; null for a term of a foreign or missing event. */
+  async findTermState(
+    scope: EventScope,
+    termId: string,
+  ): Promise<ProposalTermState | null> {
+    const term = await this.prisma.eventTerm.findFirst({
+      where: { id: termId, eventId: scope.eventId, event: ownedEvent(scope) },
+      select: {
+        accommodationState: {
+          select: {
+            layoutVersion: true,
+            proposalDueAt: true,
+            proposalRunningId: true,
+            proposalRequestedById: true,
+          },
+        },
+        roomProposals: {
+          orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+          take: 1,
+          select: {
+            id: true,
+            status: true,
+            triggeredBy: { select: { id: true, name: true } },
+            startedAt: true,
+            finishedAt: true,
+            layoutVersion: true,
+            input: true,
+            result: true,
+          },
+        },
+      },
+    });
+    if (!term) return null;
+    const state = term.accommodationState;
+    const row = term.roomProposals[0];
+    const latest: StoredProposal | null = row
+      ? {
+          id: row.id,
+          status: row.status,
+          triggeredBy: row.triggeredBy,
+          startedAt: row.startedAt,
+          finishedAt: row.finishedAt,
+          layoutVersion: row.layoutVersion,
+          input: (row.input as unknown as ProposalSnapshot).input,
+          result: row.result as RoomProposalResult | null,
+        }
+      : null;
+    const ids = latest?.input.participants.map((p) => p.id) ?? [];
+    const registrations = ids.length
+      ? await this.prisma.registration.findMany({
+          where: { id: { in: ids }, eventId: scope.eventId },
+          select: { id: true, firstName: true, lastName: true },
+        })
+      : [];
+    return {
+      layoutVersion: state?.layoutVersion ?? 0,
+      isRunning: Boolean(
+        state?.proposalRunningId || state?.proposalRequestedById,
+      ),
+      scheduledAt: state?.proposalDueAt ?? null,
+      latest,
+      names: new Map(
+        registrations.map(({ id, ...name }) => [id, name] as const),
+      ),
+    };
   }
 }

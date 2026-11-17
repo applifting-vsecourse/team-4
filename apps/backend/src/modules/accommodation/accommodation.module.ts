@@ -3,6 +3,7 @@ import { AuthModule } from '@/shared/auth/auth.module';
 import { Module } from '@nestjs/common';
 import { OrderMovesController } from './controllers/order-moves.controller';
 import { RegistrationAccommodationController } from './controllers/registration-accommodation.controller';
+import { RoomProposalController } from './controllers/room-proposal.controller';
 import { TermDecisionController } from './controllers/term-decision.controller';
 import { TermEvaluationController } from './controllers/term-evaluation.controller';
 import { AccommodationEvaluationRepository } from './repositories/accommodation-evaluation.repository';
@@ -31,6 +32,7 @@ import {
 import { RoomProposalService } from './services/room-proposal.service';
 import { TermDecisionService } from './services/term-decision.service';
 import { TermEvaluationService } from './services/term-evaluation.service';
+import { TermRoomProposalService } from './services/term-room-proposal.service';
 
 // Accommodation evaluation (S3-T4, S3-01, S3-03, #365): the term evaluation
 // of the organizer, the manual order of a term, and the workers that run the
@@ -40,6 +42,7 @@ import { TermEvaluationService } from './services/term-evaluation.service';
   controllers: [
     OrderMovesController,
     RegistrationAccommodationController,
+    RoomProposalController,
     TermDecisionController,
     TermEvaluationController,
   ],
@@ -60,6 +63,7 @@ import { TermEvaluationService } from './services/term-evaluation.service';
     TermDecisionService,
     TermEvaluationRepository,
     TermEvaluationService,
+    TermRoomProposalService,
     {
       provide: HardAttributeAnswers,
       useClass: RegistrationHardAttributeAnswers,

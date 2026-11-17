@@ -466,8 +466,11 @@ current data; a run only proposes and never changes a participation, a debt or a
   term), a confirmation, and an answer, determination or change of a person confirmed in the
   term. Proposals are queued on the same row (`proposalDueAt`, `proposalRunning*`) and run by
   their own worker, one at a time per process; with `event.isRoomProposalAutomatic` (off for a
-  new event) a layout change makes one due 10 s later. Saved placements, locks and wishes are
-  not stored yet (#337, #339), so a proposal reads none.
+  new event) a layout change makes one due 10 s later. Turning it off drops the scheduled ones
+  but keeps a "Navrhnout pokoje" the organizer asked for. The organizer's view of a term shows
+  its latest proposal, current while its `layoutVersion` equals the term's, against the saved
+  placements it read. Saved placements, locks and wishes are not stored yet (#337, #339), so a
+  proposal reads none.
 
 ## 4. Field reference
 
