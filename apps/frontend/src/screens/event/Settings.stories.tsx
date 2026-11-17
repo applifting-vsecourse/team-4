@@ -112,6 +112,13 @@ const READY_DRAFT = {
   openingBlockers: [],
 }
 
+/** The card of a control: its form and its "Uložit". */
+const cardOf = (element: HTMLElement) => {
+  const card = element.closest<HTMLElement>('[data-slot="card"]')
+  if (!card) throw new Error("The control is not in a card")
+  return within(card)
+}
+
 const region = async (canvas: Canvas, name: string) =>
   within(await canvas.findByRole("region", { name }, { timeout: 5000 }))
 
@@ -245,10 +252,9 @@ export const EvaluationModeSaveFailed: Story = {
   },
   play: async ({ canvas }) => {
     const automation = await region(canvas, "Automatizace")
-    await userEvent.click(
-      await automation.findByLabelText("Přepočítat návrh jen tlačítkem Přepočítat"),
-    )
-    await userEvent.click(await automation.findByRole("button", { name: "Uložit" }))
+    const manual = await automation.findByLabelText("Přepočítat návrh jen tlačítkem Přepočítat")
+    await userEvent.click(manual)
+    await userEvent.click(cardOf(manual).getByRole("button", { name: "Uložit" }))
     await showsText("Režim se nepodařilo uložit")
   },
 }
@@ -465,4 +471,54 @@ export const PreferencesLoadFailed: Story = {
     msw.use(...failOn("get", PREFERENCES))
   },
   play: () => showsText("Preference návrhu pokojů se nepodařilo načíst"),
+}
+
+/**
+ * Automatizace (#385): the evaluation and the room proposal each have their
+ * own mode; a new event proposes rooms only on request. Saving one leaves
+ * the other as it is.
+ */
+export const RoomProposalMode: Story = {
+  play: async ({ canvas }) => {
+    const automation = await region(canvas, "Automatizace")
+    await expect(
+      await automation.findByRole("radio", { name: "Navrhovat pokoje jen ručně" }),
+    ).toBeChecked()
+    await expect(
+      automation.getByRole("radio", { name: "Přepočítat návrh automaticky po každé změně" }),
+    ).toBeChecked()
+    const automatic = automation.getByRole("radio", {
+      name: "Navrhovat pokoje automaticky po každé změně",
+    })
+    await userEvent.click(automatic)
+    await userEvent.click(cardOf(automatic).getByRole("button", { name: "Uložit" }))
+    await showsText("Režim návrhu pokojů byl uložen.")
+    await expect(
+      automation.getByRole("radio", { name: "Přepočítat návrh automaticky po každé změně" }),
+    ).toBeChecked()
+  },
+}
+
+/** A failed save keeps the chosen mode and says which one still applies. */
+export const RoomProposalModeSaveFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("put", `${EVENT}/accommodation/room-proposal-mode`))
+  },
+  play: async ({ canvas }) => {
+    const automation = await region(canvas, "Automatizace")
+    const automatic = await automation.findByRole("radio", {
+      name: "Navrhovat pokoje automaticky po každé změně",
+    })
+    await userEvent.click(automatic)
+    await userEvent.click(cardOf(automatic).getByRole("button", { name: "Uložit" }))
+    await showsText("Režim návrhu pokojů se nepodařilo uložit")
+    await showsText("Pokoje se dál navrhují jen ručně.")
+  },
+}
+
+export const RoomProposalModeLoadFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("get", `${EVENT}/accommodation/room-proposal-mode`))
+  },
+  play: () => showsText("Režim návrhu pokojů se nepodařilo načíst"),
 }

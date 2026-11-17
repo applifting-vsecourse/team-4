@@ -34,6 +34,7 @@ export const organizerBackend = () => [
   ...paymentHandlers.import(),
   ...registrationHandlers.event(),
   ...accommodationHandlers.evaluation(),
+  ...accommodationHandlers.roomProposal(),
 ]
 
 /** URL of a page of the open summer camp. */

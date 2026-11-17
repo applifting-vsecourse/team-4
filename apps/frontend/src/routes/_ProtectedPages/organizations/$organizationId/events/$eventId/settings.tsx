@@ -14,6 +14,7 @@ import { WorkspacePage } from "@/components/WorkspacePage"
 
 import { EvaluationModeSection } from "@/features/accommodation/components/EvaluationModeSection"
 import { HardAttributeSection } from "@/features/accommodation/components/HardAttributeSection"
+import { RoomProposalModeSection } from "@/features/accommodation/components/RoomProposalModeSection"
 import { RoomProposalPreferencesSection } from "@/features/accommodation/components/RoomProposalPreferencesSection"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
@@ -135,7 +136,12 @@ function EventPage() {
         <EvaluationModeSection
           organizationId={organizationId}
           eventId={eventId}
-        />
+        >
+          <RoomProposalModeSection
+            organizationId={organizationId}
+            eventId={eventId}
+          />
+        </EvaluationModeSection>
       </div>
     </WorkspacePage>
   )
