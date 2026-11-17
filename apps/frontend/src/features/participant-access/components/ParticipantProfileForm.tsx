@@ -7,6 +7,7 @@ import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { FormError } from "@/components/FormError"
 import { PendingButton } from "@/components/PendingButton"
 import { PhoneField } from "@/components/PhoneField"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Form,
   FormControl,
@@ -16,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
 import { readApiError } from "@/lib/apiError"
 import { formatPhone, toE164 } from "@/lib/phone"
 import { PHONE_FIELD_MESSAGE } from "@/lib/phoneCountries"
@@ -72,74 +74,88 @@ export function ParticipantProfileForm({ profile }: ParticipantProfileFormProps)
         noValidate
         aria-label="Můj profil"
         onSubmit={form.handleSubmit(onSubmit)}
-        className="max-w-xl space-y-6"
+        className="max-w-2xl"
       >
-        <DefinitionList layout="stacked">
-          <DefinitionRow label="Přihlašovací e-mail">{profile.email}</DefinitionRow>
-        </DefinitionList>
-        <div className="grid gap-5 sm:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="firstName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Jméno</FormLabel>
-                <FormControl>
-                  <Input
-                    autoComplete="given-name"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage className="min-h-0" />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="lastName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Příjmení</FormLabel>
-                <FormControl>
-                  <Input
-                    autoComplete="family-name"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage className="min-h-0" />
-              </FormItem>
-            )}
-          />
-        </div>
-        <FormField
-          control={form.control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Telefon</FormLabel>
-              <FormControl>
-                <PhoneField {...field} />
-              </FormControl>
-              <FormMessage className="min-h-0" />
-            </FormItem>
-          )}
-        />
-        {save.isError ? (
-          <FormError
-            title="Profil se nepodařilo uložit"
-            message={
-              readApiError(save.error).status === 400
-                ? "Zkontrolujte zadané údaje a uložte je znovu."
-                : "Zkontrolujte připojení a zkuste to znovu."
-            }
-          />
-        ) : null}
-        <PendingButton
-          type="submit"
-          isPending={save.isPending}
-        >
-          {save.isPending ? "Ukládám…" : "Uložit profil"}
-        </PendingButton>
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <h2 className="text-h4">Osobní údaje</h2>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <DefinitionList layout="stacked">
+                <DefinitionRow label="Přihlašovací e-mail">{profile.email}</DefinitionRow>
+              </DefinitionList>
+              <Separator />
+              <div className="grid gap-5 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Jméno</FormLabel>
+                      <FormControl>
+                        <Input
+                          autoComplete="given-name"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="min-h-0" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Příjmení</FormLabel>
+                      <FormControl>
+                        <Input
+                          autoComplete="family-name"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="min-h-0" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telefon</FormLabel>
+                    <FormControl>
+                      <PhoneField {...field} />
+                    </FormControl>
+                    <FormMessage className="min-h-0" />
+                  </FormItem>
+                )}
+              />
+              {save.isError ? (
+                <FormError
+                  title="Profil se nepodařilo uložit"
+                  message={
+                    readApiError(save.error).status === 400
+                      ? "Zkontrolujte zadané údaje a uložte je znovu."
+                      : "Zkontrolujte připojení a zkuste to znovu."
+                  }
+                />
+              ) : null}
+            </div>
+          </CardContent>
+          <CardFooter className="justify-end">
+            <PendingButton
+              type="submit"
+              isPending={save.isPending}
+            >
+              {save.isPending ? "Ukládám…" : "Uložit profil"}
+            </PendingButton>
+          </CardFooter>
+        </Card>
       </form>
     </Form>
   )

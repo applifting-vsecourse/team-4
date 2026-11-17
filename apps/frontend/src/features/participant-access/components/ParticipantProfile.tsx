@@ -39,7 +39,7 @@ export function ParticipantProfile({ sessionEnded }: ParticipantProfileProps) {
       ) : (
         <LoadingBlock
           label="Načítání profilu"
-          className="max-w-xl space-y-4"
+          className="max-w-2xl space-y-4"
         >
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
