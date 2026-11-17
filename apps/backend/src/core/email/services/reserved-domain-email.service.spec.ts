@@ -1,4 +1,7 @@
-import { EmailService } from '@/core/email/interfaces/email-service.interface';
+import {
+  EmailService,
+  InlineImage,
+} from '@/core/email/interfaces/email-service.interface';
 import {
   isReservedAddress,
   ReservedDomainEmailService,
@@ -43,6 +46,25 @@ describe('ReservedDomainEmailService', () => {
       service.sendEmail('eva@example.test', 'Hi', '<p>x</p>'),
     ).resolves.toEqual({ sent: true, messageId: null });
     expect(inner.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('forwards the inline images of a real message', async () => {
+    const { inner, service } = build();
+    const image: InlineImage = {
+      cid: 'logo',
+      filename: 'logo.png',
+      contentType: 'image/png',
+      content: Buffer.from('png'),
+    };
+
+    await service.sendEmail('krom13@vse.cz', 'Hi', '<p>x</p>', [image]);
+
+    expect(inner.sendEmail).toHaveBeenCalledWith(
+      'krom13@vse.cz',
+      'Hi',
+      '<p>x</p>',
+      [image],
+    );
   });
 
   it('forwards mail to a real address unchanged', async () => {

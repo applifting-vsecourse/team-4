@@ -12,6 +12,7 @@ import { Logger } from '@nestjs/common';
 const RESERVED_TLDS = ['test', 'invalid', 'example', 'localhost'];
 const RESERVED_DOMAINS = ['example.com', 'example.net', 'example.org'];
 
+/** Expects one bare address, which is what every caller passes. */
 export function isReservedAddress(address: string): boolean {
   const domain = address.trim().toLowerCase().split('@').pop() ?? '';
   const tld = domain.split('.').pop() ?? '';
@@ -38,7 +39,7 @@ export class ReservedDomainEmailService implements EmailService {
     inlineImages?: InlineImage[],
   ): Promise<SendResult> {
     if (isReservedAddress(to)) {
-      this.logger.log(
+      this.logger.warn(
         `Email "${subject}" not sent: recipient is on a reserved test domain`,
       );
       return { sent: true, messageId: null };
