@@ -638,6 +638,7 @@ describe('recipient and access', () => {
         'payment',
         'proposedTerms',
         'reason',
+        'selectedPriceMinor',
         'terms',
       ].sort(),
     );

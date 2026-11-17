@@ -10,6 +10,7 @@ const item = {
   organizationName: "Spolek",
   location: "Hlinsko",
   coverPhotoId: null,
+  registrationStatus: "open" as const,
   terms: [
     { id: uuid(1), label: "Turnus 1", startDate: "2027-07-04", endDate: "2027-07-17" },
     { id: uuid(2), label: "Turnus 2", startDate: "2027-08-01", endDate: "2027-08-14" },

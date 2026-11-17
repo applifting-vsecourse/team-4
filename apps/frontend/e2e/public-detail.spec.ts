@@ -84,6 +84,13 @@ test("the organizer's presentation is shown on the public detail, which leads to
   await expect(visitor.getByLabel("Jméno")).toHaveValue("Anna")
   await expect(visitor.getByRole("checkbox", { name: /2\. turnus/ })).toBeChecked()
 
+  // The event has participation terms (F07): readable on request, confirmed separately.
+  await visitor.getByRole("button", { name: "Zobrazit podmínky" }).click()
+  await expect(visitor.getByText("Vlastní spacák.")).toBeVisible()
+  await expect(
+    visitor.getByRole("checkbox", { name: /Potvrzuji, že jsem si přečetl\/a podmínky účasti/ }),
+  ).not.toBeChecked()
+
   await visitor.goto(`/e/${event.publicId}`)
   await visitor.getByRole("main").getByRole("link", { name: "Katalog akcí" }).click()
   await expect(visitor).toHaveURL(/\/events$/)

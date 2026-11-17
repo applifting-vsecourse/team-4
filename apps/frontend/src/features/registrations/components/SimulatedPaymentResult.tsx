@@ -1,9 +1,10 @@
 import { CheckCircle2, Info } from "lucide-react"
 
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-import { BalanceAmount } from "@/features/registrations/components/BalanceAmount"
+import { BalanceRow } from "@/features/registrations/components/BalanceRow"
 
 export type SimulatedPaymentResultProps = {
   /** "paid": a payment was just recorded; "nothing-to-pay": the debt is settled. */
@@ -49,23 +50,17 @@ export function SimulatedPaymentResult({
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          <dl className="space-y-2 text-sm">
+          <DefinitionList>
             {isPaid ? (
-              <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
-                <dt className="text-muted-foreground">Zaplaceno</dt>
-                <dd className="font-mono">{paidAmount}</dd>
-              </div>
+              <DefinitionRow label="Zaplaceno">
+                <span className="font-mono">{paidAmount}</span>
+              </DefinitionRow>
             ) : null}
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <dt className="font-medium">Zbývá zaplatit</dt>
-              <dd>
-                <BalanceAmount
-                  amount={remainingDebt}
-                  isSettled={isSettled}
-                />
-              </dd>
-            </div>
-          </dl>
+            <BalanceRow
+              amount={remainingDebt}
+              isSettled={isSettled}
+            />
+          </DefinitionList>
           {isSettled ? null : (
             <Button
               variant="outline"

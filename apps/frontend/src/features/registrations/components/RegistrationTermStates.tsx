@@ -1,11 +1,12 @@
-import { TermStateBadge, type TermState } from "@/features/registrations/components/ChangeSummary"
+import { ParticipationBadge } from "@/components/ParticipationBadge"
+import { type TermParticipation } from "@/lib/participation"
 
 export type TermStateRow = {
   id: string
   label: string
   /** Already formatted, e.g. "20. 11. – 22. 11. 2026 · 2 400 Kč". */
   details: string
-  state: TermState
+  state: TermParticipation
 }
 
 // Moje přihlášky → Detail přihlášky → Termíny (F35-2a): every term of the
@@ -23,7 +24,7 @@ export function RegistrationTermStates({ terms }: { terms: TermStateRow[] }) {
             <p className="font-medium wrap-break-word">{term.label}</p>
             <p className="text-muted-foreground">{term.details}</p>
           </div>
-          <TermStateBadge state={term.state} />
+          <ParticipationBadge status={term.state} />
         </li>
       ))}
     </ul>

@@ -6,7 +6,12 @@ import { apiUrl, failOn, failsOnRefresh, neverAnswer } from "@/screens/msw"
 import { eventUrl, organizerBackend, screenMeta, showsHeading } from "@/screens/screenMeta"
 import { refresh, showsText } from "@/screens/steps"
 
-import { makeRegistrationList } from "@/features/registrations/fixtures/registrations"
+import {
+  makeRegistrationList,
+  makeRegistrationSummary,
+  TERM_AUGUST,
+  TERM_JULY,
+} from "@/features/registrations/fixtures/registrations"
 
 const LIST = "/organizations/:organizationId/events/:eventId/registrations"
 const empty = () => [
@@ -37,8 +42,11 @@ export const Registrations: StoryObj<typeof meta> = {
   play: async (context) => {
     await showsHeading("Seznam přihlášek")(context)
     const { canvas } = context
-    const paymentHeader = await canvas.findByRole("columnheader", { name: "Platba" })
-    const paid = canvas.getByText("Zaplaceno", { exact: true })
+    const paymentHeader = await canvas.findByRole("columnheader", { name: "Stav platby" })
+    const paid = canvas.getByText("Zaplaceno", {
+      exact: true,
+      selector: 'span[data-slot="badge"]',
+    })
     const noPayment = canvas.getByText("Bez povinnosti", { exact: true })
     await expect(Math.abs(textLeft(paid) - textLeft(paymentHeader))).toBeLessThanOrEqual(1)
     await expect(Math.abs(textLeft(noPayment) - textLeft(paymentHeader))).toBeLessThanOrEqual(1)
@@ -47,19 +55,33 @@ export const Registrations: StoryObj<typeof meta> = {
 
 type Story = StoryObj<typeof meta>
 
-/**
- * Known defect kept visible: the loading placeholder has an aria-label without a
- * role (aria-prohibited-attr), so a11y reports it instead of failing.
- */
+/** One attendee signed up for both event terms. */
+export const AttendeeOnBothTerms: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      http.get(apiUrl(LIST), () =>
+        HttpResponse.json(
+          makeRegistrationList([
+            makeRegistrationSummary({
+              terms: [TERM_JULY, TERM_AUGUST],
+              amountDueMinor: 450_000,
+              paidMinor: 200_000,
+              balanceMinor: 250_000,
+              paymentState: "partial",
+            }),
+          ]),
+        ),
+      ),
+    )
+  },
+}
+
 export const Loading: Story = {
-  parameters: { a11y: { test: "todo" } },
   beforeEach: ({ msw }) => {
     msw.use(...neverAnswer("get", LIST))
   },
-  play: async ({ canvasElement }) => {
-    await waitFor(() =>
-      expect(canvasElement.querySelector('[aria-label="Načítání přihlášek"]')).not.toBeNull(),
-    )
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("status", { name: "Načítání přihlášek" })).toBeVisible()
   },
 }
 
@@ -94,7 +116,7 @@ export const NoRegistrations: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...empty())
   },
-  play: () => showsText("Tato akce zatím nemá žádné přihlášky."),
+  play: () => showsText("Tato akce zatím nemá žádné přihlášky"),
 }
 
 /** Filters from the URL match nothing: the way back to all registrations. */
@@ -107,14 +129,14 @@ export const NoMatch: Story = {
       ),
     )
   },
-  play: () => showsText("Žádná přihláška neodpovídá filtrům."),
+  play: () => showsText("Žádná přihláška neodpovídá filtrům"),
 }
 
 export const LoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", LIST))
   },
-  play: () => showsText("Data se nepodařilo načíst. Zkuste to znovu."),
+  play: () => showsText("Data se nepodařilo načíst"),
 }
 
 export const RefreshFailed: Story = {
@@ -124,6 +146,6 @@ export const RefreshFailed: Story = {
   play: async (context) => {
     await showsHeading("Seznam přihlášek")(context)
     await refresh(context.canvas)
-    await showsText(/Zobrazený seznam je z posledního úspěšného načtení/)
+    await showsText(/Zobrazené údaje jsou z posledního úspěšného načtení/)
   },
 }

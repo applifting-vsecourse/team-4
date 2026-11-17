@@ -1,133 +1,133 @@
+import { useRef } from "react"
+import { Search, X } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Field, FieldLabel } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 
-export const ALL_OPTIONS = "all"
-
-export type CatalogFilterOption = { value: string; label: string }
-
-export type CatalogFilterValues = {
-  /** `yyyy-MM-dd`, or "" when not set. */
-  dateFrom: string
-  dateTo: string
-  /** An option value, or `ALL_OPTIONS`. */
-  place: string
-  ageGroup: string
-}
+import type { CatalogFilter } from "@/features/public-events/api/publicEventSchemas"
+import { isCatalogFiltered } from "@/features/public-events/lib/catalogFilter"
 
 type EventCatalogFiltersProps = {
-  values: CatalogFilterValues
-  placeOptions: CatalogFilterOption[]
-  ageGroupOptions: CatalogFilterOption[]
-  /** Shows the "Vymazat filtry" button. */
-  hasActiveFilters: boolean
-  onChange: (values: CatalogFilterValues) => void
-  onClear: () => void
+  filter: CatalogFilter
+  onChange: (filter: CatalogFilter) => void
 }
 
-// Veřejný katalog akcí → filtry podle termínu, místa a věkové skupiny (F54-2).
-// Design only: every value is passed in.
-export function EventCatalogFilters({
-  values,
-  placeOptions,
-  ageGroupOptions,
-  hasActiveFilters,
-  onChange,
-  onClear,
-}: EventCatalogFiltersProps) {
+const textValue = (value: string) => (value.trim() ? value : undefined)
+
+// Veřejný katalog akcí → hledání podle názvu nebo organizátora a filtry podle
+// období, místa a otevřeného přihlašování (F54-2b).
+export function EventCatalogFilters({ filter, onChange }: EventCatalogFiltersProps) {
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
   return (
-    <form
-      aria-label="Filtry akcí"
-      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
-      onSubmit={(event) => event.preventDefault()}
-    >
-      <Field>
-        <FieldLabel htmlFor="catalog-date-from">Termín od</FieldLabel>
-        <DatePicker
-          id="catalog-date-from"
-          value={values.dateFrom}
-          onChange={(dateFrom) => onChange({ ...values, dateFrom })}
-          placeholder="Libovolný"
-        />
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="catalog-date-to">Termín do</FieldLabel>
-        <DatePicker
-          id="catalog-date-to"
-          value={values.dateTo}
-          onChange={(dateTo) => onChange({ ...values, dateTo })}
-          placeholder="Libovolný"
-        />
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="catalog-place">Místo</FieldLabel>
-        <Select
-          defaultValue={values.place}
-          onValueChange={(place) => onChange({ ...values, place })}
+    <Card>
+      <CardContent>
+        <form
+          role="search"
+          aria-label="Hledání akcí"
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+          onSubmit={(event) => event.preventDefault()}
         >
-          <SelectTrigger
-            id="catalog-place"
-            className="w-full"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_OPTIONS}>Všechna místa</SelectItem>
-            {placeOptions.map((option) => (
-              <SelectItem
-                key={option.value}
-                value={option.value}
+          <Field className="sm:col-span-2 lg:col-span-4">
+            <FieldLabel htmlFor="catalog-search">Hledat akci</FieldLabel>
+            <InputGroup>
+              <InputGroupAddon>
+                <Search aria-hidden="true" />
+              </InputGroupAddon>
+              <InputGroupInput
+                ref={searchInputRef}
+                id="catalog-search"
+                type="text"
+                role="searchbox"
+                value={filter.q ?? ""}
+                placeholder="Název akce nebo organizátor"
+                onChange={(event) =>
+                  onChange({ ...filter, q: textValue(event.currentTarget.value) })
+                }
+              />
+              {filter.q ? (
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    aria-label="Vymazat hledání"
+                    title="Vymazat hledání"
+                    size="icon-sm"
+                    onClick={() => {
+                      onChange({ ...filter, q: undefined })
+                      searchInputRef.current?.focus()
+                    }}
+                  >
+                    <X aria-hidden="true" />
+                  </InputGroupButton>
+                </InputGroupAddon>
+              ) : null}
+            </InputGroup>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="catalog-from">Termín od</FieldLabel>
+            <DatePicker
+              id="catalog-from"
+              value={filter.from ?? ""}
+              onChange={(from) => onChange({ ...filter, from: from || undefined })}
+              placeholder="Libovolný"
+              disabledAfter={filter.to}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="catalog-to">Termín do</FieldLabel>
+            <DatePicker
+              id="catalog-to"
+              value={filter.to ?? ""}
+              onChange={(to) => onChange({ ...filter, to: to || undefined })}
+              placeholder="Libovolný"
+              disabledBefore={filter.from}
+            />
+          </Field>
+          <Field className="sm:col-span-2">
+            <FieldLabel htmlFor="catalog-place">Místo</FieldLabel>
+            <Input
+              id="catalog-place"
+              value={filter.place ?? ""}
+              onChange={(event) =>
+                onChange({ ...filter, place: textValue(event.currentTarget.value) })
+              }
+            />
+          </Field>
+          <div className="flex flex-wrap items-center justify-between gap-3 sm:col-span-2 lg:col-span-4">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="catalog-open"
+                checked={filter.open ?? false}
+                onCheckedChange={(isChecked) =>
+                  onChange({ ...filter, open: isChecked ? true : undefined })
+                }
+              />
+              <Label htmlFor="catalog-open">Pouze akce s otevřeným přihlašováním</Label>
+            </div>
+            {/* Kept in place while hidden, so the panel never changes height. */}
+            <div className={isCatalogFiltered(filter) ? undefined : "invisible"}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => onChange({})}
               >
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="catalog-age-group">Věková skupina</FieldLabel>
-        <Select
-          defaultValue={values.ageGroup}
-          onValueChange={(ageGroup) => onChange({ ...values, ageGroup })}
-        >
-          <SelectTrigger
-            id="catalog-age-group"
-            className="w-full"
-          >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_OPTIONS}>Všechny věkové skupiny</SelectItem>
-            {ageGroupOptions.map((option) => (
-              <SelectItem
-                key={option.value}
-                value={option.value}
-              >
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
-      {hasActiveFilters ? (
-        <div className="sm:col-span-2 lg:col-span-4">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onClear}
-          >
-            Vymazat filtry
-          </Button>
-        </div>
-      ) : null}
-    </form>
+                <X />
+                Zrušit filtry
+              </Button>
+            </div>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   )
 }

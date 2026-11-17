@@ -6,7 +6,11 @@ import { screenMeta, showsHeading } from "@/screens/screenMeta"
 import { showsText } from "@/screens/steps"
 
 import { publicEventHandlers } from "@/features/public-events/fixtures/handlers"
-import { PUBLIC_EVENT, PUBLIC_ID } from "@/features/public-events/fixtures/publicEvent"
+import {
+  PUBLIC_EVENT,
+  PUBLIC_EVENT_WITHOUT_CONDITIONS,
+  PUBLIC_ID,
+} from "@/features/public-events/fixtures/publicEvent"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
 import {
   CONFIRMED_RESULT,
@@ -29,8 +33,11 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
+const CONFIRMATION = { name: /Potvrzuji, že jsem si přečetl\/a podmínky účasti/ }
+const CONDITIONS_REQUIRED = "Potvrďte, že jste si přečetli podmínky účasti."
+
 /** Fills the form for Turnus 1 the way a visitor would, then sends it. */
-async function register({ canvas }: Pick<StoryContext, "canvas">) {
+async function register({ canvas }: Pick<StoryContext, "canvas">, isConfirming = true) {
   await userEvent.click(
     await canvas.findByRole("checkbox", { name: /Turnus 1/ }, { timeout: 5000 }),
   )
@@ -38,6 +45,7 @@ async function register({ canvas }: Pick<StoryContext, "canvas">) {
   await userEvent.type(canvas.getByLabelText(/^Příjmení/), "Nováková")
   await userEvent.type(canvas.getByLabelText(/^E-mail/), "tereza.novakova@example.cz")
   await userEvent.type(canvas.getByLabelText(/^Telefon/), "+420 777 123 456")
+  if (isConfirming) await userEvent.click(canvas.getByRole("checkbox", CONFIRMATION))
   await userEvent.click(canvas.getByRole("button", { name: "Odeslat přihlášku" }))
 }
 
@@ -47,6 +55,87 @@ export const Form: Story = {
     await showsHeading(PUBLIC_EVENT.name)(context)
     const back = within(context.canvasElement).getByRole("link", { name: "Zpět na detail akce" })
     await expect(back).toHaveAttribute("href", `/e/${PUBLIC_ID}`)
+  },
+}
+
+/** The terms start collapsed beside an unchecked confirmation (F07). */
+export const ConditionsCollapsed: Story = {
+  play: async ({ canvas }) => {
+    const toggle = await canvas.findByRole(
+      "button",
+      { name: "Zobrazit podmínky" },
+      { timeout: 5000 },
+    )
+    await expect(toggle).toHaveAttribute("aria-expanded", "false")
+    await expect(canvas.getByRole("checkbox", CONFIRMATION)).not.toBeChecked()
+    await expect(canvas.queryByText(/Záloha 2 000 Kč/)).not.toBeInTheDocument()
+  },
+}
+
+/** Opening the terms shows the current text in the form and does not tick the confirmation (F07). */
+export const ConditionsExpanded: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "Zobrazit podmínky" }, { timeout: 5000 }),
+    )
+    await expect(canvas.getByText(/Záloha 2 000 Kč/)).toBeVisible()
+    await expect(canvas.getByRole("checkbox", CONFIRMATION)).not.toBeChecked()
+  },
+}
+
+/** The confirmation ticked on its own, without opening the terms (F07). */
+export const ConditionsConfirmed: Story = {
+  play: async ({ canvas }) => {
+    const confirmation = await canvas.findByRole("checkbox", CONFIRMATION, { timeout: 5000 })
+    await userEvent.click(confirmation)
+    await expect(confirmation).toBeChecked()
+    await expect(canvas.getByRole("button", { name: "Zobrazit podmínky" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    )
+  },
+}
+
+/** Without terms there is no checkbox and no link, and the form is sent without confirming (F07). */
+export const NoConditions: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...publicEventHandlers.detail(PUBLIC_EVENT_WITHOUT_CONDITIONS))
+  },
+  play: async (context) => {
+    const { canvas } = context
+    await canvas.findByRole("checkbox", { name: /Turnus 1/ }, { timeout: 5000 })
+    await expect(canvas.queryByRole("checkbox", CONFIRMATION)).not.toBeInTheDocument()
+    await expect(canvas.queryByRole("button", { name: "Zobrazit podmínky" })).toBeNull()
+    await register(context, false)
+    await expect(await canvas.findByRole("heading", { name: "Přihláška je uložená" })).toBeVisible()
+  },
+}
+
+/** Sent without the confirmation: nothing is sent and the form says what is needed (F07). */
+export const ConditionsNotConfirmed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...neverAnswer("post", SUBMIT))
+  },
+  play: async (context) => {
+    await register(context, false)
+    await showsText(CONDITIONS_REQUIRED)
+    await expect(context.canvas.getByRole("button", { name: "Odeslat přihlášku" })).toBeEnabled()
+  },
+}
+
+/** The server refuses a submission without the confirmation: explained at the checkbox (F07). */
+export const ConditionsRefusedByServer: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...failOn("post", SUBMIT, 400, {
+        code: "conditions_unconfirmed",
+        message: CONDITIONS_REQUIRED,
+      }),
+    )
+  },
+  play: async (context) => {
+    await register(context)
+    await showsText(CONDITIONS_REQUIRED)
   },
 }
 

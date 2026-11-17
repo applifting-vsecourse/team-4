@@ -1,5 +1,4 @@
 import * as React from "react"
-import type { Label as LabelPrimitive } from "radix-ui"
 import { Slot } from "radix-ui"
 import {
   Controller,
@@ -11,7 +10,7 @@ import {
   type FieldValues,
 } from "react-hook-form"
 
-import { Label } from "@/components/ui/label"
+import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { cn } from "@/lib/utils"
 
 const Form = FormProvider
@@ -72,21 +71,20 @@ function FormItem({ className, ...props }: React.ComponentProps<"div">) {
 
   return (
     <FormItemContext.Provider value={{ id }}>
-      <div
-        data-slot="form-item"
-        className={cn("grid gap-2", className)}
+      <Field
+        data-form-slot="form-item"
+        className={className}
         {...props}
       />
     </FormItemContext.Provider>
   )
 }
 
-function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
+function FormLabel({ className, ...props }: React.ComponentProps<typeof FieldLabel>) {
   const { error, formItemId } = useFormField()
 
   return (
-    <Label
-      data-slot="form-label"
+    <FieldLabel
       data-error={!!error}
       className={cn("data-[error=true]:text-destructive", className)}
       htmlFor={formItemId}
@@ -113,30 +111,31 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
   const { formDescriptionId } = useFormField()
 
   return (
-    <p
-      data-slot="form-description"
+    <FieldDescription
       id={formDescriptionId}
-      className={cn("text-sm text-muted-foreground", className)}
+      data-form-slot="form-description"
+      className={className}
       {...props}
     />
   )
 }
 
-function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
+function FormMessage({ className, children, ...props }: React.ComponentProps<typeof FieldError>) {
   const { error, formMessageId } = useFormField()
-  const body = error ? String(error?.message ?? "") : props.children
+  const body = error ? String(error?.message ?? "") : children
 
   // Rendered even without a message: its reserved line keeps the fields below
   // from jumping when an error appears.
   return (
-    <p
+    <FieldError
+      reserveSpace
       data-slot="form-message"
       id={formMessageId}
-      className={cn("min-h-5 text-sm text-destructive", className)}
+      className={cn("min-h-5", className)}
       {...props}
     >
       {body}
-    </p>
+    </FieldError>
   )
 }
 

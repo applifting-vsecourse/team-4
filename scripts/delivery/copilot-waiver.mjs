@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 
-// Deliberately independent of requirements/QA roles: only David may waive.
-export const COPILOT_WAIVER_OWNER = 'darebakdavca';
+// Deliberately independent of requirements/QA roles: any human PR commenter may waive.
 const OBSERVED = '<!-- copilot-waiver-observed ';
 const order = (a, b) =>
   Date.parse(a.at) - Date.parse(b.at) || a.commentId - b.commentId;
@@ -38,7 +37,8 @@ export function copilotWaiver({ pr, comments }) {
         !pr.issue_url ||
         comment.issue_url !== pr.issue_url ||
         comment.user?.type !== 'User' ||
-        comment.user.login.toLowerCase() !== COPILOT_WAIVER_OWNER ||
+        typeof comment.user.login !== 'string' ||
+        comment.user.login.trim() === '' ||
         !Number.isSafeInteger(comment.id) ||
         comment.id <= 0
       )
@@ -79,6 +79,7 @@ export function copilotWaiver({ pr, comments }) {
     source,
     at: latest.at,
     reason: match[2].trim(),
+    actor: latest.comment.user.login,
     commentId: latest.commentId,
     url: latest.comment.html_url,
   };

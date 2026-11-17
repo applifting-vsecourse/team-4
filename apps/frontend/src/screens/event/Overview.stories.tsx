@@ -225,26 +225,19 @@ export const SummaryLoading: StoryObj<typeof meta> = {
     msw.use(...neverAnswer("get", `${EVENT}/registrations`))
   },
   play: async ({ canvas }) => {
-    await expect(await canvas.findByRole("group", { name: "Načítání souhrnu" })).toBeVisible()
+    await expect(await canvas.findByRole("status", { name: "Načítání souhrnu" })).toBeVisible()
     await showsText("Žádné žádosti nečekají na vaše rozhodnutí.")
   },
 }
 
-/**
- * Known defect kept visible: the loading placeholder of pending requests has an
- * aria-label without a role (aria-prohibited-attr), so a11y reports it instead of failing.
- */
 export const PendingApprovalsLoading: StoryObj<typeof meta> = {
-  parameters: { a11y: { test: "todo" } },
   beforeEach: ({ msw }) => {
     msw.use(...neverAnswer("get", `${EVENT}/change-requests`))
   },
-  play: async ({ canvasElement }) => {
-    await waitFor(() =>
-      expect(
-        canvasElement.querySelector('[aria-label="Načítání čekajících žádostí"]'),
-      ).not.toBeNull(),
-    )
+  play: async ({ canvas }) => {
+    await expect(
+      await canvas.findByRole("status", { name: "Načítání čekajících žádostí" }),
+    ).toBeVisible()
   },
 }
 
@@ -253,7 +246,7 @@ export const SummaryLoadFailed: StoryObj<typeof meta> = {
     msw.use(...failOn("get", `${EVENT}/registrations`))
   },
   play: async () => {
-    await showsText("Souhrn se nepodařilo načíst.")
+    await showsText("Souhrn se nepodařilo načíst")
     await showsText("Žádné žádosti nečekají na vaše rozhodnutí.")
   },
 }
@@ -262,7 +255,7 @@ export const PendingApprovalsLoadFailed: StoryObj<typeof meta> = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", `${EVENT}/change-requests`))
   },
-  play: () => showsText("Čekající žádosti se nepodařilo načíst."),
+  play: () => showsText("Čekající žádosti se nepodařilo načíst"),
 }
 
 /** Open without a term: none can be added any more. */

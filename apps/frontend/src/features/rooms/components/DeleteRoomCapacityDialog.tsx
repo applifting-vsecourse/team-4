@@ -1,6 +1,4 @@
-import { Loader2 } from "lucide-react"
-
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -62,36 +60,14 @@ export function DeleteRoomCapacityDialog({
   }
 
   return (
-    <Dialog
-      open={isOpen}
+    <ConfirmDeleteDialog
+      isOpen={isOpen}
       onOpenChange={onOpenChange}
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Odstranit pokoj „{label}“?</DialogTitle>
-          <DialogDescription>
-            Pokoj se z akce trvale odstraní a kapacita termínů, ve kterých byl dostupný, se sníží.
-          </DialogDescription>
-        </DialogHeader>
-        {errorMessage ? (
-          <Alert variant="destructive">
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        ) : null}
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Zrušit</Button>
-          </DialogClose>
-          <Button
-            variant="destructive"
-            disabled={isDeleting}
-            onClick={onConfirm}
-          >
-            {isDeleting ? <Loader2 className="size-4 animate-spin" /> : null}
-            Odstranit
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      title={`Odstranit pokoj „${label}“?`}
+      consequence="Pokoj se z akce trvale odstraní a kapacita termínů, ve kterých byl dostupný, se sníží."
+      errorMessage={errorMessage}
+      isDeleting={isDeleting}
+      onConfirm={onConfirm}
+    />
   )
 }

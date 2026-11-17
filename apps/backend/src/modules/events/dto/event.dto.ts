@@ -289,6 +289,13 @@ export class PublicEventDto {
   })
   isPublished!: boolean;
 
+  @ApiProperty({
+    description:
+      'Participation terms (F07), possibly with cancellation information. ' +
+      'Empty when the event has none; a registration then needs no confirmation.',
+  })
+  conditions!: string;
+
   static from(model: PublicEventModel): PublicEventDto {
     return {
       name: model.name,
@@ -302,6 +309,7 @@ export class PublicEventDto {
         priceMinor: term.priceMinor,
       })),
       isPublished: model.isPublished,
+      conditions: model.conditions,
     };
   }
 }
@@ -406,6 +414,12 @@ export class PublicCatalogItemDto {
   coverPhotoId!: string | null;
 
   @ApiProperty({
+    enum: REGISTRATION_STATUSES,
+    description: '`not-open` before the first opening.',
+  })
+  registrationStatus!: PublicRegistrationStatus;
+
+  @ApiProperty({
     type: [PublicCatalogItemTermDto],
     description: 'By start date.',
   })
@@ -418,6 +432,7 @@ export class PublicCatalogItemDto {
       organizationName: model.organizationName,
       location: model.location,
       coverPhotoId: model.coverPhotoId,
+      registrationStatus: model.registrationStatus,
       terms: model.terms.map((term) => ({
         id: term.id,
         label: term.label,

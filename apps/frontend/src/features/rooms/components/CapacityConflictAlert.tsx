@@ -1,4 +1,4 @@
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
 
 export type CapacityConflict = {
   termLabel: string
@@ -19,9 +19,9 @@ export const capacityConflictMessage = (conflicts: CapacityConflict[]) =>
 // saved (F11-1). Design only: the affected terms are passed in.
 export function CapacityConflictAlert({ conflicts }: { conflicts: CapacityConflict[] }) {
   return (
-    <Alert variant="destructive">
-      <AlertTitle>Změnu nelze uložit</AlertTitle>
-      <AlertDescription>{capacityConflictMessage(conflicts)}</AlertDescription>
-    </Alert>
+    <FormError
+      title="Změnu nelze uložit"
+      message={capacityConflictMessage(conflicts)}
+    />
   )
 }

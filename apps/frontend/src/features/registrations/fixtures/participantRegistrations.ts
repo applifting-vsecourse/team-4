@@ -108,7 +108,30 @@ export const SETTLED_REGISTRATION: ParticipantRegistration = participantRegistra
   canChange: true,
 })
 
-export const OWN_REGISTRATIONS: ParticipantRegistration[] = [OWN_REGISTRATION, SETTLED_REGISTRATION]
+/** A registration whose selected term has already ended. */
+const PAST_REGISTRATION: ParticipantRegistration = participantRegistrationSchema.parse({
+  ...SETTLED_REGISTRATION,
+  id: uuid(7),
+  receivedAt: "2025-02-11T18:40:00.000Z",
+  event: { name: "Jarní výlet na Sněžku 2025", location: "Pec pod Sněžkou" },
+  terms: SETTLED_REGISTRATION.terms.map((term) => ({
+    ...term,
+    termId: uuid(105),
+    startDate: "2025-04-17",
+    endDate: "2025-04-17",
+  })),
+  payments: SETTLED_REGISTRATION.payments.map((payment) => ({
+    ...payment,
+    id: uuid(503),
+    receivedOn: "2025-02-14",
+  })),
+})
+
+export const OWN_REGISTRATIONS: ParticipantRegistration[] = [
+  OWN_REGISTRATION,
+  SETTLED_REGISTRATION,
+  PAST_REGISTRATION,
+]
 
 /** Terms of the event the registration could move to. */
 export const AVAILABLE_TERMS = [

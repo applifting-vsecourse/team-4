@@ -28,12 +28,13 @@ type Story = StoryObj<typeof meta>
 /** The programme of one term, by day (F65). */
 export const TermProgramme: Story = { play: () => showsText(FIRST) }
 
-/** While loading, the programme reads as empty: no skeleton (as the app renders it). */
 export const Loading: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...neverAnswer("get", PROGRAMME))
   },
-  play: () => showsText("Program zatím nemá žádné položky"),
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("status", { name: "Načítání programu" })).toBeVisible()
+  },
 }
 
 export const Empty: Story = {
@@ -47,7 +48,7 @@ export const LoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", PROGRAMME))
   },
-  play: () => showsText("Program se nepodařilo načíst."),
+  play: () => showsText("Program se nepodařilo načíst"),
 }
 
 export const AddItemDialog: Story = {
@@ -79,8 +80,8 @@ export const SaveFailed: Story = {
 
 export const DeleteItemDialog: Story = {
   play: async ({ canvas }) => {
-    const dialog = await openDialog(canvas, `Smazat položku ${FIRST}`)
-    await expect(within(dialog).getByRole("button", { name: "Smazat" })).toBeVisible()
+    const dialog = await openDialog(canvas, `Odstranit položku ${FIRST}`)
+    await expect(within(dialog).getByRole("button", { name: "Odstranit" })).toBeVisible()
   },
 }
 
@@ -89,9 +90,9 @@ export const DeleteFailed: Story = {
     msw.use(...failOn("delete", `${PROGRAMME}/:itemId`))
   },
   play: async ({ canvas }) => {
-    const dialog = await openDialog(canvas, `Smazat položku ${FIRST}`)
-    await userEvent.click(within(dialog).getByRole("button", { name: "Smazat" }))
-    await showsText("Položku se nepodařilo smazat. Zkuste to prosím znovu.")
+    const dialog = await openDialog(canvas, `Odstranit položku ${FIRST}`)
+    await userEvent.click(within(dialog).getByRole("button", { name: "Odstranit" }))
+    await showsText("Položku se nepodařilo odstranit. Zkuste to prosím znovu.")
   },
 }
 

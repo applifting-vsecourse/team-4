@@ -1,15 +1,18 @@
-import { useEffect, type FormEvent } from "react"
+import { useEffect, useMemo, type FormEvent } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { CalendarX, Loader2 } from "lucide-react"
+import { CalendarX } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 
 import { ROUTES } from "@/app/routes"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { EmptyState } from "@/components/EmptyState"
+import { FormError } from "@/components/FormError"
+import { Notice } from "@/components/Notice"
+import { PendingButton } from "@/components/PendingButton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { Field, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
 import {
   Form,
   FormControl,
@@ -19,7 +22,6 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 import { toE164 } from "@/lib/phone"
@@ -31,14 +33,18 @@ import {
   type SelectableTerm,
 } from "@/features/registrations/api/registrationSchemas"
 import { GenderField } from "@/features/registrations/components/GenderField"
+import { ParticipationConditionsField } from "@/features/registrations/components/ParticipationConditionsField"
 import { PhoneField } from "@/features/registrations/components/PhoneField"
 import { RegistrationNeedsFields } from "@/features/registrations/components/RegistrationNeedsFields"
-import { type RegistrationSubmitError } from "@/features/registrations/lib/registrationErrors"
+import {
+  CONDITIONS_MESSAGE,
+  type RegistrationSubmitError,
+} from "@/features/registrations/lib/registrationErrors"
 import { registrationNeedsFormSchema } from "@/features/registrations/lib/registrationNeeds"
 
 const PHONE_MESSAGE = "Zadejte platné telefonní číslo pro vybranou zemi, např. 777 123 456."
 
-const schema = z.object({
+const baseSchema = z.object({
   firstName: z
     .string()
     .trim()
@@ -66,9 +72,19 @@ const schema = z.object({
   /** Own words for "Jiná odpověď"; sent only beside it. */
   genderOther: genderOtherSchema,
   needs: registrationNeedsFormSchema,
+  /** Read-confirmation of the participation terms (F07); never persisted. */
+  conditionsConfirmed: z.boolean(),
 })
 
-export type RegistrationFormValues = z.infer<typeof schema>
+export type RegistrationFormValues = z.infer<typeof baseSchema>
+
+// Confirmation is required only when the event has participation terms.
+const createSchema = (isRequired: boolean) =>
+  isRequired
+    ? baseSchema.extend({
+        conditionsConfirmed: z.boolean().refine((isConfirmed) => isConfirmed, CONDITIONS_MESSAGE),
+      })
+    : baseSchema
 
 const EMPTY: RegistrationFormValues = {
   firstName: "",
@@ -79,14 +95,17 @@ const EMPTY: RegistrationFormValues = {
   gender: null,
   genderOther: null,
   needs: NO_NEEDS,
+  conditionsConfirmed: false,
 }
 
 type RegistrationFormProps = {
   terms: SelectableTerm[]
-  /** Values to start from, e.g. a draft kept for the browser tab. */
-  initialValues?: RegistrationFormValues | null
+  /** Participation terms of the event (F07); blank means nothing to confirm. */
+  conditions: string
+  /** Values to start from, e.g. a draft kept for the browser tab; never a confirmation. */
+  initialValues?: Omit<RegistrationFormValues, "conditionsConfirmed"> | null
   /** Every change of the typed values, e.g. to keep them as a draft. */
-  onValuesChange?: (values: RegistrationFormValues) => void
+  onValuesChange?: (values: Omit<RegistrationFormValues, "conditionsConfirmed">) => void
   isSubmitting: boolean
   submitError: RegistrationSubmitError | null
   onSubmit: (values: RegistrationFormValues) => void
@@ -98,16 +117,20 @@ type RegistrationFormProps = {
 // term when saving (S2-08), and a full term can be selected like any other.
 export function RegistrationForm({
   terms,
+  conditions,
   initialValues,
   onValuesChange,
   isSubmitting,
   submitError,
   onSubmit,
 }: RegistrationFormProps) {
+  const hasConditions = conditions.trim() !== ""
+  const schema = useMemo(() => createSchema(hasConditions), [hasConditions])
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(schema),
     shouldFocusError: false,
-    defaultValues: initialValues ?? EMPTY,
+    // A confirmation is never carried over from an earlier visit.
+    defaultValues: { ...(initialValues ?? EMPTY), conditionsConfirmed: false },
   })
   const { setError } = form
   const selectedIds = useWatch({ control: form.control, name: "termIds" })
@@ -134,6 +157,9 @@ export function RegistrationForm({
     if (submitError?.kind === "terms") {
       setError("termIds", { type: "server", message: submitError.message })
     }
+    if (submitError?.kind === "conditions") {
+      setError("conditionsConfirmed", { type: "server", message: submitError.message })
+    }
   }, [submitError, setError])
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -151,20 +177,11 @@ export function RegistrationForm({
 
   if (terms.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed">
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <CalendarX />
-            </EmptyMedia>
-            <EmptyTitle>Akce nemá termíny k výběru</EmptyTitle>
-            <EmptyDescription>
-              Pořadatel zatím nevypsal žádný termín, a proto se na akci nelze přihlásit. Zkuste to
-              později.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      </div>
+      <EmptyState
+        icon={CalendarX}
+        title="Akce nemá termíny k výběru"
+        description="Pořadatel zatím nevypsal žádný termín, a proto se na akci nelze přihlásit. Zkuste to později."
+      />
     )
   }
 
@@ -185,48 +202,55 @@ export function RegistrationForm({
             name="termIds"
             render={({ field, fieldState }) => (
               <FormItem>
-                <fieldset className="space-y-3">
-                  <legend className="mb-3 flex w-full flex-wrap items-center gap-3 text-h4">
+                <FieldSet>
+                  <FieldLegend>
                     <span>Termíny</span>
                     <Badge variant="outline">Povinné</Badge>
-                  </legend>
-                  {terms.map((term) => {
-                    const id = `registration-term-${term.id}`
-                    return (
-                      <div
-                        key={term.id}
-                        className="relative flex items-center gap-3 rounded-lg border border-border bg-card p-3 has-data-[state=checked]:border-foreground"
-                      >
-                        <Checkbox
-                          id={id}
-                          aria-invalid={fieldState.error ? true : undefined}
-                          checked={field.value.includes(term.id)}
-                          onCheckedChange={(checked) =>
-                            field.onChange(
-                              checked === true
-                                ? [...field.value, term.id]
-                                : field.value.filter((termId) => termId !== term.id),
-                            )
-                          }
-                        />
-                        <Label
-                          htmlFor={id}
-                          className="relative min-w-0 flex-1 after:absolute after:inset-0"
+                  </FieldLegend>
+                  <div className="space-y-3">
+                    {terms.map((term) => {
+                      const id = `registration-term-${term.id}`
+                      return (
+                        <div
+                          key={term.id}
+                          className="relative rounded-lg border border-border bg-card p-3 has-data-[state=checked]:border-foreground"
                         >
-                          <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                            <span className="min-w-0 break-words">
-                              {term.label}
-                              <span className="mt-2 block font-normal text-muted-foreground">
-                                {formatCalendarRange(term.startDate, term.endDate)}
+                          <Field
+                            orientation="horizontal"
+                            data-invalid={fieldState.error ? true : undefined}
+                          >
+                            <Checkbox
+                              id={id}
+                              aria-invalid={fieldState.error ? true : undefined}
+                              checked={field.value.includes(term.id)}
+                              onCheckedChange={(checked) =>
+                                field.onChange(
+                                  checked === true
+                                    ? [...field.value, term.id]
+                                    : field.value.filter((termId) => termId !== term.id),
+                                )
+                              }
+                            />
+                            <FieldLabel
+                              htmlFor={id}
+                              className="relative min-w-0 flex-1 after:absolute after:inset-0"
+                            >
+                              <span className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                                <span className="min-w-0 break-words">
+                                  {term.label}
+                                  <span className="mt-2 block font-normal text-muted-foreground">
+                                    {formatCalendarRange(term.startDate, term.endDate)}
+                                  </span>
+                                </span>
+                                <span className="tabular-nums">{formatCzk(term.priceMinor)}</span>
                               </span>
-                            </span>
-                            <span className="tabular-nums">{formatCzk(term.priceMinor)}</span>
-                          </span>
-                        </Label>
-                      </div>
-                    )
-                  })}
-                </fieldset>
+                            </FieldLabel>
+                          </Field>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </FieldSet>
                 <FormMessage className="min-h-0" />
               </FormItem>
             )}
@@ -253,11 +277,13 @@ export function RegistrationForm({
           </div>
         </section>
 
-        <fieldset className="space-y-5">
-          <legend className="mb-5 flex w-full flex-wrap items-center gap-3 text-h4">
-            <span>Kontaktní údaje</span>
-            <Badge variant="outline">Povinné</Badge>
-          </legend>
+        <FieldSet>
+          <FieldLegend>
+            <span className="flex w-full flex-wrap items-center gap-3">
+              <span className="text-h4">Kontaktní údaje</span>
+              <Badge variant="outline">Povinné</Badge>
+            </span>
+          </FieldLegend>
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
               control={form.control}
@@ -333,7 +359,7 @@ export function RegistrationForm({
               </FormItem>
             )}
           />
-        </fieldset>
+        </FieldSet>
 
         <section
           aria-label="Doplňující údaje"
@@ -359,8 +385,8 @@ export function RegistrationForm({
             )}
           />
 
-          <fieldset className="space-y-4">
-            <legend className="sr-only">Doprava, strava a zdraví</legend>
+          <FieldSet>
+            <FieldLegend className="sr-only">Doprava, strava a zdraví</FieldLegend>
             <FormField
               control={form.control}
               name="needs"
@@ -377,20 +403,31 @@ export function RegistrationForm({
                 />
               )}
             />
-          </fieldset>
+          </FieldSet>
         </section>
 
-        {submitError ? <SubmitErrorAlert error={submitError} /> : null}
+        {hasConditions ? (
+          <ParticipationConditionsField
+            control={form.control}
+            conditions={conditions}
+          />
+        ) : null}
 
-        <Button
+        {submitError ? (
+          <SubmitErrorAlert
+            error={submitError}
+            hasConditionsField={hasConditions}
+          />
+        ) : null}
+
+        <PendingButton
           type="submit"
           size="lg"
           className="w-full max-w-sm sm:w-auto"
-          disabled={isSubmitting}
+          isPending={isSubmitting}
         >
-          {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
           {isSubmitting ? "Odesílám přihlášku…" : "Odeslat přihlášku"}
-        </Button>
+        </PendingButton>
       </form>
     </Form>
   )
@@ -408,39 +445,47 @@ function RequiredMark() {
   )
 }
 
-function SubmitErrorAlert({ error }: { error: RegistrationSubmitError }) {
+function SubmitErrorAlert({
+  error,
+  hasConditionsField,
+}: {
+  error: RegistrationSubmitError
+  hasConditionsField: boolean
+}) {
   if (error.kind === "terms") return null
+  // The terms were added after this form loaded, so it has no checkbox to
+  // explain the refusal at: ask for a reload instead of failing silently.
+  if (error.kind === "conditions") {
+    return hasConditionsField ? null : (
+      <FormError message="Akce má nově podmínky účasti. Načtěte stránku znovu, přečtěte si je a potvrďte. Vyplněné údaje zůstanou zachované." />
+    )
+  }
   if (error.kind === "already_registered") {
     return (
-      <Alert>
-        <AlertTitle>Přihláška s tímto e-mailem již existuje</AlertTitle>
-        <AlertDescription>
+      <Notice
+        tone="info"
+        title="Přihláška s tímto e-mailem již existuje"
+      >
+        <p>
           Na tuto akci je s tímto e-mailem už přihláška uložená. Novou jsme nevytvořili a údaje té
           existující tady nezobrazujeme. Přihlášku uvidíte po ověření odkazem z e-mailu.
-        </AlertDescription>
+        </p>
         <Button
           variant="outline"
           size="sm"
-          className="mt-2 w-fit"
           asChild
         >
           <a href={ROUTES.myRegistrations}>Vyžádat přihlašovací odkaz</a>
         </Button>
-      </Alert>
+      </Notice>
     )
   }
-  return (
-    <Alert variant="destructive">
-      {error.kind === "unavailable" ? (
-        <>
-          <AlertTitle>Přihlašování není dostupné</AlertTitle>
-          <AlertDescription>
-            Na tuto akci se teď nelze přihlásit. Přihláška nebyla uložena.
-          </AlertDescription>
-        </>
-      ) : (
-        <AlertDescription>{error.message}</AlertDescription>
-      )}
-    </Alert>
+  return error.kind === "unavailable" ? (
+    <FormError
+      title="Přihlašování není dostupné"
+      message="Na tuto akci se teď nelze přihlásit. Přihláška nebyla uložena."
+    />
+  ) : (
+    <FormError message={error.message} />
   )
 }

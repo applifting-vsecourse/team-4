@@ -278,11 +278,12 @@ test(sprintReviewTitle, async ({ page, browser }) => {
           `/my-registrations/verify?token=${await createMagicLink(participant.email)}`,
         )
       }
+      await mobile.getByRole("button", { name: "Proběhlé akce (1)" }).click()
       await mobile
         .getByRole("link", { name: `Detail přihlášky ${eventName}` })
         .and(mobile.locator(`[href="/my-registrations/${registrationId}"]`))
         .click()
-      await expect(definition(mobile, "Zaplaceno")).toHaveText("2 500 Kč")
+      await expect(definition(mobile, "Zbývá zaplatit")).toHaveText("0 Kč")
       await mobileFits()
     })
     await endDemo(mobileWindow)

@@ -2,7 +2,9 @@ import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 
 import { ROUTES } from "@/app/routes"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageSection } from "@/components/PageSection"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -33,36 +35,25 @@ export function EventOverviewSummary({
 
   if (query.isError && !query.data) {
     return (
-      <Alert variant="destructive">
-        <AlertTitle>Souhrn se nepodařilo načíst.</AlertTitle>
-        <AlertDescription>
-          <p>Počty přihlášek, obsazenost a platby teď nejsou k dispozici.</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2"
-            onClick={() => void query.refetch()}
-            disabled={query.isFetching}
-          >
-            Zkusit znovu
-          </Button>
-        </AlertDescription>
-      </Alert>
+      <LoadError
+        title="Souhrn se nepodařilo načíst"
+        description="Počty přihlášek, obsazenost a platby teď nejsou k dispozici."
+        isRetrying={query.isFetching}
+        onRetry={() => query.refetch()}
+      />
     )
   }
 
   if (!query.data) {
     return (
-      <div
+      <LoadingBlock
+        label="Načítání souhrnu"
         className="grid gap-4 md:grid-cols-3"
-        role="group"
-        aria-label="Načítání souhrnu"
-        aria-busy
       >
         <Skeleton className="h-44 w-full" />
         <Skeleton className="h-44 w-full" />
         <Skeleton className="h-44 w-full" />
-      </div>
+      </LoadingBlock>
     )
   }
 
@@ -70,16 +61,7 @@ export function EventOverviewSummary({
   const params = { organizationId, eventId }
 
   return (
-    <section
-      aria-labelledby="overview-summary-heading"
-      className="space-y-4"
-    >
-      <h2
-        id="overview-summary-heading"
-        className="text-h4"
-      >
-        Souhrn akce
-      </h2>
+    <PageSection title="Souhrn akce">
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
@@ -199,6 +181,6 @@ export function EventOverviewSummary({
           </CardFooter>
         </Card>
       </div>
-    </section>
+    </PageSection>
   )
 }

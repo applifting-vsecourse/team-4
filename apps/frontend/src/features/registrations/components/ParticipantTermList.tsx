@@ -1,8 +1,8 @@
+import { Money } from "@/components/Money"
+import { ParticipationBadge } from "@/components/ParticipationBadge"
 import { formatCalendarRange } from "@/lib/date"
-import { formatCzk } from "@/lib/money"
 
 import { type ParticipantTerm } from "@/features/registrations/api/participantRegistrationSchemas"
-import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
 
 // Every selected term with its own status, so a mixed registration reads the
 // same as any other (S2-14).
@@ -18,7 +18,7 @@ export function ParticipantTermList({ terms }: { terms: ParticipantTerm[] }) {
             <p className="font-medium wrap-break-word">{term.label}</p>
             <p className="text-muted-foreground">
               {formatCalendarRange(term.startDate, term.endDate)} ·{" "}
-              <span className="font-mono">{formatCzk(term.priceMinor)}</span>
+              <Money minor={term.priceMinor} />
             </p>
           </div>
           <ParticipationBadge status={term.status} />

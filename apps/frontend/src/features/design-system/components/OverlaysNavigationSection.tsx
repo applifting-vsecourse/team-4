@@ -86,6 +86,7 @@ function EventCombobox() {
         <Button
           variant="outline"
           role="combobox"
+          aria-label="Akce"
           aria-expanded={isOpen}
           className="w-full justify-between font-normal"
         >

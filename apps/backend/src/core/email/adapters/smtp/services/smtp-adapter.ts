@@ -30,7 +30,7 @@ export class SMTPAdapter implements EmailService {
     inlineImages: InlineImage[] = [],
   ): Promise<SendResult> {
     const info = await this.transporter.sendMail({
-      from: this.config.user,
+      from: this.config.from || this.config.user,
       to,
       subject,
       html,

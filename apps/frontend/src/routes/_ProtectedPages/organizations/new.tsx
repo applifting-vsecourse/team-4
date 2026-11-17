@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
+import { PageHeader } from "@/components/PageHeader"
 import { Seo } from "@/components/Seo"
 import { HTTPError } from "@/lib/api-client"
 
@@ -38,18 +39,16 @@ function NewOrganizationPage() {
   return (
     <section className="mx-auto w-full max-w-sm px-4 py-16">
       <Seo title="Založit organizaci" />
-      <h1 className="text-h2">Založit organizaci</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Stačí název. Organizace bude vaše a otevře se její seznam akcí.
-      </p>
-      <div className="mt-8">
-        <OrganizationForm
-          isLoading={createOrganization.isPending}
-          errorMessage={errorMessage}
-          nameError={nameError}
-          onSubmit={handleSubmit}
-        />
-      </div>
+      <PageHeader
+        title="Založit organizaci"
+        description="Stačí název. Organizace bude vaše a otevře se její seznam akcí."
+      />
+      <OrganizationForm
+        isLoading={createOrganization.isPending}
+        errorMessage={errorMessage}
+        nameError={nameError}
+        onSubmit={handleSubmit}
+      />
     </section>
   )
 }
