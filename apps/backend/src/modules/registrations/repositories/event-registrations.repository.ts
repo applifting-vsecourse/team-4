@@ -282,12 +282,15 @@ export class EventRegistrationsRepository {
           scope.eventId,
           terms.map((term) => term.termId),
         );
-        // A room proposal depends on it only where the person is confirmed.
-        await termLayoutChanged(
-          tx,
-          scope.eventId,
-          await confirmedTermsOf(tx, registrationId),
-        );
+        // A room proposal reads the answer, not the own words of "Jiná
+        // odpověď", and only where the person is confirmed (spec §7.1).
+        if (locked.gender !== answer.gender) {
+          await termLayoutChanged(
+            tx,
+            scope.eventId,
+            await confirmedTermsOf(tx, registrationId),
+          );
+        }
         // After the recomputation, so the message shows the saved result.
         await queueParticipantUpdate(tx, {
           registrationId,

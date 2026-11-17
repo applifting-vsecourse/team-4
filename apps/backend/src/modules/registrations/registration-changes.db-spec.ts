@@ -307,6 +307,9 @@ describe('changes without approval', () => {
       'Turnus 2': 'cancelled',
       'Turnus 3': 'pending',
     });
+    // The confirmed place left Turnus 2; the waiting one adds nobody to lay out.
+    expect(await layoutVersion(fixture, 1)).toBe(1);
+    expect(await layoutVersion(fixture, 2)).toBe(0);
     // Nothing is due until the organizer confirms the new term.
     const detail = await call('GET', base(registration), own(registration));
     expect(detail.body).toMatchObject({
