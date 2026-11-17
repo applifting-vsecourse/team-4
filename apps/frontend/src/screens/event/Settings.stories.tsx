@@ -5,6 +5,7 @@ import { failOn } from "@/screens/msw"
 import { eventUrl, organizerBackend, screenMeta, showsHeading } from "@/screens/screenMeta"
 import { openDialog, showsText } from "@/screens/steps"
 
+import { accommodationHandlers } from "@/features/accommodation/fixtures/handlers"
 import { DRAFT_EVENT, OPEN_EVENT } from "@/features/events/fixtures/events"
 import { eventHandlers } from "@/features/events/fixtures/handlers"
 import { ORGANIZATION } from "@/features/organizations/fixtures/organizations"
@@ -317,4 +318,49 @@ export const EventUnavailable: Story = {
     url: `/organizations/${ORGANIZATION.id}/events/0190c0de-0000-7000-8000-000000000999/settings`,
   },
   play: () => showsText("Záznam není dostupný"),
+}
+
+/** Pravidla ubytování (#384): rooms split by gender, switched off and saved. */
+export const HardAttribute: Story = {
+  play: async ({ canvas }) => {
+    const rules = await region(canvas, "Pravidla ubytování")
+    await expect(await rules.findByRole("radio", { name: "Pohlaví" })).toBeChecked()
+    await userEvent.click(rules.getByRole("radio", { name: "Nedělit" }))
+    await userEvent.click(rules.getByRole("button", { name: "Uložit" }))
+    await showsText("Pravidla ubytování byla uložena.")
+    await expect(rules.getByRole("radio", { name: "Nedělit" })).toBeChecked()
+  },
+}
+
+/** No hard attribute: only the beds of the rooms count. */
+export const NoHardAttribute: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...accommodationHandlers.hardAttribute(null))
+  },
+  play: async ({ canvas }) => {
+    const rules = await region(canvas, "Pravidla ubytování")
+    await expect(await rules.findByRole("radio", { name: "Nedělit" })).toBeChecked()
+  },
+}
+
+/** A failed save keeps the chosen option and says which rule still applies. */
+export const HardAttributeSaveFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("put", `${EVENT}/accommodation/hard-attribute`))
+  },
+  play: async ({ canvas }) => {
+    const rules = await region(canvas, "Pravidla ubytování")
+    await userEvent.click(await rules.findByRole("radio", { name: "Nedělit" }))
+    await userEvent.click(rules.getByRole("button", { name: "Uložit" }))
+    await showsText("Pravidlo se nepodařilo uložit")
+    await showsText("Pokoje se dál dělí podle: Pohlaví.")
+    await expect(rules.getByRole("radio", { name: "Nedělit" })).toBeChecked()
+  },
+}
+
+export const HardAttributeLoadFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("get", `${EVENT}/accommodation/hard-attribute`))
+  },
+  play: () => showsText("Pravidla ubytování se nepodařilo načíst"),
 }

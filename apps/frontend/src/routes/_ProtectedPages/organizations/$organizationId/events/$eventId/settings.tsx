@@ -13,6 +13,7 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { WorkspacePage } from "@/components/WorkspacePage"
 
 import { EvaluationModeSection } from "@/features/accommodation/components/EvaluationModeSection"
+import { HardAttributeSection } from "@/features/accommodation/components/HardAttributeSection"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { ChangeApprovalSection } from "@/features/events/components/ChangeApprovalSection"
@@ -26,6 +27,7 @@ import { RegistrationSection } from "@/features/events/components/RegistrationSe
 import { TermsSection } from "@/features/events/components/TermsSection"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
+import { eventRegistrationKeys } from "@/features/registrations/api/eventRegistrationQueryOptions"
 
 // Configuration of one event, ordered from basic details to opening registration.
 export const Route = createFileRoute(
@@ -119,6 +121,11 @@ function EventPage() {
         <PresentationSection
           organizationId={organizationId}
           event={event}
+        />
+        <HardAttributeSection
+          organizationId={organizationId}
+          eventId={eventId}
+          invalidate={eventRegistrationKeys.event(organizationId, eventId)}
         />
         <EvaluationModeSection
           organizationId={organizationId}

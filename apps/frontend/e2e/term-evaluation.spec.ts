@@ -1,12 +1,19 @@
 import { expect, test, type Page } from "@playwright/test"
 
-import { newParticipant, register, setUpEvent, type OpenEvent, type TermSpec } from "./support/api"
-import { closeDb, setGenderHardAttribute } from "./support/db"
+import {
+  newParticipant,
+  register,
+  setHardAttribute,
+  setUpEvent,
+  type OpenEvent,
+  type TermSpec,
+} from "./support/api"
+import { closeDb } from "./support/db"
 
 // Přihlášky → Vyhodnocení (S3-01): the proposal of a term with its queues and
 // order, recalculated on request in the manual mode and on its own after a
 // change in the automatic mode, with the evidence of every run. Nothing here
-// confirms anybody. Gender is the hard attribute through the rules stand-in.
+// confirms anybody. Gender is the hard attribute of the event.
 
 const terms: TermSpec[] = [
   { label: "1. turnus", startDate: "2027-07-01", endDate: "2027-07-07", priceMinor: 100000 },
@@ -25,7 +32,7 @@ const orderRow = (page: Page, name: string) =>
 
 async function setUp(page: Page) {
   const event = await setUpEvent(page.request, { terms, rooms })
-  await setGenderHardAttribute(event.eventId)
+  await setHardAttribute(page.request, event, "gender")
   for (const [name, gender] of [
     ["Tereza", "female"],
     ["Jana", "female"],
