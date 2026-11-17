@@ -28,11 +28,20 @@ export const importErrorMessage = (error: unknown): string => {
   return message && code && FILE_ERRORS.has(code) ? message : FAILED
 }
 
-type BankTransactionsSectionProps = { organizationId: string; eventId: string }
+type BankTransactionsSectionProps = {
+  organizationId: string
+  eventId: string
+  /** Only when a link points at the import (`#…`). */
+  headingId?: string
+}
 
 // Správa akce → Platby (F23): import of a bank statement and the received
 // transactions it brought. Pairing them with registrations comes later (F24).
-export function BankTransactionsSection({ organizationId, eventId }: BankTransactionsSectionProps) {
+export function BankTransactionsSection({
+  organizationId,
+  eventId,
+  headingId,
+}: BankTransactionsSectionProps) {
   const transactions = useQuery(bankTransactionsQueryOptions(organizationId, eventId))
   const statementImport = useStatementImport(organizationId, eventId)
   const [fileError, setFileError] = useState<string | null>(null)
@@ -53,6 +62,7 @@ export function BankTransactionsSection({ organizationId, eventId }: BankTransac
   return (
     <PageSection
       title="Přijaté transakce"
+      headingId={headingId}
       isBusy={transactions.isFetching && !transactions.isPending}
       actions={
         <StatementImportButton

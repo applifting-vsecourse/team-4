@@ -2,6 +2,7 @@ import { PrismaModule } from '@/core/prisma/prisma.module';
 import { ParticipantAccessModule } from '@/modules/participant-access/participant-access.module';
 import { AuthModule } from '@/shared/auth/auth.module';
 import { Module } from '@nestjs/common';
+import { EventPaymentsController } from './controllers/event-payments.controller';
 import { EventRegistrationsController } from './controllers/event-registrations.controller';
 import { ParticipantRegistrationsController } from './controllers/participant-registrations.controller';
 import { PaymentsController } from './controllers/payments.controller';
@@ -15,6 +16,7 @@ import { PaymentsRepository } from './repositories/payments.repository';
 import { QrPaymentsRepository } from './repositories/qr-payments.repository';
 import { RegistrationChangesRepository } from './repositories/registration-changes.repository';
 import { RegistrationsRepository } from './repositories/registrations.repository';
+import { EventPaymentsService } from './services/event-payments.service';
 import { EventRegistrationsService } from './services/event-registrations.service';
 import { ParticipantRegistrationsService } from './services/participant-registrations.service';
 import { ParticipantResultMailService } from './services/participant-result-mail.service';
@@ -30,6 +32,7 @@ import { RegistrationsService } from './services/registrations.service';
   controllers: [
     PublicRegistrationsController,
     EventRegistrationsController,
+    EventPaymentsController,
     PaymentsController,
     ParticipantRegistrationsController,
     RegistrationChangesController,
@@ -44,6 +47,7 @@ import { RegistrationsService } from './services/registrations.service';
     RegistrationsRepository,
     EventRegistrationsService,
     EventRegistrationsRepository,
+    EventPaymentsService,
     PaymentsService,
     PaymentsRepository,
     ParticipantRegistrationsService,

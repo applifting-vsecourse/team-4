@@ -54,3 +54,40 @@ test("a payment without an obligation is an overpayment", async ({ page, request
   await recordPayment(page, "500")
   await expect(definition(page, "Přeplatek")).toHaveText("500 Kč")
 })
+
+test("a payment recorded in the detail shows in Platby with the new balance and leads back", async ({
+  page,
+  request,
+}) => {
+  const event = await setUpEvent(page.request, { terms, rooms })
+  const anna = newParticipant("Anna")
+  const registration = await register(request, event.publicId, anna, event.termIds)
+  await decideTerms(registration.id, "confirmed")
+  const paymentsUrl = `/organizations/${event.organizationId}/events/${event.eventId}/payments`
+
+  // Nothing received yet: the balance is the whole price and the import is offered.
+  await page.goto(paymentsUrl)
+  const balances = page.getByRole("region", { name: "Tabulka sald přihlášek" })
+  const annaBalance = balances.getByRole("row", { name: new RegExp(anna.firstName) })
+  await expect(annaBalance).toContainText("Nezaplaceno")
+  await expect(page.getByText("Zatím žádné přijaté platby")).toBeVisible()
+  await expect(page.getByRole("link", { name: "Přejít na import výpisu" })).toBeVisible()
+
+  // The overview is loaded before the payment, so it has to catch up afterwards.
+  await page.getByRole("link", { name: `Přihláška ${anna.firstName} ${anna.lastName}` }).click()
+  await recordPayment(page, "400")
+  await page
+    .getByRole("navigation", { name: "Navigace organizace a akce" })
+    .getByRole("link", { name: "Platby" })
+    .click()
+
+  await expect(annaBalance).toContainText("Částečně zaplaceno")
+  await expect(annaBalance).toContainText("600 Kč")
+  const payments = page.getByRole("region", { name: "Tabulka přijatých plateb" })
+  await expect(payments.getByRole("row", { name: new RegExp(anna.firstName) })).toContainText(
+    "400 Kč",
+  )
+
+  await payments.getByRole("link", { name: `Přihláška ${anna.firstName} ${anna.lastName}` }).click()
+  await expect(page).toHaveURL(new RegExp(`/registrations/${registration.id}$`))
+})

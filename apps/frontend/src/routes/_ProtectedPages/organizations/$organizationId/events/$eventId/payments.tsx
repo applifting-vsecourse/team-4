@@ -13,8 +13,13 @@ import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
 import { BankTransactionsSection } from "@/features/payments/components/BankTransactionsSection"
+import { PaymentsOverviewSection } from "@/features/registrations/components/PaymentsOverviewSection"
 
-// Správa akce → Platby: import of bank statements (F23).
+// An empty payments overview points at the statement import below it.
+const STATEMENT_IMPORT_HEADING_ID = "statement-import-heading"
+
+// Správa akce → Platby: received payments and balances (S4-09) and the import
+// of bank statements (F23).
 export const Route = createFileRoute(
   "/_ProtectedPages/organizations/$organizationId/events/$eventId/payments",
 )({
@@ -48,10 +53,18 @@ function PaymentsPage() {
         badge={<EventStatusBadge status={event.status} />}
         description={event.location}
       />
-      <BankTransactionsSection
-        organizationId={organizationId}
-        eventId={eventId}
-      />
+      <div className="space-y-10">
+        <PaymentsOverviewSection
+          organizationId={organizationId}
+          eventId={eventId}
+          statementImportHeadingId={STATEMENT_IMPORT_HEADING_ID}
+        />
+        <BankTransactionsSection
+          organizationId={organizationId}
+          eventId={eventId}
+          headingId={STATEMENT_IMPORT_HEADING_ID}
+        />
+      </div>
     </WorkspacePage>
   )
 }
