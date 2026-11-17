@@ -1,5 +1,5 @@
-import { execFileSync } from 'node:child_process';
 import { severityFor, sameSeverity, validateSeverity } from './severity.mjs';
+import { automaticMergeTreeSha, fetchMergeHistory } from './merge-tree.mjs';
 import { eventScope } from '../automation/events.mjs';
 import {
   evaluate,
@@ -339,39 +339,11 @@ for (let pr of candidates) {
         : null;
       let expectedTreeSha;
       if (syncCommits) {
-        execFileSync(
-          'git',
-          [
-            'fetch',
-            '--no-tags',
-            '--unshallow',
-            'origin',
-            'refs/heads/main',
-            `refs/heads/${pr.base.ref}`,
-          ],
-          {
-            stdio: 'ignore',
-            env: {
-              ...process.env,
-              GIT_CONFIG_COUNT: '1',
-              GIT_CONFIG_KEY_0: 'http.extraheader',
-              GIT_CONFIG_VALUE_0: `AUTHORIZATION: basic ${Buffer.from(`x-access-token:${token}`).toString('base64')}`,
-            },
-          },
-        );
-        try {
-          expectedTreeSha = execFileSync(
-            'git',
-            ['merge-tree', '--write-tree', pr.base.sha, syncCommits[0].sha],
-            { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
-          )
-            .trim()
-            .split(/\s/, 1)[0];
-        } catch {
-          // Conflicts require a human resolution, so they are never verified
-          // as a merge-only sync.
-          expectedTreeSha = undefined;
-        }
+        fetchMergeHistory({ baseRef: pr.base.ref, token });
+        expectedTreeSha = automaticMergeTreeSha({
+          baseSha: pr.base.sha,
+          mainSha: syncCommits[0].sha,
+        });
       }
       const mainSync =
         syncCommits !== null &&
