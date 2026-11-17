@@ -26,12 +26,16 @@ async function scenario(mode) {
     head: { ref: 'feat/401-rooms-ui', sha, repo: repository },
     changed_files: 1,
   };
+  const paused = mode.startsWith('parent-paused');
   const parent = {
     number: 50,
     state: 'open',
     draft: false,
     body: 'Closes #400',
-    labels: [{ name: 'severity:standard' }],
+    labels: [
+      { name: 'severity:standard' },
+      ...(paused ? [{ name: 'design:storybook-preview' }] : []),
+    ],
     user: { login: 'developer' },
     base: { ref: 'main', repo: repository },
     head: { ref: BRANCH, sha: 'e'.repeat(40), repo: repository },
@@ -197,6 +201,16 @@ async function scenario(mode) {
         mode === 'retargeted'
           ? [{ event: 'base_ref_changed', created_at: '2004-01-01T00:00:00Z' }]
           : [];
+    else if (path.endsWith('/pulls/50/reviews') && paused)
+      data = [
+        {
+          id: 3,
+          user: { login: 'darebakdavca' },
+          state: 'APPROVED',
+          commit_id: parent.head.sha,
+          submitted_at: '2003-01-01T00:00:00Z',
+        },
+      ];
     else if (path.endsWith('/reviews') || path.endsWith('/timeline')) data = [];
     else if (path.endsWith('/actions/runs'))
       data = {
@@ -222,6 +236,15 @@ async function scenario(mode) {
                 },
               ],
       };
+    else if (path.endsWith(`/commits/${parent.head.sha}/pulls`))
+      data =
+        mode === 'parent-paused-shared' ||
+        (mode === 'parent-paused-late-shared' && ++commitReads > 1)
+          ? [
+              parent,
+              { ...child, head: { ...child.head, sha: parent.head.sha } },
+            ]
+          : [parent];
     else if (path.endsWith(`/commits/${sha}/pulls`))
       data =
         mode === 'shared-sha' || (mode === 'late-shared' && ++commitReads > 1)
@@ -238,6 +261,13 @@ async function scenario(mode) {
           status: 'completed',
           conclusion,
         })),
+      };
+    else if (path.endsWith(`/commits/${parent.head.sha}/status`))
+      data = {
+        statuses:
+          mode === 'parent-paused-stale-child'
+            ? [{ context: 'child-verify', state: 'success' }]
+            : [],
       };
     else if (path.startsWith('/repos/owner/repo/rules/branches/'))
       data =
@@ -287,6 +317,7 @@ function run(mode) {
         GITHUB_REPOSITORY: 'owner/repo',
         GITHUB_TOKEN: 'mock',
         ONLY_ISSUE: '',
+        PAUSE_COPILOT_REVIEW: String(mode.startsWith('parent-paused')),
       },
     },
   );
@@ -319,6 +350,7 @@ for (const [mode, context, pattern] of [
   ['no-ci', 'child-verify', /Waiting for CI/],
   ['no-area', 'child-verify', /area:frontend or area:backend/],
   ['no-review', 'Delivery stages', /agent review has not passed/],
+  ['no-review', 'child-verify', /agent review has not passed/],
   ['enforcement', 'Delivery stages', /cannot go through integration/],
   ['wrong-base', 'child-verify', /Waiting for CI/],
   ['foreign-branch', 'child-verify', /does not link integration/],
@@ -331,6 +363,8 @@ for (const [mode, context, pattern] of [
   ],
   ['shared-sha', 'Delivery stages', /#60 share this head/],
   ['shared-branch', 'Delivery stages', /#60 share this head/],
+  ['shared-sha', 'child-verify', /#60 share this head/],
+  ['late-shared', 'child-verify', /#60 share this head/],
 ])
   test(`a child does not pass ${context} on ${mode}`, () => {
     const status = latest(run(mode).statuses, context);
@@ -369,6 +403,28 @@ test('a parent PR never gets child-verify and waits for open sub-issues and chil
   const done = latest(run('parent').statuses, 'Delivery stages', parentSha);
   assert.equal(done.state, 'failure');
   assert.match(done.description, /^QA approval by MatejKrones is missing/);
+});
+
+test('a paused main PR cannot leave a passing status on a shared integration head', () => {
+  const status = (mode) =>
+    latest(run(mode).statuses, 'Delivery stages', 'e'.repeat(40));
+  assert.equal(status('parent-paused').state, 'success');
+  for (const mode of ['parent-paused-shared', 'parent-paused-late-shared']) {
+    const result = status(mode);
+    assert.equal(result.state, 'failure');
+    assert.match(result.description, /Integration PR #41 shares this head/);
+  }
+});
+
+test('a paused main pass revokes a stale successful integration status on the commit', () => {
+  const parentSha = 'e'.repeat(40);
+  const { statuses } = run('parent-paused-stale-child');
+  const child = latest(statuses, 'child-verify', parentSha);
+  const main = latest(statuses, 'Delivery stages', parentSha);
+  assert.equal(child.state, 'failure');
+  assert.equal(main.state, 'success');
+  assert.match(main.description, /Copilot review skipped/);
+  assert.ok(statuses.indexOf(child) < statuses.indexOf(main));
 });
 
 test('an integration branch cannot reach main through another branch', () => {

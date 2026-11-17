@@ -145,5 +145,5 @@ test("without a request the queue is empty", async ({ page }) => {
   await page.goto(
     `/organizations/${event.organizationId}/events/${event.eventId}/registrations?view=approvals`,
   )
-  await expect(page.getByText("Žádné změny nečekají na schválení.")).toBeVisible()
+  await expect(page.getByText("Žádné změny nečekají na schválení")).toBeVisible()
 })

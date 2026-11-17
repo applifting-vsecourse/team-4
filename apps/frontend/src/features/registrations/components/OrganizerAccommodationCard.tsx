@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react"
-import { Loader2 } from "lucide-react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { readApiError } from "@/lib/apiError"
 
@@ -19,6 +19,8 @@ type OrganizerAccommodationCardProps = {
     RegistrationDetail,
     "id" | "gender" | "genderOther" | "requiresManualAccommodation"
   >
+  /** Render inside the participant overview card rather than as a separate card. */
+  isSection?: boolean
   /** Below the answer while it is not edited: the determination (S3-01), from another feature. */
   determination?: ReactNode
   /** A saved answer changes the term evaluation of another feature (S3-01). */
@@ -39,6 +41,7 @@ export function OrganizerAccommodationCard({
   organizationId,
   eventId,
   registration,
+  isSection = false,
   determination,
   onAnswerSaved,
 }: OrganizerAccommodationCardProps) {
@@ -60,6 +63,7 @@ export function OrganizerAccommodationCard({
     <AccommodationCard
       answer={stored}
       isManualAccommodation={registration.requiresManualAccommodation}
+      isSection={isSection}
       extra={isEditing ? undefined : determination}
       action={
         isEditing ? null : (
@@ -94,11 +98,7 @@ export function OrganizerAccommodationCard({
             onChange={setDraft}
             isDisabled={update.isPending}
           />
-          {update.isError ? (
-            <Alert variant="destructive">
-              <AlertDescription>{describeError(update.error)}</AlertDescription>
-            </Alert>
-          ) : null}
+          {update.isError ? <FormError message={describeError(update.error)} /> : null}
           <div className="flex flex-wrap justify-end gap-2">
             <Button
               type="button"
@@ -108,13 +108,12 @@ export function OrganizerAccommodationCard({
             >
               Zrušit
             </Button>
-            <Button
+            <PendingButton
               type="submit"
-              disabled={update.isPending}
+              isPending={update.isPending}
             >
-              {update.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
               {update.isPending ? "Ukládám…" : "Uložit"}
-            </Button>
+            </PendingButton>
           </div>
         </form>
       ) : undefined}

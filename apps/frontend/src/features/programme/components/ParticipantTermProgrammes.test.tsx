@@ -69,7 +69,7 @@ describe("ParticipantTermProgrammes", () => {
   it("shows a failed load with a retry instead of an empty programme", async () => {
     requests.get.mockReturnValue({ json: () => Promise.reject(new Error("offline")) })
     renderProgrammes(["confirmed", "waitlisted"])
-    expect(await screen.findByText("Program se nepodařilo načíst.")).toBeInTheDocument()
+    expect(await screen.findByText("Program se nepodařilo načíst")).toBeInTheDocument()
     expect(screen.queryByText("Program zatím není připravený.")).not.toBeInTheDocument()
   })
 })

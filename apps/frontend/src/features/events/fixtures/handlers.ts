@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw"
 
 import { env } from "@/config/env"
 
+import type { EventDetail } from "@/features/events/api/eventSchemas"
 import { EVENT_SUMMARIES, EVENTS } from "@/features/events/fixtures/events"
 
 // MSW handlers for the events of an organization. Install with `msw.use(...)`
@@ -26,4 +27,6 @@ export const eventHandlers = {
       () => new HttpResponse(PHOTO, { headers: { "Content-Type": "image/svg+xml" } }),
     ),
   ],
+  /** One event, changed for one story (published, free, without payment settings…). */
+  detail: (event: EventDetail) => [http.get(`${LIST}/:eventId`, () => HttpResponse.json(event))],
 }

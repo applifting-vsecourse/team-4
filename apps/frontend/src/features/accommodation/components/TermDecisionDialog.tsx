@@ -1,6 +1,7 @@
 import { useState } from "react"
-import { Loader2 } from "lucide-react"
 
+import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,7 +17,6 @@ import {
   DeterminationFields,
   type DeterminationFieldsProps,
 } from "@/features/accommodation/components/DeterminationFields"
-import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
 import { checkEntry } from "@/features/accommodation/components/ManualDeterminationDialog"
 
 export type TermDecision = "confirm" | "waitlist"
@@ -114,16 +114,16 @@ export function TermDecisionDialog({
         ) : null}
 
         {rejectedReason ? (
-          <ErrorAlert
+          <FormError
             title={REJECTED[decision]}
-            detail={rejectedReason}
+            message={rejectedReason}
           />
         ) : null}
 
         {saveError && !rejectedReason ? (
-          <ErrorAlert
+          <FormError
             title="Rozhodnutí se nepodařilo uložit"
-            detail={saveError}
+            message={saveError}
           />
         ) : null}
 
@@ -137,13 +137,12 @@ export function TermDecisionDialog({
             </Button>
           </DialogClose>
           {rejectedReason ? null : (
-            <Button
-              disabled={isSaving}
+            <PendingButton
+              isPending={isSaving}
               onClick={submit}
             >
-              {isSaving ? <Loader2 className="animate-spin" /> : null}
               {TITLE[decision]}
-            </Button>
+            </PendingButton>
           )}
         </DialogFooter>
       </DialogContent>

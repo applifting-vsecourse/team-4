@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog"
 import { formatCalendarRange } from "@/lib/date"
 
 import { organizerProgrammeQueryOptions } from "@/features/programme/api/programmeQueryOptions"
@@ -9,7 +10,6 @@ import {
   type ProgrammeItemData,
   type ProgrammeItemInput,
 } from "@/features/programme/api/programmeSchemas"
-import { DeleteProgrammeItemDialog } from "@/features/programme/components/DeleteProgrammeItemDialog"
 import { ProgrammeItemDialog } from "@/features/programme/components/ProgrammeItemDialog"
 import { TermProgramme } from "@/features/programme/components/TermProgramme"
 import {
@@ -101,13 +101,13 @@ export function TermProgrammeSection({
     resetFailures()
     try {
       await deleteItem.mutateAsync(deleting.id)
-      toast.success("Položka byla smazána.")
+      toast.success("Položka byla odstraněna.")
       setDeleting(undefined)
       await onChanged?.()
     } catch (error) {
       const described = describeProgrammeError(
         error,
-        "Položku se nepodařilo smazat. Zkuste to prosím znovu.",
+        "Položku se nepodařilo odstranit. Zkuste to prosím znovu.",
       )
       setDeleteMessage(described.errorMessage ?? undefined)
       if (described.shouldRefresh) await refresh()
@@ -119,6 +119,7 @@ export function TermProgrammeSection({
       <TermProgramme
         days={groupByDay(items)}
         isLoadFailed={query.isError && !query.data}
+        isLoading={query.isPending}
         isRetrying={query.isFetching}
         onAdd={() => {
           resetFailures()
@@ -148,11 +149,12 @@ export function TermProgrammeSection({
         }}
         onSubmit={handleSave}
       />
-      <DeleteProgrammeItemDialog
+      <ConfirmDeleteDialog
         isOpen={deleting !== undefined}
-        itemTitle={deleting?.title ?? ""}
+        title={`Odstranit položku „${deleting?.title ?? ""}“?`}
+        consequence="Položka zmizí z programu termínu i u potvrzených účastníků."
         errorMessage={deleteMessage}
-        isSubmitting={deleteItem.isPending}
+        isDeleting={deleteItem.isPending}
         onOpenChange={(isOpen) => {
           if (!isOpen) setDeleting(undefined)
         }}

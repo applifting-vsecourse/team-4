@@ -1,4 +1,5 @@
 import {
+  PM,
   TECHNICAL_REVIEWER,
   technicalReviewApproval,
   technicalReviewRequired,
@@ -41,13 +42,15 @@ export async function ensureTechnicalReviewRequest({
     return 'not-required';
   const reviews = await list(`${path}/reviews`);
   const approval = technicalReviewApproval(current, reviews);
-  if (approval?.exempt) {
-    log(
-      `Technical review for #${pr.number} not requested: @${TECHNICAL_REVIEWER} authored the PR`,
-    );
-    return 'exempt';
-  }
   if (approval) return 'approved';
+  // Bogdan cannot approve his own PR and David is never requested
+  // automatically: David approves after Bogdan asks him.
+  if (current.user.login.toLowerCase() === TECHNICAL_REVIEWER.toLowerCase()) {
+    log(
+      `Technical review for #${pr.number} not requested: @${TECHNICAL_REVIEWER} authored the PR; @${PM} approves after a manual request`,
+    );
+    return 'manual';
+  }
   if (dryRun) {
     log(
       `[dry-run] would request technical review from @${TECHNICAL_REVIEWER} on #${pr.number}`,

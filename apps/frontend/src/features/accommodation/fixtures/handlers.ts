@@ -2,6 +2,7 @@ import { http, HttpResponse } from "msw"
 
 import { env } from "@/config/env"
 
+import type { TermEvaluationData } from "@/features/accommodation/api/evaluationSchemas"
 import {
   makeMoves,
   makeRegistrationAccommodation,
@@ -18,6 +19,10 @@ const BASE = `${EVENT}/accommodation`
 const REGISTRATION = `${EVENT}/registrations/:registrationId/accommodation`
 
 export const accommodationHandlers = {
+  /** The evaluation of the term, changed for one story (stale, failed, conflict…). */
+  termEvaluation: (evaluation: TermEvaluationData) => [
+    http.get(`${BASE}/terms/:termId/evaluation`, () => HttpResponse.json(evaluation)),
+  ],
   evaluation: () => [
     http.get(`${BASE}/evaluation-mode`, () => HttpResponse.json({ mode: "automatic" })),
     http.put(`${BASE}/evaluation-mode`, async ({ request }) =>

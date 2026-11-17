@@ -78,6 +78,14 @@ export class RegistrationsService {
     }
 
     if (outcome.kind === 'event_unavailable') throw eventUnavailable();
+    if (outcome.kind === 'conditions_unconfirmed') {
+      throw new BadRequestException({
+        statusCode: 400,
+        code: 'conditions_unconfirmed',
+        field: 'conditionsConfirmed',
+        message: 'Potvrďte, že jste si přečetli podmínky účasti.',
+      });
+    }
     if (outcome.kind === 'term_unknown') {
       throw new BadRequestException({
         statusCode: 400,

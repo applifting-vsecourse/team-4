@@ -19,7 +19,7 @@ const sections = [
   { label: "Přehled", icon: LayoutDashboard, to: ROUTES.event },
   { label: "Nastavení", icon: Settings, to: ROUTES.eventSettings },
   { label: "Přihlášky", icon: ClipboardList, to: ROUTES.eventRegistrations },
-  { label: "Platby", icon: CreditCard },
+  { label: "Platby", icon: CreditCard, to: ROUTES.eventPayments },
   { label: "Ubytování", icon: BedDouble, to: ROUTES.eventRooms },
   { label: "Komunikace", icon: Mail },
 ] as const

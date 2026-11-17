@@ -1,0 +1,46 @@
+name: Dependency update merge
+
+# Standard Dependabot PRs have no review, approval or QA: GitHub auto-merge
+# merges them once the required checks pass on the current commit.
+on:
+  pull_request_target:
+    types:
+      [
+        opened,
+        reopened,
+        synchronize,
+        labeled,
+        unlabeled,
+        ready_for_review,
+        converted_to_draft,
+      ]
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-merge
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Trusted code from main only; the PR's code is never checked out or run.
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      # A personal token, not GITHUB_TOKEN: a merge made by GITHUB_TOKEN does
+      # not start the CI, deploy and release workflows on main.
+      - run: node scripts/delivery/dependency-merge-run.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}

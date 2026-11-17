@@ -57,7 +57,9 @@ describe("PaymentSettingsForm", () => {
     const { onSubmit } = renderForm(SAVED)
     await changeDays(days)
     await save()
-    expect(await screen.findByText(/připomenutí platby/i, { selector: "p" })).toBeInTheDocument()
+    expect(
+      await screen.findByText(/připomenutí platby/i, { selector: '[data-slot="form-message"]' }),
+    ).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 

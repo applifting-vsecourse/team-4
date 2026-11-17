@@ -2,33 +2,20 @@ import { Link } from "@tanstack/react-router"
 import { Building2 } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { EmptyState } from "@/components/EmptyState"
 import { Button } from "@/components/ui/button"
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 
 export function NoOrganizations() {
   return (
-    <Empty>
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <Building2 />
-        </EmptyMedia>
-        <EmptyTitle>Zatím nemáte organizaci</EmptyTitle>
-        <EmptyDescription>
-          Akce a přihlášky spravujete v rámci organizace. Založte první.
-        </EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent>
+    <EmptyState
+      icon={Building2}
+      title="Zatím nemáte organizaci"
+      description="Akce a přihlášky spravujete v rámci organizace. Založte první."
+      action={
         <Button asChild>
           <Link to={ROUTES.newOrganization}>Založit organizaci</Link>
         </Button>
-      </EmptyContent>
-    </Empty>
+      }
+    />
   )
 }

@@ -1,12 +1,13 @@
-import { Loader2, RefreshCw } from "lucide-react"
-
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { DefinitionList } from "@/components/DefinitionList"
+import { FormError } from "@/components/FormError"
+import { Notice } from "@/components/Notice"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
-import { BalanceAmount } from "@/features/registrations/components/BalanceAmount"
+import { BalanceRow } from "@/features/registrations/components/BalanceRow"
 
 export type SimulatedPaymentFormProps = {
   eventName: string
@@ -62,42 +63,41 @@ export function SimulatedPaymentForm({
           }}
         >
           {debt ? (
-            <dl className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm">
-              <dt className="font-medium">Zbývá zaplatit</dt>
-              <dd>
-                <BalanceAmount
-                  amount={debt}
-                  isSettled={false}
-                />
-              </dd>
-            </dl>
+            <DefinitionList>
+              <BalanceRow
+                amount={debt}
+                isSettled={false}
+              />
+            </DefinitionList>
           ) : null}
 
           {isDebtReduced ? (
-            <Alert>
-              <RefreshCw aria-hidden />
-              <AlertTitle>Částka k úhradě se mezitím snížila</AlertTitle>
-              <AlertDescription>Zkontrolujte částku a potvrďte platbu znovu.</AlertDescription>
-            </Alert>
+            <Notice
+              tone="warning"
+              title="Částka k úhradě se mezitím snížila"
+            >
+              Zkontrolujte částku a potvrďte platbu znovu.
+            </Notice>
           ) : null}
 
           {errorMessage ? (
-            <Alert variant="destructive">
-              <AlertTitle>Akce se nepodařila</AlertTitle>
-              <AlertDescription>
-                <p>{errorMessage}</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={onRetry}
-                  disabled={isSaving}
-                >
-                  Zkusit znovu
-                </Button>
-              </AlertDescription>
-            </Alert>
+            <FormError
+              title="Akce se nepodařila"
+              message={errorMessage}
+              action={
+                onRetry ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isSaving}
+                    onClick={onRetry}
+                  >
+                    Zkusit znovu
+                  </Button>
+                ) : null
+              }
+            />
           ) : null}
 
           {debt ? (
@@ -116,14 +116,13 @@ export function SimulatedPaymentForm({
                 <FieldError id="payment-amount-error">{amountError}</FieldError>
               </Field>
 
-              <Button
+              <PendingButton
                 type="submit"
-                className="w-full sm:w-auto"
-                disabled={isSaving}
+                className="w-full max-w-sm sm:w-auto"
+                isPending={isSaving}
               >
-                {isSaving ? <Loader2 className="animate-spin" /> : null}
                 Zaplatit
-              </Button>
+              </PendingButton>
             </>
           ) : null}
         </form>

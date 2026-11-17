@@ -65,7 +65,7 @@ function SignUpPage() {
           <Button
             asChild
             variant="outline"
-            className="mt-4 w-full"
+            className="mt-4 w-full max-w-sm"
           >
             <Link to={ROUTES.login}>Přejít na přihlášení</Link>
           </Button>

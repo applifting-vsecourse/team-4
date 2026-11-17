@@ -95,8 +95,10 @@ jobs:
           file: apps/backend/Dockerfile.deploy
           push: true
           build-args: |
-            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
-            EMAIL_ALLOWED_RECIPIENT=${{ vars.EMAIL_ALLOWED_RECIPIENT }}
+            SMTP_HOST=${{ vars.SMTP_HOST }}
+            SMTP_USERNAME=${{ vars.SMTP_USERNAME }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
+            EMAIL_FROM=${{ vars.EMAIL_FROM }}
           tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.slug }}-backend:latest
       - name: Build & push frontend
         if: steps.stale.outputs.stale != 'true'

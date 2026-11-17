@@ -1,20 +1,25 @@
+import { useState } from "react"
 import type { ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
+import { ChevronDown, ClipboardList } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { EmptyState } from "@/components/EmptyState"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageHeader } from "@/components/PageHeader"
+import { RefreshButton } from "@/components/RefreshButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Skeleton } from "@/components/ui/skeleton"
-import { formatPragueDateTime } from "@/lib/date"
+import { formatPragueDateTime, todayInPrague } from "@/lib/date"
 
 import { participantRegistrationsQueryOptions } from "@/features/registrations/api/participantRegistrationQueryOptions"
 import { type ParticipantRegistration } from "@/features/registrations/api/participantRegistrationSchemas"
-import { LoadFailedAlert } from "@/features/registrations/components/LoadFailedAlert"
 import { ParticipantPaymentSummary } from "@/features/registrations/components/ParticipantPaymentSummary"
 import { ParticipantTermList } from "@/features/registrations/components/ParticipantTermList"
-import { RefreshButton } from "@/features/registrations/components/RefreshButton"
 import { isSessionRefused } from "@/features/registrations/lib/sessionExpired"
 
 // "Moje přihlášky" (S2-14): every registration of the verified
@@ -31,27 +36,40 @@ export function ParticipantRegistrationList({
   email,
   sessionEnded,
 }: ParticipantRegistrationListProps) {
+  const [isPastEventsOpen, setIsPastEventsOpen] = useState(false)
   const query = useQuery(participantRegistrationsQueryOptions())
   const { data } = query
 
   if (query.isError && isSessionRefused(query.error)) return sessionEnded
+
+  const today = todayInPrague()
+  const currentRegistrations = data?.filter(
+    (registration) =>
+      registration.terms.length === 0 || registration.terms.some((term) => term.endDate >= today),
+  )
+  const pastRegistrations = data?.filter(
+    (registration) =>
+      registration.terms.length > 0 && registration.terms.every((term) => term.endDate < today),
+  )
 
   return (
     <section
       aria-busy={query.isFetching}
       className="space-y-4"
     >
-      <p className="text-sm wrap-break-word text-muted-foreground">{email}</p>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-h2">Moje přihlášky</h1>
-        <RefreshButton
-          isRefreshing={query.isFetching}
-          onRefresh={() => query.refetch()}
-        />
-      </div>
+      <PageHeader
+        title="Moje přihlášky"
+        description={<p className="wrap-break-word">{email}</p>}
+        actions={
+          <RefreshButton
+            isRefreshing={query.isFetching}
+            onRefresh={() => query.refetch()}
+          />
+        }
+      />
 
       {query.isError ? (
-        <LoadFailedAlert
+        <LoadError
           shownFrom={data ? query.dataUpdatedAt : undefined}
           isRetrying={query.isFetching}
           onRetry={() => query.refetch()}
@@ -60,29 +78,67 @@ export function ParticipantRegistrationList({
 
       {data ? (
         data.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>Zatím nemáte žádné přihlášky.</EmptyTitle>
-            </EmptyHeader>
-          </Empty>
+          <EmptyState
+            icon={ClipboardList}
+            title="Zatím nemáte žádné přihlášky"
+          />
         ) : (
-          <ul className="space-y-4">
-            {data.map((registration) => (
-              <li key={registration.id}>
-                <RegistrationCard registration={registration} />
-              </li>
-            ))}
-          </ul>
+          <>
+            {currentRegistrations?.length ? (
+              <ul className="space-y-4">
+                {currentRegistrations.map((registration) => (
+                  <li key={registration.id}>
+                    <RegistrationCard registration={registration} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nemáte žádné aktuální přihlášky.</p>
+            )}
+
+            {pastRegistrations?.length ? (
+              <Collapsible
+                open={isPastEventsOpen}
+                onOpenChange={setIsPastEventsOpen}
+              >
+                <section aria-labelledby="past-registrations-heading">
+                  <h2 id="past-registrations-heading">
+                    <CollapsibleTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="group w-full justify-between"
+                      >
+                        <span>Proběhlé akce ({pastRegistrations.length})</span>
+                        <ChevronDown
+                          aria-hidden
+                          className="transition-transform group-data-[state=open]:rotate-180"
+                        />
+                      </Button>
+                    </CollapsibleTrigger>
+                  </h2>
+                  <CollapsibleContent>
+                    <ul className="space-y-4 pt-4">
+                      {pastRegistrations.map((registration) => (
+                        <li key={registration.id}>
+                          <RegistrationCard registration={registration} />
+                        </li>
+                      ))}
+                    </ul>
+                  </CollapsibleContent>
+                </section>
+              </Collapsible>
+            ) : null}
+          </>
         )
       ) : query.isPending ? (
-        <div
+        <LoadingBlock
+          label="Načítání přihlášek"
           className="space-y-4"
-          role="status"
-          aria-label="Načítání přihlášek"
         >
           <Skeleton className="h-64 w-full" />
           <Skeleton className="h-40 w-full" />
-        </div>
+        </LoadingBlock>
       ) : null}
 
       {data && !query.isError ? (
@@ -124,7 +180,6 @@ function RegistrationCard({ registration }: { registration: ParticipantRegistrat
             <ParticipantPaymentSummary
               selectedPriceMinor={registration.selectedPriceMinor}
               amountDueMinor={registration.amountDueMinor}
-              paidMinor={registration.paidMinor}
               balanceMinor={registration.balanceMinor}
               instructions={registration.paymentInstructions}
               shouldShowAccount={false}

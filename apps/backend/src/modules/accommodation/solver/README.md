@@ -2,6 +2,8 @@
 
 Evaluates one term of an event as specified in [#181](https://github.com/applifting-vsecourse/team-4/issues/181) (spec v4, §7): who of the pending and waitlisted participants can be confirmed, why the others cannot, and, in phase 2, which room everyone sleeps in.
 
+Phase 2 (room proposals for confirmed participants, with soft preferences) is specified in [`docs/architecture/accommodation-solver-phase-2.md`](../../../../../../docs/architecture/accommodation-solver-phase-2.md) ([#325](https://github.com/applifting-vsecourse/team-4/issues/325)).
+
 F13-1 calls it through `AccommodationEvaluationService.evaluateTerm` ([#223](https://github.com/applifting-vsecourse/team-4/issues/223)):
 
 ```ts

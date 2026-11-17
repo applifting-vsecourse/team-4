@@ -24,6 +24,7 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
+  --color-input-editable-surface: var(--input-editable-surface);
   --color-ring: var(--ring);
   --color-success: var(--success);
   --color-success-subtle: var(--success-subtle);
@@ -112,6 +113,7 @@
   --warning-subtle: #fff7ed;
   --border: oklch(0.78 0.04 85);
   --input: var(--foreground);
+  --input-editable-surface: oklch(1 0 0);
   --ring: oklch(0.55 0.2 30);
   --chart-1: #3b82f6;
   --chart-2: #bef264;
@@ -170,6 +172,7 @@
   --border: oklch(0.33 0.014 262);
   /* Control outlines: 3:1+ against every surface, so boundaries stay visible without glare. */
   --input: oklch(0.54 0.016 262);
+  --input-editable-surface: oklch(0.15 0.012 262);
   --ring: oklch(0.72 0.13 250);
   /* The navigation recedes below the page. */
   --sidebar: oklch(0.155 0.011 262);
@@ -208,14 +211,18 @@
     [data-slot="form-control"]
   ),
 :is(
-  [data-slot="input"],
-  [data-slot="textarea"],
-  [data-slot="select-trigger"],
-  [data-slot="date-picker"],
-  input[data-slot="form-control"],
-  textarea[data-slot="form-control"],
-  button[data-slot="form-control"]:not([role="radio"], [role="checkbox"])
-):not(:focus-visible, [aria-invalid="true"]) {
+    [data-slot="input"],
+    [data-slot="input-group"],
+    [data-slot="textarea"],
+    [data-slot="select-trigger"],
+    [data-slot="date-picker"],
+    input[data-slot="form-control"],
+    textarea[data-slot="form-control"],
+    button[data-slot="form-control"]:not([role="radio"], [role="checkbox"])
+  ):not(:focus-visible, [aria-invalid="true"]):not(
+    :has([data-slot="input-group-control"]:focus-visible),
+    :has([aria-invalid="true"])
+  ) {
   border-width: 1.5px;
   border-color: var(--input);
 }
@@ -241,32 +248,39 @@
    and checkboxes would draw a hard ink shadow the text inputs do not have. Focus and invalid
    rings are box shadows too and stay. */
 :is(
-  [data-slot="input"],
-  [data-slot="textarea"],
-  [data-slot="select-trigger"],
-  [data-slot="radio-group-item"],
-  [data-slot="checkbox"],
-  [data-slot="date-picker"],
-  input[data-slot="form-control"],
-  textarea[data-slot="form-control"],
-  button[data-slot="form-control"]
-):not(:focus-visible, [aria-invalid="true"]) {
-  box-shadow: none;
-}
-/* In light mode form fields use the muted surface so they stay distinct on both the page and cards. */
-:root:not(.dark)
-  :is(
     [data-slot="input"],
+    [data-slot="input-group"],
     [data-slot="textarea"],
     [data-slot="select-trigger"],
     [data-slot="radio-group-item"],
-    [data-slot="checkbox"]:not([data-state="checked"]),
+    [data-slot="checkbox"],
     [data-slot="date-picker"],
     input[data-slot="form-control"],
     textarea[data-slot="form-control"],
-    button[data-slot="form-control"]:not([role="checkbox"][data-state="checked"])
+    button[data-slot="form-control"]
+  ):not(:focus-visible, [aria-invalid="true"]):not(
+    :has([data-slot="input-group-control"]:focus-visible),
+    :has([aria-invalid="true"])
   ) {
-  background-color: var(--muted);
+  box-shadow: none;
+}
+/* Editable fields share one surface in both themes so every control reads consistently on cards. */
+:is(
+  [data-slot="input"],
+  [data-slot="input-group"],
+  [data-slot="textarea"],
+  [data-slot="select-trigger"],
+  [data-slot="radio-group-item"]:not([data-state="checked"]),
+  [data-slot="checkbox"]:not([data-state="checked"]),
+  [data-slot="date-picker"],
+  input[data-slot="form-control"],
+  textarea[data-slot="form-control"],
+  button[data-slot="form-control"]:not(
+      [role="checkbox"][data-state="checked"],
+      [role="radio"][data-state="checked"]
+    )
+) {
+  background-color: var(--input-editable-surface);
 }
 [data-variant][data-size]:not(
     [data-variant="ghost"],

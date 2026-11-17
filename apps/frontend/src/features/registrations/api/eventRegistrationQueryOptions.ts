@@ -27,18 +27,26 @@ export const eventRegistrationsQueryOptions = (
   organizationId: string,
   eventId: string,
   filter: RegistrationFilter,
-) =>
-  queryOptions({
-    queryKey: eventRegistrationKeys.list(organizationId, eventId, filter),
+) => {
+  // Name/email search runs against the loaded rows; only supported filters go
+  // to the API and into its cache key.
+  const apiFilter = {
+    termId: filter.termId,
+    status: filter.status,
+    payment: filter.payment,
+  }
+  return queryOptions({
+    queryKey: eventRegistrationKeys.list(organizationId, eventId, apiFilter),
     queryFn: async () => {
       const searchParams = Object.fromEntries(
-        Object.entries(filter).filter((entry): entry is [string, string] => Boolean(entry[1])),
+        Object.entries(apiFilter).filter((entry): entry is [string, string] => Boolean(entry[1])),
       )
       return registrationListSchema.parse(
         await api.get(registrationsPath(organizationId, eventId), { searchParams }).json(),
       )
     },
   })
+}
 
 export const eventRegistrationQueryOptions = (
   organizationId: string,

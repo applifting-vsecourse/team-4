@@ -37,3 +37,4 @@ yarn-error.log*
 /docs/user-stories/f*.md
 /docs/user-stories/coverage.md
 /docs/sprints/*/stories/
+planning.md
