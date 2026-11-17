@@ -34,9 +34,9 @@ import { TermDecisionService } from './services/term-decision.service';
 import { TermEvaluationService } from './services/term-evaluation.service';
 import { TermRoomProposalService } from './services/term-room-proposal.service';
 
-// Accommodation evaluation (S3-T4, S3-01, S3-03, #365): the term evaluation
-// of the organizer, the manual order of a term, and the workers that run the
-// due evaluations and room proposals.
+// Accommodation evaluation (S3-T4, S3-01, S3-03, #384): the rules and the
+// term evaluation of the organizer, the manual order of a term, and the
+// worker that runs the due evaluations.
 @Module({
   imports: [AuthModule, PrismaModule],
   controllers: [
