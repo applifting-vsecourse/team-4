@@ -74,7 +74,6 @@ export function ParticipantProfileForm({ profile }: ParticipantProfileFormProps)
         noValidate
         aria-label="Můj profil"
         onSubmit={form.handleSubmit(onSubmit)}
-        className="max-w-2xl"
       >
         <Card>
           <CardHeader>
