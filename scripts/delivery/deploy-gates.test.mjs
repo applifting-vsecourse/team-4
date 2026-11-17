@@ -48,6 +48,8 @@ test('verify checks every CI lane with the base-aware CI gate', () => {
   assert.ok(verify.includes('needs: [checks, database, stories, e2e]'));
   assert.equal(condition(ci, 'verify'), 'always()');
   assert.ok(verify.includes('BASE_REF: ${{ github.base_ref }}'));
+  assert.ok(verify.includes('      - uses: actions/checkout@v5'));
+  assert.ok(verify.includes('          persist-credentials: false'));
   assert.ok(
     step(ci, 'verify', 'Require every CI lane').includes(
       'node scripts/delivery/ci-verify.mjs',
