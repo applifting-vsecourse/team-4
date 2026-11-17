@@ -1,11 +1,12 @@
 import type { Meta, StoryContext, StoryObj } from "@storybook/react-vite"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 
-import { failOn } from "@/screens/msw"
+import { failOn, neverAnswer } from "@/screens/msw"
 import { eventUrl, organizerBackend, screenMeta, showsHeading } from "@/screens/screenMeta"
 import { openDialog, showsText } from "@/screens/steps"
 
 import { accommodationHandlers } from "@/features/accommodation/fixtures/handlers"
+import { makeRoomProposalPreferences } from "@/features/accommodation/fixtures/roomProposal"
 import { DRAFT_EVENT, OPEN_EVENT } from "@/features/events/fixtures/events"
 import { eventHandlers } from "@/features/events/fixtures/handlers"
 import { ORGANIZATION } from "@/features/organizations/fixtures/organizations"
@@ -363,4 +364,103 @@ export const HardAttributeLoadFailed: Story = {
     msw.use(...failOn("get", `${EVENT}/accommodation/hard-attribute`))
   },
   play: () => showsText("Pravidla ubytování se nepodařilo načíst"),
+}
+
+const PREFERENCES = `${EVENT}/accommodation/room-proposal-preferences`
+
+/** The ranked items of Návrh pokojů, in order. */
+const rankedItems = (section: Awaited<ReturnType<typeof region>>) =>
+  within(section.getByRole("list"))
+    .getAllByRole("listitem")
+    .map((item) => item.textContent ?? "")
+
+/**
+ * Návrh pokojů (#389) of a new event split by gender: only "Přání" is
+ * ranked, and gender cannot be added because it is the hard attribute.
+ */
+export const RoomProposalPreferences: Story = {
+  play: async ({ canvas }) => {
+    const section = await region(canvas, "Návrh pokojů")
+    await expect(await section.findByText("Přání")).toBeVisible()
+    await expect(rankedItems(section)).toHaveLength(1)
+    await expect(section.queryByLabelText("Přidat preferenci")).not.toBeInTheDocument()
+  },
+}
+
+/** Gender ranked above "Přání" with its neutral answers; reordered and saved. */
+export const RankedPreferences: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...accommodationHandlers.hardAttribute(null),
+      ...accommodationHandlers.roomProposalPreferences(makeRoomProposalPreferences("ranked")),
+    )
+  },
+  play: async ({ canvas }) => {
+    const section = await region(canvas, "Návrh pokojů")
+    await waitFor(() => expect(rankedItems(section)[0]).toMatch(/^1\.Pohlaví/))
+    await expect(section.getByRole("checkbox", { name: "Jiná odpověď" })).toBeChecked()
+    await expect(section.getByRole("checkbox", { name: "Nechci uvést" })).toBeChecked()
+    await expect(section.getByRole("checkbox", { name: "Žena" })).not.toBeChecked()
+    await expect(section.getByRole("button", { name: "Posunout Pohlaví výš" })).toBeDisabled()
+
+    await userEvent.click(section.getByRole("button", { name: "Posunout Přání výš" }))
+    await userEvent.click(section.getByRole("checkbox", { name: "Jiná odpověď" }))
+    await userEvent.click(section.getByRole("button", { name: "Uložit" }))
+    await showsText("Preference návrhu pokojů byly uloženy.")
+    await expect(rankedItems(section)[0]).toMatch(/^1\.Přání/)
+    await expect(section.getByRole("checkbox", { name: "Jiná odpověď" })).not.toBeChecked()
+  },
+}
+
+/** Nothing ranked: gender is added with its default neutral answers. */
+export const NoPreferences: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...accommodationHandlers.hardAttribute(null),
+      ...accommodationHandlers.roomProposalPreferences(makeRoomProposalPreferences("empty")),
+    )
+  },
+  play: async ({ canvas }) => {
+    const section = await region(canvas, "Návrh pokojů")
+    await expect(await section.findByText(/^Bez měkkých preferencí/)).toBeVisible()
+    await userEvent.click(section.getByRole("combobox", { name: "Přidat preferenci" }))
+    await userEvent.click(await within(document.body).findByRole("option", { name: "Pohlaví" }))
+    await userEvent.click(await section.findByRole("button", { name: "Přidat" }))
+    await expect(rankedItems(section)[0]).toMatch(/^1\.Pohlaví/)
+    await expect(section.getByRole("checkbox", { name: "Nechci uvést" })).toBeChecked()
+    await expect(section.getByRole("checkbox", { name: "Muž" })).not.toBeChecked()
+  },
+}
+
+/** A failed save keeps the unsent list and says which one still applies. */
+export const PreferencesSaveFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("put", PREFERENCES))
+  },
+  play: async ({ canvas }) => {
+    const section = await region(canvas, "Návrh pokojů")
+    await userEvent.click(await section.findByRole("button", { name: "Odebrat Přání" }))
+    await userEvent.click(section.getByRole("button", { name: "Uložit" }))
+    await showsText("Preference se nepodařilo uložit")
+    await showsText("Platí dál: 1. Přání.")
+    await expect(section.getByText(/^Bez měkkých preferencí/)).toBeVisible()
+  },
+}
+
+export const PreferencesLoading: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...neverAnswer("get", PREFERENCES))
+  },
+  play: async ({ canvas }) => {
+    await expect(
+      await canvas.findByRole("status", { name: "Načítání preferencí návrhu pokojů" }),
+    ).toBeVisible()
+  },
+}
+
+export const PreferencesLoadFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("get", PREFERENCES))
+  },
+  play: () => showsText("Preference návrhu pokojů se nepodařilo načíst"),
 }

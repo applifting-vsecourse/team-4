@@ -63,3 +63,38 @@ test("splitting rooms by gender from the settings changes who is suitable", asyn
   await expect(orderRow(page, "Petr")).toContainText("Neubytovatelný")
   await expect(page.getByRole("tab", { name: /^Muž/ })).toBeVisible()
 })
+
+// Nastavení → Návrh pokojů (#389): from Ubytování, the organizer ranks gender
+// as a soft preference above "Přání" and keeps one neutral answer.
+test("ranking the soft preferences of the room proposal from Ubytování", async ({ page }) => {
+  const event = await setUpEvent(page.request, { terms, rooms })
+
+  await page.goto(`/organizations/${event.organizationId}/events/${event.eventId}/rooms`)
+  await page.locator('a[href$="/settings#room-proposal-settings-heading"]').click()
+  const section = page.getByRole("region", { name: "Návrh pokojů" })
+  const items = section.getByRole("list").getByRole("listitem")
+  await expect(items).toHaveCount(1)
+  await expect(items.first()).toContainText("Přání")
+
+  await section.getByRole("combobox", { name: "Přidat preferenci" }).click()
+  await page.getByRole("option", { name: "Pohlaví" }).click()
+  await section.getByRole("button", { name: "Přidat" }).click()
+  await section.getByRole("button", { name: "Posunout Pohlaví výš" }).click()
+  await section.getByRole("checkbox", { name: "Jiná odpověď" }).uncheck()
+  await section.getByRole("button", { name: "Uložit" }).click()
+  await expect(page.getByText("Preference návrhu pokojů byly uloženy.")).toBeVisible()
+
+  await page.reload()
+  await expect(items).toHaveCount(2)
+  await expect(items.first()).toContainText("Pohlaví")
+  await expect(section.getByRole("checkbox", { name: "Jiná odpověď" })).not.toBeChecked()
+  await expect(section.getByRole("checkbox", { name: "Nechci uvést" })).toBeChecked()
+
+  // Gender as the hard attribute leaves the soft list.
+  const rules = page.getByRole("region", { name: "Pravidla ubytování" })
+  await rules.getByRole("radio", { name: "Pohlaví" }).check()
+  await rules.getByRole("button", { name: "Uložit" }).click()
+  await expect(page.getByText("Pravidla ubytování byla uložena.")).toBeVisible()
+  await expect(items).toHaveCount(1)
+  await expect(items.first()).toContainText("Přání")
+})

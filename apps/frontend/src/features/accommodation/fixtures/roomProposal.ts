@@ -1,6 +1,8 @@
 import {
+  roomProposalPreferencesSchema,
   termRoomProposalSchema,
   type ProposalLayoutData,
+  type RoomProposalPreferences,
   type StoredProposalData,
   type TermRoomProposalData,
 } from "@/features/accommodation/api/roomProposalSchemas"
@@ -8,6 +10,9 @@ import {
 // Preview and test data for the room proposal of a term (#365, #385). Every
 // factory parses its result with the API schema; values are fixed so stories
 // render the same every time.
+
+/** The id of "Přání" in the API. */
+const WISHES = "roommate-wishes"
 
 const uuid = (n: number) => `0190c0de-0000-7000-8000-${String(n).padStart(12, "0")}`
 
@@ -211,4 +216,36 @@ export function makeTermRoomProposal(
     ),
   }
   return termRoomProposalSchema.parse({ ...byPreset[preset], ...overrides })
+}
+
+const GENDER_SOFT = {
+  attribute: "gender",
+  values: ["female", "male", "other", "undisclosed"],
+  defaultNeutralValues: ["other", "undisclosed"],
+}
+
+export type PreferencesPreset = "default" | "ranked" | "empty"
+
+/**
+ * The soft preferences of the room proposal (#389). `default`: a new event
+ * splitting rooms by gender, so only "Přání" can be ranked; `ranked`: no
+ * hard attribute, gender above "Přání"; `empty`: nothing ranked.
+ */
+export function makeRoomProposalPreferences(
+  preset: PreferencesPreset = "default",
+): RoomProposalPreferences {
+  const byPreset: Record<PreferencesPreset, RoomProposalPreferences> = {
+    default: {
+      preferences: [{ id: WISHES }],
+      wishes: WISHES,
+      attributes: [],
+    },
+    ranked: {
+      preferences: [{ id: "gender", neutralValues: ["other", "undisclosed"] }, { id: WISHES }],
+      wishes: WISHES,
+      attributes: [GENDER_SOFT],
+    },
+    empty: { preferences: [], wishes: WISHES, attributes: [GENDER_SOFT] },
+  }
+  return roomProposalPreferencesSchema.parse(byPreset[preset])
 }

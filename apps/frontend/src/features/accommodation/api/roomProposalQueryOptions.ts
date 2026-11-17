@@ -8,6 +8,7 @@ import {
 } from "@/features/accommodation/api/evaluationQueryOptions"
 import {
   roomProposalModeResponseSchema,
+  roomProposalPreferencesSchema,
   termRoomProposalSchema,
 } from "@/features/accommodation/api/roomProposalSchemas"
 
@@ -16,6 +17,8 @@ import {
 export const roomProposalKeys = {
   mode: (organizationId: string, eventId: string) =>
     [...evaluationKeys.event(organizationId, eventId), "room-proposal-mode"] as const,
+  preferences: (organizationId: string, eventId: string) =>
+    [...evaluationKeys.event(organizationId, eventId), "room-proposal-preferences"] as const,
   term: (organizationId: string, eventId: string, termId: string) =>
     [...evaluationKeys.event(organizationId, eventId), "room-proposal", termId] as const,
 }
@@ -30,6 +33,18 @@ export const roomProposalModeQueryOptions = (organizationId: string, eventId: st
       roomProposalModeResponseSchema.parse(
         await api.get(`${accommodationPath(organizationId, eventId)}/room-proposal-mode`).json(),
       ).mode,
+  })
+
+/** The ranked soft preferences (#389); reloaded when the hard attribute changes. */
+export const roomProposalPreferencesQueryOptions = (organizationId: string, eventId: string) =>
+  queryOptions({
+    queryKey: roomProposalKeys.preferences(organizationId, eventId),
+    queryFn: async () =>
+      roomProposalPreferencesSchema.parse(
+        await api
+          .get(`${accommodationPath(organizationId, eventId)}/room-proposal-preferences`)
+          .json(),
+      ),
   })
 
 export const termRoomProposalQueryOptions = (

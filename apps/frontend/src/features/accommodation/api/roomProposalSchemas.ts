@@ -99,3 +99,27 @@ export const termRoomProposalSchema = z.object({
   lastSolved: storedProposalSchema.nullable(),
 })
 export type TermRoomProposalData = z.infer<typeof termRoomProposalSchema>
+
+/** One ranked item: "Přání", or a soft attribute with its neutral answers (#389). */
+export const softPreferenceItemSchema = z.object({
+  id: z.string(),
+  neutralValues: z.array(z.string()).optional(),
+})
+
+export const roomProposalPreferencesSchema = z.object({
+  /** Ranked, most important first; empty when the proposal skips them. */
+  preferences: z.array(softPreferenceItemSchema),
+  /** The id of "Přání". */
+  wishes: z.string(),
+  /** The categorical questions that can be ranked; never the hard attribute. */
+  attributes: z.array(
+    z.object({
+      attribute: z.string(),
+      values: z.array(z.string()),
+      defaultNeutralValues: z.array(z.string()),
+    }),
+  ),
+})
+
+export type SoftPreferenceItem = z.infer<typeof softPreferenceItemSchema>
+export type RoomProposalPreferences = z.infer<typeof roomProposalPreferencesSchema>

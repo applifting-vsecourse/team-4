@@ -6,7 +6,7 @@ import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { WorkspacePage } from "@/components/WorkspacePage"
 
-import { ACCOMMODATION_RULES_HEADING } from "@/features/accommodation/components/HardAttributeSection"
+import { ROOM_PROPOSAL_SETTINGS_HEADING } from "@/features/accommodation/components/RoomProposalPreferencesSection"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
@@ -60,7 +60,7 @@ function RoomsPage() {
           <EventSettingsButton
             organizationId={organizationId}
             eventId={eventId}
-            section={ACCOMMODATION_RULES_HEADING}
+            section={ROOM_PROPOSAL_SETTINGS_HEADING}
           />
         }
       />
