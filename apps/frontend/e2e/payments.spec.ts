@@ -42,7 +42,6 @@ test("an overpayment shows as Přeplatek in the detail and, without a reload, in
     .getByRole("row", { name: new RegExp(anna.firstName) })
   await expect(balance).toContainText("Nezaplaceno")
   await expect(page.getByText("Zatím žádné přijaté platby")).toBeVisible()
-  await expect(page.getByRole("link", { name: "Přejít na import výpisu" })).toBeVisible()
 
   // The list and the overview are loaded before the payment, so they have to catch up afterwards.
   await page.goto(registrationsUrl(event))
@@ -60,7 +59,7 @@ test("an overpayment shows as Přeplatek in the detail and, without a reload, in
     .getByRole("navigation", { name: "Navigace organizace a akce" })
     .getByRole("link", { name: "Platby" })
     .click()
-  await expect(balance).toHaveText(/Přeplatek\s*200\s*Kč$/)
+  await expect(balance).toHaveText(/[-−]\s*200\s*Kč$/)
   const payments = page.getByRole("region", { name: "Tabulka přijatých plateb" })
   await expect(payments.getByRole("row", { name: new RegExp(anna.firstName) })).toContainText(
     "1 200 Kč",

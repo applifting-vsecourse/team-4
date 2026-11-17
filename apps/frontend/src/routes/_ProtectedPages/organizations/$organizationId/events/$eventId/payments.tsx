@@ -16,9 +16,6 @@ import { BankTransactionsSection } from "@/features/payments/components/BankTran
 import { eventRegistrationKeys } from "@/features/registrations/api/eventRegistrationQueryOptions"
 import { PaymentsOverviewSection } from "@/features/registrations/components/PaymentsOverviewSection"
 
-// An empty payments overview points at the statement import below it.
-const STATEMENT_IMPORT_HEADING_ID = "statement-import-heading"
-
 // Správa akce → Platby: received payments and balances (S4-09), the import of
 // bank statements (F23) and the queue of unpaired transactions (F24).
 export const Route = createFileRoute(
@@ -59,12 +56,10 @@ function PaymentsPage() {
         <PaymentsOverviewSection
           organizationId={organizationId}
           eventId={eventId}
-          statementImportHeadingId={STATEMENT_IMPORT_HEADING_ID}
         />
         <BankTransactionsSection
           organizationId={organizationId}
           eventId={eventId}
-          headingId={STATEMENT_IMPORT_HEADING_ID}
           // A paired transaction is a received payment of a registration: the
           // overview, the registration list and the detail show it (F24).
           onPaymentsChanged={() =>

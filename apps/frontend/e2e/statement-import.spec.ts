@@ -99,7 +99,7 @@ test("the organizer imports a statement once; it pairs by VS, the rest is paired
   await dialog.getByRole("button", { name: "Přiřadit" }).click()
   await expect(dialog).toBeHidden()
   await expect(page.getByText("Žádné nespárované transakce")).toBeVisible()
-  await expect(balance).toHaveText(/Přeplatek\s*900\s*Kč$/)
+  await expect(balance).toHaveText(/[-−]\s*900\s*Kč$/)
   const payments = page.getByRole("region", { name: "Tabulka přijatých plateb" })
   await expect(payments.getByRole("row")).toHaveCount(3)
 

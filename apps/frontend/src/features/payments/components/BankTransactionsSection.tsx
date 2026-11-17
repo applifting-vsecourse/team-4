@@ -31,8 +31,6 @@ export const importErrorMessage = (error: unknown): string => {
 type BankTransactionsSectionProps = {
   organizationId: string
   eventId: string
-  /** Only when a link points at the import (`#…`). */
-  headingId?: string
   /** An import or a pairing may have added payments to registrations. */
   onPaymentsChanged?: () => void
 }
@@ -43,7 +41,6 @@ type BankTransactionsSectionProps = {
 export function BankTransactionsSection({
   organizationId,
   eventId,
-  headingId,
   onPaymentsChanged,
 }: BankTransactionsSectionProps) {
   const transactions = useQuery(bankTransactionsQueryOptions(organizationId, eventId))
@@ -66,7 +63,6 @@ export function BankTransactionsSection({
   return (
     <PageSection
       title="Nespárované transakce"
-      headingId={headingId}
       isBusy={transactions.isFetching && !transactions.isPending}
       actions={
         <StatementImportButton

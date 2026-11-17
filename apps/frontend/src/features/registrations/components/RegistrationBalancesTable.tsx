@@ -16,8 +16,8 @@ type RegistrationBalancesTableProps = {
 }
 
 // What each registration owes: the same „Celkem“ and „Zaplaceno“ as the
-// registration list, and what is left of it. An overpayment shows its amount,
-// as the registration detail does.
+// registration list, and what is left of it. An overpayment is left as a
+// negative amount in red.
 export function RegistrationBalancesTable({
   organizationId,
   eventId,
@@ -70,20 +70,13 @@ export function RegistrationBalancesTable({
                   link={link}
                   isNumeric
                 >
-                  {balance.balanceMinor < 0 ? (
-                    <span className="flex items-center justify-end gap-2">
-                      <span className="text-xs text-muted-foreground">Přeplatek</span>
-                      <Money
-                        minor={-balance.balanceMinor}
-                        isEmphasised
-                      />
-                    </span>
-                  ) : (
+                  {/* An overpayment is a negative amount, in red. */}
+                  <span className={balance.balanceMinor < 0 ? "text-destructive" : undefined}>
                     <Money
                       minor={balance.balanceMinor}
                       isEmphasised
                     />
-                  )}
+                  </span>
                 </RegistrationCell>
               </TableRow>
             )

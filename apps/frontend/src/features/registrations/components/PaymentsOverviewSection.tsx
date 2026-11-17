@@ -1,15 +1,12 @@
 import { useId } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
-import { Banknote, Upload, WalletCards } from "lucide-react"
+import { Banknote, WalletCards } from "lucide-react"
 
-import { ROUTES } from "@/app/routes"
 import { EmptyState } from "@/components/EmptyState"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { PageSection } from "@/components/PageSection"
 import { RefreshButton } from "@/components/RefreshButton"
-import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { eventPaymentsQueryOptions } from "@/features/registrations/api/eventRegistrationQueryOptions"
@@ -20,18 +17,13 @@ import { RegistrationBalancesTable } from "@/features/registrations/components/R
 type PaymentsOverviewSectionProps = {
   organizationId: string
   eventId: string
-  /** The id of the statement import's heading on the same page, where an empty overview points. */
-  statementImportHeadingId: string
 }
 
 // Správa akce → Platby (S4-09): who has paid and who still owes, and the
 // payments received so far. A failed first load is never shown as empty; a
-// failed refresh keeps the last overview and says so.
-export function PaymentsOverviewSection({
-  organizationId,
-  eventId,
-  statementImportHeadingId,
-}: PaymentsOverviewSectionProps) {
+// failed refresh keeps the last overview and says so. The statement import
+// has its own action in the section below.
+export function PaymentsOverviewSection({ organizationId, eventId }: PaymentsOverviewSectionProps) {
   const query = useQuery(eventPaymentsQueryOptions(organizationId, eventId))
   const { data } = query
 
@@ -59,7 +51,6 @@ export function PaymentsOverviewSection({
         <Overview
           organizationId={organizationId}
           eventId={eventId}
-          statementImportHeadingId={statementImportHeadingId}
           overview={data}
         />
       ) : query.isPending ? (
@@ -78,7 +69,7 @@ export function PaymentsOverviewSection({
 
 type OverviewProps = PaymentsOverviewSectionProps & { overview: EventPayments }
 
-function Overview({ organizationId, eventId, statementImportHeadingId, overview }: OverviewProps) {
+function Overview({ organizationId, eventId, overview }: OverviewProps) {
   const balancesHeadingId = useId()
   const paymentsHeadingId = useId()
   return (
@@ -121,22 +112,6 @@ function Overview({ organizationId, eventId, statementImportHeadingId, overview 
           <EmptyState
             icon={Banknote}
             title="Zatím žádné přijaté platby"
-            action={
-              <Button
-                asChild
-                variant="outline"
-              >
-                <Link
-                  to={ROUTES.eventPayments}
-                  params={{ organizationId, eventId }}
-                  hash={statementImportHeadingId}
-                  resetScroll={false}
-                >
-                  <Upload />
-                  Přejít na import výpisu
-                </Link>
-              </Button>
-            }
           />
         ) : (
           <EventPaymentsTable

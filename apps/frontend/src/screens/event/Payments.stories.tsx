@@ -76,9 +76,9 @@ export const PaymentsAndBalances: Story = {
     for (const amount of ["4 500 Kč", "2 000 Kč", "2 500 Kč"]) {
       await expect(within(jakub).getByText(amount)).toBeVisible()
     }
-    // An overpayment shows its amount, as the registration detail does.
+    // An overpayment is left as a negative amount.
     const tomas = within(balances).getByRole("row", { name: /Tomáš Černý/ })
-    await expect(tomas).toHaveTextContent(/Přeplatek\s*500\s*Kč$/)
+    await expect(tomas).toHaveTextContent(/[-−]\s*500\s*Kč$/)
     // Without an obligation there is no balance to watch.
     await expect(within(balances).queryByText(/Klára Procházková/)).not.toBeInTheDocument()
 
@@ -99,7 +99,7 @@ export const PaymentsAndBalances: Story = {
   },
 }
 
-/** Nothing received yet: the balances are shown and the import is one click away. */
+/** Nothing received yet: the balances are shown; the import is in the section below. */
 export const NoPayments: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...registrationHandlers.eventPayments(makeEventWithoutPayments()))
@@ -107,10 +107,7 @@ export const NoPayments: Story = {
   play: async ({ canvas }) => {
     await showsText("Zatím žádné přijaté platby")
     await expect(canvas.getByRole("region", { name: "Tabulka sald přihlášek" })).toBeVisible()
-    await expect(canvas.getByRole("link", { name: "Přejít na import výpisu" })).toHaveAttribute(
-      "href",
-      expect.stringContaining("#statement-import-heading"),
-    )
+    await expect(canvas.getByRole("button", { name: "Import výpisu" })).toBeEnabled()
   },
 }
 
