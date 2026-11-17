@@ -75,12 +75,17 @@ export const PaymentsAndBalances: Story = {
     for (const amount of ["4 500 Kč", "2 000 Kč", "2 500 Kč"]) {
       await expect(within(jakub).getByText(amount)).toBeVisible()
     }
+    // An overpayment shows its amount, as the registration detail does.
+    const tomas = within(balances).getByRole("row", { name: /Tomáš Černý/ })
+    await expect(tomas).toHaveTextContent(/Přeplatek\s*500\s*Kč$/)
     // Without an obligation there is no balance to watch.
     await expect(within(balances).queryByText(/Klára Procházková/)).not.toBeInTheDocument()
 
     const payments = canvas.getByRole("region", { name: "Tabulka přijatých plateb" })
     await expect(within(payments).getAllByRole("row")).toHaveLength(5)
-    await expect(within(payments).getByText("QR platba")).toBeVisible()
+    await expect(within(payments).getByRole("row", { name: /QR platba/ }).textContent).toContain(
+      "Tomáš Černý",
+    )
     // A payment opens the detail of its registration.
     const [latest] = makeEventPayments().payments
     if (!latest) throw new Error("The overview fixture has no payment")

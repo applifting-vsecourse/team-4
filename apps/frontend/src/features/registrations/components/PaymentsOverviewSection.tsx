@@ -38,7 +38,7 @@ export function PaymentsOverviewSection({
   return (
     <PageSection
       title="Přijaté platby a salda"
-      isBusy={query.isFetching}
+      isBusy={query.isFetching && !query.isPending}
       actions={
         <RefreshButton
           isRefreshing={query.isFetching}

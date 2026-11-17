@@ -1,5 +1,6 @@
 import { PrismaModule } from '@/core/prisma/prisma.module';
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { Registration } from '@/generated/prisma/client';
 import { EventPaymentsController } from '@/modules/registrations/controllers/event-payments.controller';
 import { EventRegistrationsRepository } from '@/modules/registrations/repositories/event-registrations.repository';
 import { EventPaymentsService } from '@/modules/registrations/services/event-payments.service';
@@ -79,8 +80,17 @@ const T1 = {
 const pathOf = (organizationId: string, eventId: string): string =>
   `organizations/${organizationId}/events/${eventId}/payments`;
 
+type Fixture = {
+  ownerId: string;
+  organizationId: string;
+  path: string;
+  owing: Registration;
+  settled: Registration;
+  waiting: Registration;
+};
+
 /** An event with an owing, a settled and a waitlisted registration. */
-const fixture = async () => {
+const fixture = async (): Promise<Fixture> => {
   const organization = await createOrganization(prisma);
   const { event, terms } = await createEvent(prisma, {
     organizationId: organization.id,

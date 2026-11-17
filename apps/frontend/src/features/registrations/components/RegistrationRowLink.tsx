@@ -42,12 +42,21 @@ type RegistrationCellProps = {
   link: RegistrationLink
   /** Amounts are right-aligned. */
   isNumeric?: boolean
+  /** Longer text such as term labels may wrap; values stay on one line. */
+  canWrap?: boolean
   children: ReactNode
 }
 
-export function RegistrationCell({ link, isNumeric = false, children }: RegistrationCellProps) {
+export function RegistrationCell({
+  link,
+  isNumeric = false,
+  canWrap = false,
+  children,
+}: RegistrationCellProps) {
   return (
-    <TableCell className={cn("relative whitespace-nowrap", isNumeric && "text-right")}>
+    <TableCell
+      className={cn("relative", !canWrap && "whitespace-nowrap", isNumeric && "text-right")}
+    >
       {children}
       <Link
         to={ROUTES.registration}

@@ -1,8 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
 import { ClipboardList, SearchX, X } from "lucide-react"
 
-import { ROUTES } from "@/app/routes"
 import { EmptyState } from "@/components/EmptyState"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
@@ -12,14 +10,7 @@ import { RefreshButton } from "@/components/RefreshButton"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { formatPragueDateTime } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 import { normalizeSearch } from "@/lib/search"
@@ -31,6 +22,10 @@ import {
 } from "@/features/registrations/api/eventRegistrationSchemas"
 import { PaymentStateBadge } from "@/features/registrations/components/PaymentStateBadge"
 import { RegistrationFilters } from "@/features/registrations/components/RegistrationFilters"
+import {
+  RegistrationCell,
+  RegistrationNameCell,
+} from "@/features/registrations/components/RegistrationRowLink"
 
 type RegistrationsSectionProps = {
   organizationId: string
@@ -184,21 +179,21 @@ function RegistrationsResult({
           </TableHeader>
           <TableBody>
             {filteredRegistrations.map((registration) => {
+              const link = { organizationId, eventId, registrationId: registration.id }
               return (
                 <TableRow key={registration.id}>
-                  <TableCell className="relative">
-                    <Link
-                      to={ROUTES.registration}
-                      params={{ organizationId, eventId, registrationId: registration.id }}
-                      aria-label={`Přihláška ${registration.firstName} ${registration.lastName}`}
-                      className="block font-medium text-foreground after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
-                    >
-                      {registration.firstName} {registration.lastName}
-                    </Link>
+                  <RegistrationNameCell
+                    link={link}
+                    firstName={registration.firstName}
+                    lastName={registration.lastName}
+                  >
                     <p className="text-xs text-muted-foreground">{registration.email}</p>
                     <p className="text-xs text-muted-foreground">{registration.phone}</p>
-                  </TableCell>
-                  <TableCell className="relative text-left">
+                  </RegistrationNameCell>
+                  <RegistrationCell
+                    link={link}
+                    canWrap
+                  >
                     <ul className="space-y-1">
                       {registration.terms.map((term) => (
                         <li
@@ -209,15 +204,11 @@ function RegistrationsResult({
                         </li>
                       ))}
                     </ul>
-                    <Link
-                      to={ROUTES.registration}
-                      params={{ organizationId, eventId, registrationId: registration.id }}
-                      aria-hidden="true"
-                      tabIndex={-1}
-                      className="absolute inset-0"
-                    />
-                  </TableCell>
-                  <TableCell className="relative text-left">
+                  </RegistrationCell>
+                  <RegistrationCell
+                    link={link}
+                    canWrap
+                  >
                     <ul className="space-y-1">
                       {registration.terms.map((term) => (
                         <li
@@ -228,60 +219,31 @@ function RegistrationsResult({
                         </li>
                       ))}
                     </ul>
-                    <Link
-                      to={ROUTES.registration}
-                      params={{ organizationId, eventId, registrationId: registration.id }}
-                      aria-hidden="true"
-                      tabIndex={-1}
-                      className="absolute inset-0"
-                    />
-                  </TableCell>
-                  <TableCell className="relative whitespace-nowrap">
+                  </RegistrationCell>
+                  <RegistrationCell link={link}>
                     {formatPragueDateTime(registration.receivedAt)}
-                    <Link
-                      to={ROUTES.registration}
-                      params={{ organizationId, eventId, registrationId: registration.id }}
-                      aria-hidden="true"
-                      tabIndex={-1}
-                      className="absolute inset-0"
-                    />
-                  </TableCell>
-                  <TableCell className="relative text-left whitespace-nowrap">
+                  </RegistrationCell>
+                  <RegistrationCell link={link}>
                     <ul className="-ml-2">
                       <li className="min-h-7 py-1">
                         <PaymentStateBadge state={registration.paymentState} />
                       </li>
                     </ul>
-                    <Link
-                      to={ROUTES.registration}
-                      params={{ organizationId, eventId, registrationId: registration.id }}
-                      aria-hidden="true"
-                      tabIndex={-1}
-                      className="absolute inset-0"
-                    />
-                  </TableCell>
-                  <TableCell className="relative text-right whitespace-nowrap">
+                  </RegistrationCell>
+                  <RegistrationCell
+                    link={link}
+                    isNumeric
+                  >
                     {registration.paymentState === "none"
                       ? "—"
                       : formatCzk(registration.amountDueMinor)}
-                    <Link
-                      to={ROUTES.registration}
-                      params={{ organizationId, eventId, registrationId: registration.id }}
-                      aria-hidden="true"
-                      tabIndex={-1}
-                      className="absolute inset-0"
-                    />
-                  </TableCell>
-                  <TableCell className="relative text-right whitespace-nowrap">
+                  </RegistrationCell>
+                  <RegistrationCell
+                    link={link}
+                    isNumeric
+                  >
                     {registration.paymentState === "none" ? "—" : formatCzk(registration.paidMinor)}
-                    <Link
-                      to={ROUTES.registration}
-                      params={{ organizationId, eventId, registrationId: registration.id }}
-                      aria-hidden="true"
-                      tabIndex={-1}
-                      className="absolute inset-0"
-                    />
-                  </TableCell>
+                  </RegistrationCell>
                 </TableRow>
               )
             })}

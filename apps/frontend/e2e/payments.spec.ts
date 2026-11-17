@@ -23,7 +23,9 @@ async function recordPayment(page: Page, amount: string) {
   await expect(dialog).toBeHidden()
 }
 
-test("an overpayment shows as Přeplatek in the detail and, without a reload, in the list", async ({
+// One event for the whole money path: every event with registrations adds an
+// accommodation evaluation to the worker's queue that later specs wait on.
+test("an overpayment shows as Přeplatek in the detail and, without a reload, in the list and Platby", async ({
   page,
   request,
 }) => {
@@ -31,18 +33,41 @@ test("an overpayment shows as Přeplatek in the detail and, without a reload, in
   const anna = newParticipant("Anna")
   const registration = await register(request, event.publicId, anna, event.termIds)
   await decideTerms(registration.id, "confirmed")
+  const annaLink = `Přihláška ${anna.firstName} ${anna.lastName}`
 
-  // The list is loaded before the payment, so it has to catch up afterwards.
+  // Nothing received yet (S4-09): the whole price is due and the import is offered.
+  await page.goto(`/organizations/${event.organizationId}/events/${event.eventId}/payments`)
+  const balance = page
+    .getByRole("region", { name: "Tabulka sald přihlášek" })
+    .getByRole("row", { name: new RegExp(anna.firstName) })
+  await expect(balance).toContainText("Nezaplaceno")
+  await expect(page.getByText("Zatím žádné přijaté platby")).toBeVisible()
+  await expect(page.getByRole("link", { name: "Přejít na import výpisu" })).toBeVisible()
+
+  // The list and the overview are loaded before the payment, so they have to catch up afterwards.
   await page.goto(registrationsUrl(event))
   const row = page.getByRole("row", { name: new RegExp(anna.firstName) })
   await expect(row).toContainText("Nezaplaceno")
-  await page.getByRole("link", { name: `Přihláška ${anna.firstName} ${anna.lastName}` }).click()
+  await page.getByRole("link", { name: annaLink }).click()
 
   await recordPayment(page, "1200")
   await expect(definition(page, "Přeplatek")).toHaveText("200 Kč")
 
   await page.getByRole("link", { name: "Přihlášky" }).first().click()
   await expect(row).toContainText("Přeplatek")
+
+  await page
+    .getByRole("navigation", { name: "Navigace organizace a akce" })
+    .getByRole("link", { name: "Platby" })
+    .click()
+  await expect(balance).toHaveText(/Přeplatek\s*200\s*Kč$/)
+  const payments = page.getByRole("region", { name: "Tabulka přijatých plateb" })
+  await expect(payments.getByRole("row", { name: new RegExp(anna.firstName) })).toContainText(
+    "1 200 Kč",
+  )
+  // A payment opens its registration.
+  await payments.getByRole("link", { name: annaLink }).click()
+  await expect(page).toHaveURL(new RegExp(`/registrations/${registration.id}$`))
 })
 
 test("a payment without an obligation is an overpayment", async ({ page, request }) => {
@@ -53,41 +78,4 @@ test("a payment without an obligation is an overpayment", async ({ page, request
   await page.goto(`${registrationsUrl(event)}/${petr.id}`)
   await recordPayment(page, "500")
   await expect(definition(page, "Přeplatek")).toHaveText("500 Kč")
-})
-
-test("a payment recorded in the detail shows in Platby with the new balance and leads back", async ({
-  page,
-  request,
-}) => {
-  const event = await setUpEvent(page.request, { terms, rooms })
-  const anna = newParticipant("Anna")
-  const registration = await register(request, event.publicId, anna, event.termIds)
-  await decideTerms(registration.id, "confirmed")
-  const paymentsUrl = `/organizations/${event.organizationId}/events/${event.eventId}/payments`
-
-  // Nothing received yet: the balance is the whole price and the import is offered.
-  await page.goto(paymentsUrl)
-  const balances = page.getByRole("region", { name: "Tabulka sald přihlášek" })
-  const annaBalance = balances.getByRole("row", { name: new RegExp(anna.firstName) })
-  await expect(annaBalance).toContainText("Nezaplaceno")
-  await expect(page.getByText("Zatím žádné přijaté platby")).toBeVisible()
-  await expect(page.getByRole("link", { name: "Přejít na import výpisu" })).toBeVisible()
-
-  // The overview is loaded before the payment, so it has to catch up afterwards.
-  await page.getByRole("link", { name: `Přihláška ${anna.firstName} ${anna.lastName}` }).click()
-  await recordPayment(page, "400")
-  await page
-    .getByRole("navigation", { name: "Navigace organizace a akce" })
-    .getByRole("link", { name: "Platby" })
-    .click()
-
-  await expect(annaBalance).toContainText("Částečně zaplaceno")
-  await expect(annaBalance).toContainText("600 Kč")
-  const payments = page.getByRole("region", { name: "Tabulka přijatých plateb" })
-  await expect(payments.getByRole("row", { name: new RegExp(anna.firstName) })).toContainText(
-    "400 Kč",
-  )
-
-  await payments.getByRole("link", { name: `Přihláška ${anna.firstName} ${anna.lastName}` }).click()
-  await expect(page).toHaveURL(new RegExp(`/registrations/${registration.id}$`))
 })

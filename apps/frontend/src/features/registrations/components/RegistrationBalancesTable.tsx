@@ -16,8 +16,8 @@ type RegistrationBalancesTableProps = {
 }
 
 // What each registration owes: the same „Celkem“ and „Zaplaceno“ as the
-// registration list, and what is left of it. An overpayment leaves nothing to
-// pay and its badge says „Přeplatek“.
+// registration list, and what is left of it. An overpayment shows its amount,
+// as the registration detail does.
 export function RegistrationBalancesTable({
   organizationId,
   eventId,
@@ -70,10 +70,20 @@ export function RegistrationBalancesTable({
                   link={link}
                   isNumeric
                 >
-                  <Money
-                    minor={Math.max(balance.balanceMinor, 0)}
-                    isEmphasised
-                  />
+                  {balance.balanceMinor < 0 ? (
+                    <span className="flex items-center justify-end gap-2">
+                      <span className="text-xs text-muted-foreground">Přeplatek</span>
+                      <Money
+                        minor={-balance.balanceMinor}
+                        isEmphasised
+                      />
+                    </span>
+                  ) : (
+                    <Money
+                      minor={balance.balanceMinor}
+                      isEmphasised
+                    />
+                  )}
                 </RegistrationCell>
               </TableRow>
             )
