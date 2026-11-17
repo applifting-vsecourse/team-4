@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react"
 
 import { FormError } from "@/components/FormError"
@@ -42,6 +42,8 @@ export type RoomProposalPreferencesProps = {
 export const preferenceLabel = (id: string, wishes: string) =>
   id === wishes ? "Přání" : attributeLabel(id)
 
+const arrowId = (id: string, direction: "up" | "down") => `preference-${id}-${direction}`
+
 const move = <T,>(items: T[], from: number, to: number): T[] => {
   const next = [...items]
   const [item] = next.splice(from, 1)
@@ -63,6 +65,22 @@ export function RoomProposalPreferences({
 }: RoomProposalPreferencesProps) {
   const [items, setItems] = useState(preferences)
   const [toAdd, setToAdd] = useState("")
+  // A move to the top or bottom disables the pressed arrow; keyboard focus
+  // goes to the other arrow of the moved item instead of the page.
+  const focusAfterMove = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (focusAfterMove.current === null) return
+    document.getElementById(focusAfterMove.current)?.focus()
+    focusAfterMove.current = null
+  })
+
+  const moveItem = (index: number, to: number) => {
+    const id = items[index]!.id
+    setItems(move(items, index, to))
+    if (to === 0) focusAfterMove.current = arrowId(id, "down")
+    else if (to === items.length - 1) focusAfterMove.current = arrowId(id, "up")
+  }
 
   const available = [
     ...(items.some((item) => item.id === wishes) ? [] : [wishes]),
@@ -118,18 +136,20 @@ export function RoomProposalPreferences({
                           <Button
                             variant="ghost"
                             size="icon"
+                            id={arrowId(item.id, "up")}
                             aria-label={`Posunout ${label} výš`}
                             disabled={index === 0}
-                            onClick={() => setItems(move(items, index, index - 1))}
+                            onClick={() => moveItem(index, index - 1)}
                           >
                             <ArrowUp />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
+                            id={arrowId(item.id, "down")}
                             aria-label={`Posunout ${label} níž`}
                             disabled={index === items.length - 1}
-                            onClick={() => setItems(move(items, index, index + 1))}
+                            onClick={() => moveItem(index, index + 1)}
                           >
                             <ArrowDown />
                           </Button>

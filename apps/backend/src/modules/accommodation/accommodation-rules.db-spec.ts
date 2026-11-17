@@ -392,7 +392,7 @@ describe('the soft preferences of the room proposal (#389)', () => {
       data: { isRoomProposalAutomatic: true },
     });
     const list = [
-      { id: 'gender', neutralValues: ['undisclosed'] },
+      { id: 'gender', neutralValues: ['other', 'undisclosed'] },
       { id: 'roommate-wishes' },
     ];
 
@@ -414,7 +414,7 @@ describe('the soft preferences of the room proposal (#389)', () => {
     ).toMatchObject({
       hardAttribute: null,
       softAttributes: ['gender', 'roommate-wishes'],
-      softNeutralValues: { gender: ['undisclosed'] },
+      softNeutralValues: { gender: ['other', 'undisclosed'] },
     });
     // Every room proposal is stale and due again 10 s later; the evaluation
     // of participation is not (spec §7.1).
@@ -430,7 +430,7 @@ describe('the soft preferences of the room proposal (#389)', () => {
 
     // The same list again, neutral answers in another order, changes nothing.
     await rank(f, [
-      { id: 'gender', neutralValues: ['undisclosed'] },
+      { id: 'gender', neutralValues: ['undisclosed', 'other'] },
       { id: 'roommate-wishes' },
     ]);
     expect(await layoutVersions(f)).toEqual([1, 1]);

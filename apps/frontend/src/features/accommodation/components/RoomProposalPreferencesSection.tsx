@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 
@@ -5,6 +6,7 @@ import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { Skeleton } from "@/components/ui/skeleton"
+import { HTTPError } from "@/lib/api-client"
 
 import { roomProposalPreferencesQueryOptions } from "@/features/accommodation/api/roomProposalQueryOptions"
 import type { RoomProposalPreferences as Preferences } from "@/features/accommodation/api/roomProposalSchemas"
@@ -27,6 +29,10 @@ const stillApplies = ({ preferences, wishes }: Preferences) =>
 /** Starts the form again only when the saved list itself changes. */
 const formKey = ({ preferences }: Preferences) => JSON.stringify(preferences)
 
+/** 409: the list holds what has meanwhile become the hard attribute. */
+const isHardAttributeConflict = (error: unknown) =>
+  error instanceof HTTPError && error.response.status === 409
+
 // Nastavení → Návrh pokojů (#389): the saved soft preferences of the event's
 // room proposal. A save makes the room proposals stale; a failed one keeps
 // the unsent list in the form and says which list still applies.
@@ -39,6 +45,11 @@ export function RoomProposalPreferencesSection({
 }) {
   const setting = useQuery(roomProposalPreferencesQueryOptions(organizationId, eventId))
   const save = useSaveRoomProposalPreferences(organizationId, eventId)
+  const key = setting.data ? formKey(setting.data) : null
+  const { reset } = save
+
+  // A new saved list starts the form again; an error about the old form goes.
+  useEffect(() => reset(), [key, reset])
 
   const content = setting.isPending ? (
     <LoadingBlock label="Načítání preferencí návrhu pokojů">
@@ -52,12 +63,18 @@ export function RoomProposalPreferencesSection({
     />
   ) : (
     <RoomProposalPreferences
-      key={formKey(setting.data)}
+      key={key}
       preferences={setting.data.preferences}
       wishes={setting.data.wishes}
       attributes={setting.data.attributes}
       isSaving={save.isPending}
-      saveError={save.isError ? stillApplies(setting.data) : undefined}
+      saveError={
+        save.isError
+          ? isHardAttributeConflict(save.error)
+            ? `Tvrdé pravidlo ubytování nelze přidat mezi měkké preference; odeberte ho ze seznamu. ${stillApplies(setting.data)}`
+            : stillApplies(setting.data)
+          : undefined
+      }
       onSave={(next) =>
         save.mutate(next, {
           // The neutral toast: the green one fails the contrast check (#400).

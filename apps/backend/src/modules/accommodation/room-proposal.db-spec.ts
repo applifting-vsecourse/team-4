@@ -313,6 +313,27 @@ describe('the room proposal of a term', () => {
     });
   });
 
+  it('ranks only "Přání" without rules, and nothing for an emptied list', async () => {
+    const plain = await setup([{ label: 'A', baseBeds: 2, termIndexes: [0] }], {
+      gender: false,
+    });
+    await person(plain, 'female');
+    const emptied = await setup(
+      [{ label: 'A', baseBeds: 2, termIndexes: [0] }],
+      {
+        gender: false,
+        softAttributes: [],
+      },
+    );
+    await person(emptied, 'female');
+
+    expect((await propose(plain)).input.input.preferences).toEqual([
+      { kind: 'wishes' },
+    ]);
+    // An empty list skips the soft preferences (spec §5), never "Přání".
+    expect((await propose(emptied)).input.input.preferences).toEqual([]);
+  });
+
   it('shows a term without confirmed people as an empty layout', async () => {
     const f = await setup([{ label: 'A', baseBeds: 2, termIndexes: [0] }]);
     await person(f, 'female', 'pending');

@@ -404,6 +404,8 @@ export const RankedPreferences: Story = {
     await expect(section.getByRole("button", { name: "Posunout Pohlaví výš" })).toBeDisabled()
 
     await userEvent.click(section.getByRole("button", { name: "Posunout Přání výš" }))
+    // The pressed arrow is disabled at the top; focus stays on the item.
+    await expect(section.getByRole("button", { name: "Posunout Přání níž" })).toHaveFocus()
     await userEvent.click(section.getByRole("checkbox", { name: "Jiná odpověď" }))
     await userEvent.click(section.getByRole("button", { name: "Uložit" }))
     await showsText("Preference návrhu pokojů byly uloženy.")

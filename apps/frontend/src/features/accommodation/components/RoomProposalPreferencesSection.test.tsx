@@ -111,6 +111,20 @@ describe("RoomProposalPreferencesSection", () => {
     expect(items()[0]).toMatch(/^1\.Přání/)
   })
 
+  it("asks to remove the hard attribute when it became one meanwhile", async () => {
+    get.mockReturnValue(answer(RANKED))
+    put.mockReturnValue({
+      json: () => Promise.reject(new FakeHTTPError({ status: 409 }, {})),
+    })
+    renderSection()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Uložit" }))
+
+    expect(
+      await screen.findByText(/^Tvrdé pravidlo ubytování nelze přidat mezi měkké preference/),
+    ).toBeInTheDocument()
+  })
+
   it("offers a retry when the list cannot be loaded", async () => {
     get.mockReturnValue(failure())
     renderSection()
