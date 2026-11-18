@@ -15,7 +15,19 @@ export function formatProgrammeDay(date: string) {
 /** "08:30" is shown as "8:30". */
 export const formatProgrammeTime = (time: string) => time.replace(/^0/, "")
 
-/** Splits the chronological items of a term into days. */
+/** "8:30 – 10:00" */
+export const formatProgrammeRange = (startTime: string, endTime: string) =>
+  `${formatProgrammeTime(startTime)} – ${formatProgrammeTime(endTime)}`
+
+const toProgrammeItem = (item: ProgrammeItemData): ProgrammeDay["items"][number] => ({
+  id: item.id,
+  time: formatProgrammeRange(item.startTime, item.endTime),
+  title: item.title,
+  place: item.place ?? undefined,
+  description: item.description ?? undefined,
+})
+
+/** Splits the chronological items of a term into the days that have any. */
 export function groupByDay(items: ProgrammeItemData[]): ProgrammeDay[] {
   const days: ProgrammeDay[] = []
   for (const item of items) {
@@ -24,13 +36,30 @@ export function groupByDay(items: ProgrammeItemData[]): ProgrammeDay[] {
       day = { id: item.startDate, label: formatProgrammeDay(item.startDate), items: [] }
       days.push(day)
     }
-    day.items.push({
-      id: item.id,
-      time: formatProgrammeTime(item.startTime),
-      title: item.title,
-      place: item.place ?? undefined,
-      description: item.description ?? undefined,
-    })
+    day.items.push(toProgrammeItem(item))
   }
   return days
+}
+
+/** Every calendar day from `startDate` to `endDate`, both included. */
+function eachDay(startDate: string, endDate: string) {
+  const days: string[] = []
+  const [year = 0, month = 1, day = 1] = startDate.split("-").map(Number)
+  const cursor = new Date(Date.UTC(year, month - 1, day))
+  for (let date = startDate; date <= endDate; date = cursor.toISOString().slice(0, 10)) {
+    days.push(date)
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
+  }
+  return days
+}
+
+/** Every day of the term, the ones without items too. */
+export function termCalendar(
+  term: { startDate: string; endDate: string },
+  items: ProgrammeItemData[],
+): ProgrammeDay[] {
+  const withItems = new Map(groupByDay(items).map((day) => [day.id, day]))
+  return eachDay(term.startDate, term.endDate).map(
+    (date) => withItems.get(date) ?? { id: date, label: formatProgrammeDay(date), items: [] },
+  )
 }

@@ -8,6 +8,8 @@ export type ProgrammeItemValues = {
   date: string
   /** `HH:mm`, or "". */
   time: string
+  /** `HH:mm`, or "". */
+  endTime: string
   place: string
   description: string
 }
@@ -41,7 +43,12 @@ export function readProgrammeForm(
     errors.date = `Datum musí být v rozsahu termínu, ${formatCalendarRange(term.startDate, term.endDate)}.`
   }
 
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(values.time)) errors.time = "Zadejte čas začátku."
+  const isTime = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value)
+  if (!isTime(values.time)) errors.time = "Zadejte čas začátku."
+  if (!isTime(values.endTime)) errors.endTime = "Zadejte čas konce."
+  else if (isTime(values.time) && values.endTime <= values.time) {
+    errors.endTime = "Čas konce musí být pozdější než čas začátku."
+  }
 
   const place = values.place.trim()
   const description = values.description.trim()
@@ -56,6 +63,7 @@ export function readProgrammeForm(
       title,
       startDate: values.date,
       startTime: values.time,
+      endTime: values.endTime,
       place: place || null,
       description: description || null,
     },

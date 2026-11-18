@@ -2,6 +2,7 @@ import { Link, useMatchRoute } from "@tanstack/react-router"
 import {
   ArrowUpRight,
   BedDouble,
+  CalendarDays,
   ClipboardList,
   CreditCard,
   LayoutDashboard,
@@ -21,6 +22,7 @@ const sections = [
   { label: "Přihlášky", icon: ClipboardList, to: ROUTES.eventRegistrations },
   { label: "Platby", icon: CreditCard, to: ROUTES.eventPayments },
   { label: "Ubytování", icon: BedDouble, to: ROUTES.eventRooms },
+  { label: "Program", icon: CalendarDays, to: ROUTES.eventProgramme },
   { label: "Komunikace", icon: Mail },
 ] as const
 
