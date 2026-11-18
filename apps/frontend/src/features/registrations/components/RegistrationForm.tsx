@@ -203,26 +203,32 @@ export function RegistrationForm({
         className="space-y-10"
       >
         <section
-          aria-label="Výběr termínů"
-          className="space-y-5"
+          aria-labelledby="registration-terms-heading"
+          className="space-y-5 rounded-lg border border-border bg-card p-4 sm:p-6"
         >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2
+              id="registration-terms-heading"
+              className="text-h4"
+            >
+              Termíny
+            </h2>
+            <Badge variant="outline">Povinné</Badge>
+          </div>
           <FormField
             control={form.control}
             name="termIds"
             render={({ field, fieldState }) => (
               <FormItem>
                 <FieldSet>
-                  <FieldLegend>
-                    <span>Termíny</span>
-                    <Badge variant="outline">Povinné</Badge>
-                  </FieldLegend>
+                  <FieldLegend className="sr-only">Termíny</FieldLegend>
                   <div className="space-y-3">
                     {terms.map((term) => {
                       const id = `registration-term-${term.id}`
                       return (
                         <div
                           key={term.id}
-                          className="relative rounded-lg border border-border bg-card p-3 has-data-[state=checked]:border-foreground"
+                          className="relative rounded-lg border border-border bg-background p-3 has-data-[state=checked]:border-foreground"
                         >
                           <Field
                             orientation="horizontal"
@@ -286,89 +292,103 @@ export function RegistrationForm({
           </div>
         </section>
 
-        <FieldSet>
-          <FieldLegend>
-            <span className="flex w-full flex-wrap items-center gap-3">
-              <span className="text-h4">Kontaktní údaje</span>
-              <Badge variant="outline">Povinné</Badge>
-            </span>
-          </FieldLegend>
-          <div className="grid gap-5 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="firstName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Jméno <RequiredMark />
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      autoComplete="given-name"
-                      aria-required
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage className="min-h-0" />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="lastName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Příjmení <RequiredMark />
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      autoComplete="family-name"
-                      aria-required
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage className="min-h-0" />
-                </FormItem>
-              )}
-            />
+        <section
+          aria-labelledby="registration-contact-heading"
+          className="space-y-5 rounded-lg border border-border bg-card p-4 sm:p-6"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2
+              id="registration-contact-heading"
+              className="text-h4"
+            >
+              Kontaktní údaje
+            </h2>
+            <Badge variant="outline">Povinné</Badge>
           </div>
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  E-mail <RequiredMark />
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    type="email"
-                    aria-required
-                    autoComplete="email"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage className="min-h-0" />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="phone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Telefon <RequiredMark />
-                </FormLabel>
-                <FormControl>
-                  <PhoneField {...field} />
-                </FormControl>
-                <FormMessage className="min-h-0" />
-              </FormItem>
-            )}
-          />
-        </FieldSet>
+          <FieldSet>
+            <FieldLegend className="sr-only">Kontaktní údaje</FieldLegend>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="firstName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Jméno <RequiredMark />
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        autoComplete="given-name"
+                        aria-required
+                        placeholder="Zadejte své jméno"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="min-h-0" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Příjmení <RequiredMark />
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        autoComplete="family-name"
+                        aria-required
+                        placeholder="Zadejte své příjmení"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="min-h-0" />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      E-mail <RequiredMark />
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        aria-required
+                        autoComplete="email"
+                        placeholder="jmeno@example.cz"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="min-h-0" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Telefon <RequiredMark />
+                    </FormLabel>
+                    <FormControl>
+                      <PhoneField {...field} />
+                    </FormControl>
+                    <FormMessage className="min-h-0" />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </FieldSet>
+        </section>
 
         <section
           aria-label="Doplňující údaje"

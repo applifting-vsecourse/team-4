@@ -26,60 +26,63 @@ type GenderFieldProps = {
 export function GenderField({ id, value, onChange, isDisabled }: GenderFieldProps) {
   const otherId = `${id}-other-words`
   return (
-    <FieldSet>
-      <FieldLegend>Pohlaví pro ubytování</FieldLegend>
-      <RadioGroup
-        value={value.gender ?? ""}
-        onValueChange={(next) => {
-          const gender = genderSchema.parse(next)
-          onChange({ gender, genderOther: gender === "other" ? value.genderOther : null })
-        }}
-        disabled={isDisabled}
-        className="sm:grid-cols-2"
-      >
-        {GENDERS.map((gender) => (
-          <Field
-            key={gender}
-            orientation="horizontal"
-          >
-            <RadioGroupItem
-              id={`${id}-${gender}`}
-              value={gender}
-              aria-controls={gender === "other" && value.gender === "other" ? otherId : undefined}
-            />
-            <FieldLabel htmlFor={`${id}-${gender}`}>{GENDER_LABELS[gender]}</FieldLabel>
-          </Field>
-        ))}
-      </RadioGroup>
-      {value.gender === "other" ? (
-        // Under its option, aligned with the option labels; half the width
-        // only where the options stand in two columns.
-        <div className="@container pl-6">
-          <Field className="@md:w-1/2">
-            <FieldLabel htmlFor={otherId}>Vlastní odpověď (nepovinné)</FieldLabel>
-            <Input
-              id={otherId}
-              value={value.genderOther ?? ""}
-              maxLength={GENDER_OTHER_MAX_LENGTH}
+    <div className="rounded-lg border border-border bg-background p-4 sm:p-5">
+      <FieldSet>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <FieldLegend>Pohlaví pro ubytování</FieldLegend>
+          {value.gender ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
               disabled={isDisabled}
-              onChange={(event) => onChange({ gender: "other", genderOther: event.target.value })}
-            />
-          </Field>
+              onClick={() => onChange(NO_GENDER_ANSWER)}
+            >
+              Zrušit výběr
+            </Button>
+          ) : null}
         </div>
-      ) : null}
-      {value.gender ? (
-        <div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={isDisabled}
-            onClick={() => onChange(NO_GENDER_ANSWER)}
-          >
-            Zrušit výběr
-          </Button>
-        </div>
-      ) : null}
-    </FieldSet>
+        <RadioGroup
+          value={value.gender ?? ""}
+          onValueChange={(next) => {
+            const gender = genderSchema.parse(next)
+            onChange({ gender, genderOther: gender === "other" ? value.genderOther : null })
+          }}
+          disabled={isDisabled}
+          className="sm:grid-cols-2"
+        >
+          {GENDERS.map((gender) => (
+            <Field
+              key={gender}
+              orientation="horizontal"
+            >
+              <RadioGroupItem
+                id={`${id}-${gender}`}
+                value={gender}
+                aria-controls={gender === "other" && value.gender === "other" ? otherId : undefined}
+              />
+              <FieldLabel htmlFor={`${id}-${gender}`}>{GENDER_LABELS[gender]}</FieldLabel>
+            </Field>
+          ))}
+        </RadioGroup>
+        {value.gender === "other" ? (
+          // Under its option, aligned with the option labels; half the width
+          // only where the options stand in two columns.
+          <div className="@container pl-6">
+            <Field className="@md:w-1/2">
+              <FieldLabel htmlFor={otherId}>Vlastní odpověď (nepovinné)</FieldLabel>
+              <Input
+                id={otherId}
+                placeholder="Napište vlastní odpověď"
+                value={value.genderOther ?? ""}
+                maxLength={GENDER_OTHER_MAX_LENGTH}
+                disabled={isDisabled}
+                onChange={(event) => onChange({ gender: "other", genderOther: event.target.value })}
+              />
+            </Field>
+          </div>
+        ) : null}
+      </FieldSet>
+    </div>
   )
 }
