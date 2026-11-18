@@ -19,11 +19,20 @@ export class ParticipantNotificationsService {
     await this.repository.markRead(participant.accountId, [id], new Date());
   }
 
-  /** Marks every notification shown in the list as read. */
-  async markAllRead(participant: ParticipantIdentity): Promise<void> {
+  /**
+   * Marks the notifications the participant was shown as read. A notification
+   * saved after the list was loaded stays unread; ids that are not the
+   * account's own notifications are ignored.
+   */
+  async markAllRead(
+    participant: ParticipantIdentity,
+    shownIds: string[],
+  ): Promise<void> {
+    const shown = new Set(shownIds);
     const unread = (await this.repository.list(participant.accountId))
       .filter((notification) => !notification.isRead)
-      .map((notification) => notification.id);
+      .map((notification) => notification.id)
+      .filter((id) => shown.has(id));
     if (unread.length === 0) return;
     await this.repository.markRead(participant.accountId, unread, new Date());
   }

@@ -48,7 +48,11 @@ export function ParticipantNotifications({ sessionEnded }: ParticipantNotificati
               size="sm"
               icon={<CheckCheck aria-hidden />}
               isPending={markAllRead.isPending}
-              onClick={() => markAllRead.mutate()}
+              onClick={() =>
+                markAllRead.mutate(
+                  (items ?? []).filter((item) => !item.isRead).map((item) => item.id),
+                )
+              }
             >
               Označit vše jako přečtené
             </PendingButton>

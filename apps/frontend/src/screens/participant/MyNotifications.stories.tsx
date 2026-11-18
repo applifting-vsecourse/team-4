@@ -60,12 +60,11 @@ const dismissPayment = (context: Context) =>
   )
 
 /**
- * Oznámení, newest first: a payment and a decision on two terms not opened
- * yet (dot), then an approved and a rejected change request.
+ * Oznámení, newest first: a payment and a decision not opened yet (dot), then
+ * an approved request that moved to another term and a rejected one.
  */
 export const MyNotifications: Story = {
   play: async (context) => {
-    await titles(context)
     await expect(await titles(context)).toEqual([
       "Nepřečteno: Přijatá platba",
       "Nepřečteno: Rozhodnutí o účasti",
@@ -77,8 +76,31 @@ export const MyNotifications: Story = {
     await expect(page.getByText(/2\s000\s*Kč/)).toBeVisible()
     await expect(page.getByText("Náhradník")).toBeVisible()
     await expect(page.getByText("Odhlášeno")).toBeVisible()
-    await expect(page.getAllByText("Potvrzeno")).toHaveLength(2)
+    await expect(page.getByText("Čeká na rozhodnutí organizátora")).toBeVisible()
+    await expect(page.getByText("Potvrzeno")).toBeVisible()
     await expect(page.getAllByText(CAMP)).toHaveLength(2)
+  },
+}
+
+/** A failed „Označit vše“ keeps the dots and says so. */
+export const MarkAllReadFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("post", `${LIST_PATH}/read`))
+  },
+  play: async (context) => {
+    await titles(context)
+    await userEvent.click(context.canvas.getByRole("button", { name: "Označit vše jako přečtené" }))
+    await showsText("Oznámení se nepodařilo označit jako přečtená")
+    await waitFor(() => expect(unreadDots(context)).toHaveLength(2), TIMEOUT)
+    // The toast would outlive the story.
+    toast.dismiss()
+    await waitFor(
+      () =>
+        expect(
+          screen.queryByText("Oznámení se nepodařilo označit jako přečtená"),
+        ).not.toBeInTheDocument(),
+      TIMEOUT,
+    )
   },
 }
 

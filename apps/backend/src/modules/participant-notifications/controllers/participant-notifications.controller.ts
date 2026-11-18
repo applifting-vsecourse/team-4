@@ -6,9 +6,13 @@ import {
   CurrentParticipant,
   ParticipantSessionGuard,
 } from '@/modules/participant-access/guards/participant-session.guard';
-import { ParticipantNotificationListDto } from '@/modules/participant-notifications/dto/participant-notification.dto';
+import {
+  MarkNotificationsReadDto,
+  ParticipantNotificationListDto,
+} from '@/modules/participant-notifications/dto/participant-notification.dto';
 import { ParticipantNotificationsService } from '@/modules/participant-notifications/services/participant-notifications.service';
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -16,6 +20,8 @@ import {
   ParseUUIDPipe,
   Post,
   UseGuards,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiCookieAuth,
@@ -29,6 +35,13 @@ import {
 @ApiResponse({ status: 401, description: '`participant_session_required`' })
 @Controller('participant/notifications')
 @UseGuards(ParticipantSessionGuard)
+@UsePipes(
+  new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }),
+)
 export class ParticipantNotificationsController {
   constructor(
     private readonly notifications: ParticipantNotificationsService,
@@ -52,12 +65,19 @@ export class ParticipantNotificationsController {
 
   @Post('read')
   @HttpCode(204)
-  @ApiOperation({ summary: 'Mark every listed notification as read' })
+  @ApiOperation({
+    summary: 'Mark the shown notifications as read',
+    description:
+      'Only the given ids: a notification saved after the list was loaded ' +
+      "stays unread. Ids that are not the account's own are ignored.",
+  })
   @ApiResponse({ status: 204 })
+  @ApiResponse({ status: 400, description: 'Invalid ids.' })
   async markAllRead(
     @CurrentParticipant() participant: ParticipantIdentity,
+    @Body() dto: MarkNotificationsReadDto,
   ): Promise<void> {
-    await this.notifications.markAllRead(participant);
+    await this.notifications.markAllRead(participant, dto.ids);
   }
 
   @Post(':id/read')

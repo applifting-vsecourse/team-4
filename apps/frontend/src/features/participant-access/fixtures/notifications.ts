@@ -12,9 +12,9 @@ const uuid = (n: number) => `0190c0de-0000-7000-8000-${String(n).padStart(12, "0
 
 const SUMMER_CAMP = { id: uuid(1), name: "Letní tábor Modrá Hora 2027" }
 const SPRING_TRIP = { id: uuid(6), name: "Jarní výlet na Sněžku" }
-const JULY = { label: "Turnus 1", startDate: "2027-07-04", endDate: "2027-07-17" }
 const AUGUST = { label: "Turnus 2", startDate: "2027-08-01", endDate: "2027-08-14" }
 const SATURDAY = { label: "Sobota", startDate: "2027-04-17", endDate: "2027-04-17" }
+const SUNDAY = { label: "Neděle", startDate: "2027-04-18", endDate: "2027-04-18" }
 
 export const NOTIFICATIONS: ParticipantNotification[] = participantNotificationListSchema.parse({
   items: [
@@ -29,7 +29,7 @@ export const NOTIFICATIONS: ParticipantNotification[] = participantNotificationL
       terms: [],
       amountMinor: 200_000,
     },
-    // Unread: the organizer decided both terms of the summer camp at once.
+    // Unread: the organizer decided one term of the summer camp.
     {
       id: uuid(902),
       kind: "decision",
@@ -37,13 +37,10 @@ export const NOTIFICATIONS: ParticipantNotification[] = participantNotificationL
       eventName: SUMMER_CAMP.name,
       at: "2027-03-04T08:05:00.000Z",
       isRead: false,
-      terms: [
-        { ...JULY, status: "confirmed" },
-        { ...AUGUST, status: "waitlisted" },
-      ],
+      terms: [{ ...AUGUST, status: "waitlisted" }],
       amountMinor: null,
     },
-    // Read: an approved request that released a term.
+    // Read: an approved request that moved the participant to another term.
     {
       id: uuid(903),
       kind: "changeApproved",
@@ -51,7 +48,10 @@ export const NOTIFICATIONS: ParticipantNotification[] = participantNotificationL
       eventName: SPRING_TRIP.name,
       at: "2027-02-20T16:45:00.000Z",
       isRead: true,
-      terms: [{ ...SATURDAY, status: "cancelled" }],
+      terms: [
+        { ...SATURDAY, status: "cancelled" },
+        { ...SUNDAY, status: "pending" },
+      ],
       amountMinor: null,
     },
     // Read: a rejected request that kept the term.

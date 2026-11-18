@@ -16,7 +16,7 @@ You are extending an existing product, not designing a new one. Most UI rework s
 | Area             | Routes                                                                                     | Shell                                                             | Audience and viewport                                |
 | ---------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- | ---------------------------------------------------- |
 | Public           | `/`, `/for-*`, `/events`, `/e/$publicId`, `/e/$publicId/registration`, `/login`, `/signup` | `PublicShell`; landing pages own layout; `AuthLayout` for sign-in | Anyone; **mobile first**                             |
-| Participant      | `/my-registrations/*`, `/my-profile`, `/platba/$token`                                     | `ParticipantLayout`                                               | Event attendee, usually on a phone; **mobile first** |
+| Participant      | `/my-registrations/*`, `/my-profile`, `/my-notifications`, `/platba/$token`                | `ParticipantLayout`                                               | Event attendee, usually on a phone; **mobile first** |
 | Organization     | `/organizations`, `/organizations/$organizationId`                                         | sidebar + `WorkspacePage` + `PageHeader`                          | Organizer at a desktop                               |
 | Event management | `/organizations/$organizationId/events/$eventId/*`                                         | sidebar + `WorkspacePage` + `PageHeader` with `EventBreadcrumb`   | Organizer at a desktop                               |
 

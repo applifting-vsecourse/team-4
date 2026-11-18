@@ -48,6 +48,8 @@ export function NotificationCard({ notification, onOpen, onDismiss }: Notificati
                   params={{ registrationId: notification.registrationId }}
                   hash={notification.kind === "payment" ? SECTIONS.receivedPayments : undefined}
                   onClick={onOpen}
+                  // A middle click opens it in a new tab: opened, too.
+                  onAuxClick={onOpen}
                   className="text-foreground after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
                 >
                   {notification.isRead ? null : <span className="sr-only">Nepřečteno: </span>}

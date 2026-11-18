@@ -85,10 +85,15 @@ const call = async (
   method: 'GET' | 'POST',
   path: string,
   cookie?: string,
+  body?: unknown,
 ): Promise<Call> => {
   const response = await fetch(`${baseUrl}/participant/notifications${path}`, {
     method,
-    headers: cookie ? { cookie } : {},
+    headers: {
+      ...(cookie ? { cookie } : {}),
+      ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await response.text();
   return { status: response.status, body: text ? JSON.parse(text) : null };
@@ -176,23 +181,33 @@ const decide = (
     },
   });
 
-/** A change request of the participant that releases the first term. */
+/** A term of a change summary: its state before and as proposed. */
+const planned = (
+  setup: Setup,
+  termIndex: number,
+  original: PlannedTerm['original'],
+  proposed: PlannedTerm['proposed'],
+): PlannedTerm => {
+  const term = setup.terms[termIndex];
+  return {
+    termId: term.id,
+    label: term.label,
+    startDate: term.startDate.toISOString().slice(0, 10),
+    endDate: term.endDate.toISOString().slice(0, 10),
+    priceMinor: term.priceMinor,
+    original,
+    proposed,
+  };
+};
+
+/** A change request of the participant; by default it releases the first term. */
 const changeRequest = (
   setup: Setup,
   registration: Registration,
   status: 'pending' | 'applied' | 'approved' | 'rejected',
   decidedAt: Date | null = status === 'pending' ? null : new Date(),
+  terms: PlannedTerm[] = [planned(setup, 0, 'confirmed', 'cancelled')],
 ) => {
-  const first = setup.terms[0];
-  const released: PlannedTerm = {
-    termId: first.id,
-    label: first.label,
-    startDate: first.startDate.toISOString().slice(0, 10),
-    endDate: first.endDate.toISOString().slice(0, 10),
-    priceMinor: first.priceMinor,
-    original: 'confirmed',
-    proposed: 'cancelled',
-  };
   const money = { dueMinor: 0, paidMinor: 0, balanceMinor: 0 };
   return prisma.registrationChange.create({
     data: {
@@ -203,7 +218,7 @@ const changeRequest = (
       summary: {
         values: [],
         needs: null,
-        terms: [released],
+        terms,
         original: money,
         proposed: money,
       },
@@ -296,6 +311,35 @@ describe('change requests', () => {
     expect(items.map((item) => item.terms[0].status)).toEqual([
       'cancelled',
       'confirmed',
+    ]);
+  });
+
+  it('shows a request that moved the participant to another term as one notification with both terms', async () => {
+    const setup = await setUp();
+    const { registration, cookie } = await signedInRegistration(setup);
+    const approved = await changeRequest(
+      setup,
+      registration,
+      'approved',
+      new Date(),
+      [
+        planned(setup, 0, 'confirmed', 'cancelled'),
+        planned(setup, 1, null, 'pending'),
+      ],
+    );
+
+    const items = await list(cookie);
+
+    expect(items).toHaveLength(1);
+    expect(items[0].id).toBe(approved.id);
+    expect(
+      items[0].terms.map((term: { label: string; status: string }) => [
+        term.label,
+        term.status,
+      ]),
+    ).toEqual([
+      ['1. turnus', 'cancelled'],
+      ['2. turnus', 'pending'],
     ]);
   });
 });
@@ -476,14 +520,47 @@ describe('read and dismiss', () => {
   });
 
   it('marks every shown notification read at once', async () => {
-    const { cookie } = await twoPayments();
+    const { cookie, first, second } = await twoPayments();
 
-    expect((await call('POST', '/read', cookie)).status).toBe(204);
+    expect(
+      (await call('POST', '/read', cookie, { ids: [first.id, second.id] }))
+        .status,
+    ).toBe(204);
 
     expect((await list(cookie)).map((item) => item.isRead)).toEqual([
       true,
       true,
     ]);
+  });
+
+  it('keeps a notification saved after the list was shown unread, and ignores foreign ids', async () => {
+    const { cookie, first, second } = await twoPayments();
+    const foreign = await signedInRegistration(await setUp());
+    const theirs = await createPayment(prisma, {
+      registration: foreign.registration,
+      recordedById: (await createOrganization(prisma)).ownerId,
+      amountMinor: 3_000,
+    });
+
+    // Shown: only the first; the second arrived after the page loaded.
+    expect(
+      (await call('POST', '/read', cookie, { ids: [first.id, theirs.id] }))
+        .status,
+    ).toBe(204);
+
+    const items = await list(cookie);
+    expect(items.find((item) => item.id === first.id).isRead).toBe(true);
+    expect(items.find((item) => item.id === second.id).isRead).toBe(false);
+    expect(await list(foreign.cookie)).toEqual([
+      expect.objectContaining({ id: theirs.id, isRead: false }),
+    ]);
+  });
+
+  it('refuses ids that are not uuids', async () => {
+    const { cookie } = await twoPayments();
+    expect(
+      (await call('POST', '/read', cookie, { ids: ['nope'] })).status,
+    ).toBe(400);
   });
 
   it('hides a dismissed notification for good and counts it as read', async () => {

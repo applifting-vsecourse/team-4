@@ -5,6 +5,16 @@ import {
 } from '@/modules/participant-notifications/domain/participant-notification';
 import { ParticipationStatus } from '@/modules/registrations/domain/registration';
 import { ApiProperty } from '@nestjs/swagger';
+import { ArrayMaxSize, IsArray, IsUUID } from 'class-validator';
+
+/** The ids of the notifications the participant was shown. */
+export class MarkNotificationsReadDto {
+  @ApiProperty({ type: [String], format: 'uuid', maxItems: 1000 })
+  @IsArray()
+  @ArrayMaxSize(1000)
+  @IsUUID('all', { each: true })
+  ids!: string[];
+}
 
 const KINDS: NotificationKind[] = [
   'decision',

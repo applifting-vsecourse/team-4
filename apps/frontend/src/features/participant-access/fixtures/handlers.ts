@@ -70,8 +70,9 @@ export const participantHandlers = {
 
     return [
       http.get(NOTIFICATIONS_URL, () => HttpResponse.json({ items })),
-      http.post(`${NOTIFICATIONS_URL}/read`, () => {
-        items = items.map((item) => ({ ...item, isRead: true }))
+      http.post(`${NOTIFICATIONS_URL}/read`, async ({ request }) => {
+        const { ids } = (await request.json()) as { ids: string[] }
+        items = items.map((item) => (ids.includes(item.id) ? { ...item, isRead: true } : item))
         return noContent()
       }),
       http.post(`${NOTIFICATIONS_URL}/:id/read`, ({ params }) => {
