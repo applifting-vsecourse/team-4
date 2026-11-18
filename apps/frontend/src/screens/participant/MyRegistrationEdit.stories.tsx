@@ -16,6 +16,7 @@ import {
   ADD_TERM_PREVIEW,
   CANCEL_TERM_SUMMARY,
   makeChangePreview,
+  PENDING_ADD_PREVIEW,
   RELEASING_MOVE_PREVIEW,
   REPLACE_TERM_PREVIEW,
 } from "@/features/registrations/fixtures/registrationChanges"
@@ -23,6 +24,7 @@ import {
 const DETAIL = "/participant/registrations/:registrationId"
 const CHANGES = `${DETAIL}/changes`
 const REVIEW = "Kontrola změn přihlášky"
+const MOBILE = { viewport: { value: "mobile", isRotated: false } }
 
 const meta = {
   title: "Screens/Participant/MyRegistrationEdit",
@@ -183,6 +185,93 @@ export const ReviewReplaceTerm: Story = {
     await expect(dialog.getByRole("row", { name: /Turnus 1.*Odhlášeno/ })).toBeVisible()
     await expect(dialog.getByRole("row", { name: /Turnus 2/ })).toBeVisible()
     await expect(dialog.getByRole("row", { name: /Turnus 3/ })).toBeVisible()
+  },
+}
+
+/** Ticking a free term says what happens next: the others stay, the capacity decides. */
+export const AddTermNotice: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 }),
+    )
+    const notice = await canvas.findByRole("status")
+    await expect(notice).toHaveTextContent("Přidání termínu Turnus 3")
+    await expect(notice).toHaveTextContent("Stávající termíny zůstanou")
+    await expect(notice).toHaveTextContent("jinak budete náhradníkem")
+  },
+}
+
+/** Unticking a held term says that the place is released and the fee is up to the organizer. */
+export const RemoveTermNotice: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 1/ }, { timeout: 5000 }),
+    )
+    const notice = await canvas.findByRole("status")
+    await expect(notice).toHaveTextContent("Odhlášení z termínu Turnus 1")
+    await expect(notice).toHaveTextContent("Místo se uvolní")
+  },
+}
+
+/** Unticking every term warns that the whole registration is cancelled. */
+export const RemoveAllTermsNotice: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 1/ }, { timeout: 5000 }),
+    )
+    await userEvent.click(canvas.getByRole("checkbox", { name: /^Turnus 2/ }))
+    await expect(await canvas.findByText("Odhlášení ze všech termínů")).toBeVisible()
+    await expect(canvas.getByText(/Celá přihláška bude odhlášená/)).toBeVisible()
+  },
+}
+
+/** The review with pending badges on both sides and the approval notice stays inside the dialog. */
+export const ReviewStaysInsideDialog: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.ownChange(PENDING_ADD_PREVIEW))
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 }),
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
+    const dialog = await review()
+    const element = screen.getByRole("dialog")
+    // The content ends before the dialog's own right padding, not just before its edge.
+    const inner =
+      element.getBoundingClientRect().right - parseFloat(getComputedStyle(element).paddingRight)
+    for (const part of element.querySelectorAll("[role=alert], [data-slot=table-container]")) {
+      await expect(part.getBoundingClientRect().right).toBeLessThanOrEqual(inner + 1)
+    }
+    await expect(dialog.getByRole("button", { name: "Odeslat žádost o schválení" })).toBeVisible()
+  },
+}
+
+/** At 360 px the review stacks each term and amount as labelled lines: nothing scrolls sideways. */
+export const ReviewMobile: Story = {
+  globals: MOBILE,
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.ownChange(PENDING_ADD_PREVIEW))
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 }),
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
+    const dialog = await review()
+    await expect(dialog.getAllByText("Původně").length).toBeGreaterThan(0)
+    for (const table of screen
+      .getByRole("dialog")
+      .querySelectorAll("[data-slot=table-container]")) {
+      await expect(table.scrollWidth).toBeLessThanOrEqual(table.clientWidth)
+    }
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
+    // The content is taller than the screen: the dialog scrolls and reaches the confirming button.
+    const element = screen.getByRole("dialog")
+    await expect(element.scrollHeight).toBeGreaterThan(element.clientHeight)
+    const confirm = dialog.getByRole("button", { name: "Odeslat žádost o schválení" })
+    confirm.scrollIntoView()
+    await expect(confirm.getBoundingClientRect().bottom).toBeLessThanOrEqual(window.innerHeight)
   },
 }
 

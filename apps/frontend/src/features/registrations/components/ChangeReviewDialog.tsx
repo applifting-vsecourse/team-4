@@ -76,7 +76,7 @@ export function ChangeReviewDialog({
         open
         onOpenChange={(isOpen) => (isOpen ? undefined : onClose())}
       >
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Kontrola změn přihlášky</DialogTitle>
             <DialogDescription className="sr-only">

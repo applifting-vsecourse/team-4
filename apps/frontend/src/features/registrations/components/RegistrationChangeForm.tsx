@@ -1,6 +1,7 @@
 import { useState } from "react"
 
 import { FormError } from "@/components/FormError"
+import { Notice } from "@/components/Notice"
 import { ParticipationBadge } from "@/components/ParticipationBadge"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -102,6 +103,16 @@ export function RegistrationChangeForm({
     onSelectedTermsChange?.(next)
   }
   const isEveryTermHeld = terms.every((term) => term.status !== null)
+  // What the selection does, shown as soon as it differs from the held terms.
+  const addedLabels = terms
+    .filter((term) => term.status === null && selected.includes(term.id))
+    .map((term) => term.label)
+    .join(", ")
+  const removedLabels = terms
+    .filter((term) => term.status !== null && !selected.includes(term.id))
+    .map((term) => term.label)
+    .join(", ")
+  const isEverythingRemoved = selected.length === 0
 
   return (
     <form
@@ -213,6 +224,42 @@ export function RegistrationChangeForm({
               </Field>
             ))}
           </FieldGroup>
+          {addedLabels || removedLabels ? (
+            <div className="mt-6 space-y-3">
+              {addedLabels ? (
+                <Notice
+                  tone="info"
+                  role="status"
+                  title={`Přidání termínu ${addedLabels}`}
+                >
+                  Stávající termíny zůstanou. Účast se vyhodnotí podle kapacity: při volném místě
+                  bude potvrzena, jinak budete náhradníkem. Cena se přičte po potvrzení místa.
+                </Notice>
+              ) : null}
+              {isEverythingRemoved ? (
+                <Notice
+                  tone="warning"
+                  role="status"
+                  title="Odhlášení ze všech termínů"
+                >
+                  Celá přihláška bude odhlášená. Storno poplatek řeší organizátor podle podmínek
+                  akce.
+                </Notice>
+              ) : removedLabels ? (
+                <Notice
+                  tone="info"
+                  role="status"
+                  title={`Odhlášení z termínu ${removedLabels}`}
+                >
+                  Místo se uvolní a storno poplatek řeší organizátor podle podmínek akce.
+                </Notice>
+              ) : null}
+              <p className="text-sm text-muted-foreground">
+                Změny uvidíte v přehledu a potvrdíte je až tam. U termínů blízko začátku je může
+                muset schválit organizátor.
+              </p>
+            </div>
+          ) : null}
           {isEveryTermHeld ? (
             <p className="mt-6 text-sm text-muted-foreground">
               Další termín není k dispozici, na přihlášce už máte všechny termíny akce.

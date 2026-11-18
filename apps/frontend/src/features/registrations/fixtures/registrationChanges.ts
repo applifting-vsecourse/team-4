@@ -61,6 +61,16 @@ export const ADD_TERM_SUMMARY = summary({
   terms: [{ ...T3, original: null, proposed: "pending" }],
 })
 
+/** Both terms wait for a decision: the widest review, with pending badges on both sides. */
+export const PENDING_ADD_SUMMARY = summary({
+  terms: [
+    { ...T1!, original: "pending", proposed: "pending" },
+    { ...T3, original: null, proposed: "pending" },
+  ],
+  original: { dueMinor: 0, paidMinor: 0, balanceMinor: 0 },
+  proposed: { dueMinor: 0, paidMinor: 0, balanceMinor: 0 },
+})
+
 /** The confirmed Turnus 1 is unticked and Turnus 3 ticked: one term is given up, another added. */
 export const REPLACE_TERM_SUMMARY = summary({
   terms: [
@@ -99,6 +109,12 @@ export function makeChangePreview(overrides: Partial<ChangePreview> = {}): Chang
 export const ADD_TERM_PREVIEW = makeChangePreview({
   kinds: ["add_terms"],
   summary: ADD_TERM_SUMMARY,
+})
+
+export const PENDING_ADD_PREVIEW = makeChangePreview({
+  requiresApproval: true,
+  kinds: ["add_terms"],
+  summary: PENDING_ADD_SUMMARY,
 })
 
 export const REPLACE_TERM_PREVIEW = makeChangePreview({

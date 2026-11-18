@@ -105,6 +105,10 @@ test("a term is added next to the held ones without losing them (F35-2c)", async
   await expect(participant.getByRole("checkbox", { name: /^Turnus 1/ })).toBeChecked()
   await expect(participant.getByRole("checkbox", { name: /^Turnus 2/ })).toBeChecked()
   await participant.getByRole("checkbox", { name: /^Turnus 3/ }).check()
+  // The form says what the selection does before the review.
+  await expect(
+    participant.getByRole("status").filter({ hasText: "Přidání termínu Turnus 3" }),
+  ).toContainText("Stávající termíny zůstanou")
   await participant.getByRole("button", { name: "Zkontrolovat změny" }).click()
 
   const review = participant.getByRole("dialog", { name: "Kontrola změn přihlášky" })
@@ -134,6 +138,9 @@ test("unticking a held term cancels only that term (F35-2c)", async ({ page, bro
 
   await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
   await participant.getByRole("checkbox", { name: /^Turnus 2/ }).uncheck()
+  await expect(
+    participant.getByRole("status").filter({ hasText: "Odhlášení z termínu Turnus 2" }),
+  ).toContainText("Místo se uvolní")
   await participant.getByRole("button", { name: "Zkontrolovat změny" }).click()
 
   const review = participant.getByRole("dialog", { name: "Odhlášení" })

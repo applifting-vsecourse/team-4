@@ -104,7 +104,7 @@ export function RegistrationChangeDialog({
       open={isOpen}
       onOpenChange={onOpenChange}
     >
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-h-dvh overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{isCancellation ? "Odhlášení" : "Kontrola změn přihlášky"}</DialogTitle>
           <DialogDescription className="sr-only">
@@ -112,7 +112,8 @@ export function RegistrationChangeDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        {/* min-w-0: a grid item otherwise grows to its widest table and overflows the dialog. */}
+        <div className="min-w-0 space-y-4">
           {isStale ? (
             <Notice
               tone="error"
