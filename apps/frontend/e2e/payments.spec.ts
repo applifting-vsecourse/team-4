@@ -1,6 +1,12 @@
 import { expect, test, type Page } from "@playwright/test"
 
-import { newParticipant, register, setUpEvent, type OpenEvent } from "./support/api"
+import {
+  newParticipant,
+  recordPayment as recordApiPayment,
+  register,
+  setUpEvent,
+  type OpenEvent,
+} from "./support/api"
 import { decideTerms } from "./support/db"
 import { definition } from "./support/ui"
 
@@ -77,4 +83,39 @@ test("a payment without an obligation is an overpayment", async ({ page, request
   await page.goto(`${registrationsUrl(event)}/${petr.id}`)
   await recordPayment(page, "500")
   await expect(definition(page, "Přeplatek")).toHaveText("500 Kč")
+})
+
+test("received payments of the event are sorted by the chosen column", async ({
+  page,
+  request,
+}) => {
+  const event = await setUpEvent(page.request, { terms, rooms })
+  const anna = newParticipant("Anna")
+  const berta = newParticipant("Berta")
+  for (const [participant, amountMinor] of [
+    [anna, 30000],
+    [berta, 10000],
+  ] as const) {
+    const registration = await register(request, event.publicId, participant, event.termIds)
+    await decideTerms(registration.id, "confirmed")
+    await recordApiPayment(page.request, event, registration.id, amountMinor)
+  }
+
+  await page.goto(`/organizations/${event.organizationId}/events/${event.eventId}/payments`)
+  const payments = page.getByRole("region", { name: "Tabulka přijatých plateb" })
+  const names = () => payments.getByRole("row").filter({ has: page.getByRole("link") })
+  const dateHeader = payments.getByRole("columnheader", { name: /Datum/ })
+  const amountHeader = payments.getByRole("columnheader", { name: /Částka/ })
+
+  // Newest first by default.
+  await expect(dateHeader).toHaveAttribute("aria-sort", "descending")
+
+  await amountHeader.getByRole("button").click()
+  await expect(amountHeader).toHaveAttribute("aria-sort", "ascending")
+  await expect(dateHeader).toHaveAttribute("aria-sort", "none")
+  await expect(names().first()).toContainText("Berta")
+
+  await amountHeader.getByRole("button").click()
+  await expect(amountHeader).toHaveAttribute("aria-sort", "descending")
+  await expect(names().first()).toContainText("Anna")
 })

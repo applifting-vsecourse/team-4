@@ -1,24 +1,19 @@
 import { useState } from "react"
-import { ArrowDown, ArrowUp, ChevronsUpDown } from "lucide-react"
 
 import { Money } from "@/components/Money"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table"
 import { formatCalendarDate } from "@/lib/date"
 
 import { type RegistrationDetail } from "@/features/registrations/api/eventRegistrationSchemas"
+import {
+  nextSort,
+  SortableTableHead,
+  type SortDirection,
+} from "@/features/registrations/components/SortableTableHead"
 
 type Payment = RegistrationDetail["payments"][number]
 type SortKey = "date" | "amount"
-type Direction = "asc" | "desc"
 
 const COLUMNS: { key: SortKey; label: string; isNumeric: boolean }[] = [
   { key: "date", label: "Datum", isNumeric: false },
@@ -34,7 +29,7 @@ function compare(a: Payment, b: Payment, key: SortKey) {
 // Přijaté platby of one registration, sortable by date and amount; newest first
 // by default. A payment through the QR link is marked, as in the event overview.
 export function ReceivedPaymentsTable({ payments }: { payments: Payment[] }) {
-  const [sort, setSort] = useState<{ key: SortKey; direction: Direction }>({
+  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({
     key: "date",
     direction: "desc",
   })
@@ -46,41 +41,19 @@ export function ReceivedPaymentsTable({ payments }: { payments: Payment[] }) {
   const sign = sort.direction === "asc" ? 1 : -1
   const sorted = [...payments].sort((a, b) => sign * compare(a, b, sort.key))
 
-  function toggle(key: SortKey) {
-    setSort((current) =>
-      current.key === key
-        ? { key, direction: current.direction === "asc" ? "desc" : "asc" }
-        : { key, direction: key === "date" ? "desc" : "asc" },
-    )
-  }
-
   return (
     <Table containerLabel="Tabulka přijatých plateb">
       <TableHeader>
         <TableRow>
-          {COLUMNS.map(({ key, label, isNumeric }) => {
-            const isActive = sort.key === key
-            const Icon = !isActive ? ChevronsUpDown : sort.direction === "asc" ? ArrowUp : ArrowDown
-            return (
-              <TableHead
-                key={key}
-                className={isNumeric ? "text-right" : undefined}
-                aria-sort={
-                  isActive ? (sort.direction === "asc" ? "ascending" : "descending") : "none"
-                }
-              >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggle(key)}
-                >
-                  {label}
-                  <Icon aria-hidden="true" />
-                </Button>
-              </TableHead>
-            )
-          })}
+          {COLUMNS.map(({ key, label, isNumeric }) => (
+            <SortableTableHead
+              key={key}
+              label={label}
+              isNumeric={isNumeric}
+              direction={sort.key === key ? sort.direction : null}
+              onSort={() => setSort(nextSort(sort, key, key === "date" ? "desc" : "asc"))}
+            />
+          ))}
         </TableRow>
       </TableHeader>
       <TableBody>
