@@ -28,11 +28,13 @@ import {
   useSubmitChange,
 } from "@/features/registrations/hooks/useRegistrationChange"
 import { describeChangeError, type ChangeError } from "@/features/registrations/lib/changeErrors"
-import { toSummaryProps } from "@/features/registrations/lib/changeSummary"
+import { toSummaryProps, type HeldTerm } from "@/features/registrations/lib/changeSummary"
 
 type ChangeReviewDialogProps = {
   registrationId: string
   proposal: ChangeProposal
+  /** The terms the registration holds now; the review lists those that stay as well. */
+  heldTerms?: HeldTerm[]
   /** The review is closed without sending anything. */
   onClose: () => void
   /** The change was made or the request was filed. */
@@ -51,6 +53,7 @@ const PREVIEW_FAILED = "Kontrolu změn se nepodařilo načíst. Zkuste to prosí
 export function ChangeReviewDialog({
   registrationId,
   proposal,
+  heldTerms,
   onClose,
   onDone,
   onReload,
@@ -106,7 +109,7 @@ export function ChangeReviewDialog({
     )
   }
 
-  const summary = toSummaryProps(preview.summary)
+  const summary = toSummaryProps(preview.summary, heldTerms)
   const isCancellation = preview.kinds.every((kind) => kind.startsWith("cancel"))
   const consentMoves = preview.moves.filter((move) => move.requiresReleaseConsent)
   const labelsOf = (termIds: string[]) =>

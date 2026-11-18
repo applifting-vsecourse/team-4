@@ -61,6 +61,15 @@ export const ADD_TERM_SUMMARY = summary({
   terms: [{ ...T3, original: null, proposed: "pending" }],
 })
 
+/** The confirmed Turnus 1 is unticked and Turnus 3 ticked: one term is given up, another added. */
+export const REPLACE_TERM_SUMMARY = summary({
+  terms: [
+    { ...T1!, original: "confirmed", proposed: "cancelled" },
+    { ...T3, original: null, proposed: "pending" },
+  ],
+  proposed: { dueMinor: 0, paidMinor: 200_000, balanceMinor: -200_000 },
+})
+
 /** Leaving the confirmed Turnus 1: the amount due drops, the payment stays. */
 export const CANCEL_TERM_SUMMARY = summary({
   terms: [{ ...T1!, original: "confirmed", proposed: "cancelled" }],
@@ -90,6 +99,11 @@ export function makeChangePreview(overrides: Partial<ChangePreview> = {}): Chang
 export const ADD_TERM_PREVIEW = makeChangePreview({
   kinds: ["add_terms"],
   summary: ADD_TERM_SUMMARY,
+})
+
+export const REPLACE_TERM_PREVIEW = makeChangePreview({
+  kinds: ["cancel_terms", "add_terms"],
+  summary: REPLACE_TERM_SUMMARY,
 })
 
 export const RELEASING_MOVE_PREVIEW = makeChangePreview({

@@ -7,6 +7,10 @@ import {
   type EditState,
 } from "@/features/registrations/lib/changeProposal"
 
+const T1 = "0190c0de-0000-7000-8000-000000000001"
+const T2 = "0190c0de-0000-7000-8000-000000000002"
+const T3 = "0190c0de-0000-7000-8000-000000000003"
+
 const CONTACT = {
   firstName: "Jana",
   lastName: "Nováková",
@@ -14,18 +18,22 @@ const CONTACT = {
   gender: null,
   genderOther: null,
   needs: NO_NEEDS,
-} satisfies Pick<EditState, "firstName" | "lastName" | "phone" | "gender" | "genderOther" | "needs">
-const T1 = "0190c0de-0000-7000-8000-000000000001"
-const T2 = "0190c0de-0000-7000-8000-000000000002"
-const T3 = "0190c0de-0000-7000-8000-000000000003"
+  heldTermIds: [T1, T2],
+} satisfies Pick<
+  EditState,
+  "firstName" | "lastName" | "phone" | "gender" | "genderOther" | "needs"
+> & {
+  heldTermIds: string[]
+}
 
 const state = (overrides: Partial<EditState> = {}): EditState => ({
-  ...CONTACT,
-  addedTermIds: [],
-  terms: {
-    [T1]: { selectedTermId: T1, isCancelled: false },
-    [T2]: { selectedTermId: T2, isCancelled: false },
-  },
+  firstName: CONTACT.firstName,
+  lastName: CONTACT.lastName,
+  phone: CONTACT.phone,
+  gender: CONTACT.gender,
+  genderOther: CONTACT.genderOther,
+  needs: CONTACT.needs,
+  selectedTermIds: [T1, T2],
   ...overrides,
 })
 
@@ -82,66 +90,33 @@ describe("buildProposal", () => {
     })
   })
 
-  it("turns a term picked for another term into a move and a ticked one into a cancellation", () => {
-    expect(
-      buildProposal(
-        CONTACT,
-        state({
-          terms: {
-            [T1]: { selectedTermId: T3, isCancelled: false },
-            [T2]: { selectedTermId: T2, isCancelled: true },
-          },
-        }),
-      ),
-    ).toEqual({
-      moves: [{ fromTermId: T1, toTermId: T3, acceptRelease: false }],
-      cancelledTermIds: [T2],
+  it("cancels a held term that is unticked (F35-2c)", () => {
+    expect(buildProposal(CONTACT, state({ selectedTermIds: [T2] }))).toEqual({
+      moves: [],
+      cancelledTermIds: [T1],
     })
   })
 
-  it("adds a term next to the current ones without touching them (F35-2c)", () => {
-    expect(buildProposal(CONTACT, state({ addedTermIds: [T3] }))).toEqual({
+  it("adds a ticked term next to the held ones without touching them (F35-2c)", () => {
+    expect(buildProposal(CONTACT, state({ selectedTermIds: [T1, T2, T3] }))).toEqual({
       moves: [],
       cancelledTermIds: [],
       addedTermIds: [T3],
     })
   })
 
-  it("adds one term while moving another (F35-2c)", () => {
-    const T4 = "0190c0de-0000-7000-8000-000000000004"
-    expect(
-      buildProposal(
-        CONTACT,
-        state({
-          addedTermIds: [T4],
-          terms: {
-            [T1]: { selectedTermId: T3, isCancelled: false },
-            [T2]: { selectedTermId: T2, isCancelled: false },
-          },
-        }),
-      ),
-    ).toEqual({
-      moves: [{ fromTermId: T1, toTermId: T3, acceptRelease: false }],
-      cancelledTermIds: [],
-      addedTermIds: [T4],
+  it("replaces a term by cancelling one and adding another (F35-2c)", () => {
+    expect(buildProposal(CONTACT, state({ selectedTermIds: [T2, T3] }))).toEqual({
+      moves: [],
+      cancelledTermIds: [T1],
+      addedTermIds: [T3],
     })
   })
 
-  it("does not add a term the participant also moves to", () => {
-    expect(
-      buildProposal(
-        CONTACT,
-        state({
-          addedTermIds: [T3],
-          terms: {
-            [T1]: { selectedTermId: T3, isCancelled: false },
-            [T2]: { selectedTermId: T2, isCancelled: false },
-          },
-        }),
-      ),
-    ).toEqual({
-      moves: [{ fromTermId: T1, toTermId: T3, acceptRelease: false }],
-      cancelledTermIds: [],
+  it("cancels everything when no term stays selected", () => {
+    expect(buildProposal(CONTACT, state({ selectedTermIds: [] }))).toEqual({
+      moves: [],
+      cancelledTermIds: [T1, T2],
     })
   })
 
@@ -177,12 +152,6 @@ describe("buildProposal", () => {
       moves: [],
       cancelledTermIds: [],
     })
-  })
-
-  it("ignores the target of a term that is being cancelled", () => {
-    expect(
-      buildProposal(CONTACT, state({ terms: { [T1]: { selectedTermId: T3, isCancelled: true } } })),
-    ).toEqual({ moves: [], cancelledTermIds: [T1] })
   })
 })
 

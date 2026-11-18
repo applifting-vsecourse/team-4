@@ -17,6 +17,7 @@ import {
   CANCEL_TERM_SUMMARY,
   makeChangePreview,
   RELEASING_MOVE_PREVIEW,
+  REPLACE_TERM_PREVIEW,
 } from "@/features/registrations/fixtures/registrationChanges"
 
 const DETAIL = "/participant/registrations/:registrationId"
@@ -145,7 +146,7 @@ export const ReviewCancelTerm: Story = {
   },
   play: async ({ canvas }) => {
     await userEvent.click(
-      await canvas.findByLabelText("Odhlásit z termínu Turnus 1", {}, { timeout: 5000 }),
+      await canvas.findByRole("checkbox", { name: /^Turnus 1/ }, { timeout: 5000 }),
     )
     await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
     // Only cancelling: the review reads as leaving the term.
@@ -156,12 +157,32 @@ export const ReviewCancelTerm: Story = {
   },
 }
 
-/** A term not held yet can be added next to the current ones (F35-2c). */
+/** One list of the event's terms: the held ones are ticked, another can be ticked to add it (F35-2c). */
 export const AddTermAvailable: Story = {
   play: async ({ canvas }) => {
-    await expect(
-      await canvas.findByRole("checkbox", { name: /Přidat termín Turnus 3/ }, { timeout: 5000 }),
-    ).toBeVisible()
+    const free = await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 })
+    await expect(free).not.toBeChecked()
+    await expect(canvas.getByRole("checkbox", { name: /^Turnus 1/ })).toBeChecked()
+    await expect(canvas.getByRole("checkbox", { name: /^Turnus 2/ })).toBeChecked()
+  },
+}
+
+/** Unticking a held term and ticking another: the review lists what stays, is added and is removed. */
+export const ReviewReplaceTerm: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.ownChange(REPLACE_TERM_PREVIEW))
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 1/ }, { timeout: 5000 }),
+    )
+    await userEvent.click(canvas.getByRole("checkbox", { name: /^Turnus 3/ }))
+    await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
+    const dialog = await review()
+    // Turnus 2 stays, Turnus 1 is removed and Turnus 3 is added.
+    await expect(dialog.getByRole("row", { name: /Turnus 1.*Odhlášeno/ })).toBeVisible()
+    await expect(dialog.getByRole("row", { name: /Turnus 2/ })).toBeVisible()
+    await expect(dialog.getByRole("row", { name: /Turnus 3/ })).toBeVisible()
   },
 }
 
@@ -183,9 +204,9 @@ export const AddTermSeveralAvailable: Story = {
   },
   play: async ({ canvas }) => {
     await expect(
-      await canvas.findByRole("checkbox", { name: /Přidat termín Turnus 3/ }, { timeout: 5000 }),
+      await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 }),
     ).toBeVisible()
-    await expect(canvas.getByRole("checkbox", { name: /Přidat termín Turnus 4/ })).toBeVisible()
+    await expect(canvas.getByRole("checkbox", { name: /^Turnus 4/ })).toBeVisible()
   },
 }
 
@@ -196,7 +217,7 @@ export const ReviewAddTerm: Story = {
   },
   play: async ({ canvas }) => {
     await userEvent.click(
-      await canvas.findByRole("checkbox", { name: /Přidat termín Turnus 3/ }, { timeout: 5000 }),
+      await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 }),
     )
     await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
     const dialog = await review()
@@ -223,7 +244,7 @@ export const NoFurtherTerm: Story = {
   },
   play: async ({ canvas }) => {
     await showsText("Další termín není k dispozici, na přihlášce už máte všechny termíny akce.")
-    await expect(canvas.queryByRole("checkbox", { name: /Přidat termín/ })).not.toBeInTheDocument()
+    await expect(canvas.queryByRole("checkbox", { name: /^Turnus 3/ })).not.toBeInTheDocument()
   },
 }
 
@@ -235,7 +256,7 @@ export const AddTermFailed: Story = {
   },
   play: async ({ canvas }) => {
     await userEvent.click(
-      await canvas.findByRole("checkbox", { name: /Přidat termín Turnus 3/ }, { timeout: 5000 }),
+      await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 }),
     )
     await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
     const dialog = await review()

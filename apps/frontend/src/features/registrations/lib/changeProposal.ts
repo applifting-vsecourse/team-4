@@ -19,14 +19,17 @@ export type EditState = {
   genderOther: string | null
   /** Transport, diet and health (F63). */
   needs: RegistrationNeeds
-  /** Terms of the event added next to the current ones (F35-2c). */
-  addedTermIds: string[]
-  /** By the active term it belongs to. */
-  terms: Record<string, { selectedTermId: string; isCancelled: boolean }>
+  /**
+   * The terms the participant wants to take part in: the held ones are
+   * preselected, unticking one cancels it, ticking another adds it (F35-2c).
+   */
+  selectedTermIds: string[]
 }
 
 /** The registration as it is now. */
 type Current = {
+  /** The terms it holds (not cancelled). */
+  heldTermIds: string[]
   firstName: string
   lastName: string
   phone: string
@@ -48,8 +51,8 @@ export function validateContact(state: EditState): ContactErrors {
 
 /**
  * Only what differs from the registration is proposed; null when nothing does.
- * A term picked for another term is a move, a ticked one a cancellation, an
- * added one stays next to the current terms (F35-2c).
+ * A held term that is no longer selected is cancelled, a selected one that is
+ * not held is added next to the others (F35-2c).
  */
 export function buildProposal(contact: Current, state: EditState): ChangeProposal | null {
   const proposal: ChangeProposal = { moves: [], cancelledTermIds: [] }
@@ -66,20 +69,10 @@ export function buildProposal(contact: Current, state: EditState): ChangeProposa
   // The needs change as one block, like the server stores them.
   if (!sameNeeds(state.needs, contact.needs)) proposal.needs = normalizeNeeds(state.needs)
 
-  for (const [termId, choice] of Object.entries(state.terms)) {
-    if (choice.isCancelled) proposal.cancelledTermIds.push(termId)
-    else if (choice.selectedTermId !== termId) {
-      proposal.moves.push({
-        fromTermId: termId,
-        toTermId: choice.selectedTermId,
-        acceptRelease: false,
-      })
-    }
-  }
-
-  // A term the participant moves to is already added by the move.
-  const moveTargets = new Set(proposal.moves.map((move) => move.toTermId))
-  const added = state.addedTermIds.filter((termId) => !moveTargets.has(termId))
+  const selected = new Set(state.selectedTermIds)
+  const held = new Set(contact.heldTermIds)
+  proposal.cancelledTermIds = contact.heldTermIds.filter((termId) => !selected.has(termId))
+  const added = state.selectedTermIds.filter((termId) => !held.has(termId))
   if (added.length > 0) proposal.addedTermIds = added
 
   const isChanged =
@@ -89,7 +82,6 @@ export function buildProposal(contact: Current, state: EditState): ChangeProposa
     proposal.gender !== undefined ||
     proposal.genderOther !== undefined ||
     proposal.needs !== undefined ||
-    proposal.moves.length > 0 ||
     added.length > 0 ||
     proposal.cancelledTermIds.length > 0
   return isChanged ? proposal : null
