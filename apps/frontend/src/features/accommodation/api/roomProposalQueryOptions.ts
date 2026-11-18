@@ -10,6 +10,7 @@ import {
   roomProposalModeResponseSchema,
   roomProposalPreferencesSchema,
   termRoomProposalSchema,
+  termWishesSchema,
 } from "@/features/accommodation/api/roomProposalSchemas"
 
 // Under the event's accommodation keys, so a change that invalidates the
@@ -21,6 +22,9 @@ export const roomProposalKeys = {
     [...evaluationKeys.event(organizationId, eventId), "room-proposal-preferences"] as const,
   term: (organizationId: string, eventId: string, termId: string) =>
     [...evaluationKeys.event(organizationId, eventId), "room-proposal", termId] as const,
+  /** Under the term's proposal: a new proposal or an apply reloads them too. */
+  wishes: (organizationId: string, eventId: string, termId: string) =>
+    [...roomProposalKeys.term(organizationId, eventId, termId), "wishes"] as const,
 }
 
 /** While a proposal runs or is scheduled, the term is read again until it settles. */
@@ -67,4 +71,16 @@ export const termRoomProposalQueryOptions = (
       const scheduled = data?.scheduledAt ? Date.parse(data.scheduledAt) : null
       return scheduled !== null && scheduled > Date.now() - 60_000 ? POLL_MS : false
     },
+  })
+
+/** The usable roommate wishes of a term with their saved state (#317). */
+export const termWishesQueryOptions = (organizationId: string, eventId: string, termId: string) =>
+  queryOptions({
+    queryKey: roomProposalKeys.wishes(organizationId, eventId, termId),
+    queryFn: async () =>
+      termWishesSchema.parse(
+        await api
+          .get(`${accommodationPath(organizationId, eventId)}/terms/${termId}/roommate-wishes`)
+          .json(),
+      ),
   })

@@ -6,6 +6,7 @@ import type { TermEvaluationData } from "@/features/accommodation/api/evaluation
 import type {
   RoomProposalPreferences,
   TermRoomProposalData,
+  TermWishes,
 } from "@/features/accommodation/api/roomProposalSchemas"
 import {
   makeHardAttributeSetting,
@@ -18,6 +19,7 @@ import {
 import {
   makeRoomProposalPreferences,
   makeTermRoomProposal,
+  makeTermWishes,
 } from "@/features/accommodation/fixtures/roomProposal"
 
 // MSW handlers for the term evaluation of an event (S3-01, S3-03). Install with
@@ -82,6 +84,10 @@ export const accommodationHandlers = {
   termRoomProposal: (proposal: TermRoomProposalData) => [
     http.get(`${BASE}/terms/:termId/room-proposal`, () => HttpResponse.json(proposal)),
   ],
+  /** The usable roommate wishes of the term, changed for one story (#317). */
+  termWishes: (wishes: TermWishes) => [
+    http.get(`${BASE}/terms/:termId/roommate-wishes`, () => HttpResponse.json(wishes)),
+  ],
   /** The room proposal mode and the proposal of a term (#365, #385). */
   roomProposal: () => [
     http.get(`${BASE}/room-proposal-mode`, () => HttpResponse.json({ mode: "manual" })),
@@ -94,6 +100,8 @@ export const accommodationHandlers = {
     http.post(`${BASE}/terms/:termId/room-proposal`, () =>
       HttpResponse.json(makeTermRoomProposal("running"), { status: 202 }),
     ),
+    // Přání na spolubydlící (#317): the contract proposed for #339/#337.
+    http.get(`${BASE}/terms/:termId/roommate-wishes`, () => HttpResponse.json(makeTermWishes())),
     // "Použít návrh" (#390): the contract proposed for #365.
     http.post(`${BASE}/terms/:termId/room-proposal/apply`, () =>
       HttpResponse.json({ added: 2, moved: 1, removed: 1, layoutVersion: 5 }),

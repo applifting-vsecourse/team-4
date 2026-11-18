@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest"
 
-import { makeTermRoomProposal } from "@/features/accommodation/fixtures/roomProposal"
+import {
+  makeTermRoomProposal,
+  makeTermWishes,
+} from "@/features/accommodation/fixtures/roomProposal"
 import {
   hasApplyChanges,
   toApplyChanges,
   toProposalLayout,
+  toWishRows,
   unplacedReasonText,
+  wishStateBadge,
 } from "@/features/accommodation/lib/roomProposalView"
 
 const layoutOf = (preset: Parameters<typeof makeTermRoomProposal>[0]) =>
@@ -75,5 +80,33 @@ describe("toApplyChanges", () => {
 
   it("has nothing to apply without confirmed people", () => {
     expect(hasApplyChanges(toApplyChanges(layoutOf("empty")))).toBe(false)
+  })
+})
+
+describe("toWishRows", () => {
+  it("pairs the saved state of each wish with its state in the proposal", () => {
+    const proposal = makeTermRoomProposal("current").lastSolved!.layout!.wishes
+    const rows = toWishRows(makeTermWishes("saved").wishes, proposal)
+
+    expect(rows.map((row) => [row.from, row.to, row.saved, row.proposed])).toEqual([
+      ["Tereza Nováková", "Anna Procházková", "satisfied", "satisfied"],
+      ["Eliška Malá", "Lucie Sedláčková", "unsatisfied", "unsatisfied"],
+      ["Tomáš Král", "Jan Dvořák", "unsatisfied", "unplaced"],
+      ["Petr Svoboda", "Tereza Nováková", "impossible", "impossible"],
+    ])
+  })
+
+  it("has no proposed state without a proposal or for a wish the proposal did not read", () => {
+    const wishes = makeTermWishes("saved").wishes
+
+    expect(toWishRows(wishes, undefined).every((row) => row.proposed === null)).toBe(true)
+    expect(toWishRows(wishes, [])[0]!.proposed).toBeNull()
+  })
+
+  it("names the hard attribute when a wish cannot be met", () => {
+    expect(wishStateBadge("impossible", "Pohlaví").label).toBe(
+      "Nelze splnit: různá hodnota Pohlaví",
+    )
+    expect(wishStateBadge("unplaced").label).toBe("Čeká na umístění")
   })
 })
