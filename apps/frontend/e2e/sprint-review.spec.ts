@@ -234,7 +234,7 @@ test(sprintReviewTitle, async ({ page, browser }) => {
       if (isDemo) await page.waitForTimeout(4_000)
       await janaRegistration.click()
       registrationId = new URL(page.url()).pathname.split("/").at(-1)!
-      await expect(definition(page, "Dluh")).toHaveText("2 500 Kč")
+      await expect(definition(page, "Zbývá zaplatit")).toHaveText("2 500 Kč")
     })
 
     await step(page, "8/9 · Přijatá platba vyrovná dluh — S2-12", async () => {
@@ -243,7 +243,7 @@ test(sprintReviewTitle, async ({ page, browser }) => {
       await type(dialog.getByLabel("Přijatá částka (Kč)"), "2500")
       await dialog.getByRole("button", { name: "Uložit platbu" }).click()
       await expect(dialog).toBeHidden()
-      await expect(page.locator("dt").filter({ hasText: /^Vyrovnáno$/ })).toBeVisible()
+      await expect(definition(page, "Zbývá zaplatit")).toHaveText("0 Kč")
     })
 
     await step(mobileWindow, "9/9 · Jana se vrací ke své přihlášce — S2-13, S2-14", async () => {
