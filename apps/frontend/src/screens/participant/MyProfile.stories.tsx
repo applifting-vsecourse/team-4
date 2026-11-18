@@ -34,10 +34,7 @@ type Story = StoryObj<typeof meta>
 const firstName = ({ canvas }: Pick<StoryContext, "canvas">) =>
   canvas.findByLabelText("Jméno", {}, TIMEOUT)
 
-/**
- * The success toast is checked, then dismissed: the kit's rich-coloured
- * success toast is below the contrast threshold app-wide, reported separately.
- */
+/** The success toast is checked, then dismissed, so it does not outlive the story. */
 async function showsSavedToast() {
   await showsText("Profil uložen")
   toast.dismiss()

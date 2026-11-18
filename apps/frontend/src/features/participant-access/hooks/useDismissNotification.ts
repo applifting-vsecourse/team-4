@@ -7,7 +7,6 @@ export function useDismissNotification() {
   return useNotificationUpdate<string>({
     path: (id) => `/${id}/dismiss`,
     apply: (list, id) => ({ items: list.items.filter((item) => item.id !== id) }),
-    // The kit's rich error colours miss the contrast threshold.
-    onError: () => toast.error("Oznámení se nepodařilo skrýt", { richColors: false }),
+    onError: () => toast.error("Oznámení se nepodařilo skrýt"),
   })
 }

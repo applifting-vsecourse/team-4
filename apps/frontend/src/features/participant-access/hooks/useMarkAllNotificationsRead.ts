@@ -13,8 +13,6 @@ export function useMarkAllNotificationsRead() {
     apply: (list, ids) => ({
       items: list.items.map((item) => (ids.includes(item.id) ? { ...item, isRead: true } : item)),
     }),
-    // The kit's rich error colours miss the contrast threshold.
-    onError: () =>
-      toast.error("Oznámení se nepodařilo označit jako přečtená", { richColors: false }),
+    onError: () => toast.error("Oznámení se nepodařilo označit jako přečtená"),
   })
 }
