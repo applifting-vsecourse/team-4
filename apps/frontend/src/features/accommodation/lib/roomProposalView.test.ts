@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest"
 
 import { makeTermRoomProposal } from "@/features/accommodation/fixtures/roomProposal"
-import { toProposalLayout, unplacedReasonText } from "@/features/accommodation/lib/roomProposalView"
+import {
+  hasApplyChanges,
+  toApplyChanges,
+  toProposalLayout,
+  unplacedReasonText,
+} from "@/features/accommodation/lib/roomProposalView"
 
 const layoutOf = (preset: Parameters<typeof makeTermRoomProposal>[0]) =>
   toProposalLayout(makeTermRoomProposal(preset).lastSolved!.layout!)
@@ -49,5 +54,26 @@ describe("toProposalLayout", () => {
 
   it("marks a proposal without confirmed people as empty", () => {
     expect(layoutOf("empty").isEmpty).toBe(true)
+  })
+})
+
+describe("toApplyChanges", () => {
+  it("lists new placements, moves and lost rooms; locked and unchanged people stay out", () => {
+    const changes = toApplyChanges(layoutOf("withSaved"))
+
+    // Each change also carries the person's id, the key of its row.
+    expect(changes).toMatchObject({
+      added: [
+        { name: "Petr Svoboda", room: "Chata Buk" },
+        { name: "Ondřej Černý", room: "Chata Buk" },
+      ],
+      moved: [{ name: "Jan Dvořák", from: "Chata Dub", to: "Chata Buk" }],
+      removed: [{ name: "Tomáš Král", from: "Chata Buk" }],
+    })
+    expect(hasApplyChanges(changes)).toBe(true)
+  })
+
+  it("has nothing to apply without confirmed people", () => {
+    expect(hasApplyChanges(toApplyChanges(layoutOf("empty")))).toBe(false)
   })
 })

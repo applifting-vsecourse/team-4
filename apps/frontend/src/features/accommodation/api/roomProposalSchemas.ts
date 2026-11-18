@@ -123,3 +123,17 @@ export const roomProposalPreferencesSchema = z.object({
 
 export type SoftPreferenceItem = z.infer<typeof softPreferenceItemSchema>
 export type RoomProposalPreferences = z.infer<typeof roomProposalPreferencesSchema>
+
+/**
+ * "Použít návrh" (#390): what applying the proposal saved. The API contract
+ * is proposed here for #365; the backend is not built yet.
+ */
+export const appliedProposalSchema = z.object({
+  added: z.number().int().nonnegative(),
+  moved: z.number().int().nonnegative(),
+  removed: z.number().int().nonnegative(),
+  /** The term's layout version after the apply; the proposal is now stale. */
+  layoutVersion: z.number().int().nonnegative(),
+})
+
+export type AppliedProposal = z.infer<typeof appliedProposalSchema>

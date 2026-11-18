@@ -118,3 +118,37 @@ export function toProposalLayout(layout: ProposalLayoutData): RoomProposalLayout
     isEmpty: layout.people.length === 0,
   }
 }
+
+/** What "Použít návrh" changes in the saved placements (#390), by kind. */
+export type ApplyChanges = {
+  added: { id: string; name: string; room: string }[]
+  moved: { id: string; name: string; from: string; to: string }[]
+  removed: { id: string; name: string; from: string }[]
+}
+
+/** The changes of a layout against the saved placements; locked people never change. */
+export function toApplyChanges(layout: RoomProposalLayout): ApplyChanges {
+  const placed = layout.rooms.flatMap((room) =>
+    room.people.map((person) => ({ person, room: room.label })),
+  )
+  return {
+    added: placed
+      .filter(({ person }) => person.change === "new")
+      .map(({ person, room }) => ({ id: person.id, name: person.name, room })),
+    moved: placed
+      .filter(({ person }) => person.change === "moved")
+      .map(({ person, room }) => ({
+        id: person.id,
+        name: person.name,
+        from: person.savedRoom ?? "",
+        to: room,
+      })),
+    removed: layout.unplaced
+      .filter((person) => person.change === "removed")
+      .map((person) => ({ id: person.id, name: person.name, from: person.savedRoom ?? "" })),
+  }
+}
+
+/** Whether applying the layout would change any saved placement. */
+export const hasApplyChanges = (changes: ApplyChanges) =>
+  changes.added.length + changes.moved.length + changes.removed.length > 0
