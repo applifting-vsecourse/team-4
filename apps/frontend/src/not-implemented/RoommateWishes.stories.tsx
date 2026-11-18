@@ -102,8 +102,21 @@ export const NothingChosen: Story = {
   },
 }
 
+/** The form with the stored choice, ready to change. */
+export const Editing: Story = {
+  play: async ({ canvas }) => {
+    const form = await startEditing(canvas)
+    await expect(form.getByRole("button", { name: "Přidat spolubydlícího" })).toBeVisible()
+  },
+}
+
+// The flows below click through a whole change. They stay as tests but are
+// hidden from the Storybook sidebar, which shows only the states.
+const FLOW = ["!dev"]
+
 /** Several people picked by searching, then saved at once. */
 export const ChooseSeveral: Story = {
+  tags: FLOW,
   beforeEach: ({ msw }) => {
     msw.use(...registrationHandlers.roommateWishes(NO_WISHES))
   },
@@ -129,6 +142,7 @@ export const ChooseSeveral: Story = {
 
 /** One person removed and another added to the stored choice. */
 export const Change: Story = {
+  tags: FLOW,
   play: async ({ canvas }) => {
     const form = await startEditing(canvas)
     await userEvent.click(form.getByRole("button", { name: "Odebrat Barbora Kučerová" }))
@@ -144,6 +158,7 @@ export const Change: Story = {
 
 /** Every wish removed: back to nobody chosen. */
 export const RemoveAll: Story = {
+  tags: FLOW,
   play: async ({ canvas }) => {
     const form = await startEditing(canvas)
     await userEvent.click(form.getByRole("button", { name: "Odebrat Barbora Kučerová" }))
@@ -213,6 +228,7 @@ export const SaveFailed: Story = {
 
 /** A failed save keeps the selection; the next try stores it. */
 export const SaveFailedThenRetried: Story = {
+  tags: FLOW,
   beforeEach: ({ msw }) => {
     // The first save fails; later ones reach the meta's handler.
     let hasFailed = false

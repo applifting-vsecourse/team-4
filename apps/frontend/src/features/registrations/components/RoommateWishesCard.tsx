@@ -8,7 +8,7 @@ import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   CommandDialog,
   CommandEmpty,
@@ -56,9 +56,10 @@ export function RoommateWishesCard({ registrationId }: RoommateWishesCardProps) 
 
   return (
     <Card>
-      <CardHeader>
+      {/* A flex row keeps the title centred against the taller action button. */}
+      <CardHeader className="flex min-h-8 items-center justify-between">
         <CardTitle>Spolubydlící</CardTitle>
-        {action ? <CardAction>{action}</CardAction> : null}
+        {action}
       </CardHeader>
       <CardContent>
         {data ? (
@@ -186,8 +187,15 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
         </ul>
       ) : null}
 
-      {data.candidates.length > 0 ? (
-        <>
+      {data.candidates.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{NO_CANDIDATES}</p>
+      ) : null}
+
+      {save.isError ? (
+        <FormError message="Spolubydlící se nepodařilo uložit. Výběr zůstává, zkuste to prosím znovu." />
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        {data.candidates.length > 0 ? (
           <Button
             type="button"
             variant="outline"
@@ -198,62 +206,59 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
             <Plus aria-hidden />
             Přidat spolubydlícího
           </Button>
-          {/* Stays open between picks; the selection above follows each one. */}
-          <CommandDialog
-            open={isPickerOpen}
-            onOpenChange={setIsPickerOpen}
-            title="Přidat spolubydlícího"
-            description="Vyberte potvrzené účastníky akce, se kterými chcete bydlet."
+        ) : null}
+        <div className="ml-auto flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={save.isPending}
+            onClick={onDone}
           >
-            <CommandInput placeholder="Hledat účastníka…" />
-            <CommandList>
-              <CommandEmpty>Nikdo nenalezen.</CommandEmpty>
-              <CommandGroup>
-                {data.candidates.map((candidate) => {
-                  const isSelected = selected.includes(candidate.registrationId)
-                  return (
-                    <CommandItem
-                      key={candidate.registrationId}
-                      value={candidate.registrationId}
-                      keywords={[candidate.name]}
-                      aria-checked={isSelected}
-                      onSelect={() => toggle(candidate.registrationId)}
-                    >
-                      <Check
-                        aria-hidden
-                        className={cn(isSelected ? "opacity-100" : "opacity-0")}
-                      />
-                      {candidate.name}
-                    </CommandItem>
-                  )
-                })}
-              </CommandGroup>
-            </CommandList>
-          </CommandDialog>
-        </>
-      ) : (
-        <p className="text-sm text-muted-foreground">{NO_CANDIDATES}</p>
-      )}
-
-      {save.isError ? (
-        <FormError message="Spolubydlící se nepodařilo uložit. Výběr zůstává, zkuste to prosím znovu." />
-      ) : null}
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={save.isPending}
-          onClick={onDone}
-        >
-          Zrušit
-        </Button>
-        <PendingButton
-          type="submit"
-          isPending={save.isPending}
-        >
-          {save.isPending ? "Ukládám…" : "Uložit"}
-        </PendingButton>
+            Zrušit
+          </Button>
+          <PendingButton
+            type="submit"
+            isPending={save.isPending}
+          >
+            {save.isPending ? "Ukládám…" : "Uložit"}
+          </PendingButton>
+        </div>
       </div>
+
+      {data.candidates.length > 0 ? (
+        // Stays open between picks; the selection above follows each one.
+        <CommandDialog
+          open={isPickerOpen}
+          onOpenChange={setIsPickerOpen}
+          title="Přidat spolubydlícího"
+          description="Vyberte potvrzené účastníky akce, se kterými chcete bydlet."
+        >
+          <CommandInput placeholder="Hledat účastníka…" />
+          <CommandList>
+            <CommandEmpty>Nikdo nenalezen.</CommandEmpty>
+            <CommandGroup>
+              {data.candidates.map((candidate) => {
+                const isSelected = selected.includes(candidate.registrationId)
+                return (
+                  <CommandItem
+                    key={candidate.registrationId}
+                    value={candidate.registrationId}
+                    keywords={[candidate.name]}
+                    aria-checked={isSelected}
+                    onSelect={() => toggle(candidate.registrationId)}
+                  >
+                    <Check
+                      aria-hidden
+                      className={cn(isSelected ? "opacity-100" : "opacity-0")}
+                    />
+                    {candidate.name}
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
+          </CommandList>
+        </CommandDialog>
+      ) : null}
     </form>
   )
 }
