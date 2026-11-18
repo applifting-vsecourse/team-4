@@ -161,7 +161,7 @@ function SideCell({
     <TableCell className={cn("max-sm:whitespace-normal", className)}>
       <div
         className={cn(
-          "max-sm:flex max-sm:items-center max-sm:justify-between max-sm:gap-3 max-sm:py-1",
+          "max-sm:flex max-sm:flex-wrap max-sm:items-center max-sm:justify-between max-sm:gap-x-3 max-sm:gap-y-1 max-sm:py-1",
           side === "Původně" ? "max-sm:-mx-2" : "max-sm:-mr-4 max-sm:-ml-2",
         )}
       >

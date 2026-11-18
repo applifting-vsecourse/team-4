@@ -254,6 +254,11 @@ export const ReviewMobile: Story = {
     msw.use(...registrationHandlers.ownChange(PENDING_ADD_PREVIEW))
   },
   play: async ({ canvas }) => {
+    // Browsers with classic scrollbars (CI) give the scrolling dialog 15 px less width than
+    // the overlay scrollbars of a Mac, so the review is checked at that narrower width.
+    const scrollbar = document.createElement("style")
+    scrollbar.textContent = "[role=dialog] { padding-right: 39px !important; }"
+    document.head.append(scrollbar)
     await userEvent.click(
       await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 }),
     )
@@ -265,6 +270,7 @@ export const ReviewMobile: Story = {
       .querySelectorAll("[data-slot=table-container]")) {
       await expect(table.scrollWidth).toBeLessThanOrEqual(table.clientWidth)
     }
+    scrollbar.remove()
     await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
     // The content is taller than the screen: the dialog scrolls and reaches the confirming button.
     const element = screen.getByRole("dialog")
