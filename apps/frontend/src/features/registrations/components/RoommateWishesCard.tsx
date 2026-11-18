@@ -194,7 +194,8 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
       {save.isError ? (
         <FormError message="Spolubydlící se nepodařilo uložit. Výběr zůstává, zkuste to prosím znovu." />
       ) : null}
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Wrapped on a narrow screen, the add button keeps to the right like the others. */}
+      <div className="flex flex-wrap items-center justify-end gap-2">
         {data.candidates.length > 0 ? (
           <Button
             type="button"
