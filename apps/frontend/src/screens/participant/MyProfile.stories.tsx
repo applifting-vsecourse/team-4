@@ -168,6 +168,7 @@ export const AccountMenu: Story = {
     const menu = await screen.findByRole("menu", {}, TIMEOUT)
     // The menu fades in.
     await waitFor(() => expect(within(menu).getByText(PARTICIPANT.email)).toBeVisible(), TIMEOUT)
+    await expect(within(menu).getByRole("menuitem", { name: "Oznámení" })).toBeVisible()
     await expect(within(menu).getByRole("menuitem", { name: "Můj profil" })).toBeVisible()
     await expect(within(menu).getByRole("menuitem", { name: "Odhlásit se" })).toBeVisible()
     // Closed again, the page is back in the accessibility tree.
