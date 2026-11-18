@@ -33,12 +33,23 @@ export function RoommateWishStatesSection({
     <RoommateWishStates
       rows={wishes.data ? toWishRows(wishes.data.wishes, shown?.layout?.wishes) : []}
       attribute={attribute}
-      proposal={shown?.layout ? (shown.isCurrent ? "current" : "stale") : "none"}
+      proposal={
+        proposal.isError
+          ? "failed"
+          : shown?.layout
+            ? shown.isCurrent
+              ? "current"
+              : "stale"
+            : "none"
+      }
       // Until the proposal is read too, "Bez návrhu" could be wrong. A failed
-      // proposal read shows the saved state alone.
+      // proposal read says so and keeps the saved state.
       isLoading={wishes.isPending || proposal.isPending}
       isLoadFailed={wishes.isError}
-      onRetryLoad={() => void wishes.refetch()}
+      onRetryLoad={() => {
+        if (wishes.isError) void wishes.refetch()
+        if (proposal.isError) void proposal.refetch()
+      }}
     />
   )
 }

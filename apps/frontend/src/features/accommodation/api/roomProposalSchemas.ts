@@ -3,9 +3,11 @@ import { z } from "zod"
 import { evaluationModeSchema } from "@/features/accommodation/api/evaluationSchemas"
 
 /**
- * The state of a roommate wish in a layout (#317, phase-2 spec §5.3):
- * same room, different rooms, at least one without a room, or different
- * effective values of the hard attribute.
+ * The state of a roommate wish in a layout (#317, phase-2 spec §5.3). When
+ * several apply, the first wins, as the solver decides it (`wishStates`):
+ * same room ⇒ `satisfied` (also a manual placement of different values);
+ * else different effective values of the hard attribute ⇒ `impossible`;
+ * else at least one without a room ⇒ `unplaced`; else `unsatisfied`.
  */
 export const wishStateSchema = z.enum(["satisfied", "unsatisfied", "unplaced", "impossible"])
 
@@ -59,6 +61,7 @@ const proposalLayoutSchema = z.object({
       change: placementChangeSchema.nullable(),
     }),
   ),
+  /** `from` and `to` are registration ids, like `people[].id`. */
   wishes: z.array(
     z.object({
       from: z.string().uuid(),
@@ -147,6 +150,7 @@ export const appliedProposalSchema = z.object({
 
 export type AppliedProposal = z.infer<typeof appliedProposalSchema>
 
+/** A person of a wish: the registration id, as in the proposal's `people[].id` and `wishes`. */
 const wishPersonSchema = z.object({ registrationId: z.string().uuid(), name: z.string() })
 
 /**

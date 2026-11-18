@@ -108,5 +108,8 @@ describe("toWishRows", () => {
       "Nelze splnit: různá hodnota Pohlaví",
     )
     expect(wishStateBadge("unplaced").label).toBe("Čeká na umístění")
+    expect(wishStateBadge("impossible", null).label).toBe(
+      "Nelze splnit: různá hodnota tvrdého pravidla",
+    )
   })
 })

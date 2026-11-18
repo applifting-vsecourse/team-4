@@ -27,9 +27,10 @@ export type RoommateWishStatesProps = {
    * The proposal the "Podle návrhu" column reads: none yet, the current one,
    * or the last finished one after the term changed.
    */
-  proposal: "none" | "current" | "stale"
+  proposal: "none" | "current" | "stale" | "failed"
   isLoading?: boolean
   isLoadFailed?: boolean
+  /** Reloads what failed: the wishes, or the proposal for its column. */
   onRetryLoad?: () => void
 }
 
@@ -40,6 +41,7 @@ function State({ state, attribute }: { state: WishState; attribute?: string | nu
 
 const PROPOSAL_NOTE = {
   none: "Termín zatím nemá návrh pokojů.",
+  failed: undefined,
   current: "Podle návrhu: stav, kdyby se použil zobrazený návrh pokojů.",
   stale: "Podle návrhu: poslední dokončený návrh, podklady se od něj změnily.",
 }
@@ -77,42 +79,53 @@ export function RoommateWishStates({
           description="Zobrazí se přání mezi dvěma potvrzenými účastníky termínu."
         />
       ) : (
-        <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Účastník</TableHead>
-                <TableHead>Chce bydlet s</TableHead>
-                <TableHead>Uložené rozdělení</TableHead>
-                <TableHead>Podle návrhu</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="whitespace-normal">{row.from}</TableCell>
-                  <TableCell className="whitespace-normal">{row.to}</TableCell>
-                  <TableCell>
-                    <State
-                      state={row.saved}
-                      attribute={attribute}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    {row.proposed ? (
+        <div className="space-y-4">
+          {proposal === "failed" ? (
+            <LoadError
+              title="Návrh pokojů se nepodařilo načíst"
+              description="Sloupec Podle návrhu je prázdný; uložený stav platí."
+              onRetry={onRetryLoad}
+            />
+          ) : null}
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Účastník</TableHead>
+                  <TableHead>Chce bydlet s</TableHead>
+                  <TableHead>Uložené rozdělení</TableHead>
+                  <TableHead>Podle návrhu</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="whitespace-normal">{row.from}</TableCell>
+                    <TableCell className="whitespace-normal">{row.to}</TableCell>
+                    <TableCell>
                       <State
-                        state={row.proposed}
+                        state={row.saved}
                         attribute={attribute}
                       />
-                    ) : (
-                      <span className="text-muted-foreground">Bez návrhu</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
+                    </TableCell>
+                    <TableCell>
+                      {row.proposed ? (
+                        <State
+                          state={row.proposed}
+                          attribute={attribute}
+                        />
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {proposal === "failed" ? "Nenačteno" : "Bez návrhu"}
+                        </span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </div>
       )}
     </PageSection>
   )

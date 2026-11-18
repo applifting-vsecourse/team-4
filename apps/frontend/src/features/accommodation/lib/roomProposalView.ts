@@ -183,7 +183,10 @@ export function toWishRows(
   })
 }
 
-/** How a wish state reads; `attribute` names the hard attribute for "impossible". */
+/**
+ * How a wish state reads; `attribute` names the current hard attribute for
+ * "impossible" (the caller passes the event's setting).
+ */
 export function wishStateBadge(
   state: WishState,
   attribute?: string | null,
@@ -197,7 +200,9 @@ export function wishStateBadge(
       return { label: "Čeká na umístění", variant: "secondary" }
     case "impossible":
       return {
-        label: `Nelze splnit: různá hodnota ${attribute ?? "pravidla ubytování"}`,
+        label: attribute
+          ? `Nelze splnit: různá hodnota ${attribute}`
+          : "Nelze splnit: různá hodnota tvrdého pravidla",
         variant: "outline",
       }
   }

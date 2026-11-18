@@ -151,3 +151,23 @@ export const LoadFailed: Story = {
     ).toBeVisible()
   },
 }
+
+/** The proposal could not be read: the saved state stays, its column says why, with a retry. */
+export const ProposalLoadFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...failOn(
+        "get",
+        "/organizations/:organizationId/events/:eventId/accommodation/terms/:termId/room-proposal",
+      ),
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(await canvas.findByText("Návrh pokojů se nepodařilo načíst")).toBeVisible()
+    await expect(canvas.getAllByText("Nenačteno")).toHaveLength(4)
+    await expect(canvas.queryByText("Termín zatím nemá návrh pokojů.")).not.toBeInTheDocument()
+    const eliska = await rowOf(canvasElement, "Eliška Malá")
+    await expect(eliska.getByText("Nesplněno")).toBeVisible()
+  },
+}
