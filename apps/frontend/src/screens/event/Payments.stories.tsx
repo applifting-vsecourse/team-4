@@ -1,14 +1,21 @@
 import type { Meta, StoryContext, StoryObj } from "@storybook/react-vite"
-import { expect, userEvent, within } from "storybook/test"
+import { http, HttpResponse } from "msw"
+import { expect, screen, userEvent, waitFor, within } from "storybook/test"
 
-import { failOn, neverAnswer } from "@/screens/msw"
+import { apiError, apiUrl, failOn, failsOnRefresh, neverAnswer } from "@/screens/msw"
 import { eventUrl, organizerBackend, screenMeta, showsHeading } from "@/screens/screenMeta"
-import { showsText } from "@/screens/steps"
+import { openDialog, refresh, showsText, submitDialog } from "@/screens/steps"
 
 import { paymentHandlers } from "@/features/payments/fixtures/handlers"
-import { EMPTY_STATEMENT } from "@/features/payments/fixtures/payments"
+import { BANK_TRANSACTIONS, EMPTY_STATEMENT } from "@/features/payments/fixtures/payments"
+import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
+import {
+  makeEventPayments,
+  makeEventWithoutPayments,
+} from "@/features/registrations/fixtures/registrations"
 
 const TRANSACTIONS = "/organizations/:organizationId/events/:eventId/bank-transactions"
+const OVERVIEW = "/organizations/:organizationId/events/:eventId/payments"
 
 const meta = {
   title: "Screens/Event/Payments",
@@ -45,7 +52,7 @@ export const OpenFromEvent: Story = {
       { timeout: 5000 },
     )
     await userEvent.click(within(navigation).getByRole("link", { name: "Platby" }))
-    await showsHeading("Přijaté transakce")({ canvas })
+    await showsHeading("Nespárované transakce")({ canvas })
     await expect(canvas.getByRole("button", { name: "Import výpisu" })).toBeEnabled()
     await expect(within(navigation).getByRole("link", { name: "Platby" })).toHaveAttribute(
       "aria-current",
@@ -54,24 +61,256 @@ export const OpenFromEvent: Story = {
   },
 }
 
-/** Received transactions of the event, newest first (F23). */
-export const Transactions: Story = {
+/** Balances of registrations with an obligation and received payments, newest first (S4-09). */
+export const PaymentsAndBalances: Story = {
   play: async ({ canvas }) => {
-    await showsHeading("Přijaté transakce")({ canvas })
-    const table = await canvas.findByRole("region", { name: "Tabulka přijatých transakcí" })
-    await expect(within(table).getByText("Petra Svobodová")).toBeVisible()
-    await expect(within(table).getByText("1003")).toBeVisible()
+    await showsHeading("Přijaté platby a salda")({ canvas })
+    const balances = await canvas.findByRole(
+      "region",
+      { name: "Tabulka sald přihlášek" },
+      { timeout: 5000 },
+    )
+    const jakub = within(balances).getByRole("row", { name: /Jakub Dvořák/ })
+    await expect(within(jakub).getByText("Částečně zaplaceno")).toBeVisible()
+    // Celkem, Zaplaceno and Zbývá zaplatit, as the registration list counts them.
+    for (const amount of ["4 500 Kč", "2 000 Kč", "2 500 Kč"]) {
+      await expect(within(jakub).getByText(amount)).toBeVisible()
+    }
+    // An overpayment is left as a negative amount.
+    const tomas = within(balances).getByRole("row", { name: /Tomáš Černý/ })
+    await expect(tomas).toHaveTextContent(/[-−]\s*500\s*Kč$/)
+    // Without an obligation there is no balance to watch.
+    await expect(within(balances).queryByText(/Klára Procházková/)).not.toBeInTheDocument()
+
+    const payments = canvas.getByRole("region", { name: "Tabulka přijatých plateb" })
+    await expect(within(payments).getAllByRole("row")).toHaveLength(5)
+    await expect(within(payments).getByRole("row", { name: /QR platba/ }).textContent).toContain(
+      "Tomáš Černý",
+    )
+    // A payment opens the detail of its registration.
+    const [latest] = makeEventPayments().payments
+    if (!latest) throw new Error("The overview fixture has no payment")
+    const { registration } = latest
+    await expect(
+      within(payments).getByRole("link", {
+        name: `Přihláška ${registration.firstName} ${registration.lastName}`,
+      }),
+    ).toHaveAttribute("href", expect.stringContaining(`/registrations/${registration.id}`))
   },
 }
 
-/** No statement imported yet: the import starts from the empty section. */
-export const NoTransactions: Story = {
+/** Nothing received yet: the balances are shown; the import is in the section below. */
+export const NoPayments: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.eventPayments(makeEventWithoutPayments()))
+  },
+  play: async ({ canvas }) => {
+    await showsText("Zatím žádné přijaté platby")
+    await expect(canvas.getByRole("region", { name: "Tabulka sald přihlášek" })).toBeVisible()
+    await expect(canvas.getByRole("button", { name: "Import výpisu" })).toBeEnabled()
+  },
+}
+
+export const OverviewLoading: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...neverAnswer("get", OVERVIEW))
+  },
+  play: async ({ canvas }) => {
+    await expect(
+      await canvas.findByRole("status", { name: "Načítání plateb" }, { timeout: 5000 }),
+    ).toBeVisible()
+  },
+}
+
+/** A failed first load is not shown as empty and offers a retry. */
+export const OverviewLoadFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("get", OVERVIEW))
+  },
+  play: async ({ canvas }) => {
+    await showsText("Platby se nepodařilo načíst")
+    await expect(canvas.getByRole("button", { name: "Zkusit znovu" })).toBeVisible()
+    await expect(canvas.queryByText("Zatím žádné přijaté platby")).not.toBeInTheDocument()
+  },
+}
+
+/** A failed refresh keeps the last overview and says so. */
+export const OverviewRefreshFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failsOnRefresh("get", OVERVIEW, makeEventPayments()))
+  },
+  play: async ({ canvas }) => {
+    await canvas.findByRole("region", { name: "Tabulka přijatých plateb" }, { timeout: 5000 })
+    await refresh(canvas)
+    await showsText("Aktualizace se nezdařila")
+    await expect(canvas.getByRole("region", { name: "Tabulka přijatých plateb" })).toBeVisible()
+  },
+}
+
+/** Transactions pairing by variable symbol left: a mistyped symbol and none (F24). */
+export const UnpairedTransactions: Story = {
+  play: async ({ canvas }) => {
+    await showsHeading("Nespárované transakce")({ canvas })
+    const table = await canvas.findByRole("region", { name: "Tabulka nespárovaných transakcí" })
+    await expect(within(table).getByText("Petra Svobodová")).toBeVisible()
+    await expect(within(table).getByText("10003")).toBeVisible()
+    await expect(
+      within(table).getAllByRole("button", { name: /^Přiřadit transakci/ }),
+    ).toHaveLength(3)
+  },
+}
+
+/** An empty queue: nothing waits, the import starts from the section. */
+export const NoUnpairedTransactions: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...paymentHandlers.transactions([]))
   },
   play: async ({ canvas }) => {
-    await showsText("Zatím žádné přijaté transakce")
+    await showsText("Žádné nespárované transakce")
     await expect(canvas.getByRole("button", { name: "Import výpisu" })).toBeEnabled()
+  },
+}
+
+/**
+ * The backend around a manual pairing of the first queued transaction (4 500 Kč)
+ * with Anna's unpaid registration: either it is paired, or another tab paired it
+ * first. Either way it leaves the queue; when paired, the overview has the payment.
+ */
+const pairingBackend = (outcome: "paired" | "alreadyPaired") => {
+  const [first, ...rest] = BANK_TRANSACTIONS
+  const before = makeEventPayments()
+  const [annaBalance, ...otherBalances] = before.balances
+  if (!first || !annaBalance) throw new Error("The fixtures lost their first rows")
+  const after = {
+    payments: [
+      {
+        id: "0190c0de-0000-7000-8000-000000000806",
+        receivedOn: first.bookedOn,
+        amountMinor: first.amountMinor,
+        source: "bank_transfer" as const,
+        registration: annaBalance.registration,
+      },
+      ...before.payments,
+    ],
+    balances: [
+      { ...annaBalance, paidMinor: 450_000, balanceMinor: 0, paymentState: "paid" as const },
+      ...otherBalances,
+    ],
+  }
+  let isPaired = false
+  return [
+    http.get(apiUrl(TRANSACTIONS), () =>
+      HttpResponse.json({ transactions: isPaired ? rest : BANK_TRANSACTIONS }),
+    ),
+    http.get(apiUrl(OVERVIEW), () =>
+      HttpResponse.json(isPaired && outcome === "paired" ? after : before),
+    ),
+    http.post(apiUrl(`${TRANSACTIONS}/:transactionId/pairing`), () => {
+      isPaired = true
+      return outcome === "paired"
+        ? new HttpResponse(null, { status: 204 })
+        : apiError(409, {
+            code: "transaction_already_paired",
+            message: "Transakce už je přiřazená k přihlášce. Načtěte frontu znovu.",
+          })
+    }),
+  ]
+}
+
+/** Opens „Přiřadit“ of the first transaction and returns the dialog. */
+const openPairing = async (canvas: Canvas) =>
+  openDialog(canvas, /^Přiřadit transakci 4\s500\sKč/, "Přiřadit transakci")
+
+/** Picks a registration in the dialog's combobox by its participant's name. */
+const pickRegistration = async (dialog: HTMLElement, name: string) => {
+  await userEvent.click(await within(dialog).findByRole("combobox", { name: "Přihláška" }))
+  await userEvent.click(await screen.findByRole("option", { name: new RegExp(name) }))
+  // The list is modal: the dialog is usable again once it has closed.
+  await waitFor(() => expect(dialog).not.toHaveAttribute("aria-hidden"), { timeout: 3000 })
+}
+
+/** The organizer picks a registration of the same event and says why. */
+export const PairDialog: Story = {
+  play: async ({ canvas }) => {
+    const dialog = await openPairing(canvas)
+    await expect(within(dialog).getByText("Tábor Eliška Svobodová")).toBeVisible()
+    await pickRegistration(dialog, "Eliška Svobodová")
+    await expect(within(dialog).getByRole("combobox", { name: "Přihláška" })).toHaveTextContent(
+      "Eliška Svobodová",
+    )
+    await userEvent.type(
+      within(dialog).getByLabelText("Důvod přiřazení"),
+      "Platila matka, VS s překlepem",
+    )
+  },
+}
+
+/** Nothing is sent without a registration and a reason. */
+export const PairRequiresReason: Story = {
+  play: async ({ canvas }) => {
+    const dialog = await openPairing(canvas)
+    await submitDialog(dialog, "Přiřadit")
+    await expect(await within(dialog).findByText("Vyberte přihlášku.")).toBeVisible()
+    await expect(within(dialog).getByText("Uveďte důvod přiřazení.")).toBeVisible()
+  },
+}
+
+/** A paired transaction leaves the queue and its payment is in the overview. */
+export const Paired: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...pairingBackend("paired"))
+  },
+  play: async ({ canvas }) => {
+    const balances = await canvas.findByRole(
+      "region",
+      { name: "Tabulka sald přihlášek" },
+      { timeout: 5000 },
+    )
+    const anna = within(balances).getByRole("row", { name: /Anna Nováková/ })
+    await expect(within(anna).getByText("Nezaplaceno")).toBeVisible()
+
+    const dialog = await openPairing(canvas)
+    await pickRegistration(dialog, "Anna Nováková")
+    await userEvent.type(within(dialog).getByLabelText("Důvod přiřazení"), "Platila sestra")
+    await submitDialog(dialog, "Přiřadit")
+    await showsText("Transakce přiřazena k přihlášce Anna Nováková")
+    const table = canvas.getByRole("region", { name: "Tabulka nespárovaných transakcí" })
+    await waitFor(() => expect(within(table).queryByText("Petra Svobodová")).toBeNull())
+    // The resulting balance: the whole price is paid.
+    await waitFor(() =>
+      expect(within(balances).getByRole("row", { name: /Anna Nováková/ })).toHaveTextContent(
+        /Zaplaceno.*0\sKč$/,
+      ),
+    )
+  },
+}
+
+/** Paired meanwhile, e.g. by another tab: the dialog closes and says so. */
+export const PairRefused: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...pairingBackend("alreadyPaired"))
+  },
+  play: async ({ canvas }) => {
+    const dialog = await openPairing(canvas)
+    await pickRegistration(dialog, "Anna Nováková")
+    await userEvent.type(within(dialog).getByLabelText("Důvod přiřazení"), "Platila sestra")
+    await submitDialog(dialog, "Přiřadit")
+    await showsText(/Transakce už je přiřazená k přihlášce/)
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+    const table = canvas.getByRole("region", { name: "Tabulka nespárovaných transakcí" })
+    await waitFor(() => expect(within(table).queryByText("Petra Svobodová")).toBeNull())
+  },
+}
+
+/** The registrations to pick from failed to load: retry in the dialog. */
+export const PairRegistrationsLoadFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("get", "/organizations/:organizationId/events/:eventId/registrations"))
+  },
+  play: async ({ canvas }) => {
+    const dialog = await openPairing(canvas)
+    await expect(await within(dialog).findByText("Přihlášky se nepodařilo načíst")).toBeVisible()
+    await expect(within(dialog).getByRole("button", { name: "Zkusit znovu" })).toBeVisible()
   },
 }
 
@@ -111,6 +350,7 @@ export const Imported: Story = {
   play: async ({ canvas }) => {
     await importStatement(canvas)
     await showsText("Výpis byl naimportován")
+    await expect(canvas.getByText("Spárováno podle variabilního symbolu")).toBeVisible()
     await expect(canvas.getByText("Již dříve naimportované")).toBeVisible()
     await expect(canvas.getByText("Přeskočené odchozí platby")).toBeVisible()
   },

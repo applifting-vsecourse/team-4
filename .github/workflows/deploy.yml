@@ -96,6 +96,8 @@ jobs:
           push: true
           build-args: |
             SMTP_HOST=${{ vars.SMTP_HOST }}
+            SMTP_PORT=${{ vars.SMTP_PORT || '587' }}
+            SMTP_SECURE=${{ vars.SMTP_SECURE || 'false' }}
             SMTP_USERNAME=${{ vars.SMTP_USERNAME }}
             SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
             EMAIL_FROM=${{ vars.EMAIL_FROM }}

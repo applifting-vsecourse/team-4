@@ -16,7 +16,7 @@ You are extending an existing product, not designing a new one. Most UI rework s
 | Area             | Routes                                                                                     | Shell                                                             | Audience and viewport                                |
 | ---------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- | ---------------------------------------------------- |
 | Public           | `/`, `/for-*`, `/events`, `/e/$publicId`, `/e/$publicId/registration`, `/login`, `/signup` | `PublicShell`; landing pages own layout; `AuthLayout` for sign-in | Anyone; **mobile first**                             |
-| Participant      | `/my-registrations/*`, `/platba/$token`                                                    | `ParticipantLayout`                                               | Event attendee, usually on a phone; **mobile first** |
+| Participant      | `/my-registrations/*`, `/my-profile`, `/platba/$token`                                     | `ParticipantLayout`                                               | Event attendee, usually on a phone; **mobile first** |
 | Organization     | `/organizations`, `/organizations/$organizationId`                                         | sidebar + `WorkspacePage` + `PageHeader`                          | Organizer at a desktop                               |
 | Event management | `/organizations/$organizationId/events/$eventId/*`                                         | sidebar + `WorkspacePage` + `PageHeader` with `EventBreadcrumb`   | Organizer at a desktop                               |
 
@@ -99,7 +99,7 @@ Currently in the kit: alert, aspect-ratio, avatar, badge, breadcrumb, button, ca
 
 Patterns built from them:
 
-- **Searchable select (combobox):** `Popover` + `Command`, see `EventCombobox` in the preview.
+- **Searchable select (combobox):** `Combobox` from `src/components/ui/combobox.tsx`, composed of `Popover` + `Command`; see `EventCombobox` in the preview. Inside a form it takes the label, `aria-invalid` and `aria-describedby` on its trigger.
 - **Collapsible section:** `CollapsibleSection` from `src/components/ui/collapsible-section.tsx` for consistent full-row triggers and animated content height.
 - **Status labels:** `Badge` with a status variant (table below).
 - **Table labels:** Place a badge that leads a left-aligned cell directly inside `TableCell`. Its text aligns with the column header and the fill extends into the gutter.
@@ -126,6 +126,7 @@ Recurring states and page actions have one component each in `src/components/`. 
 | Titled part of a page                     | `PageSection title description? actions? isBusy? headingId?`       | A region named by its `h2`; actions on the right of the heading. `headingId` only when a link points at the section. Subsections with an `h3` stay hand-written.                       |
 | Labels and values of a record             | `DefinitionList layout?` with `DefinitionRow label isEmphasised?`  | `inline` (label left, value right) for short values such as amounts and dates; `stacked` (label above) for longer text. `isEmphasised` for the total, e.g. „Zbývá zaplatit“.           |
 | State of a registration's term            | `ParticipationBadge status`                                        | One type and label set in `src/lib/participation.ts` for every screen; a screen that cannot show a state narrows the type with `Exclude`.                                              |
+| Phone number with its country             | `PhoneField value onChange`                                        | Country select plus the national number; the value is the full `+prefix` number, `""` while empty. Validate with `toE164` and `PHONE_FIELD_MESSAGE`.                                   |
 | Amount of money from haléře               | `Money minor isEmphasised?`                                        | Monospaced digits of equal width. Components that receive an already formatted amount keep it as text.                                                                                 |
 
 ### Adding or composing

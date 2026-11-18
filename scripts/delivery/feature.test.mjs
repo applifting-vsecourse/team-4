@@ -176,28 +176,37 @@ test('child-verify fails for invalid PRs and PRs outside integration branches', 
   });
 });
 
-test('a main sync is verified only for an exact protected-main merge commit', () => {
+test('a main sync is verified only for Git’s exact merge of the protected base and main', () => {
   const baseSha = 'a'.repeat(40);
   const mainSha = 'b'.repeat(40);
-  const treeSha = 'd'.repeat(40);
+  const mainTreeSha = 'c'.repeat(40);
+  const mergeTreeSha = 'd'.repeat(40);
   const syncPr = pr({
     base: { ref: BRANCH, sha: baseSha, repo: REPO },
     head: { ref: 'sync/400-main', sha, repo: REPO },
   });
-  const mainCommit = { sha: mainSha, commit: { tree: { sha: treeSha } } };
+  const mainCommit = { sha: mainSha, commit: { tree: { sha: mainTreeSha } } };
   const headCommit = {
     sha,
-    commit: { tree: { sha: treeSha } },
+    commit: { tree: { sha: mergeTreeSha } },
     parents: [{ sha: baseSha }, { sha: mainSha }],
   };
   const role = integrationRole({ pr: syncPr, issues: [parentIssue()] });
 
   assert.equal(
-    isVerifiedMainSync({ pr: syncPr, role, mainCommit, headCommit }),
+    isVerifiedMainSync({
+      pr: syncPr,
+      role,
+      mainCommit,
+      headCommit,
+      expectedTreeSha: mergeTreeSha,
+    }),
     true,
   );
 
   const invalid = [
+    { expectedTreeSha: mainTreeSha },
+    { expectedTreeSha: 'e'.repeat(40) },
     {
       headCommit: { ...headCommit, commit: { tree: { sha: 'e'.repeat(40) } } },
     },
@@ -222,6 +231,7 @@ test('a main sync is verified only for an exact protected-main merge commit', ()
         role,
         mainCommit,
         headCommit,
+        expectedTreeSha: mergeTreeSha,
         ...overrides,
       }),
       false,

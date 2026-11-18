@@ -165,12 +165,17 @@ export function childVerify({ role, jobs }) {
 
 /**
  * A sync PR may carry enforcement files into an integration branch only when
- * its merge commit is exactly the merge of the current base and current main,
- * with the same resulting tree as main. This trusts only content already
- * present on protected main and prevents a sync branch from adding its own
- * changes under the exception.
+ * its merge commit is exactly Git's automatic merge of the current base and
+ * current main. This preserves feature work already present on the base while
+ * preventing a sync branch from adding its own edits or conflict resolutions.
  */
-export function isVerifiedMainSync({ pr, role, mainCommit, headCommit }) {
+export function isVerifiedMainSync({
+  pr,
+  role,
+  mainCommit,
+  headCommit,
+  expectedTreeSha,
+}) {
   return Boolean(
     role?.kind === 'integration' &&
     isIntegrationBranch(pr.base?.ref) &&
@@ -180,8 +185,8 @@ export function isVerifiedMainSync({ pr, role, mainCommit, headCommit }) {
     pr.base?.sha &&
     mainCommit?.sha &&
     headCommit?.sha === pr.head?.sha &&
-    mainCommit.commit?.tree?.sha &&
-    headCommit.commit?.tree?.sha === mainCommit.commit.tree.sha &&
+    expectedTreeSha &&
+    headCommit.commit?.tree?.sha === expectedTreeSha &&
     headCommit.parents?.length === 2 &&
     headCommit.parents[0]?.sha === pr.base.sha &&
     headCommit.parents[1]?.sha === mainCommit.sha,
