@@ -2,6 +2,17 @@ import { z } from "zod"
 
 import { evaluationModeSchema } from "@/features/accommodation/api/evaluationSchemas"
 
+/**
+ * The state of a roommate wish in a layout (#317, phase-2 spec §5.3). When
+ * several apply, the first wins, as the solver decides it (`wishStates`):
+ * same room ⇒ `satisfied` (also a manual placement of different values);
+ * else different effective values of the hard attribute ⇒ `impossible`;
+ * else at least one without a room ⇒ `unplaced`; else `unsatisfied`.
+ */
+export const wishStateSchema = z.enum(["satisfied", "unsatisfied", "unplaced", "impossible"])
+
+export type WishState = z.infer<typeof wishStateSchema>
+
 // The room proposal API of #365 (Ubytování → Návrh pokojů, Nastavení →
 // Automatizace). A proposal only proposes: it never changes a saved placement.
 
@@ -50,11 +61,12 @@ const proposalLayoutSchema = z.object({
       change: placementChangeSchema.nullable(),
     }),
   ),
+  /** `from` and `to` are registration ids, like `people[].id`. */
   wishes: z.array(
     z.object({
       from: z.string().uuid(),
       to: z.string().uuid(),
-      state: z.enum(["satisfied", "unsatisfied", "unplaced", "impossible"]),
+      state: wishStateSchema,
     }),
   ),
   scores: z.object({
@@ -137,3 +149,24 @@ export const appliedProposalSchema = z.object({
 })
 
 export type AppliedProposal = z.infer<typeof appliedProposalSchema>
+
+/** A person of a wish: the registration id, as in the proposal's `people[].id` and `wishes`. */
+const wishPersonSchema = z.object({ registrationId: z.string().uuid(), name: z.string() })
+
+/**
+ * The usable roommate wishes of a term (#317): one-sided, between two people
+ * confirmed in the term, with their state in the saved placements now. The
+ * contract is proposed here for the backend (#339, #337).
+ */
+export const termWishesSchema = z.object({
+  wishes: z.array(
+    z.object({
+      from: wishPersonSchema,
+      to: wishPersonSchema,
+      /** In the saved placements, read live. */
+      saved: wishStateSchema,
+    }),
+  ),
+})
+
+export type TermWishes = z.infer<typeof termWishesSchema>

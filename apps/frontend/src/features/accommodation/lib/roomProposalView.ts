@@ -2,7 +2,9 @@ import type {
   PlacementChange,
   ProposalLayoutData,
   RoomProposalStatus,
+  TermWishes,
   UnplacedReason,
+  WishState,
 } from "@/features/accommodation/api/roomProposalSchemas"
 
 // The room proposal of a term (#365, #385) as the screen shows it: names
@@ -152,3 +154,56 @@ export function toApplyChanges(layout: RoomProposalLayout): ApplyChanges {
 /** Whether applying the layout would change any saved placement. */
 export const hasApplyChanges = (changes: ApplyChanges) =>
   changes.added.length + changes.moved.length + changes.removed.length > 0
+
+/** One usable roommate wish of the term (#317) in the saved placements and the proposal. */
+export type WishRow = {
+  id: string
+  from: string
+  to: string
+  saved: WishState
+  /** In the shown proposal; null without one, or for a wish entered after it. */
+  proposed: WishState | null
+}
+
+/** The term's wishes with the state of each in the shown proposal, if any. */
+export function toWishRows(
+  wishes: TermWishes["wishes"],
+  proposal: ProposalLayoutData["wishes"] | undefined,
+): WishRow[] {
+  const proposed = new Map(proposal?.map((wish) => [`${wish.from}>${wish.to}`, wish.state]))
+  return wishes.map((wish) => {
+    const id = `${wish.from.registrationId}>${wish.to.registrationId}`
+    return {
+      id,
+      from: wish.from.name,
+      to: wish.to.name,
+      saved: wish.saved,
+      proposed: proposed.get(id) ?? null,
+    }
+  })
+}
+
+/**
+ * How a wish state reads; `attribute` names the current hard attribute for
+ * "impossible" (the caller passes the event's setting).
+ */
+export function wishStateBadge(
+  state: WishState,
+  attribute?: string | null,
+): { label: string; variant: "success" | "warning" | "secondary" | "outline" } {
+  switch (state) {
+    case "satisfied":
+      return { label: "Splněno", variant: "success" }
+    case "unsatisfied":
+      return { label: "Nesplněno", variant: "warning" }
+    case "unplaced":
+      return { label: "Čeká na umístění", variant: "secondary" }
+    case "impossible":
+      return {
+        label: attribute
+          ? `Nelze splnit: různá hodnota ${attribute}`
+          : "Nelze splnit: různá hodnota tvrdého pravidla",
+        variant: "outline",
+      }
+  }
+}

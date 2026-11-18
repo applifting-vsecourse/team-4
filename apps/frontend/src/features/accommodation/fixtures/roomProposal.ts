@@ -1,10 +1,13 @@
 import {
   roomProposalPreferencesSchema,
   termRoomProposalSchema,
+  termWishesSchema,
   type ProposalLayoutData,
   type RoomProposalPreferences,
   type StoredProposalData,
   type TermRoomProposalData,
+  type TermWishes,
+  type WishState,
 } from "@/features/accommodation/api/roomProposalSchemas"
 
 // Preview and test data for the room proposal of a term (#365, #385). Every
@@ -61,7 +64,13 @@ const LAYOUT: ProposalLayoutData = {
     isLockConflict: false,
     change: key ? "new" : null,
   })),
-  wishes: [],
+  // One wish of each state in this layout (#317).
+  wishes: [
+    { from: uuid(201), to: uuid(202), state: "satisfied" },
+    { from: uuid(207), to: uuid(203), state: "unsatisfied" },
+    { from: uuid(208), to: uuid(204), state: "unplaced" },
+    { from: uuid(205), to: uuid(201), state: "impossible" },
+  ],
   scores: { placed: 7, crossTerm: 0, preferences: [0], moves: 0, extraBeds: 0, rooms: 3 },
   summary: {
     placed: 7,
@@ -248,4 +257,35 @@ export function makeRoomProposalPreferences(
     empty: { preferences: [], wishes: WISHES, attributes: [GENDER_SOFT] },
   }
   return roomProposalPreferencesSchema.parse(byPreset[preset])
+}
+
+const person = (n: number) => {
+  const [, first, last] = PEOPLE.find(([id]) => id === n)!
+  return { registrationId: uuid(n), name: `${first} ${last}` }
+}
+
+export type WishesPreset = "unsaved" | "saved" | "empty"
+
+/**
+ * The usable roommate wishes of Turnus 1 (#317), the same four as in the
+ * proposal. `unsaved`: nobody has a saved room yet; `saved`: the placements
+ * of the `withSaved` proposal; `empty`: no usable wish.
+ */
+export function makeTermWishes(preset: WishesPreset = "saved"): TermWishes {
+  const wishes: [number, number, Record<Exclude<WishesPreset, "empty">, WishState>][] = [
+    [201, 202, { unsaved: "unplaced", saved: "satisfied" }],
+    [207, 203, { unsaved: "unplaced", saved: "unsatisfied" }],
+    [208, 204, { unsaved: "unplaced", saved: "unsatisfied" }],
+    [205, 201, { unsaved: "impossible", saved: "impossible" }],
+  ]
+  return termWishesSchema.parse({
+    wishes:
+      preset === "empty"
+        ? []
+        : wishes.map(([from, to, saved]) => ({
+            from: person(from),
+            to: person(to),
+            saved: saved[preset],
+          })),
+  })
 }
