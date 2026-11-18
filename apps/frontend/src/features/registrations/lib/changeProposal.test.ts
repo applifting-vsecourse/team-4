@@ -21,6 +21,7 @@ const T3 = "0190c0de-0000-7000-8000-000000000003"
 
 const state = (overrides: Partial<EditState> = {}): EditState => ({
   ...CONTACT,
+  addedTermIds: [],
   terms: {
     [T1]: { selectedTermId: T1, isCancelled: false },
     [T2]: { selectedTermId: T2, isCancelled: false },
@@ -95,6 +96,32 @@ describe("buildProposal", () => {
     ).toEqual({
       moves: [{ fromTermId: T1, toTermId: T3, acceptRelease: false }],
       cancelledTermIds: [T2],
+    })
+  })
+
+  it("adds a term next to the current ones without touching them (F35-2c)", () => {
+    expect(buildProposal(CONTACT, state({ addedTermIds: [T3] }))).toEqual({
+      moves: [],
+      cancelledTermIds: [],
+      addedTermIds: [T3],
+    })
+  })
+
+  it("does not add a term the participant also moves to", () => {
+    expect(
+      buildProposal(
+        CONTACT,
+        state({
+          addedTermIds: [T3],
+          terms: {
+            [T1]: { selectedTermId: T3, isCancelled: false },
+            [T2]: { selectedTermId: T2, isCancelled: false },
+          },
+        }),
+      ),
+    ).toEqual({
+      moves: [{ fromTermId: T1, toTermId: T3, acceptRelease: false }],
+      cancelledTermIds: [],
     })
   })
 

@@ -8,8 +8,12 @@ import { showsText } from "@/screens/steps"
 import { participantHandlers } from "@/features/participant-access/fixtures/handlers"
 import { programmeHandlers } from "@/features/programme/fixtures/handlers"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
-import { OWN_REGISTRATION } from "@/features/registrations/fixtures/participantRegistrations"
 import {
+  AVAILABLE_TERMS,
+  OWN_REGISTRATION,
+} from "@/features/registrations/fixtures/participantRegistrations"
+import {
+  ADD_TERM_PREVIEW,
   CANCEL_TERM_SUMMARY,
   makeChangePreview,
   RELEASING_MOVE_PREVIEW,
@@ -149,6 +153,94 @@ export const ReviewCancelTerm: Story = {
     await expect(
       dialog.getByText("Storno poplatek a případnou vratku řeší organizátor podle podmínek akce."),
     ).toBeVisible()
+  },
+}
+
+/** A term not held yet can be added next to the current ones (F35-2c). */
+export const AddTermAvailable: Story = {
+  play: async ({ canvas }) => {
+    await expect(
+      await canvas.findByRole("checkbox", { name: /Přidat termín Turnus 3/ }, { timeout: 5000 }),
+    ).toBeVisible()
+  },
+}
+
+/** Several terms are free to add: each one is a row of its own. */
+export const AddTermSeveralAvailable: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...registrationHandlers.ownRegistration(OWN_REGISTRATION, [
+        ...AVAILABLE_TERMS,
+        {
+          termId: "0190c0de-0000-7000-8000-000000000104",
+          label: "Turnus 4",
+          startDate: "2027-09-01",
+          endDate: "2027-09-14",
+          priceMinor: 450_000,
+        },
+      ]),
+    )
+  },
+  play: async ({ canvas }) => {
+    await expect(
+      await canvas.findByRole("checkbox", { name: /Přidat termín Turnus 3/ }, { timeout: 5000 }),
+    ).toBeVisible()
+    await expect(canvas.getByRole("checkbox", { name: /Přidat termín Turnus 4/ })).toBeVisible()
+  },
+}
+
+/** Ticking the term opens a review that shows it as new and how it is evaluated. */
+export const ReviewAddTerm: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.ownChange(ADD_TERM_PREVIEW))
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /Přidat termín Turnus 3/ }, { timeout: 5000 }),
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
+    const dialog = await review()
+    await expect(dialog.getByText("Turnus 3")).toBeVisible()
+    await expect(
+      dialog.getByText(/Účast v termínu Turnus 3 se vyhodnotí podle kapacity/),
+    ).toBeVisible()
+    await expect(dialog.getByText(/se k ceně přidá/)).toBeVisible()
+    await expect(dialog.getByRole("button", { name: "Potvrdit změnu" })).toBeVisible()
+  },
+}
+
+/** The registration already holds every term of the event. */
+export const NoFurtherTerm: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...registrationHandlers.ownRegistration(
+        OWN_REGISTRATION,
+        AVAILABLE_TERMS.filter((term) =>
+          OWN_REGISTRATION.terms.some((own) => own.termId === term.termId),
+        ),
+      ),
+    )
+  },
+  play: async ({ canvas }) => {
+    await showsText("Další termín není k dispozici, na přihlášce už máte všechny termíny akce.")
+    await expect(canvas.queryByRole("checkbox", { name: /Přidat termín/ })).not.toBeInTheDocument()
+  },
+}
+
+/** The server refuses the addition: the held terms stay as they were. */
+export const AddTermFailed: Story = {
+  beforeEach: ({ msw }) => {
+    // The first matching handler answers: the save fails after the review loaded.
+    msw.use(...failOn("post", CHANGES), ...registrationHandlers.ownChange(ADD_TERM_PREVIEW))
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /Přidat termín Turnus 3/ }, { timeout: 5000 }),
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
+    const dialog = await review()
+    await userEvent.click(dialog.getByRole("button", { name: "Potvrdit změnu" }))
+    await showsText("Změnu se nepodařilo odeslat. Zkuste to prosím znovu.")
   },
 }
 

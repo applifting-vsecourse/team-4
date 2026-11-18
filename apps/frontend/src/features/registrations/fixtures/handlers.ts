@@ -4,7 +4,10 @@ import { z } from "zod"
 import { env } from "@/config/env"
 
 import type { EventPayments } from "@/features/registrations/api/eventRegistrationSchemas"
-import type { ParticipantRegistration } from "@/features/registrations/api/participantRegistrationSchemas"
+import type {
+  AvailableTerm,
+  ParticipantRegistration,
+} from "@/features/registrations/api/participantRegistrationSchemas"
 import type { QrPaymentPage } from "@/features/registrations/api/qrPaymentSchemas"
 import type {
   ChangePreview,
@@ -116,9 +119,12 @@ export const registrationHandlers = {
     http.get(`${EVENT_LIST}/:registrationId/changes`, () => HttpResponse.json({ changes })),
   ],
   /** The own registration, changed for one story (cancelled, pending request…). */
-  ownRegistration: (registration: ParticipantRegistration) => [
+  ownRegistration: (
+    registration: ParticipantRegistration,
+    availableTerms: AvailableTerm[] = AVAILABLE_TERMS,
+  ) => [
     http.get(`${OWN_LIST}/:registrationId`, () =>
-      HttpResponse.json({ ...registration, availableTerms: AVAILABLE_TERMS }),
+      HttpResponse.json({ ...registration, availableTerms }),
     ),
   ],
   /** Stored changes of the own registration: requests and their history. */

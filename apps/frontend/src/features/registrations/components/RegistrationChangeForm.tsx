@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Field,
+  FieldContent,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -64,6 +65,14 @@ export type ChangeableTerm = {
   isCancelled?: boolean
 }
 
+/** A term of the event the registration does not hold yet and may add (F35-2c). */
+export type AddableTerm = {
+  id: string
+  label: string
+  /** Already formatted, e.g. "15. 8. – 28. 8. 2027 · 4 500 Kč". */
+  details: string
+}
+
 type TermChoice = { selectedTermId: string; isCancelled: boolean }
 
 export type ContactErrors = Partial<Record<"firstName" | "lastName" | "phone", string>>
@@ -71,6 +80,8 @@ export type ContactErrors = Partial<Record<"firstName" | "lastName" | "phone", s
 export type RegistrationChangeFormProps = {
   contact: ContactValues
   terms: ChangeableTerm[]
+  /** Terms the participant may add next to the current ones; empty when they hold all. */
+  addableTerms?: AddableTerm[]
   /** Transport, diet and health (F63), for the whole registration. */
   needs: RegistrationNeeds
   /** Fields are uncontrolled; these report every edit to the page that owns the state. */
@@ -78,6 +89,8 @@ export type RegistrationChangeFormProps = {
   onGenderChange?: (answer: GenderAnswer) => void
   onTermChange?: (termId: string, change: { selectedTermId: string; isCancelled: boolean }) => void
   onNeedsChange?: (needs: RegistrationNeeds) => void
+  /** Reports every term ticked to be added. */
+  onAddedTermsChange?: (termIds: string[]) => void
   onReview?: () => void
   onCancel?: () => void
   errors?: ContactErrors
@@ -88,16 +101,19 @@ export type RegistrationChangeFormProps = {
 
 // Moje přihlášky → Detail přihlášky → Úprava přihlášky (F35-2a): personal and
 // contact data in the scope of the registration form, a move to another term
-// of the same event, cancelling single terms, and transport, diet and health
-// (F63). "Zkontrolovat změny" opens the review. Every value is passed in.
+// of the same event, adding a term next to the current ones (F35-2c),
+// cancelling single terms, and transport, diet and health (F63).
+// "Zkontrolovat změny" opens the review. Every value is passed in.
 export function RegistrationChangeForm({
   contact,
   terms,
+  addableTerms = [],
   needs,
   onContactChange,
   onGenderChange,
   onTermChange,
   onNeedsChange,
+  onAddedTermsChange,
   onReview,
   onCancel,
   errors = {},
@@ -124,6 +140,13 @@ export function RegistrationChangeForm({
     const next = { selectedTermId: termId, isCancelled: false, ...chosen[termId], ...change }
     setChosen({ ...chosen, [termId]: next })
     onTermChange?.(termId, next)
+  }
+
+  const [added, setAdded] = useState<string[]>([])
+  const toggleAdded = (termId: string, isAdded: boolean) => {
+    const next = isAdded ? [...added, termId] : added.filter((id) => id !== termId)
+    setAdded(next)
+    onAddedTermsChange?.(next)
   }
 
   return (
@@ -219,14 +242,16 @@ export function RegistrationChangeForm({
             {terms.map((term) => (
               <li
                 key={term.id}
-                className="py-4 first:pt-0 last:pb-0"
+                className="py-6 first:pt-0 last:pb-0"
               >
                 <FieldSet>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <FieldLegend>{term.label}</FieldLegend>
-                    <ParticipationBadge status={term.status} />
-                  </div>
-                  <p className="text-sm text-muted-foreground">{term.details}</p>
+                  <FieldContent>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <FieldLegend className="mb-0">{term.label}</FieldLegend>
+                      <ParticipationBadge status={term.status} />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{term.details}</p>
+                  </FieldContent>
                   <Field>
                     <FieldLabel htmlFor={`change-term-${term.id}`}>Termín</FieldLabel>
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -275,6 +300,39 @@ export function RegistrationChangeForm({
               </li>
             ))}
           </ul>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Přidat další termín</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {addableTerms.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Další termín není k dispozici, na přihlášce už máte všechny termíny akce.
+            </p>
+          ) : (
+            <FieldGroup>
+              {addableTerms.map((term) => (
+                <Field
+                  key={term.id}
+                  orientation="horizontal"
+                >
+                  <Checkbox
+                    id={`add-term-${term.id}`}
+                    onCheckedChange={(checked) => toggleAdded(term.id, checked === true)}
+                  />
+                  <FieldLabel htmlFor={`add-term-${term.id}`}>
+                    <span className="flex flex-col gap-1">
+                      <span>Přidat termín {term.label}</span>
+                      <span className="font-normal text-muted-foreground">{term.details}</span>
+                    </span>
+                  </FieldLabel>
+                </Field>
+              ))}
+            </FieldGroup>
+          )}
         </CardContent>
       </Card>
 

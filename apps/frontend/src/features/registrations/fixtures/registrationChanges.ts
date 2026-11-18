@@ -56,6 +56,11 @@ export const RELEASING_MOVE_SUMMARY = summary({
   proposed: { dueMinor: 0, paidMinor: 200_000, balanceMinor: -200_000 },
 })
 
+/** Turnus 3 is added next to the held terms: nothing is due before the organizer decides. */
+export const ADD_TERM_SUMMARY = summary({
+  terms: [{ ...T3, original: null, proposed: "pending" }],
+})
+
 /** Leaving the confirmed Turnus 1: the amount due drops, the payment stays. */
 export const CANCEL_TERM_SUMMARY = summary({
   terms: [{ ...T1!, original: "confirmed", proposed: "cancelled" }],
@@ -81,6 +86,11 @@ export function makeChangePreview(overrides: Partial<ChangePreview> = {}): Chang
     ...overrides,
   })
 }
+
+export const ADD_TERM_PREVIEW = makeChangePreview({
+  kinds: ["add_terms"],
+  summary: ADD_TERM_SUMMARY,
+})
 
 export const RELEASING_MOVE_PREVIEW = makeChangePreview({
   kinds: ["move"],

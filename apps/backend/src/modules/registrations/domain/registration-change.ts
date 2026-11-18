@@ -50,9 +50,15 @@ export type ChangeProposal = {
   genderOther?: string | null;
   moves: TermMove[];
   cancelledTermIds: string[];
+  /**
+   * Terms of the event added next to the current ones (F35-2c); left out is
+   * none. An added term starts `pending` and is evaluated like a moved-to one (S3-01).
+   */
+  addedTermIds?: string[];
 };
 
-export type ChangeKind = 'data' | 'move' | 'cancel_terms' | 'cancel_all';
+export type ChangeKind =
+  'data' | 'move' | 'add_terms' | 'cancel_terms' | 'cancel_all';
 
 export type ChangedValue =
   | { field: TextField; original: string; proposed: string }
@@ -181,10 +187,13 @@ export const planChange = (
   const cancelled = new Set(proposal.cancelledTermIds);
   const fromIds = proposal.moves.map((move) => move.fromTermId);
   const toIds = proposal.moves.map((move) => move.toTermId);
+  const addedIds = proposal.addedTermIds ?? [];
   if (
     cancelled.size !== proposal.cancelledTermIds.length ||
     new Set(fromIds).size !== fromIds.length ||
     new Set(toIds).size !== toIds.length ||
+    new Set(addedIds).size !== addedIds.length ||
+    addedIds.some((id) => toIds.includes(id)) ||
     fromIds.some((id) => cancelled.has(id))
   ) {
     throw new InvalidChangeError('term_conflict');
@@ -192,7 +201,7 @@ export const planChange = (
   if (![...cancelled, ...fromIds].every(isActive)) {
     throw new InvalidChangeError('term_not_active');
   }
-  for (const toId of toIds) {
+  for (const toId of [...toIds, ...addedIds]) {
     if (!eventTerms.has(toId)) throw new InvalidChangeError('term_unknown');
     if (isActive(toId)) throw new InvalidChangeError('term_conflict');
   }
@@ -234,7 +243,10 @@ export const planChange = (
       : null;
   // Names, phone, gender and needs belong to the whole registration.
   const changesData = values.length > 0 || needs !== null;
-  if (!changesData && cancelled.size + proposal.moves.length === 0) {
+  if (
+    !changesData &&
+    cancelled.size + proposal.moves.length + addedIds.length === 0
+  ) {
     throw new InvalidChangeError('no_change');
   }
 
@@ -290,6 +302,12 @@ export const planChange = (
     target.priceMinor = info.priceMinor;
     target.proposed = move.resultStatus;
   }
+  for (const termId of addedIds) {
+    const target = touch(termId);
+    // A term released earlier comes back at today's price.
+    target.priceMinor = (eventTerms.get(termId) as EventTermInfo).priceMinor;
+    target.proposed = 'pending';
+  }
 
   const after = [...subject.terms.filter((t) => !planned.has(t.termId))];
   for (const row of planned.values()) {
@@ -308,12 +326,14 @@ export const planChange = (
       own.get(move.fromTermId) as RegistrationTermResult,
       eventTerms.get(move.toTermId) as EventTermInfo,
     ]),
+    ...addedIds.map((id) => eventTerms.get(id) as EventTermInfo),
   ];
 
   const releasedAll = after.every((term) => term.status === 'cancelled');
   const kinds: ChangeKind[] = [];
   if (changesData) kinds.push('data');
   if (moves.length > 0) kinds.push('move');
+  if (addedIds.length > 0) kinds.push('add_terms');
   if (cancelled.size > 0)
     kinds.push(releasedAll ? 'cancel_all' : 'cancel_terms');
 

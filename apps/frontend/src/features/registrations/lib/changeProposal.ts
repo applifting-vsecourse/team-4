@@ -19,6 +19,8 @@ export type EditState = {
   genderOther: string | null
   /** Transport, diet and health (F63). */
   needs: RegistrationNeeds
+  /** Terms of the event added next to the current ones (F35-2c). */
+  addedTermIds: string[]
   /** By the active term it belongs to. */
   terms: Record<string, { selectedTermId: string; isCancelled: boolean }>
 }
@@ -46,7 +48,8 @@ export function validateContact(state: EditState): ContactErrors {
 
 /**
  * Only what differs from the registration is proposed; null when nothing does.
- * A term picked for another term is a move, a ticked one a cancellation.
+ * A term picked for another term is a move, a ticked one a cancellation, an
+ * added one stays next to the current terms (F35-2c).
  */
 export function buildProposal(contact: Current, state: EditState): ChangeProposal | null {
   const proposal: ChangeProposal = { moves: [], cancelledTermIds: [] }
@@ -74,6 +77,11 @@ export function buildProposal(contact: Current, state: EditState): ChangeProposa
     }
   }
 
+  // A term the participant moves to is already added by the move.
+  const moveTargets = new Set(proposal.moves.map((move) => move.toTermId))
+  const added = state.addedTermIds.filter((termId) => !moveTargets.has(termId))
+  if (added.length > 0) proposal.addedTermIds = added
+
   const isChanged =
     proposal.firstName !== undefined ||
     proposal.lastName !== undefined ||
@@ -82,6 +90,7 @@ export function buildProposal(contact: Current, state: EditState): ChangeProposa
     proposal.genderOther !== undefined ||
     proposal.needs !== undefined ||
     proposal.moves.length > 0 ||
+    added.length > 0 ||
     proposal.cancelledTermIds.length > 0
   return isChanged ? proposal : null
 }

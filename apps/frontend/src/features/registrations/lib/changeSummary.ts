@@ -104,6 +104,7 @@ export function describeKinds(kinds: ChangeKind[]) {
   const labels: Record<ChangeKind, string> = {
     data: "Úprava údajů",
     move: "Přesun termínu",
+    add_terms: "Přidání termínu",
     cancel_terms: "Odhlášení z termínu",
     cancel_all: "Odhlášení přihlášky",
   }

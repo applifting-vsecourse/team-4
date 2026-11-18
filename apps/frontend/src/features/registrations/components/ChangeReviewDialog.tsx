@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { formatCzk } from "@/lib/money"
 
 import {
   type ChangePreview,
@@ -121,6 +122,15 @@ export function ChangeReviewDialog({
         }
       : undefined
 
+  // Terms added next to the current ones, not the targets of a move (F35-2c).
+  const added = preview.summary.terms.filter(
+    (term) =>
+      preview.kinds.includes("add_terms") &&
+      term.proposed === "pending" &&
+      term.original !== "pending" &&
+      !preview.moves.some((move) => move.toTermId === term.termId),
+  )
+
   const confirm = (isReleaseAccepted: boolean) => {
     setError(null)
     submitChange.mutate(
@@ -156,8 +166,19 @@ export function ChangeReviewDialog({
       summary={summary}
       isApprovalRequired={preview.requiresApproval && !isApprovalNewlyRequired}
       isApprovalNewlyRequired={preview.requiresApproval && isApprovalNewlyRequired}
-      hasFinancialImpact={preview.summary.terms.some((term) => term.original !== term.proposed)}
+      hasFinancialImpact={
+        preview.summary.terms.some((term) => term.original !== term.proposed) &&
+        preview.kinds.some((kind) => kind !== "data" && kind !== "add_terms")
+      }
       release={release}
+      added={
+        added.length > 0
+          ? {
+              labels: added.map((term) => term.label).join(", "),
+              price: formatCzk(added.reduce((sum, term) => sum + term.priceMinor, 0)),
+            }
+          : undefined
+      }
       errorMessage={error?.kind === "message" ? error.message : undefined}
       isStale={isStale}
       isSubmitting={submitChange.isPending}

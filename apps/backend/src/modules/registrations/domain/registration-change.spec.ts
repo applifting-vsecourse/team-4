@@ -351,6 +351,94 @@ describe('planChange', () => {
     expect(plan.summary.proposed.dueMinor).toBe(0);
   });
 
+  it('adds a term next to the current ones, waiting for the organizer (F35-2c)', () => {
+    const plan = planChange(
+      PLAIN,
+      proposal({ addedTermIds: ['t3'] }),
+      events(info('t3', '2026-12-04')),
+      null,
+      NOW,
+    );
+    expect(plan.kinds).toEqual(['add_terms']);
+    expect(plan.moves).toEqual([]);
+    expect(
+      plan.summary.terms.map((t) => [t.termId, t.original, t.proposed]),
+    ).toEqual([['t3', null, 'pending']]);
+    expect(plan.summary.terms[0].priceMinor).toBe(290_000);
+    // The confirmed places stay and nothing new is due before the decision.
+    expect(plan.summary.proposed).toEqual(plan.summary.original);
+  });
+
+  it('judges an added term by its own start', () => {
+    const add = (start: string) =>
+      planChange(
+        PLAIN,
+        proposal({ addedTermIds: ['t3'] }),
+        events(info('t3', start)),
+        14,
+        NOW,
+      ).requiresApproval;
+    expect(add('2026-11-08')).toBe(true);
+    expect(add('2026-12-04')).toBe(false);
+  });
+
+  it('brings a released term back when it is added again', () => {
+    const plan = planChange(
+      subject([T2, term('t3', '2026-12-04', 'cancelled', 100_000)]),
+      proposal({ addedTermIds: ['t3'] }),
+      events(info('t3', '2026-12-04')),
+      null,
+      NOW,
+    );
+    expect(plan.summary.terms[0]).toMatchObject({
+      original: 'cancelled',
+      proposed: 'pending',
+      priceMinor: 290_000,
+    });
+  });
+
+  it('combines adding a term with cancelling another', () => {
+    const plan = planChange(
+      PLAIN,
+      proposal({ addedTermIds: ['t3'], cancelledTermIds: ['t2'] }),
+      events(info('t3', '2026-12-04')),
+      null,
+      NOW,
+    );
+    expect(plan.kinds).toEqual(['add_terms', 'cancel_terms']);
+  });
+
+  it.each([
+    ['a term already held', ['t1'], 'term_conflict'],
+    ['a term of another event', ['x'], 'term_unknown'],
+    ['the same term twice', ['t3', 't3'], 'term_conflict'],
+  ])('refuses to add %s', (_name, addedTermIds, code) => {
+    expect(() =>
+      planChange(
+        PLAIN,
+        proposal({ addedTermIds }),
+        events(info('t3', '2026-12-04'), info('t1', '2026-11-06')),
+        null,
+        NOW,
+      ),
+    ).toThrow(new InvalidChangeError(code as 'term_conflict'));
+  });
+
+  it('refuses a term both moved to and added', () => {
+    expect(() =>
+      planChange(
+        PLAIN,
+        proposal({
+          addedTermIds: ['t3'],
+          moves: [{ fromTermId: 't2', toTermId: 't3', acceptRelease: false }],
+        }),
+        events(info('t3', '2026-12-04')),
+        null,
+        NOW,
+      ),
+    ).toThrow(new InvalidChangeError('term_conflict'));
+  });
+
   it.each(['pending', 'waitlisted'] as const)(
     'needs no consent to move a %s place',
     (status) => {

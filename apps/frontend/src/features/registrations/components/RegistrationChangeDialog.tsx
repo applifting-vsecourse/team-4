@@ -35,6 +35,14 @@ export type ReleaseConsent = {
   isGiven?: boolean
 }
 
+/** Terms added next to the current ones (F35-2c); evaluated like a new registration. */
+export type AddedTerms = {
+  /** E.g. "Turnus 3". */
+  labels: string
+  /** Already formatted price of the added terms, e.g. "4 500 Kč". */
+  price: string
+}
+
 export type RegistrationChangeDialogProps = {
   isOpen: boolean
   /** Cancelling terms or the whole registration rather than editing it. */
@@ -47,6 +55,7 @@ export type RegistrationChangeDialogProps = {
   /** Terms or payments are affected, so the financial settlement is mentioned. */
   hasFinancialImpact?: boolean
   release?: ReleaseConsent
+  added?: AddedTerms
   errorMessage?: string
   /** The registration changed meanwhile; the proposal must not overwrite it. */
   isStale?: boolean
@@ -72,6 +81,7 @@ export function RegistrationChangeDialog({
   isApprovalNewlyRequired = false,
   hasFinancialImpact = false,
   release,
+  added,
   errorMessage,
   isStale = false,
   isSubmitting = false,
@@ -130,6 +140,13 @@ export function RegistrationChangeDialog({
             <Notice
               tone="info"
               title="Storno poplatek a případnou vratku řeší organizátor podle podmínek akce."
+            />
+          ) : null}
+
+          {added ? (
+            <Notice
+              tone="info"
+              title={`Účast v termínu ${added.labels} se vyhodnotí podle kapacity: při volném místě bude potvrzena, jinak budete náhradníkem. Potvrzená místa ve stávajících termínech zůstávají. Po potvrzení místa se k ceně přidá ${added.price}.`}
             />
           ) : null}
 

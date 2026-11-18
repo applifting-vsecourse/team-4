@@ -20,6 +20,7 @@ import { type ChangeProposal } from "@/features/registrations/api/registrationCh
 import { ChangeReviewDialog } from "@/features/registrations/components/ChangeReviewDialog"
 import {
   RegistrationChangeForm,
+  type AddableTerm,
   type ChangeableTerm,
   type ContactErrors,
 } from "@/features/registrations/components/RegistrationChangeForm"
@@ -45,12 +46,12 @@ type ParticipantRegistrationEditProps = {
 }
 
 const NOTHING_CHANGED =
-  "Nic jste nezměnili. Upravte údaje nebo pohlaví pro ubytování, přesuňte termín nebo se z něj odhlaste."
+  "Nic jste nezměnili. Upravte údaje nebo pohlaví pro ubytování, přesuňte nebo přidejte termín, nebo se z něj odhlaste."
 
 // Moje přihlášky → Detail přihlášky → Úprava přihlášky (F35-2a): personal and
 // contact data in the scope of the registration form (not the e-mail), a move
-// to another term of the same event, cancelling single terms, and transport,
-// diet and health (F63).
+// to another term of the same event, adding a term next to the current ones
+// (F35-2c), cancelling single terms, and transport, diet and health (F63).
 export function ParticipantRegistrationEdit({
   registrationId,
   sessionEnded,
@@ -148,6 +149,7 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
       needs,
       gender: contact.gender,
       genderOther: contact.genderOther,
+      addedTermIds: [],
       terms: Object.fromEntries(
         active.map((term) => [term.termId, { selectedTermId: term.termId, isCancelled: false }]),
       ),
@@ -184,6 +186,18 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
     [active, availableTerms],
   )
 
+  const addableTerms = useMemo<AddableTerm[]>(
+    () =>
+      availableTerms
+        .filter((other) => !active.some((own) => own.termId === other.termId))
+        .map((other) => ({
+          id: other.termId,
+          label: other.label,
+          details: `${formatCalendarRange(other.startDate, other.endDate)} · ${formatCzk(other.priceMinor)}`,
+        })),
+    [active, availableTerms],
+  )
+
   const review = () => {
     const contactErrors = validateContact(state)
     const invalidNeeds = validateNeeds(state.needs)
@@ -207,6 +221,7 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
       <RegistrationChangeForm
         contact={contact}
         terms={formTerms}
+        addableTerms={addableTerms}
         needs={needs}
         errors={errors}
         needsErrors={needsErrors}
@@ -217,6 +232,7 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
         onTermChange={(termId, change) =>
           setState((current) => ({ ...current, terms: { ...current.terms, [termId]: change } }))
         }
+        onAddedTermsChange={(addedTermIds) => setState((current) => ({ ...current, addedTermIds }))}
         onReview={review}
         onCancel={onLeave}
       />
