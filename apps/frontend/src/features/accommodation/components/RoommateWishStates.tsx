@@ -61,7 +61,10 @@ export function RoommateWishStates({
   return (
     <PageSection
       title="Přání na spolubydlící"
-      description={rows.length > 0 ? PROPOSAL_NOTE[proposal] : undefined}
+      // The note belongs to the table: none while it loads or failed.
+      description={
+        !isLoading && !isLoadFailed && rows.length > 0 ? PROPOSAL_NOTE[proposal] : undefined
+      }
     >
       {isLoadFailed ? (
         <LoadError

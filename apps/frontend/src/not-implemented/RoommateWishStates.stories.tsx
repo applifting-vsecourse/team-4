@@ -116,7 +116,7 @@ export const NoProposal: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(await canvas.findByText("Termín zatím nemá návrh pokojů.")).toBeVisible()
-    await expect(canvas.getAllByText("Bez návrhu")).toHaveLength(4)
+    await expect(await canvas.findAllByText("Bez návrhu")).toHaveLength(4)
   },
 }
 
@@ -165,7 +165,7 @@ export const ProposalLoadFailed: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(await canvas.findByText("Návrh pokojů se nepodařilo načíst")).toBeVisible()
-    await expect(canvas.getAllByText("Nenačteno")).toHaveLength(4)
+    await expect(await canvas.findAllByText("Nenačteno")).toHaveLength(4)
     await expect(canvas.queryByText("Termín zatím nemá návrh pokojů.")).not.toBeInTheDocument()
     const eliska = await rowOf(canvasElement, "Eliška Malá")
     await expect(eliska.getByText("Nesplněno")).toBeVisible()
