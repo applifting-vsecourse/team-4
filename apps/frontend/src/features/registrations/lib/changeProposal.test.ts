@@ -107,6 +107,26 @@ describe("buildProposal", () => {
     })
   })
 
+  it("adds one term while moving another (F35-2c)", () => {
+    const T4 = "0190c0de-0000-7000-8000-000000000004"
+    expect(
+      buildProposal(
+        CONTACT,
+        state({
+          addedTermIds: [T4],
+          terms: {
+            [T1]: { selectedTermId: T3, isCancelled: false },
+            [T2]: { selectedTermId: T2, isCancelled: false },
+          },
+        }),
+      ),
+    ).toEqual({
+      moves: [{ fromTermId: T1, toTermId: T3, acceptRelease: false }],
+      cancelledTermIds: [],
+      addedTermIds: [T4],
+    })
+  })
+
   it("does not add a term the participant also moves to", () => {
     expect(
       buildProposal(

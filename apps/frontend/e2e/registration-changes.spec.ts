@@ -89,6 +89,37 @@ test("a move outside the approval threshold is made at once", async ({ page, bro
   await context.close()
 })
 
+test("a term is added next to the held ones without losing them (F35-2c)", async ({
+  page,
+  browser,
+}) => {
+  const { event, participant, context } = await setUp(browser, page)
+
+  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  await participant.getByRole("checkbox", { name: /Přidat termín Turnus 3/ }).check()
+  await participant.getByRole("button", { name: "Zkontrolovat změny" }).click()
+
+  const review = participant.getByRole("dialog", { name: "Kontrola změn přihlášky" })
+  await expect(
+    review.getByText(/Účast v termínu Turnus 3 se vyhodnotí podle kapacity/),
+  ).toBeVisible()
+  // Nothing is given up, so no consent and no storno notice.
+  await expect(review.getByRole("checkbox")).toHaveCount(0)
+  await expect(review.getByText(/Storno poplatek/)).toBeHidden()
+  await review.getByRole("button", { name: "Potvrdit změnu" }).click()
+
+  await expect(participant.getByRole("heading", { name: event.name, level: 1 })).toBeVisible()
+  await expect(termRow(participant, "Turnus 1")).toContainText("Potvrzeno")
+  await expect(termRow(participant, "Turnus 2")).toContainText("Potvrzeno")
+  await expect(termRow(participant, "Turnus 3")).toBeVisible()
+
+  // Every term of the event is held now: nothing more can be added.
+  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  await expect(participant.getByText(/Další termín není k dispozici/)).toBeVisible()
+  await expect(participant.getByRole("checkbox", { name: /Přidat termín/ })).toHaveCount(0)
+  await context.close()
+})
+
 test("a change inside the threshold waits for the organizer, who approves it", async ({
   page,
   browser,
