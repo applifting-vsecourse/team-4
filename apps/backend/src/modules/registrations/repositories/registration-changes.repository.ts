@@ -603,6 +603,13 @@ export class RegistrationChangesRepository {
   ): Promise<void> {
     for (const row of plan.summary.terms) {
       if (row.original === row.proposed || row.proposed === null) continue;
+      if (row.original === 'confirmed') {
+        // Leaving the confirmed participation gives up the room too (F14-2):
+        // a later confirmation must not bring back an unchecked placement.
+        await tx.roomPlacement.deleteMany({
+          where: { registrationId: snapshot.id, termId: row.termId },
+        });
+      }
       if (row.proposed === 'cancelled') {
         await tx.registrationTerm.update({
           where: {

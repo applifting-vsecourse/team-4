@@ -691,8 +691,9 @@ model AccommodationTermOrder {
 
 // A person's room in one term (F14-2, #337). At most one per term; rooms are
 // optional. It never changes the person's participation or the order of the
-// term. Only a confirmed participant is placed; one who stops being confirmed
-// keeps the row, which the room views ignore.
+// term. Only a confirmed participant is placed; a registration change that
+// leaves the confirmed participation deletes the row, and the room views
+// ignore any row of someone not confirmed.
 model RoomPlacement {
   registrationId    String   @db.Uuid
   termId            String   @db.Uuid

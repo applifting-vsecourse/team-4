@@ -1,6 +1,7 @@
 import type {
   ConfirmableWarning,
   PlacementPerson,
+  RoomWarning,
   TermPlacements,
 } from "@/features/accommodation/api/placementSchemas"
 import { attributeLabel, valueLabel } from "@/features/accommodation/lib/evaluationView"
@@ -21,6 +22,10 @@ export type BoardRoom = {
   extraBeds: number
   /** An unavailable room takes nobody new; it is shown while someone is still in it. */
   isAvailable: boolean
+  /** The server's warnings of the room as it is. */
+  warnings: RoomWarning[]
+  /** The warnings the organizer confirmed for someone in the room. */
+  confirmedWarnings: ConfirmableWarning[]
   people: BoardPerson[]
   /** Beds and extra beds still free; never below zero. */
   free: number

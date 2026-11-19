@@ -9,6 +9,7 @@ import { openRowMenu } from "@/screens/steps"
 import { placementHandlers, PLACEMENTS } from "@/features/accommodation/fixtures/placementHandlers"
 import {
   NOT_SPLIT_STORE,
+  TURNED_MIXED_STORE,
   UNAVAILABLE_ROOM_STORE,
   WITHOUT_PEOPLE_STORE,
   WITHOUT_PLACEMENTS_STORE,
@@ -100,9 +101,11 @@ export const Placements: Story = {
     await expect(await chatka1.findByText("4 / 4 + 1")).toBeVisible()
     await expect(chatka1.getByText("Volná místa: 1")).toBeVisible()
     await expect((await zoneOf(canvas, "Chatka 3")).getByText("Volný")).toBeVisible()
-    await expect(
-      (await zoneOf(canvas, "Srub u lesa")).getAllByLabelText("Zamčené umístění"),
-    ).toHaveLength(2)
+    const srub = await zoneOf(canvas, "Srub u lesa")
+    await expect(srub.getAllByLabelText("Zamčené umístění")).toHaveLength(2)
+    // The partners' mixed room is a confirmed exception, not a new problem.
+    await expect(srub.getByText("Smíšený, výjimka")).toBeVisible()
+    await expect(chatka1.queryByText(/^Smíšený/)).not.toBeInTheDocument()
     await expect(
       (await zoneOf(canvas, "Bez pokoje (2)")).getByText("Matěj Procházka"),
     ).toBeVisible()
@@ -189,6 +192,8 @@ export const ConfirmAndLock: Story = {
     const chatka1 = await zoneOf(canvas, "Chatka 1")
     await expect(await chatka1.findByText("5 / 4 + 1")).toBeVisible()
     await expect(chatka1.getByLabelText("Zamčené umístění")).toBeVisible()
+    await expect(chatka1.getByText("Smíšený, výjimka")).toBeVisible()
+    await expect(chatka1.getByText("Přistýlka")).toBeVisible()
   },
 }
 
@@ -289,6 +294,16 @@ export const RoomChangedWhileConfirming: Story = {
     await expect(
       await (await zoneOf(canvas, "Chatka 1")).findByLabelText("Zamčené umístění"),
     ).toBeVisible()
+  },
+}
+
+/** A room turned mixed after placing (a changed answer): a warning nobody confirmed. */
+export const RoomTurnedMixed: Story = {
+  parameters: { placements: TURNED_MIXED_STORE },
+  play: async ({ canvas }) => {
+    const chatka2 = await zoneOf(canvas, "Chatka 2")
+    await expect(await chatka2.findByText("Smíšený pokoj")).toBeVisible()
+    await expect((await zoneOf(canvas, "Srub u lesa")).getByText("Smíšený, výjimka")).toBeVisible()
   },
 }
 
