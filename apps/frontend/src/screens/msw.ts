@@ -16,6 +16,8 @@ type ApiErrorBody = {
   conflicts?: unknown[]
   /** A refused registration change sends the current preview back (F35-2a). */
   preview?: unknown
+  /** A refused room placement lists the room's warnings (F14-2). */
+  warnings?: string[]
 }
 
 /** Absolute URL of an API path; MSW `:params` are kept. */

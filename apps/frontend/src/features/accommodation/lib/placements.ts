@@ -1,4 +1,8 @@
-import type { PlacementPerson, TermPlacements } from "@/features/accommodation/api/placementSchemas"
+import type {
+  ConfirmableWarning,
+  PlacementPerson,
+  TermPlacements,
+} from "@/features/accommodation/api/placementSchemas"
 import { attributeLabel, valueLabel } from "@/features/accommodation/lib/evaluationView"
 
 export type BoardPerson = {
@@ -15,6 +19,8 @@ export type BoardRoom = {
   label: string
   baseBeds: number
   extraBeds: number
+  /** An unavailable room takes nobody new; it is shown while someone is still in it. */
+  isAvailable: boolean
   people: BoardPerson[]
   /** Beds and extra beds still free; never below zero. */
   free: number
@@ -27,13 +33,13 @@ export type PlacementBoard = {
 }
 
 const byName = (a: PlacementPerson, b: PlacementPerson) =>
-  a.lastName.localeCompare(b.lastName, "cs") || a.firstName.localeCompare(b.firstName, "cs")
+  a.name.localeCompare(b.name, "cs") || (a.registrationId < b.registrationId ? -1 : 1)
 
 /** The term's placements as rooms with their people and the people without a room. */
 export function toPlacementBoard(data: TermPlacements): PlacementBoard {
   const people = [...data.people].sort(byName).map((person): BoardPerson => ({
     id: person.registrationId,
-    name: `${person.firstName} ${person.lastName}`,
+    name: person.name,
     value: data.hardAttribute ? valueLabel(data.hardAttribute, person.value) : null,
     roomId: person.roomId,
     isLocked: person.isLocked,
@@ -53,15 +59,20 @@ export function toPlacementBoard(data: TermPlacements): PlacementBoard {
   }
 }
 
+/** A warning of the room as the dialog words it; `kind` is the backend's code. */
 export type PlacementWarning =
   /** People with different values of the hard attribute would share the room. */
   | { kind: "mixed"; attribute: string; values: string[] }
   /** The room would use an extra bed. */
-  | { kind: "extraBed" }
+  | { kind: "extra_bed" }
   /** The room would hold more people than beds and extra beds. */
-  | { kind: "overCapacity" }
+  | { kind: "over_capacity" }
 
-/** What breaks the room rules when the participant moves to the room; empty when nothing does. */
+/**
+ * What breaks the room rules when the participant moves to the room; empty
+ * when nothing does. The same rules as the backend's: someone without a value
+ * of the hard attribute mixes with nobody.
+ */
 export function placementWarnings(
   data: TermPlacements,
   registrationId: string,
@@ -76,7 +87,7 @@ export function placementWarnings(
 
   const attribute = data.hardAttribute
   if (attribute) {
-    const values = [...new Set(after.map((other) => other.value))]
+    const values = [...new Set(after.map((other) => other.value).filter((value) => value !== null))]
     if (values.length > 1) {
       warnings.push({
         kind: "mixed",
@@ -87,21 +98,43 @@ export function placementWarnings(
   }
 
   if (after.length > room.baseBeds + room.extraBeds) {
-    warnings.push({ kind: "overCapacity" })
+    warnings.push({ kind: "over_capacity" })
   } else if (after.length > room.baseBeds) {
-    warnings.push({ kind: "extraBed" })
+    warnings.push({ kind: "extra_bed" })
   }
   return warnings
+}
+
+/**
+ * The warnings the backend reported, worded from the placements: the server
+ * decides which apply (the board may be behind), the board says what they mean.
+ */
+export function describeWarnings(
+  data: TermPlacements,
+  registrationId: string,
+  roomId: string,
+  codes: readonly ConfirmableWarning[],
+): PlacementWarning[] {
+  const known = placementWarnings(data, registrationId, roomId)
+  return codes.map(
+    (code) =>
+      known.find((warning) => warning.kind === code) ??
+      (code === "mixed"
+        ? { kind: "mixed", attribute: attributeLabel(data.hardAttribute ?? ""), values: [] }
+        : { kind: code }),
+  )
 }
 
 /** The warning as shown before the organizer confirms the placement. */
 export function warningText(warning: PlacementWarning): string {
   switch (warning.kind) {
     case "mixed":
-      return `Pokoj bude smíšený podle pravidla ${warning.attribute}: ${warning.values.join(", ")}.`
-    case "extraBed":
+      return warning.values.length > 0
+        ? `Pokoj bude smíšený podle pravidla ${warning.attribute}: ${warning.values.join(", ")}.`
+        : `Pokoj bude smíšený podle pravidla ${warning.attribute}.`
+    case "extra_bed":
       return "Účastník obsadí přistýlku."
-    case "overCapacity":
+    case "over_capacity":
       return "Pokoj překročí kapacitu lůžek a přistýlek."
   }
 }
