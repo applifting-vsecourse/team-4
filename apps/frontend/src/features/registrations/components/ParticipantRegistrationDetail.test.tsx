@@ -32,6 +32,9 @@ vi.mock("@tanstack/react-router", () => ({
     ({ children, to }: { children: React.ReactNode; to: string }) => (
       <Anchor href={to}>{children}</Anchor>
     ),
+  // Opened without a hash: no section to scroll to.
+  useRouterState: ({ select }: { select: (state: { location: { hash: string } }) => unknown }) =>
+    select({ location: { hash: "" } }),
 }))
 
 const REGISTRATION: DetailData = {

@@ -321,6 +321,7 @@ model ParticipantAccount {
   magicLinks    ParticipantMagicLink[]
   sessions      ParticipantSession[]
   emails        EmailDelivery[]
+  notifications ParticipantNotificationState[]
 
   @@map("participant_account")
 }
@@ -351,6 +352,23 @@ model ParticipantSession {
 
   @@index([participantAccountId])
   @@map("participant_session")
+}
+
+// What the participant did with a notification of the portal (S4-06). The
+// notifications themselves are not stored: they are read from the saved
+// decisions, decided change requests and payments, whose id is `sourceId`
+// (uuid v7, unique across those tables). No row: unread and shown.
+model ParticipantNotificationState {
+  participantAccountId String    @db.Uuid
+  sourceId             String    @db.Uuid
+  readAt               DateTime? @db.Timestamptz(3)
+  // Hidden for good; a dismissed notification also counts as read.
+  dismissedAt          DateTime? @db.Timestamptz(3)
+
+  participantAccount ParticipantAccount @relation(fields: [participantAccountId], references: [id], onDelete: Cascade)
+
+  @@id([participantAccountId, sourceId])
+  @@map("participant_notification_state")
 }
 
 // ─── Registrations ──────────────────────────────────────────────────────────
