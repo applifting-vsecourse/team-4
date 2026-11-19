@@ -26,6 +26,8 @@ import {
   issueMarker,
   resultsKey,
   reviewSatisfied,
+  MAX_PROMPT_BYTES,
+  MAX_STDIN_PROMPT_BYTES,
 } from './lib.mjs';
 
 import {
@@ -97,6 +99,8 @@ const cfg = {
   onlyIssue: process.env.ONLY_ISSUE ? Number(process.env.ONLY_ISSUE) : null,
   copilotVersion: process.env.COPILOT_CLI_VERSION || '1.0.98',
   copilotModel: process.env.COPILOT_MODEL || '',
+  promptTransport:
+    process.env.COPILOT_PROMPT_TRANSPORT === 'stdin' ? 'stdin' : 'argv',
 };
 
 for (const key of ['repo', 'projectOwner', 'githubToken', 'projectToken']) {
@@ -331,13 +335,16 @@ async function ensureCopilot() {
 }
 
 async function runCopilot(prompt) {
+  const stdin = cfg.promptTransport === 'stdin';
   await ensureCopilot();
-  const args = ['-p', prompt, '--no-ask-user', '-s'];
+  // Repository instructions are already in the prompt; do not load them twice.
+  const args = ['--no-ask-user', '-s', '--no-custom-instructions'];
+  if (!stdin) args.unshift('-p', prompt);
   if (cfg.copilotModel) args.push('--model', cfg.copilotModel);
   try {
     // No tool permissions are granted and the environment is stripped, so a
     // prompt injected through the diff can neither act nor read our tokens.
-    const { stdout } = await execFileAsync('copilot', args, {
+    const child = execFileAsync('copilot', args, {
       timeout: 3 * 60 * 1000,
       maxBuffer: 10 * 1024 * 1024,
       env: {
@@ -347,6 +354,12 @@ async function runCopilot(prompt) {
         CI: 'true',
       },
     });
+    if (stdin) {
+      // An early exit makes the pipe fail; the exit status reports it.
+      child.child.stdin.on('error', () => {});
+      child.child.stdin.end(prompt);
+    }
+    const { stdout } = await child;
     return { ok: true, stdout };
   } catch (err) {
     const detail = err.killed
@@ -378,6 +391,7 @@ async function reviewPr({
   requirements,
   stack,
   integration = false,
+  integrationChild = false,
 }) {
   const meta = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${pr}`);
   const sha = meta.head.sha;
@@ -461,9 +475,10 @@ async function reviewPr({
     }
     return { pr, sha, status: 'waived', waiver, url: waiver.url };
   }
-  // The outage switch applies to PRs delivering to main (including stacks).
-  // Integration-only PRs still need review evidence for child completion.
-  if (cfg.copilotReviewPaused && !integration) {
+  // The outage switch applies to PRs delivering to main (including stacks)
+  // and child PRs into integration branches. Parent integration PRs still
+  // need review evidence for parent review carry-over.
+  if (cfg.copilotReviewPaused && (!integration || integrationChild)) {
     const evidence = { comments, pr, sha, issue: issue.number };
     const verdict = agentVerdict(evidence);
     if (
@@ -605,11 +620,13 @@ async function reviewPr({
     diff,
     rules,
   };
+  const promptLimit =
+    cfg.promptTransport === 'stdin' ? MAX_STDIN_PROMPT_BYTES : MAX_PROMPT_BYTES;
   let outcome;
   const attempt = prior.errorAttempts + 1;
   let plan;
   try {
-    plan = planReview(context, meta);
+    plan = planReview(context, meta, promptLimit);
     if (plan.prompts.length) {
       context.ciEvidence = await ciEvidence({
         repo: cfg.repo,
@@ -624,7 +641,7 @@ async function reviewPr({
           status: 'waiting',
           reason: 'Waiting for CI for this commit.',
         };
-      plan = planReview(context, meta);
+      plan = planReview(context, meta, promptLimit);
     }
   } catch (error) {
     plan = undefined;
@@ -634,7 +651,13 @@ async function reviewPr({
     };
   }
   if (plan)
-    outcome = await executeReview(plan, context, runCopilot, console.log);
+    outcome = await executeReview(
+      plan,
+      context,
+      runCopilot,
+      console.log,
+      promptLimit,
+    );
 
   const comment = await postComment(
     pr,
@@ -743,6 +766,7 @@ async function reviewIntegrationPrs(board, item, prs, { ownsBoard }) {
         ).toISOString(),
       },
       integration: true,
+      integrationChild: role.kind === 'child',
     });
     console.log(
       `  -> #${pr.number} (${role.kind} of #${role.parent}): ${result.status}${result.reason ? `: ${result.reason}` : ''}`,

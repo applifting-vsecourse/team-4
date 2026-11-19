@@ -9,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-
 import {
   countryOf,
   DEFAULT_COUNTRY,
@@ -18,7 +17,7 @@ import {
   nationalPart,
   PHONE_COUNTRIES,
   withPrefix,
-} from "@/features/registrations/lib/phoneCountries"
+} from "@/lib/phoneCountries"
 
 type PhoneFieldProps = Omit<ComponentProps<typeof Input>, "value" | "onChange"> & {
   /** The full number with its "+prefix", or "" while empty. */

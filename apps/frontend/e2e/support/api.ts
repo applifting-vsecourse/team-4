@@ -214,3 +214,31 @@ export async function setChangeApprovalDays(
     ),
   )
 }
+
+/** Chooses the hard attribute of the event (#384), e.g. `gender`; null for none. */
+export async function setHardAttribute(
+  request: APIRequestContext,
+  event: OpenEvent,
+  hardAttribute: string | null,
+): Promise<void> {
+  await json(
+    await request.put(
+      `${API_URL}/organizations/${event.organizationId}/events/${event.eventId}/accommodation/hard-attribute`,
+      { data: { hardAttribute }, headers },
+    ),
+  )
+}
+
+/** Sets the evaluation mode of the event: `manual` evaluates only on Přepočítat. */
+export async function setEvaluationMode(
+  request: APIRequestContext,
+  event: OpenEvent,
+  mode: "automatic" | "manual",
+): Promise<void> {
+  await json(
+    await request.put(
+      `${API_URL}/organizations/${event.organizationId}/events/${event.eventId}/accommodation/evaluation-mode`,
+      { data: { mode }, headers },
+    ),
+  )
+}

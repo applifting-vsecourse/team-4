@@ -15,6 +15,7 @@ import { Route as DesignSystemRouteImport } from './routes/design-system'
 import { Route as ForOrganizersRouteImport } from './routes/for-organizers'
 import { Route as ForParticipantsRouteImport } from './routes/for-participants'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MyProfileRouteImport } from './routes/my-profile'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as EventsIndexRouteImport } from './routes/events/index'
 import { Route as MyRegistrationsIndexRouteImport } from './routes/my-registrations/index'
@@ -65,6 +66,11 @@ const ForParticipantsRoute = ForParticipantsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyProfileRoute = MyProfileRouteImport.update({
+  id: '/my-profile',
+  path: '/my-profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -213,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/for-organizers': typeof ForOrganizersRoute
   '/for-participants': typeof ForParticipantsRoute
   '/login': typeof LoginRoute
+  '/my-profile': typeof MyProfileRoute
   '/signup': typeof SignupRoute
   '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
   '/my-registrations/verify': typeof MyRegistrationsVerifyRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/for-organizers': typeof ForOrganizersRoute
   '/for-participants': typeof ForParticipantsRoute
   '/login': typeof LoginRoute
+  '/my-profile': typeof MyProfileRoute
   '/signup': typeof SignupRoute
   '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
   '/my-registrations/verify': typeof MyRegistrationsVerifyRoute
@@ -272,6 +280,7 @@ export interface FileRoutesById {
   '/for-organizers': typeof ForOrganizersRoute
   '/for-participants': typeof ForParticipantsRoute
   '/login': typeof LoginRoute
+  '/my-profile': typeof MyProfileRoute
   '/signup': typeof SignupRoute
   '/my-registrations/$registrationId': typeof MyRegistrationsRegistrationIdRoute
   '/my-registrations/verify': typeof MyRegistrationsVerifyRoute
@@ -303,6 +312,7 @@ export interface FileRouteTypes {
     | '/for-organizers'
     | '/for-participants'
     | '/login'
+    | '/my-profile'
     | '/signup'
     | '/my-registrations/$registrationId'
     | '/my-registrations/verify'
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/for-organizers'
     | '/for-participants'
     | '/login'
+    | '/my-profile'
     | '/signup'
     | '/my-registrations/$registrationId'
     | '/my-registrations/verify'
@@ -361,6 +372,7 @@ export interface FileRouteTypes {
     | '/for-organizers'
     | '/for-participants'
     | '/login'
+    | '/my-profile'
     | '/signup'
     | '/my-registrations/$registrationId'
     | '/my-registrations/verify'
@@ -392,6 +404,7 @@ export interface RootRouteChildren {
   ForOrganizersRoute: typeof ForOrganizersRoute
   ForParticipantsRoute: typeof ForParticipantsRoute
   LoginRoute: typeof LoginRoute
+  MyProfileRoute: typeof MyProfileRoute
   SignupRoute: typeof SignupRoute
   MyRegistrationsRegistrationIdRoute: typeof MyRegistrationsRegistrationIdRoute
   MyRegistrationsVerifyRoute: typeof MyRegistrationsVerifyRoute
@@ -445,6 +458,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-profile': {
+      id: '/my-profile'
+      path: '/my-profile'
+      fullPath: '/my-profile'
+      preLoaderRoute: typeof MyProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -670,6 +690,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForOrganizersRoute: ForOrganizersRoute,
   ForParticipantsRoute: ForParticipantsRoute,
   LoginRoute: LoginRoute,
+  MyProfileRoute: MyProfileRoute,
   SignupRoute: SignupRoute,
   MyRegistrationsRegistrationIdRoute: MyRegistrationsRegistrationIdRoute,
   MyRegistrationsVerifyRoute: MyRegistrationsVerifyRoute,

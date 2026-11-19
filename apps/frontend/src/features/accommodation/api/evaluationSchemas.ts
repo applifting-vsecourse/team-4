@@ -9,6 +9,20 @@ export type EvaluationMode = z.infer<typeof evaluationModeSchema>
 
 export const evaluationModeResponseSchema = z.object({ mode: evaluationModeSchema })
 
+/** Nastavení → Pravidla ubytování (#384): none or one hard attribute of the event. */
+export const hardAttributeSettingSchema = z.object({
+  /** The question that splits rooms, e.g. `gender`; null when none does. */
+  hardAttribute: z.string().nullable(),
+  options: z.array(
+    z.object({
+      attribute: z.string(),
+      values: z.array(z.string()),
+      nonDeterminingValues: z.array(z.string()),
+    }),
+  ),
+})
+export type HardAttributeSetting = z.infer<typeof hardAttributeSettingSchema>
+
 export const evaluationStatusSchema = z.enum([
   "none",
   "running",

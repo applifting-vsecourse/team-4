@@ -7,7 +7,8 @@ export { pullRequestsLinkedToIssue };
 export async function eventScope(env = process.env) {
   if (
     !env.GITHUB_EVENT_NAME ||
-    ['schedule', 'workflow_dispatch'].includes(env.GITHUB_EVENT_NAME)
+    // A push to main moves the base of every open PR and of verified syncs.
+    ['schedule', 'workflow_dispatch', 'push'].includes(env.GITHUB_EVENT_NAME)
   )
     return { type: 'all' };
   const event = JSON.parse(await readFile(env.GITHUB_EVENT_PATH, 'utf8'));

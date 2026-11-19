@@ -50,6 +50,13 @@ export const Registrations: StoryObj<typeof meta> = {
     const noPayment = canvas.getByText("Bez povinnosti", { exact: true })
     await expect(Math.abs(textLeft(paid) - textLeft(paymentHeader))).toBeLessThanOrEqual(1)
     await expect(Math.abs(textLeft(noPayment) - textLeft(paymentHeader))).toBeLessThanOrEqual(1)
+    // The context "Nastavení" opens the event settings at the accommodation rules (#384).
+    const settings = canvas.getAllByRole("link", { name: "Nastavení" })
+    await expect(
+      settings
+        .map((link) => link.getAttribute("href"))
+        .filter((href) => href?.endsWith("/settings#accommodation-rules-heading")),
+    ).toHaveLength(1)
   },
 }
 

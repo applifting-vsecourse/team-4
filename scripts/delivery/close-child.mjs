@@ -27,6 +27,7 @@ const comments = (number) => list(`/repos/${repo}/issues/${number}/comments`);
 
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
+const copilotReviewPaused = process.env.PAUSE_COPILOT_REVIEW === 'true';
 if (!repo || !token)
   throw new Error('GITHUB_REPOSITORY and GITHUB_TOKEN are required');
 async function api(path, method = 'GET', body) {
@@ -59,8 +60,17 @@ if (!pr.merged_at || !isIntegrationBranch(pr.base.ref)) {
     ),
   );
   const role = integrationRole({ pr, issues });
+  const reviewed =
+    role.kind === 'child' &&
+    headPassed(
+      await comments(pr.number),
+      pr,
+      role.issue,
+      retargetedAt(await list(`/repos/${repo}/issues/${pr.number}/timeline`)),
+    );
   // The body can be edited after the merge: close only the sub-issue the
   // merged head was reviewed for, and only when the PR says it completes it.
+  // A paused repository may merge a child without writing a review pass.
   const reason =
     role.kind === 'invalid'
       ? role.reason
@@ -68,14 +78,7 @@ if (!pr.merged_at || !isIntegrationBranch(pr.base.ref)) {
         ? 'integration work closes no sub-issue'
         : !closingIssueNumbers(pr.body).includes(role.issue)
           ? `it refers to #${role.issue} without closing it (partial work)`
-          : !headPassed(
-                await comments(pr.number),
-                pr,
-                role.issue,
-                retargetedAt(
-                  await list(`/repos/${repo}/issues/${pr.number}/timeline`),
-                ),
-              )
+          : !reviewed && !copilotReviewPaused
             ? `its merged head has no passing agent review for #${role.issue}`
             : null;
   if (reason) {
@@ -86,7 +89,7 @@ if (!pr.merged_at || !isIntegrationBranch(pr.base.ref)) {
       state_reason: 'completed',
     });
     await api(`/repos/${repo}/issues/${role.issue}/comments`, 'POST', {
-      body: `Completed by #${pr.number}, merged into \`${pr.base.ref.replaceAll('`', "'")}\`. The parent issue #${role.parent} continues with integration.`,
+      body: `Completed by #${pr.number}, merged into \`${pr.base.ref.replaceAll('`', "'")}\`.${!reviewed && copilotReviewPaused ? ' Copilot review was skipped under the repository pause.' : ''} The parent issue #${role.parent} continues with integration.`,
     });
     console.log(`#${pr.number}: closed sub-issue #${role.issue}`);
   }

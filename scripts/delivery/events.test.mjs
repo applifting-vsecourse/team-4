@@ -43,12 +43,12 @@ test('issue comments and edits select the issue, not the whole board', async () 
     });
 });
 
-test('scheduled and manual reconciliation scan all work; unknown events fail closed', async () => {
-  for (const name of ['schedule', 'workflow_dispatch'])
+test('scheduled, manual and main-push reconciliation scan all work; unknown events fail closed', async () => {
+  for (const name of ['schedule', 'workflow_dispatch', 'push'])
     assert.deepEqual(await eventScope({ GITHUB_EVENT_NAME: name }), {
       type: 'all',
     });
-  await assert.rejects(scope('push', {}), /Unsupported delivery event/);
+  await assert.rejects(scope('fork', {}), /Unsupported delivery event/);
 });
 
 test('PR selection includes its issue but excludes an unrelated stacked PR issue', () => {
