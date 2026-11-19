@@ -144,7 +144,9 @@ function Board({ board, isInert, isSaving, onMove, onLock }: BoardProps) {
     event.preventDefault()
     const personId = event.dataTransfer.getData(DRAG_TYPE)
     const person = board.people.find((candidate) => candidate.id === personId)
-    if (!isSaving && person && person.roomId !== roomId) onMove(person.id, roomId)
+    if (!isSaving && person && !person.isLocked && person.roomId !== roomId) {
+      onMove(person.id, roomId)
+    }
   }
 
   const person = (entry: BoardPerson) => (
@@ -184,7 +186,8 @@ function Board({ board, isInert, isSaving, onMove, onLock }: BoardProps) {
             key={room.id}
             title={room.label}
             occupancy={<Occupancy room={room} />}
-            onDrop={drop(room.id)}
+            // An unavailable room takes nobody new: not a drop target.
+            onDrop={room.isAvailable ? drop(room.id) : undefined}
           >
             {room.people.length === 0 ? (
               <p className="text-sm text-muted-foreground">Volný</p>
@@ -201,7 +204,8 @@ function Board({ board, isInert, isSaving, onMove, onLock }: BoardProps) {
 type DropZoneProps = {
   title: string
   occupancy?: ReactNode
-  onDrop: (event: DragEvent) => void
+  /** Without it the zone accepts no drop. */
+  onDrop?: (event: DragEvent) => void
   children: ReactNode
 }
 
@@ -211,16 +215,24 @@ function DropZone({ title, occupancy, onDrop, children }: DropZoneProps) {
   return (
     <div
       className={cn("rounded-xl", isOver && "outline-2 outline-offset-2 outline-ring")}
-      onDragOver={(event) => {
-        event.preventDefault()
-        event.dataTransfer.dropEffect = "move"
-        setIsOver(true)
-      }}
+      onDragOver={
+        onDrop
+          ? (event) => {
+              event.preventDefault()
+              event.dataTransfer.dropEffect = "move"
+              setIsOver(true)
+            }
+          : undefined
+      }
       onDragLeave={() => setIsOver(false)}
-      onDrop={(event) => {
-        setIsOver(false)
-        onDrop(event)
-      }}
+      onDrop={
+        onDrop
+          ? (event) => {
+              setIsOver(false)
+              onDrop(event)
+            }
+          : undefined
+      }
     >
       <Card>
         <CardHeader>
@@ -236,6 +248,12 @@ function DropZone({ title, occupancy, onDrop, children }: DropZoneProps) {
 }
 
 function Occupancy({ room }: { room: BoardRoom }) {
+  if (!room.isAvailable) {
+    // Shown only while someone is still in it; nobody new can be placed.
+    return (
+      <p className="text-right text-sm font-medium text-destructive">Není v termínu k dispozici</p>
+    )
+  }
   const isOver = room.people.length > room.baseBeds + room.extraBeds
   return (
     <div className="text-right text-sm">
@@ -261,11 +279,13 @@ type PersonItemProps = {
 
 function PersonItem({ person, rooms, isDisabled, onDragStart, onMove, onLock }: PersonItemProps) {
   const isPlaced = person.roomId !== null
-  const targets = rooms.filter((room) => room.id !== person.roomId)
+  // A locked placement is neither moved nor removed until it is unlocked.
+  const isMovable = !person.isLocked
+  const targets = rooms.filter((room) => room.id !== person.roomId && room.isAvailable)
 
   return (
     <li
-      draggable={!isDisabled}
+      draggable={!isDisabled && isMovable}
       onDragStart={onDragStart}
       className="flex items-center gap-2 rounded-md py-1 hover:bg-accent"
     >
@@ -293,7 +313,7 @@ function PersonItem({ person, rooms, isDisabled, onDragStart, onMove, onLock }: 
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {targets.length > 0 ? (
+          {isMovable && targets.length > 0 ? (
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 {isPlaced ? "Přesunout do pokoje" : "Umístit do pokoje"}
@@ -315,7 +335,9 @@ function PersonItem({ person, rooms, isDisabled, onDragStart, onMove, onLock }: 
               <DropdownMenuItem onSelect={() => onLock(!person.isLocked)}>
                 {person.isLocked ? "Odemknout umístění" : "Zamknout umístění"}
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onMove(null)}>Odebrat z pokoje</DropdownMenuItem>
+              {isMovable ? (
+                <DropdownMenuItem onSelect={() => onMove(null)}>Odebrat z pokoje</DropdownMenuItem>
+              ) : null}
             </>
           ) : null}
         </DropdownMenuContent>

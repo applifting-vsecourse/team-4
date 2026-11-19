@@ -1,4 +1,4 @@
-import { useId, useState } from "react"
+import { useId } from "react"
 
 import { DialogActions } from "@/components/DialogActions"
 import { FormError } from "@/components/FormError"
@@ -23,11 +23,15 @@ export type PlacementWarningDialogProps = {
   person: string
   room: string
   warnings: PlacementWarning[]
+  /** The room changed since the organizer looked; the warnings are the server's. */
+  isUpdated?: boolean
+  /** Lock the exception; kept when the warnings are updated. */
+  shouldLock: boolean
+  onShouldLockChange: (shouldLock: boolean) => unknown
   isSaving: boolean
   /** The save failed, already worded; the dialog stays open. */
   saveError?: string
-  /** `shouldLock` is true when the organizer locked the exception. */
-  onConfirm: (shouldLock: boolean) => unknown
+  onConfirm: () => unknown
   onCancel: () => unknown
 }
 
@@ -39,12 +43,14 @@ export function PlacementWarningDialog({
   person,
   room,
   warnings,
+  isUpdated = false,
+  shouldLock,
+  onShouldLockChange,
   isSaving,
   saveError,
   onConfirm,
   onCancel,
 }: PlacementWarningDialogProps) {
-  const [shouldLock, setShouldLock] = useState(false)
   const lockId = useId()
 
   return (
@@ -63,6 +69,9 @@ export function PlacementWarningDialog({
           tone="warning"
           title="Umístění porušuje pravidla pokojů"
         >
+          {isUpdated ? (
+            <p className="mb-2">Pokoj se mezitím změnil. Upozornění jsou aktuální.</p>
+          ) : null}
           <ul className="list-disc space-y-1 pl-4">
             {warnings.map((warning) => (
               <li key={warning.kind}>{warningText(warning)}</li>
@@ -74,7 +83,7 @@ export function PlacementWarningDialog({
             <Checkbox
               id={lockId}
               checked={shouldLock}
-              onCheckedChange={(checked) => setShouldLock(checked === true)}
+              onCheckedChange={(checked) => onShouldLockChange(checked === true)}
             />
             <FieldLabel htmlFor={lockId}>Zamknout umístění</FieldLabel>
           </Field>
@@ -88,7 +97,7 @@ export function PlacementWarningDialog({
         <DialogActions
           submitLabel="Umístit i přesto"
           isPending={isSaving}
-          onSubmit={() => onConfirm(shouldLock)}
+          onSubmit={() => onConfirm()}
         />
       </DialogContent>
     </Dialog>

@@ -1,16 +1,26 @@
 import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
-import { placementsQueryOptions } from "@/features/accommodation/api/placementQueryOptions"
-import type { PlacementInput } from "@/features/accommodation/api/placementSchemas"
+import { readApiError } from "@/lib/apiError"
+
+import {
+  placementKeys,
+  placementsQueryOptions,
+} from "@/features/accommodation/api/placementQueryOptions"
+import type { TermPlacements } from "@/features/accommodation/api/placementSchemas"
 import { PlacementWarningDialog } from "@/features/accommodation/components/PlacementWarningDialog"
 import {
   RoomAssignment,
   type AssignmentTerm,
 } from "@/features/accommodation/components/RoomAssignment"
-import { useSavePlacement } from "@/features/accommodation/hooks/useSavePlacement"
 import {
+  useSavePlacement,
+  type PlacementChange,
+} from "@/features/accommodation/hooks/useSavePlacement"
+import {
+  describeWarnings,
+  offersLock,
   placementWarnings,
   toPlacementBoard,
   type PlacementWarning,
@@ -24,9 +34,18 @@ type Pending = {
   person: string
   roomId: string
   room: string
-  isLocked: boolean
   warnings: PlacementWarning[]
+  /** The server found other warnings than the board showed. */
+  isUpdated: boolean
+  shouldLock: boolean
 }
+
+/** Refusals a retry can't change: the dialog closes with the server's message. */
+const FINAL_REFUSALS = new Set([
+  "placement_locked",
+  "room_unavailable",
+  "participant_not_confirmed",
+])
 
 type RoomAssignmentSectionProps = {
   organizationId: string
@@ -39,7 +58,10 @@ type RoomAssignmentSectionProps = {
 
 // The saved room placements of the selected term (F14-2). A placement
 // without a warning is saved at once; one that breaks a room rule waits for
-// the organizer's confirmation in a dialog.
+// the organizer's confirmation in a dialog. The server checks the rules
+// again: when its room differs from the board's (someone else placed
+// meanwhile), the dialog shows the warnings it found, and only those
+// confirmed are saved.
 export function RoomAssignmentSection({
   organizationId,
   eventId,
@@ -47,52 +69,99 @@ export function RoomAssignmentSection({
   selectedTermId,
   onSelectTerm,
 }: RoomAssignmentSectionProps) {
+  const queryClient = useQueryClient()
   const placements = useQuery(placementsQueryOptions(organizationId, eventId, selectedTermId))
   const save = useSavePlacement(organizationId, eventId, selectedTermId)
   const [pending, setPending] = useState<Pending | null>(null)
+  const [saveError, setSaveError] = useState<string>()
   const data = placements.data
 
-  const store = async (personId: string, input: PlacementInput, success: string) => {
+  const askToConfirm = (
+    current: TermPlacements,
+    personId: string,
+    roomId: string,
+    warnings: PlacementWarning[],
+    isUpdated: boolean,
+  ) => {
+    const person = current.people.find((candidate) => candidate.registrationId === personId)
+    if (!person) {
+      setPending(null)
+      toast.error("Účastník už v termínu není potvrzený.")
+      return
+    }
+    setSaveError(undefined)
+    setPending((previous) => ({
+      termId: selectedTermId,
+      personId,
+      person: person.name,
+      roomId,
+      room: current.rooms.find((room) => room.id === roomId)?.label ?? "",
+      warnings,
+      isUpdated,
+      // The organizer's lock choice survives updated warnings.
+      shouldLock: previous?.personId === personId ? previous.shouldLock : false,
+    }))
+  }
+
+  const store = async (personId: string, change: PlacementChange, success: string) => {
     try {
-      await save.mutateAsync({ registrationId: personId, input })
+      const result = await save.mutateAsync({ registrationId: personId, change })
+      if (result.kind === "needs_confirmation" && change.kind === "place") {
+        // The placements reloaded with the answer; word the server's warnings from them.
+        const fresh =
+          queryClient.getQueryData<TermPlacements>(
+            placementKeys.term(organizationId, eventId, selectedTermId),
+          ) ?? data
+        if (fresh) {
+          askToConfirm(
+            fresh,
+            personId,
+            change.roomId,
+            describeWarnings(fresh, personId, change.roomId, result.warnings),
+            true,
+          )
+        }
+        return
+      }
       setPending(null)
       toast.success(success)
-    } catch {
-      // The dialog shows its own failure.
-      if (!pending) toast.error(`Umístění se nepodařilo uložit. ${SAVE_FAILED}`)
+    } catch (error) {
+      const { code, message } = readApiError(error)
+      const text = message ?? SAVE_FAILED
+      // The dialog shows a failure worth retrying; anything final closes it.
+      if (pending && !(code && FINAL_REFUSALS.has(code))) setSaveError(text)
+      else {
+        setPending(null)
+        toast.error(`Umístění se nepodařilo uložit. ${text}`)
+      }
     }
   }
 
   const handleMove = (personId: string, roomId: string | null) => {
     const person = data?.people.find((candidate) => candidate.registrationId === personId)
-    if (!data || !person) return
+    if (!data || !person || person.isLocked) return
     if (roomId === null) {
-      void store(personId, { roomId: null, isLocked: false }, "Účastník byl odebrán z pokoje.")
+      void store(personId, { kind: "remove" }, "Účastník byl odebrán z pokoje.")
+      return
+    }
+    if (!data.rooms.find((room) => room.id === roomId)?.isAvailable) {
+      toast.error("Pokoj v tomto termínu není k dispozici.")
       return
     }
     const warnings = placementWarnings(data, personId, roomId)
     if (warnings.length === 0) {
-      void store(personId, { roomId, isLocked: person.isLocked }, "Umístění bylo uloženo.")
+      void store(personId, { kind: "place", roomId, confirmWarnings: [] }, "Umístění bylo uloženo.")
       return
     }
     save.reset()
-    setPending({
-      termId: selectedTermId,
-      personId,
-      person: `${person.firstName} ${person.lastName}`,
-      roomId,
-      room: data.rooms.find((room) => room.id === roomId)?.label ?? "",
-      isLocked: person.isLocked,
-      warnings,
-    })
+    setPending(null)
+    askToConfirm(data, personId, roomId, warnings, false)
   }
 
   const handleLock = (personId: string, isLocked: boolean) => {
-    const person = data?.people.find((candidate) => candidate.registrationId === personId)
-    if (!person?.roomId) return
     void store(
       personId,
-      { roomId: person.roomId, isLocked },
+      { kind: "lock", isLocked },
       isLocked ? "Umístění bylo zamčeno." : "Umístění bylo odemčeno.",
     )
   }
@@ -116,15 +185,26 @@ export function RoomAssignmentSection({
           person={pending.person}
           room={pending.room}
           warnings={pending.warnings}
+          isUpdated={pending.isUpdated}
+          shouldLock={pending.shouldLock}
+          onShouldLockChange={(shouldLock) =>
+            setPending((current) => current && { ...current, shouldLock })
+          }
           isSaving={save.isPending}
-          saveError={save.isError ? SAVE_FAILED : undefined}
-          onConfirm={(shouldLock) =>
-            store(
+          saveError={saveError}
+          onConfirm={() => {
+            setSaveError(undefined)
+            return store(
               pending.personId,
-              { roomId: pending.roomId, isLocked: shouldLock || pending.isLocked },
+              {
+                kind: "place",
+                roomId: pending.roomId,
+                confirmWarnings: pending.warnings.map((warning) => warning.kind),
+                ...(pending.shouldLock && offersLock(pending.warnings) ? { lock: true } : {}),
+              },
               "Umístění bylo uloženo.",
             )
-          }
+          }}
           onCancel={() => setPending(null)}
         />
       ) : null}
