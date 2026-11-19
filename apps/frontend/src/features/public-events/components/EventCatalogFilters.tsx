@@ -97,6 +97,7 @@ export function EventCatalogFilters({ filter, onChange }: EventCatalogFiltersPro
             <FieldLabel htmlFor="catalog-place">Místo</FieldLabel>
             <Input
               id="catalog-place"
+              placeholder="např. Podlesí"
               value={filter.place ?? ""}
               onChange={(event) =>
                 onChange({ ...filter, place: textValue(event.currentTarget.value) })
