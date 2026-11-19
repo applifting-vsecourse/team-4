@@ -13,7 +13,7 @@ import {
 // (F35-2a). Amounts and outcomes are worked out by the server; the client only
 // shows them and sends back what the participant confirmed.
 
-export const changeKindSchema = z.enum(["data", "move", "cancel_terms", "cancel_all"])
+export const changeKindSchema = z.enum(["data", "move", "add_terms", "cancel_terms", "cancel_all"])
 
 export type ChangeKind = z.infer<typeof changeKindSchema>
 
@@ -131,6 +131,8 @@ export type ChangeProposal = {
   genderOther?: string | null
   moves: { fromTermId: string; toTermId: string; acceptRelease: boolean }[]
   cancelledTermIds: string[]
+  /** Terms of the event added next to the current ones (F35-2c); left out is none. */
+  addedTermIds?: string[]
 }
 
 export type SubmitChangeInput = ChangeProposal & {
