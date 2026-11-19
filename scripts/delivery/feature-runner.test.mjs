@@ -194,7 +194,10 @@ async function scenario(mode) {
       data = { number, title: `Issue ${number}`, body: 'Scope' };
     } else if (path.endsWith('/comments'))
       data =
-        path.includes('/issues/41/') && mode !== 'no-review' ? [verdict] : [];
+        path.includes('/issues/41/') &&
+        !['no-review', 'child-paused'].includes(mode)
+          ? [verdict]
+          : [];
     else if (path.endsWith('/issues/41/timeline'))
       // Retargeted after the only CI run: that run tested another base.
       data =
@@ -317,7 +320,9 @@ function run(mode) {
         GITHUB_REPOSITORY: 'owner/repo',
         GITHUB_TOKEN: 'mock',
         ONLY_ISSUE: '',
-        PAUSE_COPILOT_REVIEW: String(mode.startsWith('parent-paused')),
+        PAUSE_COPILOT_REVIEW: String(
+          mode.startsWith('parent-paused') || mode === 'child-paused',
+        ),
       },
     },
   );
@@ -343,6 +348,17 @@ test('a frontend child passes child-verify and Delivery stages without QA or hum
   // Both start pending, so an API error cannot leave an older pass current.
   for (const context of ['child-verify', 'Delivery stages'])
     assert.equal(statuses.find((s) => s.context === context).state, 'pending');
+});
+
+test('a child passes both required statuses without review when Copilot is paused', () => {
+  const { statuses, exit } = run('child-paused');
+  assert.equal(exit, 0);
+  assert.equal(latest(statuses, 'child-verify').state, 'success');
+  assert.match(
+    latest(statuses, 'Delivery stages').description,
+    /review requirement satisfied under repository Copilot pause/,
+  );
+  assert.equal(latest(statuses, 'Delivery stages').state, 'success');
 });
 
 for (const [mode, context, pattern] of [

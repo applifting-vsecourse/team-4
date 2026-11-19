@@ -186,7 +186,9 @@ findings and record a manual waiver, never a fabricated Copilot pass. A new
 commit needs a new waiver or review; recheck edited/deleted commands.
 During a Copilot outage, a repository administrator may set the Actions secret
 `PAUSE_COPILOT_REVIEW` to `true` to skip only Copilot for delivery to `main`,
-including stacks. See the [pause procedure](docs/delivery-workflow.md#pause-copilot-review-for-main).
+including stacks, and for child PRs into feature integration branches. The
+pause does not waive the review gate for integration PRs linked to the parent
+issue. See the [pause procedure](docs/delivery-workflow.md#pause-copilot-review-for-main-and-child-prs).
 Never manufacture passing gate evidence or bypass merge protection.
 
 ### Stacked PRs

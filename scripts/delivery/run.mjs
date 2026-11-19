@@ -38,6 +38,7 @@ const token = process.env.GITHUB_TOKEN;
 const runUrl = process.env.GITHUB_RUN_ID
   ? `https://github.com/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}`
   : undefined;
+const copilotReviewPaused = process.env.PAUSE_COPILOT_REVIEW === 'true';
 if (!repo || !token)
   throw new Error('GITHUB_REPOSITORY and GITHUB_TOKEN are required');
 async function api(path, method = 'GET', body) {
@@ -373,6 +374,7 @@ for (let pr of candidates) {
         sharedHead: shared,
         since,
         mainSync,
+        copilotReviewPaused,
         protectedBase: await protectedBranch(
           (path) => api(path),
           repo,
@@ -413,7 +415,7 @@ for (let pr of candidates) {
         ? reasons.join(' ')
         : mainSync
           ? `Verified merge-only sync for #${role.parent}: head tree matches the automatic merge of the current integration base and main.`
-          : `${role.kind === 'child' ? `Child of #${role.parent}` : `Integration work for #${role.parent}`}: agent review passed; requirements, QA and human review happen on the parent PR.`;
+          : `${role.kind === 'child' ? `Child of #${role.parent}` : `Integration work for #${role.parent}`}: ${copilotReviewPaused && role.kind === 'child' ? 'review requirement satisfied under repository Copilot pause' : 'agent review passed'}; requirements, QA and human review happen on the parent PR.`;
       // Another PR can overwrite Delivery stages on a shared commit, but
       // it cannot satisfy the integration branch's separate required status.
       if (verify.state === 'success' && reasons.length)
@@ -567,7 +569,6 @@ for (let pr of candidates) {
       issue.requirements = scope.approval;
       issue.requirementsVersion = scope.version;
     }
-    const copilotReviewPaused = process.env.PAUSE_COPILOT_REVIEW === 'true';
     const result = evaluate({
       pr,
       issues,
