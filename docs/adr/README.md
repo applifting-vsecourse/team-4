@@ -80,9 +80,9 @@ applies or changes an accepted decision mentions the ADR in its description.
 
 ## Index
 
-| ADR                                                           | Title                                                | Status   |
-| ------------------------------------------------------------- | ---------------------------------------------------- | -------- |
-| [0001](0001-feature-integration-branches.md)                  | Integrate FE/BE slices on integration branches       | Accepted |
-| [0002](0002-room-proposal-local-search.md)                    | Lay out room proposals by deterministic local search | Accepted |
-| [0003](0003-pause-copilot-review.md)                          | Pause Copilot review during outages                  | Accepted |
-| [0004](0004-pause-copilot-review-for-integration-children.md) | Pause Copilot review for integration child PRs       | Proposed |
+| ADR                                                           | Title                                                | Status     |
+| ------------------------------------------------------------- | ---------------------------------------------------- | ---------- |
+| [0001](0001-feature-integration-branches.md)                  | Integrate FE/BE slices on integration branches       | Accepted   |
+| [0002](0002-room-proposal-local-search.md)                    | Lay out room proposals by deterministic local search | Accepted   |
+| [0003](0003-pause-copilot-review.md)                          | Pause Copilot review during outages                  | Superseded |
+| [0004](0004-pause-copilot-review-for-integration-children.md) | Pause Copilot review for integration child PRs       | Accepted   |

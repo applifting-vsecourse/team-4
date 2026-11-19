@@ -413,20 +413,18 @@ for (let pr of candidates) {
       }
       const summary = reasons.length
         ? reasons.join(' ')
-        : mainSync
-          ? `Verified merge-only sync for #${role.parent}: head tree matches the automatic merge of the current integration base and main.`
-          : `${role.kind === 'child' ? `Child of #${role.parent}` : `Integration work for #${role.parent}`}: ${copilotReviewPaused && role.kind === 'child' ? 'review requirement satisfied under repository Copilot pause' : 'agent review passed'}; requirements, QA and human review happen on the parent PR.`;
+        : verify.state !== 'success'
+          ? verify.description
+          : mainSync
+            ? `Verified merge-only sync for #${role.parent}: head tree matches the automatic merge of the current integration base and main.`
+            : `${role.kind === 'child' ? `Child of #${role.parent}` : `Integration work for #${role.parent}`}: ${copilotReviewPaused && role.kind === 'child' ? 'review requirement satisfied under repository Copilot pause' : 'agent review passed'}; requirements, QA and human review happen on the parent PR.`;
+      const deliveryState = reasons.length ? 'failure' : verify.state;
       // Another PR can overwrite Delivery stages on a shared commit, but
       // it cannot satisfy the integration branch's separate required status.
-      if (verify.state === 'success' && reasons.length)
-        await publishChild('failure', summary);
+      if (reasons.length) await publishChild('failure', summary);
       else await publishChild(verify.state, verify.description);
-      await reconcileChecks(
-        pr,
-        reasons.length ? 'failure' : 'success',
-        summary,
-      );
-      await publish(reasons.length ? 'failure' : 'success', summary);
+      await reconcileChecks(pr, deliveryState, summary);
+      await publish(deliveryState, summary);
       // A PR opened on the same head while this ran would inherit the pass.
       const late = reasons.length ? [] : await sharedHead(pr);
       if (late.length) {
@@ -445,7 +443,7 @@ for (let pr of candidates) {
         continue;
       }
       console.log(
-        `#${pr.number}: child-verify ${verify.state}; ${reasons.length ? reasons.join(' ') : 'pass'}`,
+        `#${pr.number}: child-verify ${verify.state}; ${reasons.length ? reasons.join(' ') : verify.description}`,
       );
       continue;
     }

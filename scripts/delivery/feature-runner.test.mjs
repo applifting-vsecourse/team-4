@@ -124,7 +124,10 @@ async function scenario(mode) {
   const lanes = {
     checks: 'success',
     database: 'skipped',
-    stories: mode === 'ci-fail' ? 'failure' : 'success',
+    stories:
+      mode === 'ci-fail' || mode === 'child-paused-ci-fail'
+        ? 'failure'
+        : 'success',
     e2e: 'skipped',
     verify: 'failure',
   };
@@ -195,7 +198,7 @@ async function scenario(mode) {
     } else if (path.endsWith('/comments'))
       data =
         path.includes('/issues/41/') &&
-        !['no-review', 'child-paused'].includes(mode)
+        !['no-review', 'child-paused', 'child-paused-ci-fail'].includes(mode)
           ? [verdict]
           : [];
     else if (path.endsWith('/issues/41/timeline'))
@@ -218,7 +221,7 @@ async function scenario(mode) {
     else if (path.endsWith('/actions/runs'))
       data = {
         workflow_runs:
-          mode === 'no-ci'
+          mode === 'no-ci' || mode === 'child-paused-no-ci-unprotected'
             ? []
             : [
                 {
@@ -274,7 +277,7 @@ async function scenario(mode) {
       };
     else if (path.startsWith('/repos/owner/repo/rules/branches/'))
       data =
-        mode === 'unprotected'
+        mode === 'unprotected' || mode === 'child-paused-no-ci-unprotected'
           ? []
           : [
               { type: 'deletion' },
@@ -321,7 +324,10 @@ function run(mode) {
         GITHUB_TOKEN: 'mock',
         ONLY_ISSUE: '',
         PAUSE_COPILOT_REVIEW: String(
-          mode.startsWith('parent-paused') || mode === 'child-paused',
+          mode.startsWith('parent-paused') ||
+            mode === 'child-paused' ||
+            mode === 'child-paused-ci-fail' ||
+            mode === 'child-paused-no-ci-unprotected',
         ),
       },
     },
@@ -361,6 +367,30 @@ test('a child passes both required statuses without review when Copilot is pause
   assert.equal(latest(statuses, 'Delivery stages').state, 'success');
 });
 
+test('a paused child fails Delivery stages when a required CI lane fails', () => {
+  const { statuses, exit } = run('child-paused-ci-fail');
+  assert.equal(exit, 0);
+  assert.equal(latest(statuses, 'child-verify').state, 'failure');
+  assert.equal(latest(statuses, 'Delivery stages').state, 'failure');
+  assert.match(
+    latest(statuses, 'Delivery stages').description,
+    /stories \(failure\)/,
+  );
+});
+
+test('a paused child fails both statuses when a gate fails while CI is pending', () => {
+  const { statuses, exit } = run('child-paused-no-ci-unprotected');
+  assert.equal(exit, 0);
+  for (const context of ['child-verify', 'Delivery stages']) {
+    const status = latest(statuses, context);
+    assert.equal(status.state, 'failure');
+    assert.match(
+      status.description,
+      /not protected by the integration branch ruleset/,
+    );
+  }
+});
+
 for (const [mode, context, pattern] of [
   ['ci-fail', 'child-verify', /stories \(failure\)/],
   ['no-ci', 'child-verify', /Waiting for CI/],
@@ -370,7 +400,7 @@ for (const [mode, context, pattern] of [
   ['enforcement', 'Delivery stages', /cannot go through integration/],
   ['wrong-base', 'child-verify', /Waiting for CI/],
   ['foreign-branch', 'child-verify', /does not link integration/],
-  ['retargeted', 'child-verify', /Waiting for CI/],
+  ['retargeted', 'child-verify', /agent review has not passed/],
   ['late-shared', 'Delivery stages', /#60 share this head/],
   [
     'unprotected',
