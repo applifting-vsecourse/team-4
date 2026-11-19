@@ -314,16 +314,15 @@ async function closeScenario(mode) {
     else if (path === '/repos/owner/repo/issues/41/timeline') data = [];
     else if (path === '/repos/owner/repo/issues/41/comments')
       // The merged head passed review for #401 only.
-      data =
-        mode === 'unreviewed'
-          ? []
-          : [
-              {
-                user: { login: 'github-actions[bot]' },
-                created_at: '2005-01-01T00:00:00Z',
-                body: `<!-- agent-review-scope issue=401 -->\n<!-- agent-review pr=41 sha=${'a'.repeat(40)} result=pass attempt=1 -->\n`,
-              },
-            ];
+      data = ['unreviewed', 'paused-unreviewed'].includes(mode)
+        ? []
+        : [
+            {
+              user: { login: 'github-actions[bot]' },
+              created_at: '2005-01-01T00:00:00Z',
+              body: `<!-- agent-review-scope issue=401 -->\n<!-- agent-review pr=41 sha=${'a'.repeat(40)} result=pass attempt=1 -->\n`,
+            },
+          ];
     else if (options.method === 'PATCH') calls.push(JSON.stringify(body));
     return { ok: true, json: async () => data };
   };
@@ -355,6 +354,7 @@ function close(mode) {
         GITHUB_EVENT_PATH: `${process.env.TMPDIR ?? '/tmp'}/close-child-${process.pid}-${mode}.json`,
         GITHUB_REPOSITORY: 'owner/repo',
         GITHUB_TOKEN: 'mock',
+        PAUSE_COPILOT_REVIEW: String(mode === 'paused-unreviewed'),
       },
     },
   );
@@ -364,6 +364,14 @@ function close(mode) {
 test('a merged child PR closes its sub-issue as completed', () => {
   // Closed first, so a failed close is retried without a second comment.
   assert.deepEqual(close('child'), [
+    'PATCH /repos/owner/repo/issues/401',
+    JSON.stringify({ state: 'closed', state_reason: 'completed' }),
+    'POST /repos/owner/repo/issues/401/comments',
+  ]);
+});
+
+test('a paused child PR closes its sub-issue without inventing review evidence', () => {
+  assert.deepEqual(close('paused-unreviewed'), [
     'PATCH /repos/owner/repo/issues/401',
     JSON.stringify({ state: 'closed', state_reason: 'completed' }),
     'POST /repos/owner/repo/issues/401/comments',

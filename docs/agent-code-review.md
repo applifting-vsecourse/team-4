@@ -48,10 +48,12 @@ Samotné dokončení běhu ani absence komentářů úspěch neznamená.
 
 ## Pozastavení Copilot review
 
-Při vyčerpání kreditů lze pro PR směřující do `main` (včetně stacků)
-pozastavit Copilot review pomocí Actions secretu `PAUSE_COPILOT_REVIEW=true`.
-CI, schválení a QA nadále platí.
-Viz [postup zapnutí a vypnutí](delivery-workflow.md#pause-copilot-review-for-main).
+Při vyčerpání kreditů lze pro PR směřující do `main` (včetně stacků) a pro
+child PR do chráněné feature integrační větve pozastavit Copilot review pomocí
+Actions secretu `PAUSE_COPILOT_REVIEW=true`. CI a příslušná schválení nadále
+platí. Child PR sloučený během pozastavení se nezapočítá jako review důkaz pro
+parent PR.
+Viz [postup zapnutí a vypnutí](delivery-workflow.md#pause-copilot-review-for-main-and-child-prs).
 
 ## Ruční výjimka z Copilot review
 
