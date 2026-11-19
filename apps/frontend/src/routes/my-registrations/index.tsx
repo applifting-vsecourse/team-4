@@ -6,7 +6,6 @@ import { Seo } from "@/components/Seo"
 import { participantSessionQueryOptions } from "@/features/participant-access/api/participantQueryOptions"
 import { MagicLinkRequest } from "@/features/participant-access/components/MagicLinkRequest"
 import { ParticipantLayout } from "@/features/participant-access/components/ParticipantLayout"
-import { ParticipantLogoutButton } from "@/features/participant-access/components/ParticipantLogoutButton"
 import { ParticipantSessionEnded } from "@/features/participant-access/components/ParticipantSessionEnded"
 import { ParticipantRegistrationList } from "@/features/registrations/components/ParticipantRegistrationList"
 
@@ -37,7 +36,7 @@ function MyRegistrationsPage() {
   return (
     <>
       <Seo title="Moje přihlášky" />
-      <ParticipantLayout action={<ParticipantLogoutButton />}>
+      <ParticipantLayout participant={participant}>
         <ParticipantRegistrationList
           email={participant.email}
           sessionEnded={<ParticipantSessionEnded />}

@@ -1,14 +1,19 @@
-import { useState, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
-import { ChevronLeft, MapPin } from "lucide-react"
+import { Link, useRouterState } from "@tanstack/react-router"
+import { ChevronDown, MapPin } from "lucide-react"
 
-import { ROUTES } from "@/app/routes"
+import { ROUTES, SECTIONS } from "@/app/routes"
+import { BackLink } from "@/components/BackLink"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { RefreshButton } from "@/components/RefreshButton"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCalendarDate, formatCalendarRange, formatPragueDateTime } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
@@ -22,10 +27,8 @@ import { type ChangeProposal } from "@/features/registrations/api/registrationCh
 import { AccommodationCard } from "@/features/registrations/components/AccommodationCard"
 import { ChangeRequestCard } from "@/features/registrations/components/ChangeRequestCard"
 import { ChangeReviewDialog } from "@/features/registrations/components/ChangeReviewDialog"
-import { LoadFailedAlert } from "@/features/registrations/components/LoadFailedAlert"
 import { ParticipantPaymentSummary } from "@/features/registrations/components/ParticipantPaymentSummary"
 import { PaymentQrCard } from "@/features/registrations/components/PaymentQrCard"
-import { RefreshButton } from "@/features/registrations/components/RefreshButton"
 import { RegistrationChangeActions } from "@/features/registrations/components/RegistrationChangeActions"
 import { RegistrationHistory } from "@/features/registrations/components/RegistrationHistory"
 import { RegistrationNeedsSummary } from "@/features/registrations/components/RegistrationNeedsSummary"
@@ -43,18 +46,7 @@ import {
   isSessionRefused,
 } from "@/features/registrations/lib/sessionExpired"
 
-const BackToList = () => (
-  <Button
-    variant="ghost"
-    size="sm"
-    asChild
-  >
-    <Link to={ROUTES.myRegistrations}>
-      <ChevronLeft />
-      Moje přihlášky
-    </Link>
-  </Button>
-)
+const BackToList = () => <BackLink to={ROUTES.myRegistrations}>Moje přihlášky</BackLink>
 
 // One own registration (S2-14): terms, payment summary with the
 // stored instructions, and the history of received payments.
@@ -75,10 +67,18 @@ export function ParticipantRegistrationDetail({
   const changesQuery = useQuery(participantChangesQueryOptions(registrationId))
   const [cancelProposal, setCancelProposal] = useState<ChangeProposal | null>(null)
   const { data } = query
+  const hash = useRouterState({ select: (state) => state.location.hash })
+  const isLoaded = data !== undefined
+  // A link to a section (an Oznámení of a payment, S4-06) lands on it once the
+  // detail has loaded; the router scrolled before the section existed.
+  useEffect(() => {
+    if (isLoaded && hash) document.getElementById(hash)?.scrollIntoView()
+  }, [isLoaded, hash])
   const changes = changesQuery.data ?? []
-  // The newest change that needed the organizer; a direct one is history only.
-  const latest = changes[0]
-  const request = latest && latest.status !== "applied" ? latest : null
+  const pendingRequest = changes.find((change) => change.status === "pending")
+  const resolvedRequests = changes.filter(
+    (change) => change.status === "approved" || change.status === "rejected",
+  )
 
   if (query.isError && isSessionRefused(query.error)) return sessionEnded
   if (query.isError && isRegistrationUnavailable(query.error)) {
@@ -115,7 +115,7 @@ export function ParticipantRegistrationDetail({
       </div>
 
       {query.isError ? (
-        <LoadFailedAlert
+        <LoadError
           shownFrom={data ? query.dataUpdatedAt : undefined}
           isRetrying={query.isFetching}
           onRetry={() => query.refetch()}
@@ -124,19 +124,19 @@ export function ParticipantRegistrationDetail({
 
       {data ? (
         <>
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-h2 wrap-break-word">{data.event.name}</h1>
-              {data.isCancelled ? <Badge variant="secondary">Odhlášená přihláška</Badge> : null}
-            </div>
-            <p className="flex items-start gap-2 text-sm text-muted-foreground">
-              <MapPin
-                aria-hidden
-                className="mt-0.5 size-4 shrink-0"
-              />
-              <span className="wrap-break-word">{data.event.location}</span>
-            </p>
-          </div>
+          <PageHeader
+            title={data.event.name}
+            badge={data.isCancelled ? <Badge variant="secondary">Odhlášená přihláška</Badge> : null}
+            description={
+              <p className="flex items-start gap-2">
+                <MapPin
+                  aria-hidden
+                  className="mt-0.5 size-4 shrink-0"
+                />
+                <span className="wrap-break-word">{data.event.location}</span>
+              </p>
+            }
+          />
 
           {data.canChange ? (
             <section
@@ -158,34 +158,59 @@ export function ParticipantRegistrationDetail({
           ) : null}
 
           {changesQuery.isError ? (
-            <Alert variant="destructive">
-              <AlertDescription>
-                Změny přihlášky se nepodařilo načíst.{" "}
-                <Button
-                  variant="link"
-                  size="sm"
-                  onClick={() => void changesQuery.refetch()}
-                >
-                  Zkusit znovu
-                </Button>
-              </AlertDescription>
-            </Alert>
+            <LoadError
+              title="Změny přihlášky se nepodařilo načíst"
+              isRetrying={changesQuery.isFetching}
+              onRetry={() => changesQuery.refetch()}
+            />
           ) : null}
 
-          {request ? (
+          {pendingRequest ? (
             <ChangeRequestCard
-              status={
-                request.status === "pending"
-                  ? "pending"
-                  : request.status === "approved"
-                    ? "approved"
-                    : "rejected"
-              }
-              kind={describeKinds(request.kinds)}
-              submittedAt={formatChangeTime(request.createdAt)}
-              decidedAt={request.decidedAt ? formatChangeTime(request.decidedAt) : undefined}
-              summary={toSummaryProps(request.summary)}
+              status="pending"
+              kind={describeKinds(pendingRequest.kinds)}
+              submittedAt={formatChangeTime(pendingRequest.createdAt)}
+              summary={toSummaryProps(pendingRequest.summary)}
             />
+          ) : null}
+
+          {resolvedRequests.length > 0 ? (
+            <Collapsible>
+              <section aria-labelledby="change-requests-heading">
+                <h2 id="change-requests-heading">
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="group w-full justify-between"
+                    >
+                      <span>Žádosti o změnu ({resolvedRequests.length})</span>
+                      <ChevronDown
+                        aria-hidden
+                        className="transition-transform group-data-[state=open]:rotate-180"
+                      />
+                    </Button>
+                  </CollapsibleTrigger>
+                </h2>
+                <CollapsibleContent>
+                  <ul className="space-y-4 pt-4">
+                    {resolvedRequests.map((request) => (
+                      <li key={request.id}>
+                        <ChangeRequestCard
+                          status={request.status === "approved" ? "approved" : "rejected"}
+                          kind={describeKinds(request.kinds)}
+                          submittedAt={formatChangeTime(request.createdAt)}
+                          decidedAt={
+                            request.decidedAt ? formatChangeTime(request.decidedAt) : undefined
+                          }
+                          summary={toSummaryProps(request.summary)}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </CollapsibleContent>
+              </section>
+            </Collapsible>
           ) : null}
 
           <Card>
@@ -217,7 +242,6 @@ export function ParticipantRegistrationDetail({
               <ParticipantPaymentSummary
                 selectedPriceMinor={data.selectedPriceMinor}
                 amountDueMinor={data.amountDueMinor}
-                paidMinor={data.paidMinor}
                 balanceMinor={data.balanceMinor}
                 instructions={data.paymentInstructions}
               />
@@ -227,7 +251,10 @@ export function ParticipantRegistrationDetail({
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            id={SECTIONS.receivedPayments}
+            className="scroll-mt-20"
+          >
             <CardHeader>
               <CardTitle>Přijaté platby</CardTitle>
             </CardHeader>
@@ -281,15 +308,14 @@ export function ParticipantRegistrationDetail({
           )}
         </>
       ) : query.isPending ? (
-        <div
+        <LoadingBlock
+          label="Načítání přihlášky"
           className="space-y-4"
-          role="status"
-          aria-label="Načítání přihlášky"
         >
           <Skeleton className="h-10 w-2/3" />
           <Skeleton className="h-40 w-full" />
           <Skeleton className="h-48 w-full" />
-        </div>
+        </LoadingBlock>
       ) : null}
     </section>
   )

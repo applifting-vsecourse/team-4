@@ -30,3 +30,4 @@ jobs:
       - run: node scripts/delivery/close-child.mjs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAUSE_COPILOT_REVIEW: ${{ secrets.PAUSE_COPILOT_REVIEW }}

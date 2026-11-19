@@ -3,12 +3,32 @@ import { z } from "zod"
 
 import { env } from "@/config/env"
 
+import type { EventPayments } from "@/features/registrations/api/eventRegistrationSchemas"
+import type {
+  AvailableTerm,
+  ParticipantRegistration,
+} from "@/features/registrations/api/participantRegistrationSchemas"
+import type { QrPaymentPage } from "@/features/registrations/api/qrPaymentSchemas"
+import type {
+  ChangePreview,
+  RegistrationChange,
+} from "@/features/registrations/api/registrationChangeSchemas"
 import { registrationNeedsSchema } from "@/features/registrations/api/registrationSchemas"
+import type { RegistrationResult } from "@/features/registrations/api/registrationSchemas"
 import {
   AVAILABLE_TERMS,
   OWN_REGISTRATIONS,
 } from "@/features/registrations/fixtures/participantRegistrations"
 import {
+  makeQrPaymentPage,
+  makeRegistrationResult,
+} from "@/features/registrations/fixtures/publicRegistration"
+import {
+  makeChangePreview,
+  makeOwnChange,
+} from "@/features/registrations/fixtures/registrationChanges"
+import {
+  makeEventPayments,
   makeRegistrationDetail,
   makeRegistrationList,
 } from "@/features/registrations/fixtures/registrations"
@@ -19,6 +39,10 @@ import {
 const EVENT_LIST = `${env.VITE_API_URL}/organizations/:organizationId/events/:eventId/registrations`
 const EVENT_CHANGES = `${env.VITE_API_URL}/organizations/:organizationId/events/:eventId`
 const OWN_LIST = `${env.VITE_API_URL}/participant/registrations`
+const PUBLIC_SUBMIT = `${env.VITE_API_URL}/public/events/:publicId/registrations`
+const QR_PAYMENT = `${env.VITE_API_URL}/public/payments/:token`
+
+const qrPaymentInputSchema = z.object({ amountMinor: z.number().int() })
 
 const registrationNeedsCorrectionSchema = z.object({
   expectedVersion: z.number().int(),
@@ -28,8 +52,28 @@ const registrationNeedsCorrectionSchema = z.object({
 const notFound = () => HttpResponse.json({ message: "Not Found" }, { status: 404 })
 
 export const registrationHandlers = {
+  /** The public form saves the registration and answers with its result. */
+  submitted: (result: RegistrationResult = makeRegistrationResult()) => [
+    http.post(PUBLIC_SUBMIT, () => HttpResponse.json(result, { status: 201 })),
+  ],
+  /** The QR payment page; a payment lowers the debt by the amount paid. */
+  qrPayment: (page: QrPaymentPage = makeQrPaymentPage()) => [
+    http.get(QR_PAYMENT, () => HttpResponse.json(page)),
+    http.post(QR_PAYMENT, async ({ request }) => {
+      const { amountMinor } = qrPaymentInputSchema.parse(await request.json())
+      return HttpResponse.json({
+        paidMinor: amountMinor,
+        balanceMinor: page.balanceMinor - amountMinor,
+      })
+    }),
+  ],
+  /** Správa akce → Platby: received payments and balances (S4-09). */
+  eventPayments: (overview: EventPayments = makeEventPayments()) => [
+    http.get(`${EVENT_CHANGES}/payments`, () => HttpResponse.json(overview)),
+  ],
   event: () => [
     http.get(EVENT_LIST, () => HttpResponse.json(makeRegistrationList())),
+    http.get(`${EVENT_CHANGES}/payments`, () => HttpResponse.json(makeEventPayments())),
     http.get(`${EVENT_CHANGES}/change-requests`, () => HttpResponse.json({ changes: [] })),
     http.get(`${EVENT_LIST}/:registrationId/changes`, () => HttpResponse.json({ changes: [] })),
     http.put(`${EVENT_LIST}/:registrationId/needs`, async ({ request }) => {
@@ -65,5 +109,43 @@ export const registrationHandlers = {
         ? HttpResponse.json({ ...registration, availableTerms: AVAILABLE_TERMS })
         : notFound()
     }),
+  ],
+  /** Requests waiting for the organizer's decision, for the whole event. */
+  eventChangeRequests: (changes: RegistrationChange[]) => [
+    http.get(`${EVENT_CHANGES}/change-requests`, () => HttpResponse.json({ changes })),
+  ],
+  /** Changes of one registration as the organizer sees them. */
+  registrationChanges: (changes: RegistrationChange[]) => [
+    http.get(`${EVENT_LIST}/:registrationId/changes`, () => HttpResponse.json({ changes })),
+  ],
+  /** The own registration, changed for one story (cancelled, pending request…). */
+  ownRegistration: (
+    registration: ParticipantRegistration,
+    availableTerms: AvailableTerm[] = AVAILABLE_TERMS,
+  ) => [
+    http.get(`${OWN_LIST}/:registrationId`, () =>
+      HttpResponse.json({ ...registration, availableTerms }),
+    ),
+  ],
+  /** Stored changes of the own registration: requests and their history. */
+  ownChanges: (changes: RegistrationChange[]) => [
+    http.get(`${OWN_LIST}/:registrationId/changes`, () => HttpResponse.json({ changes })),
+  ],
+  /** What the server shows before a change, and how it stores it. */
+  ownChange: (
+    preview: ChangePreview = makeChangePreview(),
+    outcome: "applied" | "requested" = preview.requiresApproval ? "requested" : "applied",
+  ) => [
+    http.post(`${OWN_LIST}/:registrationId/changes/preview`, () => HttpResponse.json(preview)),
+    http.post(`${OWN_LIST}/:registrationId/changes`, () =>
+      HttpResponse.json({
+        outcome,
+        change: makeOwnChange({
+          status: outcome === "applied" ? "applied" : "pending",
+          kinds: preview.kinds,
+          summary: preview.summary,
+        }),
+      }),
+    ),
   ],
 }

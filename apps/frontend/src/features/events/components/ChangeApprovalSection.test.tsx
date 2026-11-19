@@ -129,7 +129,6 @@ describe("ChangeApprovalSection", () => {
     await userEvent.click(save())
 
     expect(await screen.findByText("Uložení se nezdařilo")).toBeVisible()
-    await userEvent.click(screen.getByRole("button", { name: "Zavřít" }))
     expect(input()).toHaveValue("3")
     expect(
       screen.getByText("Schvalujete změny přihlášek od 7 dnů před začátkem termínu"),

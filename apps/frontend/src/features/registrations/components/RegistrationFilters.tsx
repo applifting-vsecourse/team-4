@@ -1,7 +1,14 @@
-import { X } from "lucide-react"
+import { useRef } from "react"
+import { Search, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
+import { Field, FieldLabel } from "@/components/ui/field"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group"
 import {
   Select,
   SelectContent,
@@ -9,13 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { PARTICIPATION_LABELS } from "@/lib/participation"
 
 import {
   paymentStateSchema,
   type RegistrationFilter,
 } from "@/features/registrations/api/eventRegistrationSchemas"
 import { activeParticipationStatusSchema } from "@/features/registrations/api/registrationSchemas"
-import { PARTICIPATION_LABELS } from "@/features/registrations/components/ParticipationBadge"
 import { PAYMENT_STATE_LABELS } from "@/features/registrations/components/PaymentStateBadge"
 
 // A select cannot hold an empty value, so "no filter" has its own.
@@ -29,13 +36,54 @@ type RegistrationFiltersProps = {
 }
 
 export function RegistrationFilters({ terms, filter, onChange }: RegistrationFiltersProps) {
-  const isFiltered = Boolean(filter.termId ?? filter.status ?? filter.payment)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const isFiltered = Boolean(filter.termId ?? filter.status ?? filter.payment ?? filter.q?.trim())
   const set = (key: keyof RegistrationFilter, value: string) =>
     onChange({ ...filter, [key]: value === ALL ? undefined : value })
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:items-end">
+        <Field className="min-w-0 lg:flex-1">
+          <FieldLabel htmlFor="filter-search">Hledat účastníka</FieldLabel>
+          <InputGroup>
+            <InputGroupAddon>
+              <Search
+                aria-hidden="true"
+                className="transition-[color,transform] duration-200 ease-out group-focus-within/input-group:scale-110 group-focus-within/input-group:text-foreground"
+              />
+            </InputGroupAddon>
+            <InputGroupInput
+              ref={searchInputRef}
+              id="filter-search"
+              type="text"
+              role="searchbox"
+              value={filter.q ?? ""}
+              placeholder="Jméno nebo e-mail"
+              onChange={(event) =>
+                onChange({
+                  ...filter,
+                  q: event.currentTarget.value.trim() ? event.currentTarget.value : undefined,
+                })
+              }
+            />
+            {filter.q ? (
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  aria-label="Vymazat hledání"
+                  title="Vymazat hledání"
+                  size="icon-sm"
+                  onClick={() => {
+                    onChange({ ...filter, q: undefined })
+                    searchInputRef.current?.focus()
+                  }}
+                >
+                  <X aria-hidden="true" />
+                </InputGroupButton>
+              </InputGroupAddon>
+            ) : null}
+          </InputGroup>
+        </Field>
         <FilterSelect
           id="filter-term"
           label="Termín"
@@ -66,16 +114,18 @@ export function RegistrationFilters({ terms, filter, onChange }: RegistrationFil
           }))}
           allLabel="Všechny platby"
         />
+        {isFiltered ? (
+          <div className="grid min-w-0 gap-1.5 self-end lg:flex-none">
+            <Button
+              variant="ghost"
+              onClick={() => onChange({})}
+            >
+              <X />
+              Zrušit filtry
+            </Button>
+          </div>
+        ) : null}
       </div>
-      {isFiltered ? (
-        <Button
-          variant="ghost"
-          onClick={() => onChange({})}
-        >
-          <X />
-          Zrušit filtry
-        </Button>
-      ) : null}
     </div>
   )
 }
@@ -91,8 +141,8 @@ type FilterSelectProps = {
 
 function FilterSelect({ id, label, value, onValueChange, options, allLabel }: FilterSelectProps) {
   return (
-    <div className="grid min-w-0 gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
+    <Field className="min-w-0 lg:flex-1">
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <Select
         value={value ?? ALL}
         onValueChange={onValueChange}
@@ -115,6 +165,6 @@ function FilterSelect({ id, label, value, onValueChange, options, allLabel }: Fi
           ))}
         </SelectContent>
       </Select>
-    </div>
+    </Field>
   )
 }

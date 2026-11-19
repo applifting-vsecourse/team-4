@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 // (backend, already done), and the parent PR #50 from the branch into main.
 // Copilot is never called: the child's pass is seeded, and the parent's review
 // carries over from it.
-async function flow() {
+async function flow(pauseCopilot = false) {
   const assert = (await import('node:assert/strict')).default;
   const { setTimeout: sleep } = await import('node:timers/promises');
 
@@ -71,15 +71,18 @@ async function flow() {
   const comments = new Map([
     [400, []],
     [401, []],
-    // The child already passed review on its current commit.
+    // Normal flow has a review pass. Under the repository pause there is no
+    // review record, and the runner must skip Copilot without fabricating one.
     [
       41,
-      [
-        bot(
-          `<!-- agent-review-scope issue=401 -->\n<!-- agent-review pr=41 sha=${childSha} result=pass attempt=1 -->\nok`,
-          '2002-01-01T00:00:00Z',
-        ),
-      ],
+      pauseCopilot
+        ? []
+        : [
+            bot(
+              `<!-- agent-review-scope issue=401 -->\n<!-- agent-review pr=41 sha=${childSha} result=pass attempt=1 -->\nok`,
+              '2002-01-01T00:00:00Z',
+            ),
+          ],
     ],
     [50, []],
   ]);
@@ -313,18 +316,22 @@ async function flow() {
             run_attempt: 1,
             head_sha: childSha,
             head_branch: child.head.ref,
+            event: 'pull_request',
             path: '.github/workflows/ci.yml',
             repository,
             head_repository: repository,
             created_at: '2003-01-01T00:00:00Z',
             status: 'completed',
-            conclusion: 'failure',
+            conclusion: pauseCopilot ? 'success' : 'failure',
             html_url: 'https://example.test/run',
             pull_requests: [{ number: 41, base: { ref: BRANCH } }],
           },
         ].filter((run) => run.head_sha === searchParams.get('head_sha')),
       };
-    else if (path.endsWith('/actions/runs/7/jobs'))
+    else if (
+      path.endsWith('/actions/runs/7/jobs') ||
+      path.endsWith('/actions/runs/7/attempts/1/jobs')
+    )
       data = {
         jobs: ['checks', 'stories', 'database', 'e2e', 'verify'].map(
           (name) => ({
@@ -422,6 +429,28 @@ async function flow() {
     label: 'area:frontend',
   });
 
+  if (pauseCopilot) {
+    assert.equal(board.get(401), 'Ready for Code Review');
+    assert.equal(status(41).state, 'success', status(41).description);
+    assert.equal(status(41, 'child-verify').state, 'success');
+    assert.ok(
+      !comments.get(41).some((c) => c.body.includes('result=pass')),
+      'a pause must not fabricate a passing review',
+    );
+    assert.ok(
+      comments
+        .get(401)
+        .some((c) =>
+          c.body.includes(
+            'Copilot review was skipped under the repository pause',
+          ),
+        ),
+    );
+    console.log(JSON.stringify({ ok: true }));
+    process.exitCode = 0;
+    return;
+  }
+
   // 4. A sub-issue reopened while the parent is reviewed: no QA handoff.
   reopenDuringReview = true;
   await review();
@@ -463,10 +492,14 @@ async function flow() {
   process.exitCode = 0;
 }
 
-test('a feature goes from a reviewed child PR to one QA approval of its parent PR', () => {
+function runFlow(pauseCopilot) {
   const out = execFileSync(
     process.execPath,
-    ['--input-type=module', '-e', `await (${flow.toString()})()`],
+    [
+      '--input-type=module',
+      '-e',
+      `await (${flow.toString()})(${JSON.stringify(pauseCopilot)})`,
+    ],
     {
       encoding: 'utf8',
       env: {
@@ -482,9 +515,18 @@ test('a feature goes from a reviewed child PR to one QA approval of its parent P
         FORCE: 'false',
         ONLY_ISSUE: '',
         GITHUB_RUN_ID: '',
+        PAUSE_COPILOT_REVIEW: String(pauseCopilot),
       },
       stdio: ['pipe', 'pipe', 'pipe'],
     },
   );
   if (!out.includes('"ok":true')) throw new Error(out);
+}
+
+test('a feature goes from a reviewed child PR to one QA approval of its parent PR', () => {
+  runFlow(false);
+});
+
+test('a paused child PR passes both delivery gates and closes its sub-issue without a fake review pass', () => {
+  runFlow(true);
 });

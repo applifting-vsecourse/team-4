@@ -7,6 +7,7 @@ const VALID = {
   title: " Večeře ",
   date: "2026-11-06",
   time: "19:00",
+  endTime: "21:00",
   place: "  ",
   description: "",
 }
@@ -18,6 +19,7 @@ describe("readProgrammeForm", () => {
         title: "Večeře",
         startDate: "2026-11-06",
         startTime: "19:00",
+        endTime: "21:00",
         place: null,
         description: null,
       },
@@ -46,5 +48,19 @@ describe("readProgrammeForm", () => {
   it("refuses an impossible date and a time that is not HH:mm", () => {
     expect("errors" in readProgrammeForm({ ...VALID, date: "2026-02-31" }, TERM)).toBe(true)
     expect("errors" in readProgrammeForm({ ...VALID, time: "24:00" }, TERM)).toBe(true)
+  })
+
+  it("requires an end time later than the start", () => {
+    const message = "Čas konce musí být pozdější než čas začátku."
+    expect(readProgrammeForm({ ...VALID, endTime: "" }, TERM)).toEqual({
+      errors: { endTime: "Zadejte čas konce." },
+    })
+    expect(readProgrammeForm({ ...VALID, endTime: "19:00" }, TERM)).toEqual({
+      errors: { endTime: message },
+    })
+    expect(readProgrammeForm({ ...VALID, endTime: "18:59" }, TERM)).toEqual({
+      errors: { endTime: message },
+    })
+    expect("input" in readProgrammeForm({ ...VALID, endTime: "19:01" }, TERM)).toBe(true)
   })
 })

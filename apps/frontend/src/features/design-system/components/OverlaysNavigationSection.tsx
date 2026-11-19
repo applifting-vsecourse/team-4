@@ -1,12 +1,5 @@
 import { useState } from "react"
-import {
-  Check,
-  ChevronsUpDown,
-  CreditCard,
-  LayoutDashboard,
-  MoreHorizontal,
-  Users,
-} from "lucide-react"
+import { CreditCard, LayoutDashboard, MoreHorizontal, Users } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -18,14 +11,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
+import { Combobox } from "@/components/ui/combobox"
 import {
   Dialog,
   DialogClose,
@@ -43,7 +29,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Sidebar,
   SidebarContent,
@@ -56,7 +41,6 @@ import {
 } from "@/components/ui/sidebar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { cn } from "@/lib/utils"
 
 import { ShowcaseItem, ShowcaseSection } from "./ShowcaseSection"
 
@@ -73,50 +57,17 @@ const SIDEBAR_ITEMS = [
 ]
 
 function EventCombobox() {
-  const [isOpen, setIsOpen] = useState(false)
   const [value, setValue] = useState("")
-  const selected = EVENTS.find((event) => event.value === value)
-
   return (
-    <Popover
-      open={isOpen}
-      onOpenChange={setIsOpen}
-    >
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={isOpen}
-          className="w-full justify-between font-normal"
-        >
-          {selected?.label ?? "Vyberte akci"}
-          <ChevronsUpDown className="opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-(--radix-popover-trigger-width) p-0">
-        <Command>
-          <CommandInput placeholder="Hledat akci…" />
-          <CommandList>
-            <CommandEmpty>Nic nenalezeno.</CommandEmpty>
-            <CommandGroup>
-              {EVENTS.map((event) => (
-                <CommandItem
-                  key={event.value}
-                  value={event.label}
-                  onSelect={() => {
-                    setValue(event.value)
-                    setIsOpen(false)
-                  }}
-                >
-                  <Check className={cn(event.value === value ? "opacity-100" : "opacity-0")} />
-                  {event.label}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <Combobox
+      aria-label="Akce"
+      options={EVENTS}
+      value={value}
+      onValueChange={setValue}
+      placeholder="Vyberte akci"
+      searchPlaceholder="Hledat akci…"
+      emptyText="Nic nenalezeno."
+    />
   )
 }
 
@@ -152,7 +103,7 @@ export function OverlaysNavigationSection() {
               </DialogContent>
             </Dialog>
           </ShowcaseItem>
-          <ShowcaseItem label="Popover + Command (combobox)">
+          <ShowcaseItem label="Combobox (Popover + Command)">
             <EventCombobox />
           </ShowcaseItem>
           <ShowcaseItem label="DropdownMenu">
@@ -193,6 +144,18 @@ export function OverlaysNavigationSection() {
                 onClick={() => toast.error("Platbu se nepodařilo uložit")}
               >
                 Chybový toast
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => toast.warning("Termín je skoro plný")}
+              >
+                Varovný toast
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => toast.info("Návrh se přepočítává")}
+              >
+                Informační toast
               </Button>
             </div>
           </ShowcaseItem>

@@ -1,8 +1,8 @@
 import { severityFor, sameSeverity } from '../delivery/severity.mjs';
-import { copilotWaiver, waiverMarker } from '../delivery/copilot-waiver.mjs';
+import { copilotWaiver } from '../delivery/copilot-waiver.mjs';
 import {
   evaluate,
-  readyMarker,
+  qaHandoffMarker,
   requirementsApproval,
   reviewersFor,
 } from '../delivery/lib.mjs';
@@ -15,6 +15,7 @@ export async function ensureQaReviewRequest({
   issue,
   dryRun,
   waiver,
+  copilotReviewPaused = false,
   stacked = false,
   log = console.log,
 }) {
@@ -49,7 +50,15 @@ export async function ensureQaReviewRequest({
     return 'stale';
   }
   const reviewer = reviewersFor(current.user.login).qa;
-  if (evaluate({ pr: current, issues: [issue], reviews, comments }).pass)
+  if (
+    evaluate({
+      pr: current,
+      issues: [issue],
+      reviews,
+      comments,
+      copilotReviewPaused,
+    }).pass
+  )
     return 'approved';
 
   if (dryRun) {
@@ -63,9 +72,10 @@ export async function ensureQaReviewRequest({
       (c) =>
         c.user?.login === 'github-actions[bot]' &&
         (c.body ?? '').startsWith(
-          readyMarker(pr.number, pr.head.sha, issue.number) +
-            '\n' +
-            (waiver ? waiverMarker(waiver) + '\n' : ''),
+          qaHandoffMarker(pr.number, pr.head.sha, issue.number, {
+            waiver,
+            copilotReviewPaused,
+          }) + '\n',
         ),
     )
   )

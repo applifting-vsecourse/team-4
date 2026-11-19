@@ -1,0 +1,7 @@
+"Výpis č. 8/2027 z účtu ""2001234567/2010""";
+"Období: 01.08.2027 - 31.08.2027";
+"";
+"ID operace";"Datum";"Objem";"Měna";"Protiúčet";"Název protiúčtu";"Kód banky";"Název banky";"KS";"VS";"SS";"Poznámka";"Zpráva pro příjemce";"Typ"
+"27001001";"02.08.2027";"3 500,00";"CZK";"123456789";"Jan Novák";"0100";"KB";"";"1001";"";"";"Tábor Novák";"Bezhotovostní příjem"
+"27001002";"04.08.2027";"1 750,00";"CZK";"987654321";"Petra Svobodová";"0300";"ČSOB";"";"1002";"";"";"Záloha";"Bezhotovostní příjem"
+"27001003";"05.08.2027";"-420,00";"CZK";"555666777";"Obchod";"0800";"ČS";"";"";"";"";"Nákup";"Platba kartou"

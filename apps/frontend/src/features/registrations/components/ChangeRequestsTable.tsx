@@ -1,8 +1,8 @@
 import type { ReactNode } from "react"
 import { ClipboardCheck } from "lucide-react"
 
+import { EmptyState } from "@/components/EmptyState"
 import { Card } from "@/components/ui/card"
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import {
   Table,
   TableBody,
@@ -36,14 +36,10 @@ type ChangeRequestsTableProps = {
 export function ChangeRequestsTable({ requests, renderRowLink }: ChangeRequestsTableProps) {
   if (requests.length === 0) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <ClipboardCheck />
-          </EmptyMedia>
-          <EmptyTitle>Žádné změny nečekají na schválení.</EmptyTitle>
-        </EmptyHeader>
-      </Empty>
+      <EmptyState
+        icon={ClipboardCheck}
+        title="Žádné změny nečekají na schválení"
+      />
     )
   }
 

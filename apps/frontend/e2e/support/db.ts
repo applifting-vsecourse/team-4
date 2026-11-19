@@ -103,6 +103,16 @@ export async function registrationIdOf(email: string): Promise<string> {
   return rows[0]!.id
 }
 
+/** The registration's variable symbol, which a bank statement refers to (F24). */
+export async function variableSymbolOf(registrationId: string): Promise<string> {
+  const { rows } = await db().query<{ variableSymbol: string }>(
+    `SELECT "variableSymbol" FROM registration WHERE id = $1`,
+    [registrationId],
+  )
+  if (rows.length !== 1) throw new Error(`No registration ${registrationId}`)
+  return rows[0]!.variableSymbol
+}
+
 /** The id of a registration's term labelled `label`, for terms created in the UI. */
 export async function termIdOf(registrationId: string, label: string): Promise<string> {
   const { rows } = await db().query<{ id: string }>(
@@ -112,16 +122,4 @@ export async function termIdOf(registrationId: string, label: string): Promise<s
   )
   if (rows.length !== 1) throw new Error(`No term ${label} in registration ${registrationId}`)
   return rows[0]!.id
-}
-
-/**
- * Stand-in for the accommodation rules (#17) until they can be edited: gender
- * splits the rooms of the event, "Jiná odpověď" and "Nechci uvést" place nobody.
- */
-export async function setGenderHardAttribute(eventId: string): Promise<void> {
-  await db().query(
-    `INSERT INTO accommodation_rules ("eventId", "hardAttribute", "nonDeterminingValues", "updatedAt")
-     VALUES ($1, 'gender', ARRAY['other', 'undisclosed'], now())`,
-    [eventId],
-  )
 }

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/lib/api-client"
+import { clearRegistrationDrafts } from "@/lib/registrationDraftStorage"
 
 import { participantKeys } from "@/features/participant-access/api/participantQueryOptions"
 
@@ -13,6 +14,11 @@ export function useParticipantLogout() {
     },
     onSuccess: () => {
       queryClient.setQueryData(participantKeys.session(), null)
+      // Nothing of the account stays for the next visitor, not even the
+      // contact details in an unsent registration form.
+      queryClient.removeQueries({ queryKey: participantKeys.profile() })
+      queryClient.removeQueries({ queryKey: participantKeys.notifications() })
+      clearRegistrationDrafts()
     },
   })
 }

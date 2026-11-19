@@ -27,6 +27,14 @@ vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
     <a href={to}>{children}</a>
   ),
+  createLink:
+    (Anchor: React.ComponentType<React.AnchorHTMLAttributes<HTMLAnchorElement>>) =>
+    ({ children, to }: { children: React.ReactNode; to: string }) => (
+      <Anchor href={to}>{children}</Anchor>
+    ),
+  // Opened without a hash: no section to scroll to.
+  useRouterState: ({ select }: { select: (state: { location: { hash: string } }) => unknown }) =>
+    select({ location: { hash: "" } }),
 }))
 
 const REGISTRATION: DetailData = {
@@ -126,8 +134,9 @@ describe("ParticipantRegistrationDetail", () => {
 
     const value = (label: string) =>
       plain(screen.getByText(label, { selector: "dt" }).nextElementSibling?.textContent)
-    expect(value("Zaplaceno")).toBe("2 000 Kč")
+    expect(value("Cena celkem")).toBe("9 000 Kč")
     expect(value("Zbývá zaplatit")).toBe("2 500 Kč")
+    expect(screen.queryByText("Zaplaceno", { selector: "dt" })).not.toBeInTheDocument()
     expect(value("Číslo účtu")).toBe("2501234567/2010")
     expect(value("Variabilní symbol")).toBe("2610190042")
     expect(value("Datum připomenutí platby")).toBe("28. 6. 2027")
@@ -177,9 +186,7 @@ describe("ParticipantRegistrationDetail", () => {
   it("never shows a failed first load as an empty detail", async () => {
     serve(failWith(500))
     renderDetail()
-    expect(
-      await screen.findByText("Data se nepodařilo načíst. Zkuste to znovu."),
-    ).toBeInTheDocument()
+    expect(await screen.findByText("Data se nepodařilo načíst")).toBeInTheDocument()
     expect(screen.queryByText("Termíny")).not.toBeInTheDocument()
   })
 })

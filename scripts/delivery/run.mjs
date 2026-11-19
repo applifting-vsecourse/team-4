@@ -1,4 +1,5 @@
 import { severityFor, sameSeverity, validateSeverity } from './severity.mjs';
+import { automaticMergeTreeSha, fetchMergeHistory } from './merge-tree.mjs';
 import { eventScope } from '../automation/events.mjs';
 import {
   evaluate,
@@ -14,13 +15,16 @@ import {
   resumableBase,
 } from './stack.mjs';
 import { issueRequirements, scopeHash } from './requirements.mjs';
-import { dependencyScope, isDependencyUpdate } from './dependency-update.mjs';
+import { isDependencyUpdate } from './dependency-update.mjs';
+import { onlyDependabotCommits, pullCommits } from './dependency-merge.mjs';
 import { copilotWaiver } from './copilot-waiver.mjs';
+import { ADR_DIR, adrReasons, changedAdrs } from './adr.mjs';
 import { referencedIssueNumbers } from '../automation/issue-links.mjs';
 import {
   childVerify,
   integrationRole,
   integrationStages,
+  isVerifiedMainSync,
   fromIntegrationBranch,
   isIntegrationBranch,
   isParentPr,
@@ -34,6 +38,7 @@ const token = process.env.GITHUB_TOKEN;
 const runUrl = process.env.GITHUB_RUN_ID
   ? `https://github.com/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}`
   : undefined;
+const copilotReviewPaused = process.env.PAUSE_COPILOT_REVIEW === 'true';
 if (!repo || !token)
   throw new Error('GITHUB_REPOSITORY and GITHUB_TOKEN are required');
 async function api(path, method = 'GET', body) {
@@ -95,6 +100,28 @@ async function issuesFor(pr) {
   if (issues.some((i) => i.repository.nameWithOwner !== repo))
     throw new Error('Cross-repository issue links are not supported');
   return issues;
+}
+
+// The entries of docs/adr/ at a commit or branch; empty when it is absent. A
+// listing reports symlinks and directories as such instead of following them.
+async function adrEntries(ref) {
+  let entries;
+  try {
+    entries = await api(
+      `/repos/${repo}/contents/${ADR_DIR}?ref=${encodeURIComponent(ref)}`,
+    );
+  } catch (error) {
+    if (error.message.endsWith(': 404')) return [];
+    throw error;
+  }
+  if (!Array.isArray(entries))
+    throw new Error(`${ADR_DIR} is not a directory at ${ref}`);
+  return entries.map(({ path, sha, type }) => ({ path, sha, type }));
+}
+async function blobText(sha) {
+  const blob = await api(`/repos/${repo}/git/blobs/${sha}`);
+  if (blob.encoding !== 'base64') throw new Error(`Cannot read blob ${sha}`);
+  return Buffer.from(blob.content, 'base64').toString('utf8');
 }
 
 const issueDetails = (number) =>
@@ -165,6 +192,17 @@ async function sharedHead(pr) {
       (other.head.sha === pr.head.sha || other.head.ref === pr.head.ref),
   );
   return [...new Map(others.map((other) => [other.number, other])).values()];
+}
+
+async function childStatusPassed(sha) {
+  for (let page = 1; ; page++) {
+    const { statuses } = await api(
+      `/repos/${repo}/commits/${sha}/status?per_page=100&page=${page}`,
+    );
+    const child = statuses.find(({ context }) => context === 'child-verify');
+    if (child) return child.state === 'success';
+    if (statuses.length < 100) return false;
+  }
 }
 
 // GitHub requires both a status and a check run when they share a name.
@@ -264,8 +302,8 @@ for (let pr of candidates) {
       target_url: runUrl,
     });
   const publish = status('Delivery stages');
-  // child-verify is published only on PRs into an integration branch, where
-  // the integration branch ruleset requires it: a missing status blocks.
+  // Only PRs into an integration branch can pass child-verify. The separate
+  // required status keeps a main verdict on the same commit from granting it.
   const publishChild = status('child-verify');
   const intoIntegration = isIntegrationBranch(pr.base.ref);
   try {
@@ -291,6 +329,32 @@ for (let pr of candidates) {
       const files = await list(`/repos/${repo}/pulls/${pr.number}/files`);
       if (files.length !== pr.changed_files)
         throw new Error('Incomplete changed-file coverage');
+      const syncCandidate =
+        role.kind === 'integration' &&
+        pr.head.ref === `sync/${role.parent}-main`;
+      const syncCommits = syncCandidate
+        ? await Promise.all([
+            api(`/repos/${repo}/commits/main`),
+            api(`/repos/${repo}/commits/${pr.head.sha}`),
+          ])
+        : null;
+      let expectedTreeSha;
+      if (syncCommits) {
+        fetchMergeHistory({ baseRef: pr.base.ref, token });
+        expectedTreeSha = automaticMergeTreeSha({
+          baseSha: pr.base.sha,
+          mainSha: syncCommits[0].sha,
+        });
+      }
+      const mainSync =
+        syncCommits !== null &&
+        isVerifiedMainSync({
+          pr,
+          role,
+          mainCommit: syncCommits[0],
+          headCommit: syncCommits[1],
+          expectedTreeSha,
+        });
       // The label still classifies the change; its gates apply to the parent PR.
       validateSeverity(pr, files);
       const comments = await list(
@@ -300,14 +364,17 @@ for (let pr of candidates) {
         await list(`/repos/${repo}/issues/${pr.number}/timeline`),
       );
       const verify = childVerify({ role, jobs: await ciJobs(pr, since) });
+      const shared = await sharedHead(pr);
       const reasons = integrationStages({
         pr,
         role,
         files,
         comments,
         waiver: copilotWaiver({ pr, comments }),
-        sharedHead: await sharedHead(pr),
+        sharedHead: shared,
         since,
+        mainSync,
+        copilotReviewPaused,
         protectedBase: await protectedBranch(
           (path) => api(path),
           repo,
@@ -319,6 +386,7 @@ for (let pr of candidates) {
         current.head.sha !== pr.head.sha ||
         current.state !== 'open' ||
         current.base.ref !== pr.base.ref ||
+        current.base.sha !== pr.base.sha ||
         current.draft !== pr.draft ||
         current.body !== pr.body ||
         !sameSeverity(current, pr)
@@ -330,16 +398,33 @@ for (let pr of candidates) {
         JSON.stringify(await details()) !== JSON.stringify(issues)
       )
         throw new Error('Linked issue changed during evaluation');
+      if (mainSync) {
+        const [currentMain, currentBase] = await Promise.all([
+          api(`/repos/${repo}/commits/main`),
+          api(`/repos/${repo}/branches/${encodeURIComponent(pr.base.ref)}`),
+        ]);
+        if (
+          currentMain.sha !== syncCommits[0].sha ||
+          currentBase.commit?.sha !== pr.base.sha
+        )
+          reasons.push(
+            'main or the integration base advanced during sync evaluation; recheck the sync.',
+          );
+      }
       const summary = reasons.length
         ? reasons.join(' ')
-        : `${role.kind === 'child' ? `Child of #${role.parent}` : `Integration work for #${role.parent}`}: agent review passed; requirements, QA and human review happen on the parent PR.`;
-      await publishChild(verify.state, verify.description);
-      await reconcileChecks(
-        pr,
-        reasons.length ? 'failure' : 'success',
-        summary,
-      );
-      await publish(reasons.length ? 'failure' : 'success', summary);
+        : verify.state !== 'success'
+          ? verify.description
+          : mainSync
+            ? `Verified merge-only sync for #${role.parent}: head tree matches the automatic merge of the current integration base and main.`
+            : `${role.kind === 'child' ? `Child of #${role.parent}` : `Integration work for #${role.parent}`}: ${copilotReviewPaused && role.kind === 'child' ? 'review requirement satisfied under repository Copilot pause' : 'agent review passed'}; requirements, QA and human review happen on the parent PR.`;
+      const deliveryState = reasons.length ? 'failure' : verify.state;
+      // Another PR can overwrite Delivery stages on a shared commit, but
+      // it cannot satisfy the integration branch's separate required status.
+      if (reasons.length) await publishChild('failure', summary);
+      else await publishChild(verify.state, verify.description);
+      await reconcileChecks(pr, deliveryState, summary);
+      await publish(deliveryState, summary);
       // A PR opened on the same head while this ran would inherit the pass.
       const late = reasons.length ? [] : await sharedHead(pr);
       if (late.length) {
@@ -351,13 +436,14 @@ for (let pr of candidates) {
           waiver: true,
           sharedHead: late,
         }).join(' ');
+        await publishChild('failure', note);
         await reconcileChecks(pr, 'failure', note);
         await publish('failure', note);
         console.log(`#${pr.number}: ${note}`);
         continue;
       }
       console.log(
-        `#${pr.number}: child-verify ${verify.state}; ${reasons.length ? reasons.join(' ') : 'pass'}`,
+        `#${pr.number}: child-verify ${verify.state}; ${reasons.length ? reasons.join(' ') : verify.description}`,
       );
       continue;
     }
@@ -429,13 +515,34 @@ for (let pr of candidates) {
     if (files.length !== pr.changed_files)
       throw new Error('Incomplete changed-file coverage');
     validateSeverity(pr, files);
-    let issues =
+    // A standard Dependabot update needs no issue, agent review, human review
+    // or QA: CI (`verify`) is the gate and auto-merge does the rest.
+    // A person's commit on the branch takes the PR back to the normal gates.
+    if (
+      isDependencyUpdate(pr, repo) &&
+      onlyDependabotCommits(await pullCommits(api, repo, pr.number))
+    ) {
+      const current = await api(`/repos/${repo}/pulls/${pr.number}`);
+      if (
+        current.head.sha !== pr.head.sha ||
+        current.state !== 'open' ||
+        current.draft !== pr.draft ||
+        !isDependencyUpdate(current, repo)
+      )
+        throw new Error('PR changed during evaluation');
+      const summary = pr.draft
+        ? 'PR is still a draft.'
+        : 'Dependency update: CI is the only gate; no review, approval or QA is required.';
+      await reconcileChecks(pr, pr.draft ? 'failure' : 'success', summary);
+      await publish(pr.draft ? 'failure' : 'success', summary);
+      console.log(`#${pr.number}: ${summary}`);
+      continue;
+    }
+    const issues =
       severityFor(pr) === 'low' ? [] : (linkedIssues ?? (await issuesFor(pr)));
-    // A standard Dependabot update needs no issue: the PR is its own scope.
-    const dependencyScoped = !issues.length && isDependencyUpdate(pr, repo);
-    if (dependencyScoped) issues = [dependencyScope(pr, repo)];
+    // ADR acceptance is a Comment review, so Low ADR PRs need reviews too.
     const reviews =
-      severityFor(pr) === 'low'
+      severityFor(pr) === 'low' && !changedAdrs(files).length
         ? []
         : await list(`/repos/${repo}/pulls/${pr.number}/reviews`);
     const comments =
@@ -460,7 +567,26 @@ for (let pr of candidates) {
       issue.requirements = scope.approval;
       issue.requirementsVersion = scope.version;
     }
-    const result = evaluate({ pr, issues, reviews, comments, qaFrom });
+    const result = evaluate({
+      pr,
+      issues,
+      reviews,
+      comments,
+      qaFrom,
+      copilotReviewPaused,
+    });
+    const adrBlocked = await adrReasons({
+      pr,
+      files,
+      reviews,
+      list: adrEntries,
+      text: blobText,
+    });
+    if (adrBlocked.length) {
+      result.pass = false;
+      // First: acceptance comes before QA, so it is the step to act on.
+      result.reasons.unshift(...adrBlocked);
+    }
     // A parent PR is eligible only once its integration work is finished.
     const parentState = async () =>
       JSON.stringify({
@@ -502,7 +628,6 @@ for (let pr of candidates) {
       current.draft !== pr.draft ||
       current.body !== pr.body ||
       !sameSeverity(current, pr) ||
-      (dependencyScoped && !isDependencyUpdate(current, repo)) ||
       current.technicalReviewRequired !== pr.technicalReviewRequired
     )
       throw new Error('PR changed during evaluation');
@@ -516,16 +641,20 @@ for (let pr of candidates) {
         qaFrom.sha
     )
       throw new Error('Stack tip changed during evaluation');
+    const waiver = copilotWaiver({ pr, comments });
+    const reviewSummary = waiver
+      ? `Copilot review manually waived by @${waiver.actor}`
+      : result.copilotReviewSkipped
+        ? 'Copilot review skipped (repository pause)'
+        : 'agent review passed';
     const summary = result.pass
       ? severityFor(pr) === 'low'
         ? 'Low severity: issue linkage, requirements, code review and QA are not required; CI remains required.'
         : isStorybookPreview(pr)
-          ? 'Storybook design preview: CI, independent review and current PM approval passed; separate QA is skipped.'
+          ? `Storybook preview: ${reviewSummary}; current PM approval recorded. Separate QA is skipped.`
           : qaFrom
-            ? `Requirements and agent review passed; QA approved stack tip #${qaFrom.number}, which contains this PR.`
-            : copilotWaiver({ pr, comments })
-              ? 'Requirements satisfied; Copilot review manually waived by darebakdavca; QA approved this commit after handoff.'
-              : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; agent review passed before QA approved this commit.`
+            ? `Requirements satisfied; ${reviewSummary}; QA approved stack tip #${qaFrom.number}.`
+            : `${severityFor(pr) === 'standard' ? 'Standard: requirements approval skipped' : 'High: requirements approved'}; ${reviewSummary}; QA approved this commit.`
       : result.reasons.join(' ');
     for (const issue of issues) {
       if (
@@ -534,8 +663,41 @@ for (let pr of candidates) {
       )
         throw new Error('Issue scope changed during evaluation');
     }
+    const pausedIntegrationConflict = async () =>
+      result.pass && result.copilotReviewSkipped
+        ? (await sharedHead(pr)).find((other) =>
+            isIntegrationBranch(other.base.ref),
+          )
+        : null;
+    const publishConflict = async (other) => {
+      const note = `Integration PR #${other.number} shares this head; give it its own head before delivery.`;
+      await reconcileChecks(pr, 'failure', note);
+      await publish('failure', note);
+      console.log(`#${pr.number}: ${note}`);
+    };
+    const sharedIntegration = await pausedIntegrationConflict();
+    if (sharedIntegration) {
+      await publishConflict(sharedIntegration);
+      continue;
+    }
+    // A closed integration PR can leave a green child status on this commit.
+    // Invalidate that status before publishing a main pass that skipped review.
+    if (
+      result.pass &&
+      result.copilotReviewSkipped &&
+      (await childStatusPassed(pr.head.sha))
+    )
+      await publishChild(
+        'failure',
+        'An integration PR must verify this head before merging.',
+      );
     await reconcileChecks(pr, result.pass ? 'success' : 'failure', summary);
     await publish(result.pass ? 'success' : 'failure', summary);
+    const lateIntegration = await pausedIntegrationConflict();
+    if (lateIntegration) {
+      await publishConflict(lateIntegration);
+      continue;
+    }
     console.log(
       `#${pr.number}: ${result.pass ? 'pass' : result.reasons.join(' ')}`,
     );

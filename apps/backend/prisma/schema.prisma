@@ -92,6 +92,7 @@ model User {
   organizationMemberships OrganizationMember[]
   ownedOrganizations      Organization[]       @relation("OrganizationOwner")
   recordedPayments        Payment[]
+  importedTransactions    BankTransaction[]
 
   @@unique([email])
   @@unique([username])
@@ -125,6 +126,7 @@ model Organization {
   events        Event[]
   registrations Registration[]
   payments      Payment[]
+  transactions  BankTransaction[]
 
   @@index([ownerId])
   @@map("organization")
@@ -197,6 +199,7 @@ model Event {
   registrationResultEvents   RegistrationResultEvent[]
   programmeItems             ProgrammeItem[]
   photos                     EventPhoto[]
+  bankTransactions           BankTransaction[]
 
   @@unique([id, organizationId])
   @@index([organizationId, createdAt])
@@ -279,7 +282,8 @@ model RoomTermAvailability {
 }
 
 // One item of a term's programme (F65). Start is Europe/Prague wall-clock
-// time, so a date and an `HH:mm` string; the date lies within the term
+// time, so a date and `HH:mm` strings (the end is later than the start, the
+// same day); the date lies within the term
 // (checked by the service, as terms are editable until registration opens).
 model ProgrammeItem {
   id          String   @id @default(uuid(7)) @db.Uuid
@@ -288,6 +292,7 @@ model ProgrammeItem {
   title       String   @db.VarChar(200)
   startDate   DateTime @db.Date
   startTime   String   @db.VarChar(5)
+  endTime     String   @db.VarChar(5)
   place       String?  @db.VarChar(200)
   description String?  @db.VarChar(1000)
   createdAt   DateTime @default(now()) @db.Timestamptz(3)
@@ -307,10 +312,16 @@ model ParticipantAccount {
   email     String   @unique @db.VarChar(320) // normalized: trimmed + lower-case
   createdAt DateTime @default(now()) @db.Timestamptz(3)
 
+  // Optional profile (S4-08): prefills a new registration, never changed by one.
+  firstName String? @db.VarChar(100)
+  lastName  String? @db.VarChar(100)
+  phone     String? @db.VarChar(16) // E.164
+
   registrations Registration[]
   magicLinks    ParticipantMagicLink[]
   sessions      ParticipantSession[]
   emails        EmailDelivery[]
+  notifications ParticipantNotificationState[]
 
   @@map("participant_account")
 }
@@ -341,6 +352,23 @@ model ParticipantSession {
 
   @@index([participantAccountId])
   @@map("participant_session")
+}
+
+// What the participant did with a notification of the portal (S4-06). The
+// notifications themselves are not stored: they are read from the saved
+// decisions, decided change requests and payments, whose id is `sourceId`
+// (uuid v7, unique across those tables). No row: unread and shown.
+model ParticipantNotificationState {
+  participantAccountId String    @db.Uuid
+  sourceId             String    @db.Uuid
+  readAt               DateTime? @db.Timestamptz(3)
+  // Hidden for good; a dismissed notification also counts as read.
+  dismissedAt          DateTime? @db.Timestamptz(3)
+
+  participantAccount ParticipantAccount @relation(fields: [participantAccountId], references: [id], onDelete: Cascade)
+
+  @@id([participantAccountId, sourceId])
+  @@map("participant_notification_state")
 }
 
 // ─── Registrations ──────────────────────────────────────────────────────────
@@ -499,27 +527,66 @@ model RegistrationChange {
 enum PaymentSource {
   organizer
   qr_link
+  // An imported bank transaction paired with the registration (F24).
+  bank_transfer
 
   @@map("payment_source")
 }
 
 model Payment {
-  id             String        @id @default(uuid(7)) @db.Uuid
-  organizationId String        @db.Uuid
-  registrationId String        @db.Uuid
-  submissionKey  String        @unique @db.Uuid
-  amountMinor    Int
-  receivedOn     DateTime      @db.Date
-  source         PaymentSource @default(organizer)
-  recordedById   String? // set for organizer entries only, null for a QR link payment
-  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+  id                String        @id @default(uuid(7)) @db.Uuid
+  organizationId    String        @db.Uuid
+  registrationId    String        @db.Uuid
+  submissionKey     String        @unique @db.Uuid
+  amountMinor       Int
+  receivedOn        DateTime      @db.Date
+  source            PaymentSource @default(organizer)
+  // Set for organizer entries and manual pairings; null for a QR link payment
+  // and a transaction paired by its variable symbol.
+  recordedById      String?
+  // The paired transaction (F24): set exactly for `bank_transfer`, and unique,
+  // so a transaction is credited at most once (CHECK in the migration).
+  bankTransactionId String?       @unique @db.Uuid
+  // The organizer's reason for a manual pairing; null otherwise.
+  assignmentReason  String?       @db.VarChar(500)
+  createdAt         DateTime      @default(now()) @db.Timestamptz(3)
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  registration Registration @relation(fields: [registrationId, organizationId], references: [id, organizationId], onDelete: Restrict)
-  recordedBy   User?        @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  registration    Registration     @relation(fields: [registrationId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  recordedBy      User?            @relation(fields: [recordedById], references: [id], onDelete: Restrict)
+  bankTransaction BankTransaction? @relation(fields: [bankTransactionId], references: [id], onDelete: Restrict)
 
   @@index([registrationId])
   @@map("payment")
+}
+
+// A received transaction from an imported bank statement (F23). Only incoming
+// movements are stored; `bankTransactionId` is the bank's own id of the
+// movement, so importing the same statement again adds nothing. Pairing with
+// a registration of the same event (F24) creates its `payment`; until then
+// the transaction waits in the event's queue and changes no balance.
+model BankTransaction {
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  organizationId      String   @db.Uuid
+  eventId             String   @db.Uuid
+  bankTransactionId   String   @db.VarChar(40)
+  bookedOn            DateTime @db.Date
+  amountMinor         Int // > 0 (CHECK in the migration)
+  variableSymbol      String?  @db.VarChar(10)
+  counterpartyAccount String?  @db.VarChar(60)
+  counterpartyName    String?  @db.VarChar(200)
+  message             String?  @db.VarChar(500)
+  importedById        String
+  importedAt          DateTime @default(now()) @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  event        Event        @relation(fields: [eventId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  importedBy   User         @relation(fields: [importedById], references: [id], onDelete: Restrict)
+  payment      Payment?
+
+  @@unique([eventId, bankTransactionId])
+  @@index([eventId, bookedOn])
+  @@map("bank_transaction")
 }
 
 // ─── Outbound e-mail log ────────────────────────────────────────────────────

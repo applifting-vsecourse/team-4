@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { ChevronLeft } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { BackLink } from "@/components/BackLink"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { Notice } from "@/components/Notice"
+import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCalendarRange } from "@/lib/date"
@@ -15,11 +18,10 @@ import { participantRegistrationQueryOptions } from "@/features/registrations/ap
 import { type ParticipantRegistrationDetail } from "@/features/registrations/api/participantRegistrationSchemas"
 import { type ChangeProposal } from "@/features/registrations/api/registrationChangeSchemas"
 import { ChangeReviewDialog } from "@/features/registrations/components/ChangeReviewDialog"
-import { LoadFailedAlert } from "@/features/registrations/components/LoadFailedAlert"
 import {
   RegistrationChangeForm,
-  type ChangeableTerm,
   type ContactErrors,
+  type FormTerm,
 } from "@/features/registrations/components/RegistrationChangeForm"
 import {
   buildProposal,
@@ -43,11 +45,11 @@ type ParticipantRegistrationEditProps = {
 }
 
 const NOTHING_CHANGED =
-  "Nic jste nezměnili. Upravte údaje nebo pohlaví pro ubytování, přesuňte termín nebo se z něj odhlaste."
+  "Nic jste nezměnili. Upravte údaje nebo pohlaví pro ubytování, přidejte termín nebo se z termínu odhlaste."
 
 // Moje přihlášky → Detail přihlášky → Úprava přihlášky (F35-2a): personal and
-// contact data in the scope of the registration form (not the e-mail), a move
-// to another term of the same event, cancelling single terms, and transport,
+// contact data in the scope of the registration form (not the e-mail), one
+// list of the event's terms to add or cancel terms (F35-2c), and transport,
 // diet and health (F63).
 export function ParticipantRegistrationEdit({
   registrationId,
@@ -75,22 +77,15 @@ export function ParticipantRegistrationEdit({
 
   return (
     <section className="space-y-6">
-      <Button
-        variant="ghost"
-        size="sm"
-        asChild
+      <BackLink
+        to={ROUTES.myRegistration}
+        params={{ registrationId }}
       >
-        <Link
-          to={ROUTES.myRegistration}
-          params={{ registrationId }}
-        >
-          <ChevronLeft />
-          Detail přihlášky
-        </Link>
-      </Button>
+        Detail přihlášky
+      </BackLink>
 
       {query.isError ? (
-        <LoadFailedAlert
+        <LoadError
           shownFrom={data ? query.dataUpdatedAt : undefined}
           isRetrying={query.isFetching}
           onRetry={() => query.refetch()}
@@ -99,10 +94,10 @@ export function ParticipantRegistrationEdit({
 
       {data ? (
         <>
-          <div className="space-y-2">
-            <h1 className="text-h2">Úprava přihlášky</h1>
-            <p className="text-sm text-muted-foreground">{data.event.name}</p>
-          </div>
+          <PageHeader
+            title="Úprava přihlášky"
+            description={data.event.name}
+          />
           {data.canChange ? (
             // A reloaded registration (new version) starts a fresh form.
             <EditForm
@@ -112,24 +107,24 @@ export function ParticipantRegistrationEdit({
               onLeave={onLeave}
             />
           ) : (
-            <Alert>
-              <AlertDescription>
-                {data.isCancelled
+            <Notice
+              tone="info"
+              title={
+                data.isCancelled
                   ? "Přihláška je odhlášená, úpravy nejsou dostupné."
-                  : "Žádost o změnu čeká na schválení organizátora. Dokud není vyřízená, nelze přihlášku dál měnit."}
-              </AlertDescription>
-            </Alert>
+                  : "Žádost o změnu čeká na schválení organizátora. Dokud není vyřízená, nelze přihlášku dál měnit."
+              }
+            />
           )}
         </>
       ) : query.isPending ? (
-        <div
+        <LoadingBlock
+          label="Načítání přihlášky"
           className="space-y-4"
-          role="status"
-          aria-label="Načítání přihlášky"
         >
           <Skeleton className="h-10 w-2/3" />
           <Skeleton className="h-48 w-full" />
-        </div>
+        </LoadingBlock>
       ) : null}
     </section>
   )
@@ -145,6 +140,7 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
   const { contact, needs, terms, availableTerms } = registration
   const active = useMemo(() => terms.filter((term) => term.status !== "cancelled"), [terms])
 
+  const heldTermIds = useMemo(() => active.map((term) => term.termId), [active])
   const initial = useMemo<EditState>(
     () => ({
       firstName: contact.firstName,
@@ -153,11 +149,9 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
       needs,
       gender: contact.gender,
       genderOther: contact.genderOther,
-      terms: Object.fromEntries(
-        active.map((term) => [term.termId, { selectedTermId: term.termId, isCancelled: false }]),
-      ),
+      selectedTermIds: heldTermIds,
     }),
-    [contact, needs, active],
+    [contact, needs, heldTermIds],
   )
   const [state, setState] = useState(initial)
   const [errors, setErrors] = useState<ContactErrors>({})
@@ -165,29 +159,20 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
   const [message, setMessage] = useState<string>()
   const [proposal, setProposal] = useState<ChangeProposal | null>(null)
 
-  const formTerms = useMemo<ChangeableTerm[]>(
-    () =>
-      active.map((term) => ({
-        id: term.termId,
-        label: term.label,
-        details: `${formatCalendarRange(term.startDate, term.endDate)} · ${formatCzk(term.priceMinor)}`,
-        status: term.status,
-        selectedTermId: term.termId,
-        options: [
-          {
-            id: term.termId,
-            label: `${term.label} · ${formatCalendarRange(term.startDate, term.endDate)} · ${formatCzk(term.priceMinor)}`,
-          },
-          ...availableTerms
-            .filter((other) => !active.some((own) => own.termId === other.termId))
-            .map((other) => ({
-              id: other.termId,
-              label: `${other.label} · ${formatCalendarRange(other.startDate, other.endDate)} · ${formatCzk(other.priceMinor)}`,
-            })),
-        ],
-      })),
-    [active, availableTerms],
-  )
+  // Every term of the event in one list by start; the held ones carry their participation.
+  const formTerms = useMemo<FormTerm[]>(() => {
+    const held = new Map(active.map((term) => [term.termId, term]))
+    const all = [
+      ...availableTerms,
+      ...active.filter((own) => !availableTerms.some((other) => other.termId === own.termId)),
+    ].sort((a, b) => a.startDate.localeCompare(b.startDate) || a.termId.localeCompare(b.termId))
+    return all.map((term) => ({
+      id: term.termId,
+      label: term.label,
+      details: `${formatCalendarRange(term.startDate, term.endDate)} · ${formatCzk(held.get(term.termId)?.priceMinor ?? term.priceMinor)}`,
+      status: held.get(term.termId)?.status ?? null,
+    }))
+  }, [active, availableTerms])
 
   const review = () => {
     const contactErrors = validateContact(state)
@@ -198,7 +183,7 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
       setMessage(undefined)
       return
     }
-    const next = buildProposal({ ...contact, needs }, state)
+    const next = buildProposal({ ...contact, needs, heldTermIds }, state)
     if (!next) {
       setMessage(NOTHING_CHANGED)
       return
@@ -219,8 +204,8 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
         onContactChange={(field, value) => setState((current) => ({ ...current, [field]: value }))}
         onNeedsChange={(next) => setState((current) => ({ ...current, needs: next }))}
         onGenderChange={(answer) => setState((current) => ({ ...current, ...answer }))}
-        onTermChange={(termId, change) =>
-          setState((current) => ({ ...current, terms: { ...current.terms, [termId]: change } }))
+        onSelectedTermsChange={(selectedTermIds) =>
+          setState((current) => ({ ...current, selectedTermIds }))
         }
         onReview={review}
         onCancel={onLeave}
@@ -229,6 +214,7 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
         <ChangeReviewDialog
           registrationId={registration.id}
           proposal={proposal}
+          heldTerms={active}
           onClose={() => setProposal(null)}
           onDone={onLeave}
           onReload={() => {

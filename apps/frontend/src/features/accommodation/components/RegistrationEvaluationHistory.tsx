@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 
+import { LoadingBlock } from "@/components/LoadingBlock"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatPragueDateTime } from "@/lib/date"
+import { PARTICIPATION_LABELS } from "@/lib/participation"
 
 import { registrationAccommodationQueryOptions } from "@/features/accommodation/api/evaluationQueryOptions"
 import {
@@ -9,13 +11,6 @@ import {
   type HistoryEntry,
 } from "@/features/accommodation/components/EvaluationHistory"
 import { toHistoryMove, valueLabel } from "@/features/accommodation/lib/evaluationView"
-
-const STATE_LABELS = {
-  pending: "Čeká na rozhodnutí",
-  confirmed: "Potvrzeno",
-  waitlisted: "Náhradník",
-  cancelled: "Odhlášeno",
-} as const
 
 type RegistrationEvaluationHistoryProps = {
   organizationId: string
@@ -38,11 +33,9 @@ export function RegistrationEvaluationHistory({
   )
   if (accommodation.isPending) {
     return (
-      <Skeleton
-        className="h-32 w-full"
-        role="status"
-        aria-label="Načítání historie vyhodnocení"
-      />
+      <LoadingBlock label="Načítání historie vyhodnocení">
+        <Skeleton className="h-32 w-full" />
+      </LoadingBlock>
     )
   }
   const hard = accommodation.data?.hardAttribute ?? null
@@ -73,8 +66,8 @@ export function RegistrationEvaluationHistory({
             author: record.actor.name,
             person,
             termLabel: record.termLabel,
-            fromState: STATE_LABELS[record.from],
-            toState: STATE_LABELS[record.to],
+            fromState: PARTICIPATION_LABELS[record.from],
+            toState: PARTICIPATION_LABELS[record.to],
             basis: record.run
               ? `Hromadně z návrhu z ${formatPragueDateTime(record.run.finishedAt)} (${record.batchSize} ${record.batchSize === 1 ? "osoba" : "osob"})`
               : "Jednotlivé rozhodnutí organizátora",

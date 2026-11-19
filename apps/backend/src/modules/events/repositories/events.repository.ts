@@ -476,6 +476,7 @@ export class EventsRepository {
         description: true,
         location: true,
         isPublished: true,
+        conditions: true,
         terms: PUBLIC_TERM_SELECT,
       },
     });
@@ -486,6 +487,7 @@ export class EventsRepository {
       event.location,
       event.terms.map(toPublicTerm),
       event.isPublished,
+      event.conditions,
     );
   }
 
@@ -533,6 +535,7 @@ export class EventsRepository {
         publicId: true,
         name: true,
         location: true,
+        status: true,
         organization: { select: { name: true } },
         photos: {
           orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -551,6 +554,7 @@ export class EventsRepository {
             event.organization.name,
             event.location,
             event.photos[0]?.id ?? null,
+            publicRegistrationStatus(event.status),
             event.terms.map(toPublicTerm),
           ),
       )

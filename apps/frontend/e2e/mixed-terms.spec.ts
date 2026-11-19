@@ -40,7 +40,7 @@ test("a participant picking two terms waits in both, owing nothing until a decis
   const term = (label: string) => result.getByRole("listitem").filter({ hasText: label })
   await expect(term("1. turnus")).toContainText("Čeká na rozhodnutí organizátora")
   await expect(term("2. turnus")).toContainText("Čeká na rozhodnutí organizátora")
-  await expect(definition(result, "Cena výběru")).toHaveText("3 000 Kč")
+  await expect(definition(result, "Cena celkem")).toHaveText("3 000 Kč")
   await expect(result.getByText("Nyní nemáte platební povinnost.")).toBeVisible()
   await expect(result.getByRole("img", { name: "QR kód s odkazem na platbu" })).toHaveCount(0)
 

@@ -54,9 +54,31 @@ const needsRows = (needs: ChangeSummaryData["needs"]): ChangedValue[] =>
       })).filter((row) => row.original !== row.proposed)
     : []
 
-/** The server's summary as the comparison tables show it. */
-export function toSummaryProps(summary: ChangeSummaryData): ChangeSummaryProps {
+/** A term the registration holds, as the participant's review needs it. */
+export type HeldTerm = Pick<
+  ChangeSummaryData["terms"][number],
+  "termId" | "label" | "startDate" | "endDate" | "priceMinor"
+> & { status: NonNullable<ChangeSummaryData["terms"][number]["original"]> }
+
+/**
+ * The server's summary as the comparison tables show it. With the held terms
+ * the term table lists every term of the change: those that stay, those that
+ * are added and those that are removed (F35-2c).
+ */
+export function toSummaryProps(
+  summary: ChangeSummaryData,
+  heldTerms: HeldTerm[] = [],
+): ChangeSummaryProps {
   const { original, proposed } = summary
+  const isTermChanged = summary.terms.some((term) => term.original !== term.proposed)
+  const kept = heldTerms
+    .filter((held) => !summary.terms.some((term) => term.termId === held.termId))
+    .map((held) => ({ ...held, original: held.status, proposed: held.status }))
+  const terms = isTermChanged
+    ? [...summary.terms, ...kept].sort(
+        (a, b) => a.startDate.localeCompare(b.startDate) || a.termId.localeCompare(b.termId),
+      )
+    : []
   return {
     values: [
       ...summary.values.map((value) => ({
@@ -66,7 +88,7 @@ export function toSummaryProps(summary: ChangeSummaryData): ChangeSummaryProps {
       })),
       ...needsRows(summary.needs),
     ],
-    terms: summary.terms.map((term) => ({
+    terms: terms.map((term) => ({
       id: term.termId,
       label: term.label,
       dates: formatCalendarRange(term.startDate, term.endDate),
@@ -75,7 +97,7 @@ export function toSummaryProps(summary: ChangeSummaryData): ChangeSummaryProps {
       proposed: term.proposed,
     })),
     // Money is compared only where a term changes; a data change alone has none.
-    money: summary.terms.some((term) => term.original !== term.proposed)
+    money: isTermChanged
       ? [
           {
             label: "K úhradě za potvrzené termíny",
@@ -102,6 +124,7 @@ export function describeKinds(kinds: ChangeKind[]) {
   const labels: Record<ChangeKind, string> = {
     data: "Úprava údajů",
     move: "Přesun termínu",
+    add_terms: "Přidání termínu",
     cancel_terms: "Odhlášení z termínu",
     cancel_all: "Odhlášení přihlášky",
   }

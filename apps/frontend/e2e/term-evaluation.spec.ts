@@ -1,12 +1,19 @@
 import { expect, test, type Page } from "@playwright/test"
 
-import { newParticipant, register, setUpEvent, type OpenEvent, type TermSpec } from "./support/api"
-import { closeDb, setGenderHardAttribute } from "./support/db"
+import {
+  newParticipant,
+  register,
+  setHardAttribute,
+  setUpEvent,
+  type OpenEvent,
+  type TermSpec,
+} from "./support/api"
+import { closeDb } from "./support/db"
 
 // Přihlášky → Vyhodnocení (S3-01): the proposal of a term with its queues and
 // order, recalculated on request in the manual mode and on its own after a
 // change in the automatic mode, with the evidence of every run. Nothing here
-// confirms anybody. Gender is the hard attribute through the rules stand-in.
+// confirms anybody. Gender is the hard attribute of the event.
 
 const terms: TermSpec[] = [
   { label: "1. turnus", startDate: "2027-07-01", endDate: "2027-07-07", priceMinor: 100000 },
@@ -25,7 +32,7 @@ const orderRow = (page: Page, name: string) =>
 
 async function setUp(page: Page) {
   const event = await setUpEvent(page.request, { terms, rooms })
-  await setGenderHardAttribute(event.eventId)
+  await setHardAttribute(page.request, event, "gender")
   for (const [name, gender] of [
     ["Tereza", "female"],
     ["Jana", "female"],
@@ -172,6 +179,85 @@ test("the organizer determines the accommodation from the order and the detail; 
   await expect(termsCard).toContainText("Ruční určení", { timeout: 30_000 })
 })
 
+// S4-01: switching the term or the queue keeps the organizer's place on the
+// page; the URL keeps the choice for a refresh and for Back/Forward.
+test("switching the term and the queue keeps the scroll position and the URL restores them", async ({
+  page,
+}) => {
+  const event = await setUp(page)
+  await page.setViewportSize({ width: 1280, height: 500 })
+  await page.goto(evaluationUrl(event))
+  const termTabs = page.getByRole("tablist", { name: "Termín" })
+  // Both terms evaluated, so both render the same kind of content.
+  for (const term of ["2. turnus", "1. turnus"]) {
+    await termTabs.getByRole("tab", { name: term }).click()
+    await page.getByRole("button", { name: "Přepočítat" }).click()
+    await expect(page.getByText("Aktuální návrh", { exact: true })).toBeVisible({ timeout: 20_000 })
+  }
+  const scrollY = () => page.evaluate(() => window.scrollY)
+
+  // The term: its tabs scrolled to the top of the window stay there.
+  await termTabs.evaluate((tabs) => tabs.scrollIntoView({ block: "start" }))
+  const atTerms = await scrollY()
+  expect(atTerms).toBeGreaterThan(0)
+  await termTabs.getByRole("tab", { name: "2. turnus" }).click()
+  await expect(page).toHaveURL(new RegExp(`evaluationTerm=${event.termIds[1]}`))
+  await expect(orderRow(page, "Petr")).toBeVisible()
+  expect(await scrollY()).toBe(atTerms)
+
+  // The queue: far below the top of the page, it stays in view.
+  await page.evaluate(() => window.scrollTo(0, 0))
+  const queueTabs = page.getByRole("tablist", { name: "Fronta" })
+  await expect(queueTabs).not.toBeInViewport()
+  await queueTabs.evaluate((tabs) => tabs.scrollIntoView({ block: "center" }))
+  const atQueues = await scrollY()
+  await queueTabs.getByRole("tab", { name: /^Muž/ }).click()
+  await expect(page).toHaveURL(/queue=male/)
+  await expect(queueTabs.getByRole("tab", { name: /^Muž/ })).toHaveAttribute("data-state", "active")
+  await expect(queueTabs).toBeInViewport()
+  expect(await scrollY()).toBe(atQueues)
+
+  // Back steps through the selections: the queue, then the term; Forward returns.
+  await page.goBack()
+  await expect(page).not.toHaveURL(/queue=/)
+  await expect(queueTabs.getByRole("tab", { name: /^Celý termín/ })).toHaveAttribute(
+    "data-state",
+    "active",
+  )
+  await page.goBack()
+  await expect(termTabs.getByRole("tab", { name: "1. turnus" })).toHaveAttribute(
+    "data-state",
+    "active",
+  )
+  await page.goForward()
+  await page.goForward()
+  await expect(termTabs.getByRole("tab", { name: "2. turnus" })).toHaveAttribute(
+    "data-state",
+    "active",
+  )
+  await expect(queueTabs.getByRole("tab", { name: /^Muž/ })).toHaveAttribute("data-state", "active")
+
+  // A refresh restores the term and the queue.
+  await page.reload()
+  await expect(termTabs.getByRole("tab", { name: "2. turnus" })).toHaveAttribute(
+    "data-state",
+    "active",
+  )
+  await expect(queueTabs.getByRole("tab", { name: /^Muž/ })).toHaveAttribute("data-state", "active")
+
+  // Back from a detail and Forward again.
+  await orderRow(page, "Petr").getByRole("link").click()
+  await expect(page).toHaveURL(/registrations\/[0-9a-f-]{36}/)
+  await page.goBack()
+  await expect(termTabs.getByRole("tab", { name: "2. turnus" })).toHaveAttribute(
+    "data-state",
+    "active",
+  )
+  await expect(queueTabs.getByRole("tab", { name: /^Muž/ })).toHaveAttribute("data-state", "active")
+  await page.goForward()
+  await expect(page).toHaveURL(/registrations\/[0-9a-f-]{36}/)
+})
+
 // S3-02: the organizer confirms the suitable of the current proposal at once,
 // sees the others untouched, and decides one person on their own.
 test("the organizer confirms the proposal of a term, then decides one person", async ({ page }) => {
@@ -215,5 +301,5 @@ test("the organizer confirms the proposal of a term, then decides one person", a
 
   // The history of the registration shows the decisions.
   await orderRow(page, "Petr").getByRole("link").click()
-  await expect(page.getByText("Čeká na rozhodnutí → Náhradník")).toBeVisible()
+  await expect(page.getByText("Čeká na rozhodnutí organizátora → Náhradník")).toBeVisible()
 })

@@ -164,13 +164,44 @@ export function childVerify({ role, jobs }) {
 }
 
 /**
+ * A sync PR may carry enforcement files into an integration branch only when
+ * its merge commit is exactly Git's automatic merge of the current base and
+ * current main. This preserves feature work already present on the base while
+ * preventing a sync branch from adding its own edits or conflict resolutions.
+ */
+export function isVerifiedMainSync({
+  pr,
+  role,
+  mainCommit,
+  headCommit,
+  expectedTreeSha,
+}) {
+  return Boolean(
+    role?.kind === 'integration' &&
+    isIntegrationBranch(pr.base?.ref) &&
+    pr.head?.ref === `sync/${role.parent}-main` &&
+    pr.head?.repo?.full_name &&
+    pr.head.repo.full_name === pr.base?.repo?.full_name &&
+    pr.base?.sha &&
+    mainCommit?.sha &&
+    headCommit?.sha === pr.head?.sha &&
+    expectedTreeSha &&
+    headCommit.commit?.tree?.sha === expectedTreeSha &&
+    headCommit.parents?.length === 2 &&
+    headCommit.parents[0]?.sha === pr.base.sha &&
+    headCommit.parents[1]?.sha === mainCommit.sha,
+  );
+}
+
+/**
  * Delivery stages for a PR into an integration branch: no human review,
  * requirements approval or QA, but a current-commit agent review (or manual
- * Copilot waiver) and no review or merge enforcement changes, because nobody
- * reviews them before they reach the integration branch. `sharedHead` are the
- * other open PRs with the same head commit or branch; `since` is when the PR's
- * base last changed; `protectedBase` whether the integration branch ruleset is
- * in force on the base.
+ * Copilot waiver). A repository Copilot pause waives review for child PRs only.
+ * There must be no review or merge enforcement changes, except for a verified
+ * merge-only sync from protected main. `sharedHead` are the other
+ * open PRs with the same head commit or branch; `since` is when the PR's base
+ * last changed; `protectedBase` whether the integration branch ruleset is in
+ * force on the base.
  */
 export function integrationStages({
   pr,
@@ -181,6 +212,8 @@ export function integrationStages({
   sharedHead = [],
   since = 0,
   protectedBase = true,
+  mainSync = false,
+  copilotReviewPaused = false,
 }) {
   if (role.kind === 'invalid') return [role.reason];
   const reasons = [];
@@ -200,12 +233,16 @@ export function integrationStages({
   const paths = files.flatMap((file) =>
     [file.filename, file.previous_filename].filter(Boolean),
   );
-  if (paths.some((path) => ENFORCEMENT_PATHS.test(path)))
+  if (!mainSync && paths.some((path) => ENFORCEMENT_PATHS.test(path)))
     reasons.push(
       `Review and merge enforcement changes cannot go through ${pr.base.ref}; open them against main.`,
     );
+  const reviewSkipped =
+    role.kind === 'child' && copilotReviewPaused && !mainSync;
   if (
+    !mainSync &&
     !waiver &&
+    !reviewSkipped &&
     !agentReviewPassed({
       // A verdict from before the latest retarget reviewed another base.
       comments: comments.filter((c) => Date.parse(c.created_at) > since),

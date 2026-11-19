@@ -1,12 +1,10 @@
 import { useState } from "react"
-import { Loader2 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-
-import { ErrorAlert } from "@/features/accommodation/components/ErrorAlert"
 
 export type EvaluationMode = "automatic" | "manual"
 
@@ -32,61 +30,49 @@ export function EvaluationModeSettings({
   const [selected, setSelected] = useState<EvaluationMode>(mode)
 
   return (
-    <section
-      aria-labelledby="automation-heading"
-      className="space-y-4"
-    >
-      <h2
-        id="automation-heading"
-        className="text-h4"
-      >
-        Automatizace
-      </h2>
-      <Card>
-        <CardContent>
-          <div className="space-y-4">
-            <RadioGroup
-              value={selected}
-              onValueChange={(value) => setSelected(value as EvaluationMode)}
-              aria-label="Aktualizace návrhu vyhodnocení"
-            >
-              <Field orientation="horizontal">
-                <RadioGroupItem
-                  id="mode-automatic"
-                  value="automatic"
-                />
-                <FieldLabel htmlFor="mode-automatic">
-                  Přepočítat návrh automaticky po každé změně
-                </FieldLabel>
-              </Field>
-              <Field orientation="horizontal">
-                <RadioGroupItem
-                  id="mode-manual"
-                  value="manual"
-                />
-                <FieldLabel htmlFor="mode-manual">
-                  Přepočítat návrh jen tlačítkem Přepočítat
-                </FieldLabel>
-              </Field>
-            </RadioGroup>
-            {saveError ? (
-              <ErrorAlert
-                title="Režim se nepodařilo uložit"
-                detail={saveError}
-              />
-            ) : null}
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end">
-          <Button
-            disabled={isSaving}
-            onClick={() => onSave?.(selected)}
+    <Card>
+      <CardContent>
+        <div className="space-y-4">
+          <RadioGroup
+            value={selected}
+            onValueChange={(value) => setSelected(value as EvaluationMode)}
+            aria-label="Aktualizace návrhu vyhodnocení"
           >
-            {isSaving ? <Loader2 className="animate-spin" /> : null}
-            Uložit
-          </Button>
-        </CardFooter>
-      </Card>
-    </section>
+            <Field orientation="horizontal">
+              <RadioGroupItem
+                id="mode-automatic"
+                value="automatic"
+              />
+              <FieldLabel htmlFor="mode-automatic">
+                Přepočítat návrh automaticky po každé změně
+              </FieldLabel>
+            </Field>
+            <Field orientation="horizontal">
+              <RadioGroupItem
+                id="mode-manual"
+                value="manual"
+              />
+              <FieldLabel htmlFor="mode-manual">
+                Přepočítat návrh jen tlačítkem Přepočítat
+              </FieldLabel>
+            </Field>
+          </RadioGroup>
+          {saveError ? (
+            <FormError
+              title="Režim se nepodařilo uložit"
+              message={saveError}
+            />
+          ) : null}
+        </div>
+      </CardContent>
+      <CardFooter className="justify-end">
+        <PendingButton
+          isPending={isSaving}
+          onClick={() => onSave?.(selected)}
+        >
+          Uložit
+        </PendingButton>
+      </CardFooter>
+    </Card>
   )
 }

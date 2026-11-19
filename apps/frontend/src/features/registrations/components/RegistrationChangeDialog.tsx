@@ -1,7 +1,9 @@
 import { useState } from "react"
-import { Info, Loader2, RefreshCw, TriangleAlert } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { FormError } from "@/components/FormError"
+import { Notice } from "@/components/Notice"
+import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -33,6 +35,14 @@ export type ReleaseConsent = {
   isGiven?: boolean
 }
 
+/** Terms added next to the current ones (F35-2c); evaluated like a new registration. */
+export type AddedTerms = {
+  /** E.g. "Turnus 3". */
+  labels: string
+  /** Already formatted price of the added terms, e.g. "4 500 Kč". */
+  price: string
+}
+
 export type RegistrationChangeDialogProps = {
   isOpen: boolean
   /** Cancelling terms or the whole registration rather than editing it. */
@@ -45,6 +55,7 @@ export type RegistrationChangeDialogProps = {
   /** Terms or payments are affected, so the financial settlement is mentioned. */
   hasFinancialImpact?: boolean
   release?: ReleaseConsent
+  added?: AddedTerms
   errorMessage?: string
   /** The registration changed meanwhile; the proposal must not overwrite it. */
   isStale?: boolean
@@ -70,6 +81,7 @@ export function RegistrationChangeDialog({
   isApprovalNewlyRequired = false,
   hasFinancialImpact = false,
   release,
+  added,
   errorMessage,
   isStale = false,
   isSubmitting = false,
@@ -92,7 +104,7 @@ export function RegistrationChangeDialog({
       open={isOpen}
       onOpenChange={onOpenChange}
     >
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-h-dvh overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{isCancellation ? "Odhlášení" : "Kontrola změn přihlášky"}</DialogTitle>
           <DialogDescription className="sr-only">
@@ -100,47 +112,43 @@ export function RegistrationChangeDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        {/* min-w-0: a grid item otherwise grows to its widest table and overflows the dialog. */}
+        <div className="min-w-0 space-y-4">
           {isStale ? (
-            <Alert variant="destructive">
-              <RefreshCw />
-              <AlertTitle>
-                Přihláška se mezitím změnila. Načtěte ji znovu a změnu potvrďte.
-              </AlertTitle>
-            </Alert>
+            <Notice
+              tone="error"
+              title="Přihláška se mezitím změnila. Načtěte ji znovu a změnu potvrďte."
+            />
           ) : null}
 
-          {errorMessage ? (
-            <Alert variant="destructive">
-              <AlertDescription>{errorMessage}</AlertDescription>
-            </Alert>
-          ) : null}
+          {errorMessage ? <FormError message={errorMessage} /> : null}
 
           {isApprovalNewlyRequired ? (
-            <Alert>
-              <Info />
-              <AlertTitle>
-                Mezitím začalo platit schvalování změn. Změnu můžete odeslat jen jako žádost.
-              </AlertTitle>
-            </Alert>
+            <Notice
+              tone="info"
+              title="Mezitím začalo platit schvalování změn. Změnu můžete odeslat jen jako žádost."
+            />
           ) : isApprovalRequired ? (
-            <Alert>
-              <Info />
-              <AlertTitle>
-                Změnu musí schválit organizátor. Do té doby platí současná přihláška.
-              </AlertTitle>
-            </Alert>
+            <Notice
+              tone="info"
+              title="Změnu musí schválit organizátor. Do té doby platí současná přihláška."
+            />
           ) : null}
 
           <ChangeSummary {...summary} />
 
           {hasFinancialImpact ? (
-            <Alert>
-              <Info />
-              <AlertTitle>
-                Storno poplatek a případnou vratku řeší organizátor podle podmínek akce.
-              </AlertTitle>
-            </Alert>
+            <Notice
+              tone="info"
+              title="Storno poplatek a případnou vratku řeší organizátor podle podmínek akce."
+            />
+          ) : null}
+
+          {added ? (
+            <Notice
+              tone="info"
+              title={`Účast v termínu ${added.labels} se vyhodnotí podle kapacity: při volném místě bude potvrzena, jinak budete náhradníkem. Potvrzená místa ve stávajících termínech zůstávají. Po potvrzení místa se k ceně přidá ${added.price}.`}
+            />
           ) : null}
 
           {release ? (
@@ -170,15 +178,15 @@ export function RegistrationChangeDialog({
               Načíst přihlášku znovu
             </Button>
           ) : (
-            <Button
+            <PendingButton
               type="button"
               variant={isCancellation && !isRequest ? "destructive" : "default"}
-              disabled={isSubmitting || (release ? !isReleaseConsentGiven : false)}
+              isPending={isSubmitting}
+              disabled={release ? !isReleaseConsentGiven : false}
               onClick={() => onConfirm?.(isReleaseConsentGiven)}
             >
-              {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : null}
               {confirmLabel}
-            </Button>
+            </PendingButton>
           )}
         </DialogFooter>
       </DialogContent>
@@ -194,13 +202,10 @@ function ReleaseNotice({
 }: ReleaseConsent & { onGivenChange: (isGiven: boolean) => void }) {
   return (
     <div className="space-y-3">
-      <Alert>
-        <TriangleAlert />
-        <AlertDescription>
-          Přesunem přijdete o potvrzené místo v termínu {lostTerm}. O účasti v termínu {targetTerm}{" "}
-          rozhodne organizátor.
-        </AlertDescription>
-      </Alert>
+      <Notice
+        tone="warning"
+        title={`Přesunem přijdete o potvrzené místo v termínu ${lostTerm}. O účasti v termínu ${targetTerm} rozhodne organizátor.`}
+      />
       <Field orientation="horizontal">
         <Checkbox
           id="release-consent"
