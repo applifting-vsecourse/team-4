@@ -104,14 +104,6 @@ export function RegistrationChangeForm({
   }
   const isEveryTermHeld = terms.every((term) => term.status !== null)
   // What the selection does, shown as soon as it differs from the held terms.
-  const addedLabels = terms
-    .filter((term) => term.status === null && selected.includes(term.id))
-    .map((term) => term.label)
-    .join(", ")
-  const removedLabels = terms
-    .filter((term) => term.status !== null && !selected.includes(term.id))
-    .map((term) => term.label)
-    .join(", ")
   const isEverythingRemoved = selected.length === 0
 
   return (
@@ -204,60 +196,66 @@ export function RegistrationChangeForm({
         </CardHeader>
         <CardContent>
           <FieldGroup>
-            {terms.map((term) => (
-              <Field
-                key={term.id}
-                orientation="horizontal"
-              >
-                <Checkbox
-                  id={`term-${term.id}`}
-                  defaultChecked={term.status !== null}
-                  onCheckedChange={(checked) => toggle(term.id, checked === true)}
-                />
-                <FieldLabel htmlFor={`term-${term.id}`}>
-                  <span className="flex flex-col gap-1">
-                    <span>{term.label}</span>
-                    <span className="font-normal text-muted-foreground">{term.details}</span>
-                  </span>
-                </FieldLabel>
-                {term.status ? <ParticipationBadge status={term.status} /> : null}
-              </Field>
-            ))}
+            {terms.map((term) => {
+              const isAdded = term.status === null && selected.includes(term.id)
+              const isRemoved = term.status !== null && !selected.includes(term.id)
+              const isChangeNoticeVisible = isAdded || (isRemoved && !isEverythingRemoved)
+
+              return (
+                <div
+                  key={term.id}
+                  className="rounded-lg border border-border bg-background p-3"
+                >
+                  <Field orientation="horizontal">
+                    <Checkbox
+                      id={`term-${term.id}`}
+                      defaultChecked={term.status !== null}
+                      onCheckedChange={(checked) => toggle(term.id, checked === true)}
+                    />
+                    <FieldLabel htmlFor={`term-${term.id}`}>
+                      <span className="flex flex-col gap-1">
+                        <span>{term.label}</span>
+                        <span className="font-normal text-muted-foreground">{term.details}</span>
+                      </span>
+                    </FieldLabel>
+                    {term.status ? <ParticipationBadge status={term.status} /> : null}
+                  </Field>
+                  {isChangeNoticeVisible ? (
+                    <div className="pt-3">
+                      {isAdded ? (
+                        <Notice
+                          tone="info"
+                          role="status"
+                          title={`Přidání termínu ${term.label}`}
+                        >
+                          Stávající termíny zůstanou. Účast se vyhodnotí podle kapacity: při volném
+                          místě bude potvrzena, jinak budete náhradníkem. Cena se přičte po
+                          potvrzení místa.
+                        </Notice>
+                      ) : (
+                        <Notice
+                          tone="info"
+                          role="status"
+                          title={`Odhlášení z termínu ${term.label}`}
+                        >
+                          Místo se uvolní a storno poplatek řeší organizátor podle podmínek akce.
+                        </Notice>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
           </FieldGroup>
-          {addedLabels || removedLabels ? (
-            <div className="mt-6 space-y-3">
-              {addedLabels ? (
-                <Notice
-                  tone="info"
-                  role="status"
-                  title={`Přidání termínu ${addedLabels}`}
-                >
-                  Stávající termíny zůstanou. Účast se vyhodnotí podle kapacity: při volném místě
-                  bude potvrzena, jinak budete náhradníkem. Cena se přičte po potvrzení místa.
-                </Notice>
-              ) : null}
-              {isEverythingRemoved ? (
-                <Notice
-                  tone="warning"
-                  role="status"
-                  title="Odhlášení ze všech termínů"
-                >
-                  Celá přihláška bude odhlášená. Storno poplatek řeší organizátor podle podmínek
-                  akce.
-                </Notice>
-              ) : removedLabels ? (
-                <Notice
-                  tone="info"
-                  role="status"
-                  title={`Odhlášení z termínu ${removedLabels}`}
-                >
-                  Místo se uvolní a storno poplatek řeší organizátor podle podmínek akce.
-                </Notice>
-              ) : null}
-              <p className="text-sm text-muted-foreground">
-                Změny uvidíte v přehledu a potvrdíte je až tam. U termínů blízko začátku je může
-                muset schválit organizátor.
-              </p>
+          {isEverythingRemoved ? (
+            <div className="mt-4">
+              <Notice
+                tone="warning"
+                role="status"
+                title="Odhlášení ze všech termínů"
+              >
+                Celá přihláška bude odhlášená. Storno poplatek řeší organizátor podle podmínek akce.
+              </Notice>
             </div>
           ) : null}
           {isEveryTermHeld ? (
