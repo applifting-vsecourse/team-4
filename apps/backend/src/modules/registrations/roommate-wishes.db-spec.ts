@@ -252,6 +252,28 @@ describe('roommate wishes of a confirmed participant', () => {
     ).toBe(0);
   });
 
+  it('saves two people choosing each other at the same moment', async () => {
+    const f = await setup();
+    const jana = await person(f, 'Jana Svobodová', ['confirmed']);
+    const anna = await person(f, 'Anna Procházková', ['confirmed']);
+
+    // Each save locks its author and checks the other's key; repeated, so a
+    // lock that blocks those checks would deadlock one of them.
+    for (let round = 0; round < 5; round += 1) {
+      const both = round % 2 === 0;
+      const results = await Promise.all([
+        save(jana, both ? [anna.registration.id] : []),
+        save(anna, both ? [jana.registration.id] : []),
+      ]);
+      expect(results.map((r) => r.status)).toEqual([200, 200]);
+    }
+    expect(
+      await prisma.roommateWish.count({
+        where: { eventId: f.event.id },
+      }),
+    ).toBe(2);
+  });
+
   it('keeps a wish for someone no longer confirmed, but never adds one', async () => {
     const f = await setup();
     const jana = await person(f, 'Jana Svobodová', ['confirmed']);

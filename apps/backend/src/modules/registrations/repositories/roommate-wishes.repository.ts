@@ -46,8 +46,10 @@ export class RoommateWishesRepository {
 
   /**
    * Replaces the author's wishes with `registrationIds`, or nothing. The
-   * author's registration is locked first, so two saves of the same list
-   * run one after the other.
+   * author's registration is locked first, so two saves of the same author
+   * run one after the other. NO KEY UPDATE leaves the key-share locks of the
+   * wishes' foreign keys free, so two people saving wishes for each other at
+   * once don't deadlock.
    */
   async replaceForParticipant(
     accountId: string,
@@ -55,12 +57,13 @@ export class RoommateWishesRepository {
     registrationIds: readonly string[],
   ): Promise<WishesSave> {
     return this.prisma.$transaction(async (tx) => {
-      const locked = await tx.$queryRaw<{ id: string }[]>`
-        SELECT "id" FROM "registration"
+      const [locked] = await tx.$queryRaw<{ eventId: string }[]>`
+        SELECT "eventId" FROM "registration"
         WHERE "id" = ${registrationId}::uuid
           AND "participantAccountId" = ${accountId}::uuid
-        FOR UPDATE`;
-      if (locked.length === 0) return null;
+        FOR NO KEY UPDATE`;
+      if (!locked) return null;
+      const { eventId } = locked;
       const current = await this.read(tx, accountId, registrationId);
       if (!current) return null;
       const invalid = invalidWishes(
@@ -71,10 +74,6 @@ export class RoommateWishesRepository {
       );
       if (invalid) return { result: 'invalid', message: invalid };
 
-      const { eventId } = await tx.registration.findUniqueOrThrow({
-        where: { id: registrationId },
-        select: { eventId: true },
-      });
       await tx.roommateWish.deleteMany({
         where: {
           fromRegistrationId: registrationId,
