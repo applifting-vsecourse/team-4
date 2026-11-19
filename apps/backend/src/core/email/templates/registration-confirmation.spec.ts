@@ -67,7 +67,7 @@ describe('RegistrationConfirmation', () => {
     expect(out).not.toContain('K úhradě');
   });
 
-  it('shows a mixed result with its own status per term and both amounts', async () => {
+  it('shows a mixed result with each term status and no repeated term prices', async () => {
     const out = text(await render([confirmed, waitlisted], payment));
 
     expect(out).toContain('Přihláška přijata');
@@ -79,8 +79,10 @@ describe('RegistrationConfirmation', () => {
     expect(out).toContain('6. 7. – 12. 7. 2026');
     expect(out).toContain('Potvrzeno');
     expect(out).toContain('Náhradník');
-    expect(out).toContain('Cena výběru 8 400,50 Kč');
-    expect(out).toContain('K úhradě za potvrzené termíny 4 500 Kč');
+    expect(out).toContain('Cena celkem 8 400,50 Kč');
+    expect(out).toContain('Zbývá zaplatit 4 500 Kč');
+    expect(out).not.toContain('3 900,50 Kč');
+    expect(out).not.toContain('Částka 4 500 Kč');
     expect(out).toContain('Za tyto termíny nic neplatíte');
   });
 

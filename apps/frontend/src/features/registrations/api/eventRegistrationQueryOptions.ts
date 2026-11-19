@@ -3,6 +3,7 @@ import { queryOptions } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 
 import {
+  eventPaymentsSchema,
   registrationDetailSchema,
   registrationListSchema,
   type RegistrationFilter,
@@ -18,6 +19,8 @@ export const eventRegistrationKeys = {
     [...eventRegistrationKeys.event(organizationId, eventId), "list", filter] as const,
   detail: (organizationId: string, eventId: string, registrationId: string) =>
     [...eventRegistrationKeys.event(organizationId, eventId), "detail", registrationId] as const,
+  payments: (organizationId: string, eventId: string) =>
+    [...eventRegistrationKeys.event(organizationId, eventId), "payments"] as const,
 }
 
 const registrationsPath = (organizationId: string, eventId: string) =>
@@ -27,18 +30,26 @@ export const eventRegistrationsQueryOptions = (
   organizationId: string,
   eventId: string,
   filter: RegistrationFilter,
-) =>
-  queryOptions({
-    queryKey: eventRegistrationKeys.list(organizationId, eventId, filter),
+) => {
+  // Name/email search runs against the loaded rows; only supported filters go
+  // to the API and into its cache key.
+  const apiFilter = {
+    termId: filter.termId,
+    status: filter.status,
+    payment: filter.payment,
+  }
+  return queryOptions({
+    queryKey: eventRegistrationKeys.list(organizationId, eventId, apiFilter),
     queryFn: async () => {
       const searchParams = Object.fromEntries(
-        Object.entries(filter).filter((entry): entry is [string, string] => Boolean(entry[1])),
+        Object.entries(apiFilter).filter((entry): entry is [string, string] => Boolean(entry[1])),
       )
       return registrationListSchema.parse(
         await api.get(registrationsPath(organizationId, eventId), { searchParams }).json(),
       )
     },
   })
+}
 
 export const eventRegistrationQueryOptions = (
   organizationId: string,
@@ -84,4 +95,17 @@ export const registrationChangesQueryOptions = (
           .get(`${registrationsPath(organizationId, eventId)}/${registrationId}/changes`)
           .json(),
       ).changes,
+  })
+
+/**
+ * Received payments and balances of the event (S4-09). Under `event(...)`, so
+ * a payment recorded in the detail refreshes the overview too.
+ */
+export const eventPaymentsQueryOptions = (organizationId: string, eventId: string) =>
+  queryOptions({
+    queryKey: eventRegistrationKeys.payments(organizationId, eventId),
+    queryFn: async () =>
+      eventPaymentsSchema.parse(
+        await api.get(`organizations/${organizationId}/events/${eventId}/payments`).json(),
+      ),
   })

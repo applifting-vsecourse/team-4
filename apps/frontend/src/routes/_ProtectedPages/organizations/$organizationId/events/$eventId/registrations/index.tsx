@@ -12,9 +12,11 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { WorkspacePage } from "@/components/WorkspacePage"
 
+import { ACCOMMODATION_RULES_HEADING } from "@/features/accommodation/components/HardAttributeSection"
 import { TermEvaluationSection } from "@/features/accommodation/components/TermEvaluationSection"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
+import { EventSettingsButton } from "@/features/events/components/EventSettingsButton"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { pendingChangesQueryOptions } from "@/features/registrations/api/eventRegistrationQueryOptions"
@@ -56,15 +58,23 @@ function RegistrationsPage() {
 
   const termId =
     event.terms.find((term) => term.id === evaluationTerm)?.id ?? event.terms[0]?.id ?? ""
+  // Switching a view, filter, term or queue stays on the page: the organizer
+  // keeps the place they were working at instead of jumping to the top, and
+  // Back/Forward return to the previous selection (S4-01).
+  const inPage = { resetScroll: false } as const
   const setFilter = (next: RegistrationFilter) =>
-    void navigate({ search: { ...next, view: view === "list" ? undefined : view }, replace: true })
+    void navigate({
+      search: { ...next, view: view === "list" ? undefined : view },
+      replace: next.q !== filter.q,
+      ...inPage,
+    })
   const setView = (next: string) =>
     void navigate({
       search: {
         ...filter,
         view: next === "approvals" || next === "evaluation" ? next : undefined,
       },
-      replace: true,
+      ...inPage,
     })
   const setEvaluation = (selection: { termId: string; queue: string }) =>
     void navigate({
@@ -74,7 +84,7 @@ function RegistrationsPage() {
         evaluationTerm: selection.termId,
         queue: selection.queue === "all" ? undefined : selection.queue,
       },
-      replace: true,
+      ...inPage,
     })
 
   return (
@@ -92,6 +102,13 @@ function RegistrationsPage() {
         title={event.name}
         badge={<EventStatusBadge status={event.status} />}
         description={event.location}
+        actions={
+          <EventSettingsButton
+            organizationId={organizationId}
+            eventId={eventId}
+            section={ACCOMMODATION_RULES_HEADING}
+          />
+        }
       />
       <Tabs
         value={view}

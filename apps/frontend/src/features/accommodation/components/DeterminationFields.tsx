@@ -1,3 +1,4 @@
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import {
   Select,
@@ -39,10 +40,9 @@ export function DeterminationFields({
 }: DeterminationFieldsProps) {
   return (
     <div className="space-y-4">
-      <dl className="text-sm">
-        <dt className="text-muted-foreground">Odpověď účastníka</dt>
-        <dd>{answer}</dd>
-      </dl>
+      <DefinitionList layout="stacked">
+        <DefinitionRow label="Odpověď účastníka">{answer}</DefinitionRow>
+      </DefinitionList>
 
       <Field data-invalid={valueError ? true : undefined}>
         <FieldLabel htmlFor="determination-value">Ubytovat jako</FieldLabel>

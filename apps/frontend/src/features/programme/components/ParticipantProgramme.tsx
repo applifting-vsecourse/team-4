@@ -1,32 +1,25 @@
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { Notice } from "@/components/Notice"
+import { ParticipationBadge } from "@/components/ParticipationBadge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { type TermParticipation } from "@/lib/participation"
 
 import { ProgrammeList, type ProgrammeDay } from "@/features/programme/components/ProgrammeList"
-import { ProgrammeLoadFailed } from "@/features/programme/components/ProgrammeLoadFailed"
 
 export type ParticipantProgrammeTerm = {
   id: string
   label: string
   /** Formatted range, e.g. "6. 11. – 8. 11. 2026". */
   dates: string
-  status: "pending" | "confirmed" | "waitlisted"
+  status: Exclude<TermParticipation, "cancelled">
   days: ProgrammeDay[]
   /** The programme of this term could not be loaded. */
   isLoadFailed?: boolean
   isRetrying?: boolean
   /** The programme is still being read. */
   isLoading?: boolean
-}
-
-const STATUS_BADGE: Record<
-  ParticipantProgrammeTerm["status"],
-  { label: string; variant: "success" | "warning" | "secondary" }
-> = {
-  pending: { label: "Čeká na rozhodnutí organizátora", variant: "secondary" },
-  confirmed: { label: "Potvrzeno", variant: "success" },
-  waitlisted: { label: "Náhradník", variant: "warning" },
 }
 
 // Moje přihlášky → Detail přihlášky → Program termínu (F65), participant.
@@ -48,26 +41,22 @@ export function ParticipantProgramme({ terms, onRetry }: ParticipantProgrammePro
                 <h2 className="text-h4 wrap-break-word">Program – {term.label}</h2>
                 <p className="text-sm text-muted-foreground">{term.dates}</p>
               </div>
-              <Badge variant={STATUS_BADGE[term.status].variant}>
-                {STATUS_BADGE[term.status].label}
-              </Badge>
+              <ParticipationBadge status={term.status} />
             </div>
           </CardHeader>
           <CardContent>
             {term.status !== "confirmed" ? (
-              <Alert>
-                <AlertDescription>
-                  Program je dostupný až po potvrzení účasti v tomto termínu.
-                </AlertDescription>
-              </Alert>
-            ) : term.isLoading ? (
-              <Skeleton
-                className="h-24 w-full"
-                role="status"
-                aria-label="Načítání programu"
+              <Notice
+                tone="info"
+                title="Program je dostupný až po potvrzení účasti v tomto termínu."
               />
+            ) : term.isLoading ? (
+              <LoadingBlock label="Načítání programu">
+                <Skeleton className="h-24 w-full" />
+              </LoadingBlock>
             ) : term.isLoadFailed ? (
-              <ProgrammeLoadFailed
+              <LoadError
+                title="Program se nepodařilo načíst"
                 onRetry={() => onRetry?.(term.id)}
                 isRetrying={term.isRetrying}
               />

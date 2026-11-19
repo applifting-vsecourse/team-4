@@ -1004,7 +1004,22 @@ describe('public event page', () => {
         },
       ],
       isPublished: false,
+      conditions: '',
     });
+  });
+
+  it('shows the participation terms of an open event (F07)', async () => {
+    const { ownerId, path, eventId } = await readyEvent();
+    await call(ownerId, 'POST', `${path}/open-registration`);
+    await prisma.event.update({
+      where: { id: eventId },
+      data: { conditions: 'Záloha do 7 dnů.' },
+    });
+    const publicId = (await call(ownerId, 'GET', path)).body.publicId;
+
+    const response = await publicCall(publicId);
+
+    expect(response.body.conditions).toBe('Záloha do 7 dnů.');
   });
 
   it('does not show a closed event', async () => {
@@ -1347,6 +1362,7 @@ describe('public presentation and catalog detail (F55)', () => {
       organizationName: expect.any(String),
       location: BASICS.location,
       coverPhotoId: null,
+      registrationStatus: 'not-open',
       terms: [
         {
           id: expect.any(String),
@@ -1356,6 +1372,12 @@ describe('public presentation and catalog detail (F55)', () => {
         },
       ],
     });
+
+    await call(ownerId, 'POST', `${path}/open-registration`);
+    expect(
+      (await listCall()).find((entry) => entry.publicId === publicId)
+        ?.registrationStatus,
+    ).toBe('open');
 
     await call(ownerId, 'PUT', `${path}/publication`, { isPublished: false });
     expect((await listCall()).map((entry) => entry.publicId)).not.toContain(

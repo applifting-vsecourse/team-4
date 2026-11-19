@@ -470,6 +470,41 @@ describe('one registration per e-mail and event', () => {
     expect([a.status, b.status]).toEqual([201, 201]);
     expect(await prisma.participantAccount.count({ where: { email } })).toBe(1);
   });
+
+  it('binds the registration to the account of its normalized e-mail and leaves its profile unchanged (S4-08)', async () => {
+    const event = await eventWith();
+    const email = `profile-${randomUUID().slice(0, 8)}@example.test`;
+    await prisma.participantAccount.create({
+      data: {
+        email,
+        firstName: 'Anna',
+        lastName: 'Nováková',
+        phone: '+420604123456',
+      },
+    });
+
+    const saved = await submit(
+      event.publicId,
+      form(event.termIds, {
+        email: `  ${email.toUpperCase()} `,
+        firstName: 'Jiná',
+        lastName: 'Osoba',
+        phone: '+421 902 123 456',
+      }),
+    );
+
+    expect(saved.status).toBe(201);
+    const account = await prisma.participantAccount.findUniqueOrThrow({
+      where: { email },
+      include: { registrations: { select: { firstName: true } } },
+    });
+    expect(account).toMatchObject({
+      firstName: 'Anna',
+      lastName: 'Nováková',
+      phone: '+420604123456',
+      registrations: [{ firstName: 'Jiná' }],
+    });
+  });
 });
 
 describe('repeating a submission', () => {
@@ -643,6 +678,79 @@ describe('refused submissions save nothing', () => {
       T1: 'pending',
       T2: 'pending',
     });
+  });
+});
+
+describe('participation terms confirmation (F07)', () => {
+  const withConditions = async (conditions: string) => {
+    const f = await eventWith();
+    await prisma.event.update({
+      where: { id: f.event.id },
+      data: { conditions },
+    });
+    return f;
+  };
+
+  it('refuses a submission without the confirmation when the event has terms, and saves nothing', async () => {
+    const f = await withConditions('Zálohu uhraďte do 7 dnů.');
+
+    for (const extra of [{}, { conditionsConfirmed: false }] as Record<
+      string,
+      unknown
+    >[]) {
+      const response = await submit(f.publicId, form(f.termIds, extra));
+      expect(response.status).toBe(400);
+      expect(response.body).toMatchObject({
+        code: 'conditions_unconfirmed',
+        field: 'conditionsConfirmed',
+      });
+    }
+    expect(await registrationsOf(f.event.id)).toBe(0);
+  });
+
+  it('saves the confirmed submission without recording the confirmation', async () => {
+    const f = await withConditions('Zálohu uhraďte do 7 dnů.');
+    const response = await submit(
+      f.publicId,
+      form(f.termIds, { conditionsConfirmed: true }),
+    );
+
+    expect(response.status).toBe(201);
+    const stored = await prisma.registration.findFirstOrThrow({
+      where: { eventId: f.event.id },
+    });
+    expect(JSON.stringify(stored)).not.toMatch(/onditions/);
+  });
+
+  it('needs no confirmation when the terms are empty or blank', async () => {
+    for (const conditions of ['', '  \n ']) {
+      const f = await withConditions(conditions);
+      const response = await submit(f.publicId, form(f.termIds));
+      expect(response.status).toBe(201);
+    }
+  });
+
+  it('returns the stored result for a replay even when the terms appeared since', async () => {
+    const f = await withConditions('');
+    const body = form(f.termIds);
+    const original = await submit(f.publicId, body);
+    await prisma.event.update({
+      where: { id: f.event.id },
+      data: { conditions: 'Nové podmínky.' },
+    });
+
+    const repeated = await submit(f.publicId, body);
+
+    expect(repeated).toEqual({ status: 200, body: original.body });
+  });
+
+  it('refuses a confirmation that is not a boolean', async () => {
+    const f = await withConditions('');
+    const response = await submit(
+      f.publicId,
+      form(f.termIds, { conditionsConfirmed: 'yes' }),
+    );
+    expect(response.status).toBe(400);
   });
 });
 

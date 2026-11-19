@@ -8,7 +8,7 @@ Technické zadání: [#78](https://github.com/applifting-vsecourse/team-4/issues
 2. Workflow reaguje na změny PR a odeslaná či zrušená review. Board navíc kontroluje plánovaně každých 5 minut; GitHub může plánované běhy zpozdit. Spouští se důvěryhodný kód z main, nikoli kód z PR.
 3. Pro každou issue v tomto sloupci najde všechny **otevřené PR propojené přes `Closes #N` nebo `Refs #N`** a každý z nich zrevidují agentem **GitHub Copilot CLI**. Agent dostane diff, název a popis PR, text issue a pravidla z `CLAUDE.md` a `DESIGN.md` z větve `main`. Nemá žádné nástroje a nespouští kód z PR.
 4. Výsledek se zapíše jako komentář **u PR** (revidovaný commit, blokující nálezy a poznámky) a odkaz na něj jako komentář **u issue**.
-5. Pokud **všechny** propojené PR prošly bez **blokujících** nálezů pro svůj aktuální commit nebo pro něj mají platnou ruční výjimku od Davida, karta se přesune do **Ready for Testing**. Bot zveřejní předání do QA a odešle GitHub žádost o review uživateli `MatejKrones`; u Matějových PR uživateli `darebakdavca`. Jinak karta zůstává v Ready for Code Review a komentář u issue uvádí důvod.
+5. Pokud **všechny** propojené PR prošly bez **blokujících** nálezů pro svůj aktuální commit nebo pro něj mají platnou ruční výjimku od člověka, karta se přesune do **Ready for Testing**. Bot zveřejní předání do QA a odešle GitHub žádost o review uživateli `MatejKrones`; u Matějových PR uživateli `darebakdavca`. Jinak karta zůstává v Ready for Code Review a komentář u issue uvádí důvod.
 
 Review nenahrazuje testování ani lidského reviewera.
 
@@ -46,15 +46,25 @@ Samotné dokončení běhu ani absence komentářů úspěch neznamená.
 - Čekající žádosti o QA review se neduplikují a platné schválení aktuálního commitu po předání se znovu nevyžaduje. Chyba API při odeslání žádosti je viditelná jako neúspěšný běh; další běh žádost zopakuje i po existujícím předání do Ready for Testing.
 - Workflow běží s `concurrency`, takže se dva běhy nepřekrývají.
 
+## Pozastavení Copilot review
+
+Při vyčerpání kreditů lze pro PR směřující do `main` (včetně stacků) a pro
+child PR do chráněné feature integrační větve pozastavit Copilot review pomocí
+Actions secretu `PAUSE_COPILOT_REVIEW=true`. CI a příslušná schválení nadále
+platí. Child PR sloučený během pozastavení se nezapočítá jako review důkaz pro
+parent PR.
+Viz [postup zapnutí a vypnutí](delivery-workflow.md#pause-copilot-review-for-main-and-child-prs).
+
 ## Ruční výjimka z Copilot review
 
-Pouze `darebakdavca` může přímo na PR napsat samostatný komentář
-`/copilot-waive <celé aktuální SHA> <zdůvodnění>`. Platí pro tento commit daného
-PR; ostatní propojené PR musí splnit vlastní review podmínku. Výjimka se zapíše
-jako ruční rozhodnutí s odkazem na příkaz, nikoli jako Copilot `pass`; původní
-nálezy se nemažou. Schválení požadavků, CI a lidské QA po předání zůstávají
-povinné. Nový commit vyžaduje novou výjimku nebo úspěšné review. Úprava či smazání
-příkazu se znovu ověří; starý bot komentář výjimku neudržuje v platnosti.
+Každý člověk, který může na PR komentovat, včetně autora PR, může napsat
+samostatný komentář `/copilot-waive <celé aktuální SHA> <zdůvodnění>`. Platí pro
+tento commit daného PR; ostatní propojené PR musí splnit vlastní review podmínku.
+Boti se nepřijímají. Výjimka se zapíše jako ruční rozhodnutí s odkazem na příkaz,
+nikoli jako Copilot `pass`; původní nálezy se nemažou. Schválení požadavků, CI a
+lidské QA po předání zůstávají povinné. Nový commit vyžaduje novou výjimku nebo
+úspěšné review. Úprava či smazání příkazu se znovu ověří; starý bot komentář
+výjimku neudržuje v platnosti.
 Podrobnosti a pravidla QA jsou v [delivery workflow](delivery-workflow.md#manual-copilot-waiver).
 
 ## Ruční spuštění
@@ -106,13 +116,25 @@ roles and merge configuration.
 The 100,000-byte limit applies to each complete prompt, not to the whole PR.
 Small PRs still get one full-diff review. Larger diffs are grouped into bounded
 batches, preserving whole files where possible and splitting oversized files at
-line boundaries. No text changes are silently truncated or excluded, including
-lockfiles and generated component code. Binary files are skipped without separate
-approval and listed in a collapsed coverage section. Binary-only PRs satisfy the
+line boundaries. No text changes are silently truncated or excluded, except
+lockfiles (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`), which CI guards and
+a model cannot meaningfully review. Binary files and lockfiles are skipped without
+separate approval and listed in a collapsed coverage section. Binary-only PRs satisfy the
 text review gate without a Copilot call; CI, requirements and QA still apply. Before any Copilot call, the runner
 compares file and added/deleted-line counts against GitHub's PR metadata. A
 mismatch, oversized individual line or excessive context blocks
 review before it starts.
+
+The prompt carries only review-relevant rules: the CLAUDE.md sections on
+architecture decisions, product identity and UI, DESIGN.md only when the diff
+touches `apps/frontend`, and a short CI summary instead of the workflow file.
+Copilot runs with `--no-custom-instructions`, so the repository instructions are
+not loaded a second time. By default the prompt is one `-p` argument (Linux caps
+it at 128 KiB). Setting `COPILOT_PROMPT_TRANSPORT=stdin` pipes it over stdin and
+raises the limit to 400,000 bytes; enable it only after confirming that a large
+piped prompt gets a real reply from the pinned CLI version (the CLI accepted a
+300 KB stdin prompt, but a full reply could not be verified because the quota was
+exhausted). The cross-file pass reserves one summary cap (2,000 bytes) per batch.
 
 Every batch receives the PR title and description, issue, main-branch repository rules and a complete file
 manifest. It returns findings and a bounded summary of public contracts and

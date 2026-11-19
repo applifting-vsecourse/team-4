@@ -125,12 +125,17 @@ describe("RegistrationsSection", () => {
     const row = (await screen.findByText("Eliška Svobodová")).closest("tr")!
     expect(within(row).getByText("eliska@example.test")).toBeInTheDocument()
     expect(within(row).getByText("+420601234567")).toBeInTheDocument()
-    const terms = within(row).getAllByRole("listitem")
-    expect(terms[0]).toHaveTextContent("1. turnusPotvrzeno")
-    expect(terms[1]).toHaveTextContent("2. turnusNáhradník")
+    const cells = within(row).getAllByRole("cell")
+    const terms = within(cells[1]!).getAllByRole("listitem")
+    const statuses = within(cells[2]!).getAllByRole("listitem")
+    expect(terms[0]).toHaveTextContent("1. turnus")
+    expect(terms[1]).toHaveTextContent("2. turnus")
+    expect(statuses[0]).toHaveTextContent("Potvrzeno")
+    expect(statuses[1]).toHaveTextContent("Náhradník")
     expect(within(row).getByText("10. 10. 2026 9:31")).toBeInTheDocument()
     expect(within(row).getByText("Částečně zaplaceno")).toBeInTheDocument()
-    expect(within(row).getByText("Dluh 6 000 Kč")).toBeInTheDocument()
+    expect(cells[5]).toHaveTextContent("7 900 Kč")
+    expect(cells[6]).toHaveTextContent("1 900 Kč")
     expect(screen.getByText("Zobrazeno 1 z 1 · od nejstarší přihlášky")).toBeInTheDocument()
   })
 
@@ -145,14 +150,14 @@ describe("RegistrationsSection", () => {
   it("tells an event without registrations from filters without a match", async () => {
     responses.push({ total: 0, registrations: [] })
     renderSection()
-    expect(await screen.findByText("Tato akce zatím nemá žádné přihlášky.")).toBeInTheDocument()
+    expect(await screen.findByText("Tato akce zatím nemá žádné přihlášky")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Zrušit filtry" })).not.toBeInTheDocument()
   })
 
   it("offers to clear filters that match nothing", async () => {
     responses.push({ total: 3, registrations: [] })
     const { onFilterChange } = renderSection({ status: "waitlisted" })
-    expect(await screen.findByText("Žádná přihláška neodpovídá filtrům.")).toBeInTheDocument()
+    expect(await screen.findByText("Žádná přihláška neodpovídá filtrům")).toBeInTheDocument()
 
     const clear = screen.getAllByRole("button", { name: "Zrušit filtry" })
     await userEvent.click(clear[clear.length - 1]!)
@@ -162,9 +167,7 @@ describe("RegistrationsSection", () => {
   it("never shows a failed first load as an empty list, and retries it", async () => {
     responses.push(new Error("Failed to fetch"))
     renderSection()
-    expect(
-      await screen.findByText("Data se nepodařilo načíst. Zkuste to znovu."),
-    ).toBeInTheDocument()
+    expect(await screen.findByText("Data se nepodařilo načíst")).toBeInTheDocument()
     expect(screen.queryByText(/nemá žádné přihlášky/)).not.toBeInTheDocument()
     expect(screen.queryByText(/neodpovídá filtrům/)).not.toBeInTheDocument()
 
@@ -181,9 +184,7 @@ describe("RegistrationsSection", () => {
 
     responses.push(new Error("Failed to fetch"))
     await userEvent.click(screen.getByRole("button", { name: "Aktualizovat" }))
-    expect(
-      await screen.findByText("Data se nepodařilo načíst. Zkuste to znovu."),
-    ).toBeInTheDocument()
+    expect(await screen.findByText("Data se nepodařilo načíst")).toBeInTheDocument()
     expect(screen.getByText(/z posledního úspěšného načtení/)).toBeInTheDocument()
     expect(screen.getByText("Eliška Svobodová")).toBeInTheDocument()
     expect(screen.queryByText(/^Aktualizováno/)).not.toBeInTheDocument()

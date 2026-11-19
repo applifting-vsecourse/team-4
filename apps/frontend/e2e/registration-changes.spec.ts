@@ -63,22 +63,28 @@ async function openOrganizerRequest(page: Page, event: OpenEvent, registrationId
   await expect(page).toHaveURL(new RegExp(registrationId))
 }
 
-test("a move outside the approval threshold is made at once", async ({ page, browser }) => {
+test("replacing a term outside the approval threshold is made at once", async ({
+  page,
+  browser,
+}) => {
   const { event, participant, context } = await setUp(browser, page)
 
   await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
-  await participant.getByRole("combobox").nth(1).click()
-  await participant.getByRole("option", { name: /Turnus 3/ }).click()
+  await participant.getByRole("checkbox", { name: /^Turnus 2/ }).uncheck()
+  await participant.getByRole("checkbox", { name: /^Turnus 3/ }).check()
   await participant.getByRole("button", { name: "Zkontrolovat změny" }).click()
 
   const review = participant.getByRole("dialog", { name: "Kontrola změn přihlášky" })
+  // The review lists the term that stays, the removed one and the added one.
+  await expect(review.getByRole("row", { name: /Turnus 1.*Potvrzeno.*Potvrzeno/ })).toBeVisible()
+  await expect(review.getByRole("row", { name: /Turnus 2.*Potvrzeno.*Odhlášeno/ })).toBeVisible()
+  await expect(review.getByRole("row", { name: /Turnus 3/ })).toBeVisible()
   await expect(
     review.getByText("Storno poplatek a případnou vratku řeší organizátor"),
   ).toBeVisible()
-  // The new term waits for the organizer, so the confirmed place needs consent (S3-01).
-  await expect(review.getByText(/O účasti v termínu Turnus 3 rozhodne organizátor/)).toBeVisible()
-  await expect(review.getByRole("button", { name: "Potvrdit změnu" })).toBeDisabled()
-  await review.getByRole("checkbox", { name: /Souhlasím/ }).check()
+  await expect(
+    review.getByText(/Účast v termínu Turnus 3 se vyhodnotí podle kapacity/),
+  ).toBeVisible()
   await review.getByRole("button", { name: "Potvrdit změnu" }).click()
 
   await expect(participant.getByRole("heading", { name: event.name, level: 1 })).toBeVisible()
@@ -86,6 +92,65 @@ test("a move outside the approval threshold is made at once", async ({ page, bro
   await expect(termRow(participant, "Turnus 3")).toContainText("Čeká na rozhodnutí organizátora")
   await expect(termRow(participant, "Turnus 1")).toContainText("Potvrzeno")
   await expect(participant.getByText("Historie změn")).toBeVisible()
+  await context.close()
+})
+
+test("a term is added next to the held ones without losing them (F35-2c)", async ({
+  page,
+  browser,
+}) => {
+  const { event, participant, context } = await setUp(browser, page)
+
+  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  await expect(participant.getByRole("checkbox", { name: /^Turnus 1/ })).toBeChecked()
+  await expect(participant.getByRole("checkbox", { name: /^Turnus 2/ })).toBeChecked()
+  await participant.getByRole("checkbox", { name: /^Turnus 3/ }).check()
+  // The form says what the selection does before the review.
+  await expect(
+    participant.getByRole("status").filter({ hasText: "Přidání termínu Turnus 3" }),
+  ).toContainText("Stávající termíny zůstanou")
+  await participant.getByRole("button", { name: "Zkontrolovat změny" }).click()
+
+  const review = participant.getByRole("dialog", { name: "Kontrola změn přihlášky" })
+  await expect(review.getByRole("row", { name: /Turnus 1.*Potvrzeno.*Potvrzeno/ })).toBeVisible()
+  await expect(review.getByRole("row", { name: /Turnus 2.*Potvrzeno.*Potvrzeno/ })).toBeVisible()
+  await expect(
+    review.getByText(/Účast v termínu Turnus 3 se vyhodnotí podle kapacity/),
+  ).toBeVisible()
+  // Nothing is given up, so no consent and no storno notice.
+  await expect(review.getByRole("checkbox")).toHaveCount(0)
+  await expect(review.getByText(/Storno poplatek/)).toBeHidden()
+  await review.getByRole("button", { name: "Potvrdit změnu" }).click()
+
+  await expect(participant.getByRole("heading", { name: event.name, level: 1 })).toBeVisible()
+  await expect(termRow(participant, "Turnus 1")).toContainText("Potvrzeno")
+  await expect(termRow(participant, "Turnus 2")).toContainText("Potvrzeno")
+  await expect(termRow(participant, "Turnus 3")).toBeVisible()
+
+  // Every term of the event is held now: nothing more can be added.
+  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  await expect(participant.getByText(/Další termín není k dispozici/)).toBeVisible()
+  await context.close()
+})
+
+test("unticking a held term cancels only that term (F35-2c)", async ({ page, browser }) => {
+  const { event, participant, context } = await setUp(browser, page)
+
+  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  await participant.getByRole("checkbox", { name: /^Turnus 2/ }).uncheck()
+  await expect(
+    participant.getByRole("status").filter({ hasText: "Odhlášení z termínu Turnus 2" }),
+  ).toContainText("Místo se uvolní")
+  await participant.getByRole("button", { name: "Zkontrolovat změny" }).click()
+
+  const review = participant.getByRole("dialog", { name: "Odhlášení" })
+  await expect(review.getByRole("row", { name: /Turnus 1.*Potvrzeno.*Potvrzeno/ })).toBeVisible()
+  await expect(review.getByRole("row", { name: /Turnus 2.*Potvrzeno.*Odhlášeno/ })).toBeVisible()
+  await review.getByRole("button", { name: "Potvrdit odhlášení" }).click()
+
+  await expect(participant.getByRole("heading", { name: event.name, level: 1 })).toBeVisible()
+  await expect(termRow(participant, "Turnus 1")).toContainText("Potvrzeno")
+  await expect(termRow(participant, "Turnus 2")).toContainText("Odhlášeno")
   await context.close()
 })
 
@@ -145,5 +210,5 @@ test("without a request the queue is empty", async ({ page }) => {
   await page.goto(
     `/organizations/${event.organizationId}/events/${event.eventId}/registrations?view=approvals`,
   )
-  await expect(page.getByText("Žádné změny nečekají na schválení.")).toBeVisible()
+  await expect(page.getByText("Žádné změny nečekají na schválení")).toBeVisible()
 })

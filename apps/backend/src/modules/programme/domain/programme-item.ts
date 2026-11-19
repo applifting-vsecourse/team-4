@@ -6,6 +6,8 @@ export type ProgrammeItemModel = {
   startDate: string;
   /** `HH:mm` */
   startTime: string;
+  /** `HH:mm`, later than the start on the same day. */
+  endTime: string;
   place: string | null;
   description: string | null;
 };
@@ -25,3 +27,7 @@ export const isCalendarDate = (value: string): boolean => {
 /** Both ends of the term are inclusive. */
 export const isWithinTerm = (date: string, term: ProgrammeTerm): boolean =>
   date >= term.startDate && date <= term.endDate;
+
+/** `HH:mm` strings compare chronologically. */
+export const isEndAfterStart = (startTime: string, endTime: string): boolean =>
+  endTime > startTime;

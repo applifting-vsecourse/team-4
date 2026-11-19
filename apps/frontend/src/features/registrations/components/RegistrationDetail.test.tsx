@@ -105,25 +105,44 @@ describe("RegistrationDetail", () => {
     expect(second).toHaveTextContent("Náhradník")
   })
 
-  it("separates the selected price, the amount for confirmed terms, payments and the debt", () => {
+  it("summarises the amount due, the paid amount and the balance once", () => {
     renderDetail(MIXED)
-    expect(valueOf("Cena vybraných termínů")).toBe("11 800 Kč")
-    expect(valueOf("Částka za potvrzené termíny")).toBe("7 900 Kč")
+    expect(valueOf("Celkem k úhradě")).toBe("7 900 Kč")
     expect(valueOf("Zaplaceno")).toBe("1 900 Kč")
-    expect(valueOf("Dluh")).toBe("6 000 Kč")
+    expect(valueOf("Zbývá zaplatit")).toBe("6 000 Kč")
+    expect(screen.queryByText("Cena vybraných termínů")).not.toBeInTheDocument()
+    expect(screen.queryByText("Částka za potvrzené termíny")).not.toBeInTheDocument()
     expect(valueOf("Datum připomenutí platby")).toBe("28. 6. 2027")
     expect(valueOf("Variabilní symbol")).toBe("2027094")
     expect(screen.queryByText(/Splatnost/)).not.toBeInTheDocument()
-
-    const payments = screen.getByText("Přijaté platby").closest<HTMLElement>("[data-slot=card]")!
-    expect(
-      within(payments)
-        .getAllByRole("listitem")
-        .map((item) => plain(item.textContent)),
-    ).toEqual(["12. 10. 2026900 Kč", "14. 10. 20261 000 Kč"])
   })
 
-  it("says settled or overpaid instead of a debt", () => {
+  it("lists received payments newest first and sorts them by column", async () => {
+    renderDetail(MIXED)
+    const amounts = () =>
+      screen
+        .getAllByRole("row")
+        .slice(1)
+        .map((row) => plain(row.textContent))
+
+    expect(amounts()).toEqual(["14. 10. 20261 000 Kč", "12. 10. 2026900 Kč"])
+    const dateHeader = screen.getByRole("columnheader", { name: /Datum/ })
+    expect(dateHeader).toHaveAttribute("aria-sort", "descending")
+
+    await userEvent.click(within(dateHeader).getByRole("button"))
+    expect(dateHeader).toHaveAttribute("aria-sort", "ascending")
+    expect(amounts()).toEqual(["12. 10. 2026900 Kč", "14. 10. 20261 000 Kč"])
+
+    const amountHeader = screen.getByRole("columnheader", { name: /Částka/ })
+    await userEvent.click(within(amountHeader).getByRole("button"))
+    expect(amountHeader).toHaveAttribute("aria-sort", "ascending")
+    expect(dateHeader).toHaveAttribute("aria-sort", "none")
+    expect(amounts()).toEqual(["12. 10. 2026900 Kč", "14. 10. 20261 000 Kč"])
+    await userEvent.click(within(amountHeader).getByRole("button"))
+    expect(amounts()).toEqual(["14. 10. 20261 000 Kč", "12. 10. 2026900 Kč"])
+  })
+
+  it("says settled or overpaid instead of a remaining amount", () => {
     const { unmount } = render(
       <RegistrationDetail
         registration={{ ...MIXED, paidMinor: 790_000, balanceMinor: 0, paymentState: "paid" }}
@@ -133,14 +152,14 @@ describe("RegistrationDetail", () => {
         onRefresh={vi.fn()}
       />,
     )
-    expect(valueOf("Vyrovnáno")).toBe("0 Kč")
+    expect(valueOf("Zbývá zaplatit")).toBe("0 Kč")
     unmount()
 
     renderDetail({ ...MIXED, paidMinor: 800_000, balanceMinor: -10_000, paymentState: "overpaid" })
     expect(valueOf("Přeplatek")).toBe("100 Kč")
   })
 
-  it("has no reminder date or VS without an obligation, and says so", () => {
+  it("has no amounts, reminder date or VS without an obligation", () => {
     renderDetail({
       ...MIXED,
       terms: [{ ...MIXED.terms[1]! }],
@@ -153,10 +172,11 @@ describe("RegistrationDetail", () => {
       variableSymbol: null,
       payments: [],
     })
-    expect(screen.getAllByText("Bez platební povinnosti").length).toBeGreaterThan(0)
+    expect(screen.getByText("Bez povinnosti")).toBeInTheDocument()
+    expect(screen.queryByText("Celkem k úhradě")).not.toBeInTheDocument()
+    expect(screen.queryByText("Zbývá zaplatit")).not.toBeInTheDocument()
     expect(screen.queryByText("Datum připomenutí platby")).not.toBeInTheDocument()
     expect(screen.queryByText("Variabilní symbol")).not.toBeInTheDocument()
-    expect(screen.queryByText("Dluh")).not.toBeInTheDocument()
     expect(screen.getByText("Zatím nebyla zaznamenána žádná platba.")).toBeInTheDocument()
   })
 
@@ -169,9 +189,9 @@ describe("RegistrationDetail", () => {
 
   it("keeps the last data after a failed reload without calling them fresh", async () => {
     const { onRefresh } = renderDetail(MIXED, { hasRefreshFailed: true })
-    expect(screen.getByText("Data se nepodařilo načíst. Zkuste to znovu.")).toBeInTheDocument()
+    expect(screen.getByText("Data se nepodařilo načíst")).toBeInTheDocument()
     expect(screen.queryByText(/aktualizováno/)).not.toBeInTheDocument()
-    expect(valueOf("Dluh")).toBe("6 000 Kč")
+    expect(valueOf("Zbývá zaplatit")).toBe("6 000 Kč")
     await userEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }))
     expect(onRefresh).toHaveBeenCalledTimes(1)
   })

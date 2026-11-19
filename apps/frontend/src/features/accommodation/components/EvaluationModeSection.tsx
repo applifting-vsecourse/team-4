@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { evaluationModeQueryOptions } from "@/features/accommodation/api/evaluationQueryOptions"
 import { EvaluationModeSettings } from "@/features/accommodation/components/EvaluationModeSettings"
-import { RetryAlert } from "@/features/accommodation/components/RetryAlert"
 import { useSaveEvaluationMode } from "@/features/accommodation/hooks/useSaveEvaluationMode"
 
 const STILL_APPLIES = {
@@ -25,24 +27,17 @@ export function EvaluationModeSection({
   const mode = useQuery(evaluationModeQueryOptions(organizationId, eventId))
   const save = useSaveEvaluationMode(organizationId, eventId)
 
-  if (mode.isPending) {
-    return (
-      <Skeleton
-        className="h-40 w-full"
-        role="status"
-        aria-label="Načítání automatizace"
-      />
-    )
-  }
-  if (mode.isError) {
-    return (
-      <RetryAlert
-        title="Automatizaci se nepodařilo načíst"
-        onRetry={() => void mode.refetch()}
-      />
-    )
-  }
-  return (
+  const content = mode.isPending ? (
+    <LoadingBlock label="Načítání automatizace">
+      <Skeleton className="h-40 w-full" />
+    </LoadingBlock>
+  ) : mode.isError ? (
+    <LoadError
+      title="Automatizaci se nepodařilo načíst"
+      isRetrying={mode.isFetching}
+      onRetry={() => mode.refetch()}
+    />
+  ) : (
     <EvaluationModeSettings
       // A newly saved or reloaded mode starts the form again.
       key={mode.data}
@@ -53,5 +48,14 @@ export function EvaluationModeSection({
         save.mutate(next, { onSuccess: () => toast.success("Režim vyhodnocení byl uložen.") })
       }
     />
+  )
+
+  return (
+    <CollapsibleSection
+      headingId="automation-heading"
+      title="Automatizace"
+    >
+      {content}
+    </CollapsibleSection>
   )
 }

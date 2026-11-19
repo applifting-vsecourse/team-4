@@ -1,32 +1,31 @@
-import { useQuery } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
-import { ClipboardList, Loader2, RefreshCw, X } from "lucide-react"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { ClipboardList, SearchX, X } from "lucide-react"
 
-import { ROUTES } from "@/app/routes"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { EmptyState } from "@/components/EmptyState"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageSection } from "@/components/PageSection"
+import { ParticipationBadge } from "@/components/ParticipationBadge"
+import { RefreshButton } from "@/components/RefreshButton"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { formatPragueDateTime } from "@/lib/date"
+import { formatCzk } from "@/lib/money"
+import { normalizeSearch } from "@/lib/search"
 
 import { eventRegistrationsQueryOptions } from "@/features/registrations/api/eventRegistrationQueryOptions"
 import {
   type RegistrationFilter,
   type RegistrationSummary,
 } from "@/features/registrations/api/eventRegistrationSchemas"
-import { ParticipationBadge } from "@/features/registrations/components/ParticipationBadge"
 import { PaymentStateBadge } from "@/features/registrations/components/PaymentStateBadge"
 import { RegistrationFilters } from "@/features/registrations/components/RegistrationFilters"
-import { describeBalance } from "@/features/registrations/lib/balance"
+import {
+  RegistrationCell,
+  RegistrationNameCell,
+} from "@/features/registrations/components/RegistrationRowLink"
 
 type RegistrationsSectionProps = {
   organizationId: string
@@ -47,32 +46,25 @@ export function RegistrationsSection({
   filter,
   onFilterChange,
 }: RegistrationsSectionProps) {
-  const query = useQuery(eventRegistrationsQueryOptions(organizationId, eventId, filter))
+  // Another filter keeps the previous rows until its own arrive, so the page
+  // does not shrink and move the organizer away from the filters (S4-01).
+  const query = useQuery({
+    ...eventRegistrationsQueryOptions(organizationId, eventId, filter),
+    placeholderData: keepPreviousData,
+  })
   const { data } = query
 
   return (
-    <section
-      aria-labelledby="registrations-heading"
-      aria-busy={query.isFetching}
-      className="space-y-4"
+    <PageSection
+      title="Seznam přihlášek"
+      isBusy={query.isFetching}
+      actions={
+        <RefreshButton
+          isRefreshing={query.isFetching}
+          onRefresh={() => query.refetch()}
+        />
+      }
     >
-      <div className="flex min-h-9 items-center justify-between gap-4">
-        <h2
-          id="registrations-heading"
-          className="text-h4"
-        >
-          Seznam přihlášek
-        </h2>
-        <Button
-          variant="outline"
-          onClick={() => void query.refetch()}
-          disabled={query.isFetching}
-        >
-          {query.isFetching ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw />}
-          {query.isFetching ? "Aktualizuji…" : "Aktualizovat"}
-        </Button>
-      </div>
-
       <RegistrationFilters
         terms={terms}
         filter={filter}
@@ -80,26 +72,11 @@ export function RegistrationsSection({
       />
 
       {query.isError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Data se nepodařilo načíst. Zkuste to znovu.</AlertTitle>
-          <AlertDescription>
-            {data ? (
-              <p>
-                Zobrazený seznam je z posledního úspěšného načtení (
-                {formatPragueDateTime(new Date(query.dataUpdatedAt).toISOString())}).
-              </p>
-            ) : null}
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() => void query.refetch()}
-              disabled={query.isFetching}
-            >
-              Zkusit znovu
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <LoadError
+          shownFrom={data ? query.dataUpdatedAt : undefined}
+          isRetrying={query.isFetching}
+          onRetry={() => query.refetch()}
+        />
       ) : null}
 
       {data ? (
@@ -108,17 +85,18 @@ export function RegistrationsSection({
           eventId={eventId}
           total={data.total}
           registrations={data.registrations}
+          query={filter.q}
           onClearFilters={() => onFilterChange({})}
         />
       ) : query.isPending ? (
-        <div
+        <LoadingBlock
+          label="Načítání přihlášek"
           className="space-y-2"
-          aria-label="Načítání přihlášek"
         >
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
-        </div>
+        </LoadingBlock>
       ) : null}
 
       {data && !query.isError ? (
@@ -126,7 +104,7 @@ export function RegistrationsSection({
           Aktualizováno {formatPragueDateTime(new Date(query.dataUpdatedAt).toISOString())}
         </p>
       ) : null}
-    </section>
+    </PageSection>
   )
 }
 
@@ -135,6 +113,7 @@ type RegistrationsResultProps = {
   eventId: string
   total: number
   registrations: RegistrationSummary[]
+  query: string | undefined
   onClearFilters: () => void
 }
 
@@ -143,116 +122,128 @@ function RegistrationsResult({
   eventId,
   total,
   registrations,
+  query,
   onClearFilters,
 }: RegistrationsResultProps) {
+  const normalizedQuery = normalizeSearch(query)
+  const filteredRegistrations = normalizedQuery
+    ? registrations.filter((registration) => {
+        const searchable = normalizeSearch(
+          `${registration.firstName} ${registration.lastName} ${registration.email}`,
+        )
+        return searchable.includes(normalizedQuery)
+      })
+    : registrations
+
   if (total === 0) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <ClipboardList />
-          </EmptyMedia>
-          <EmptyTitle>Tato akce zatím nemá žádné přihlášky.</EmptyTitle>
-        </EmptyHeader>
-      </Empty>
+      <EmptyState
+        icon={ClipboardList}
+        title="Tato akce zatím nemá žádné přihlášky"
+      />
     )
   }
 
-  if (registrations.length === 0) {
+  if (filteredRegistrations.length === 0) {
     return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyTitle>Žádná přihláška neodpovídá filtrům.</EmptyTitle>
-        </EmptyHeader>
-        <EmptyContent>
+      <EmptyState
+        icon={SearchX}
+        title="Žádná přihláška neodpovídá filtrům"
+        action={
           <Button onClick={onClearFilters}>
             <X />
             Zrušit filtry
           </Button>
-        </EmptyContent>
-      </Empty>
+        }
+      />
     )
   }
 
   return (
     <div className="space-y-2">
       <p className="text-sm text-muted-foreground">
-        Zobrazeno {registrations.length} z {total} · od nejstarší přihlášky
+        Zobrazeno {filteredRegistrations.length} z {total} · od nejstarší přihlášky
       </p>
       <Card padding="none">
         <Table containerLabel="Tabulka přihlášek">
           <TableHeader>
             <TableRow>
               <TableHead>Účastník</TableHead>
-              <TableHead>Termíny</TableHead>
+              <TableHead>Termín</TableHead>
+              <TableHead>Stav termínu</TableHead>
               <TableHead className="whitespace-nowrap">Přijato</TableHead>
-              <TableHead>Platba</TableHead>
+              <TableHead className="whitespace-nowrap">Stav platby</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Celkem</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Zaplaceno</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {registrations.map((registration) => {
-              const balance = describeBalance(registration.balanceMinor)
+            {filteredRegistrations.map((registration) => {
+              const link = { organizationId, eventId, registrationId: registration.id }
               return (
                 <TableRow key={registration.id}>
-                  <TableCell className="relative">
-                    <Link
-                      to={ROUTES.registration}
-                      params={{ organizationId, eventId, registrationId: registration.id }}
-                      aria-label={`Přihláška ${registration.firstName} ${registration.lastName}`}
-                      className="block font-medium text-foreground after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
-                    >
-                      {registration.firstName} {registration.lastName}
-                    </Link>
+                  <RegistrationNameCell
+                    link={link}
+                    firstName={registration.firstName}
+                    lastName={registration.lastName}
+                  >
                     <p className="text-xs text-muted-foreground">{registration.email}</p>
                     <p className="text-xs text-muted-foreground">{registration.phone}</p>
-                  </TableCell>
-                  <TableCell className="relative">
+                  </RegistrationNameCell>
+                  <RegistrationCell
+                    link={link}
+                    canWrap
+                  >
                     <ul className="space-y-1">
                       {registration.terms.map((term) => (
                         <li
                           key={term.termId}
-                          className="flex items-center gap-2"
+                          className="min-h-7 py-1"
                         >
-                          <span>{term.label}</span>
+                          {term.label}
+                        </li>
+                      ))}
+                    </ul>
+                  </RegistrationCell>
+                  <RegistrationCell
+                    link={link}
+                    canWrap
+                  >
+                    <ul className="space-y-1">
+                      {registration.terms.map((term) => (
+                        <li
+                          key={term.termId}
+                          className="min-h-7 py-1"
+                        >
                           <ParticipationBadge status={term.status} />
                         </li>
                       ))}
                     </ul>
-                    <Link
-                      to={ROUTES.registration}
-                      params={{ organizationId, eventId, registrationId: registration.id }}
-                      aria-hidden="true"
-                      tabIndex={-1}
-                      className="absolute inset-0"
-                    />
-                  </TableCell>
-                  <TableCell className="relative whitespace-nowrap">
+                  </RegistrationCell>
+                  <RegistrationCell link={link}>
                     {formatPragueDateTime(registration.receivedAt)}
-                    <Link
-                      to={ROUTES.registration}
-                      params={{ organizationId, eventId, registrationId: registration.id }}
-                      aria-hidden="true"
-                      tabIndex={-1}
-                      className="absolute inset-0"
-                    />
-                  </TableCell>
-                  <TableCell className="relative whitespace-nowrap">
-                    <div className="-ml-2">
-                      <PaymentStateBadge state={registration.paymentState} />
-                    </div>
-                    {balance.amount ? (
-                      <p className="mt-1 font-mono text-xs text-muted-foreground tabular-nums">
-                        {balance.label} {balance.amount}
-                      </p>
-                    ) : null}
-                    <Link
-                      to={ROUTES.registration}
-                      params={{ organizationId, eventId, registrationId: registration.id }}
-                      aria-hidden="true"
-                      tabIndex={-1}
-                      className="absolute inset-0"
-                    />
-                  </TableCell>
+                  </RegistrationCell>
+                  <RegistrationCell link={link}>
+                    <ul className="-ml-2">
+                      <li className="min-h-7 py-1">
+                        <PaymentStateBadge state={registration.paymentState} />
+                      </li>
+                    </ul>
+                  </RegistrationCell>
+                  <RegistrationCell
+                    link={link}
+                    isNumeric
+                  >
+                    {registration.paymentState === "none"
+                      ? "—"
+                      : formatCzk(registration.amountDueMinor)}
+                  </RegistrationCell>
+                  <RegistrationCell
+                    link={link}
+                    isNumeric
+                  >
+                    {registration.paymentState === "none" ? "—" : formatCzk(registration.paidMinor)}
+                  </RegistrationCell>
                 </TableRow>
               )
             })}

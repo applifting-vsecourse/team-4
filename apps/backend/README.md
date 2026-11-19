@@ -28,4 +28,4 @@ pnpm backend email:dev
 
 See the [root README](../../README.md) for environment setup and deployment. Swagger is available at http://localhost:4050/api/docs.
 
-BetterAuth is mounted at `/api/auth/*`. Its runtime and CLI configurations live under `src/shared/auth`; keep them aligned when changing auth behavior. Email templates live in `src/core/email/templates`; the console adapter is the local default, with Resend and SMTP available through configuration.
+BetterAuth is mounted at `/api/auth/*`. Its runtime and CLI configurations live under `src/shared/auth`; keep them aligned when changing auth behavior. Email templates live in `src/core/email/templates`; the console adapter is the local default, with SMTP (for example Gmail) available through configuration.

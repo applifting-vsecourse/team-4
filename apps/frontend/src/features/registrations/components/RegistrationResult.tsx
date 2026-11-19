@@ -56,7 +56,6 @@ export function RegistrationResult({ result }: { result: Result }) {
               <ParticipantPaymentSummary
                 selectedPriceMinor={result.selectedPriceMinor}
                 amountDueMinor={result.amountDueMinor}
-                paidMinor={0}
                 balanceMinor={result.amountDueMinor}
                 instructions={result.paymentInstructions}
               />

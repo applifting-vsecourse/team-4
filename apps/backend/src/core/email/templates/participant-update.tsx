@@ -223,8 +223,13 @@ const Payments = ({
   const { payment } = update;
   const kind = balanceKind(payment.balanceMinor);
   const { bank } = payment;
-  // Nothing owed and nothing ever paid: there is no payment block to show.
-  if (kind === 'settled' && payment.receivedMinor === 0 && !payment.recorded) {
+  // Keep the summary for selected waitlisted terms even when nothing is due.
+  if (
+    kind === 'settled' &&
+    payment.receivedMinor === 0 &&
+    !payment.recorded &&
+    (update.selectedPriceMinor === undefined || update.selectedPriceMinor === 0)
+  ) {
     return <></>;
   }
   return (
@@ -232,31 +237,27 @@ const Payments = ({
       <Text className="text-base font-semibold text-gray-900 mt-6 mb-1">
         Platby
       </Text>
-      {payment.recorded ? (
-        <>
-          <Row
-            label="Přijatá platba"
-            value={formatMoney(payment.recorded.amountMinor)}
-            strong
-          />
-          <Row
-            label="Datum platby"
-            value={formatDateRange(
-              payment.recorded.receivedOn,
-              payment.recorded.receivedOn,
-            )}
-          />
-        </>
+      {update.selectedPriceMinor !== undefined ? (
+        <Row
+          label="Cena celkem"
+          value={formatMoney(update.selectedPriceMinor)}
+        />
       ) : null}
-      <Row label="Celkem přijato" value={formatMoney(payment.receivedMinor)} />
       <Row
-        label={kind === 'overpaid' ? 'Přeplatek' : 'Zbývá uhradit'}
-        value={formatMoney(Math.abs(payment.balanceMinor))}
+        label="Zbývá zaplatit"
+        value={formatMoney(Math.max(payment.balanceMinor, 0))}
         strong
       />
-      {kind === 'settled' ? (
+      {kind === 'settled' && payment.receivedMinor > 0 ? (
         <Text className="text-sm text-gray-900 leading-5">
           Vše je uhrazeno.
+        </Text>
+      ) : null}
+      {kind === 'settled' &&
+      payment.receivedMinor === 0 &&
+      update.selectedPriceMinor ? (
+        <Text className="text-sm text-gray-700 leading-5">
+          Nyní není co hradit.
         </Text>
       ) : null}
       {kind === 'overpaid' ? (

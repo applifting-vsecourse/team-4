@@ -1,13 +1,14 @@
 import { expect, test, type Page } from "@playwright/test"
 
-import { newParticipant, register, setUpEvent, type OpenEvent, type TermSpec } from "./support/api"
 import {
-  closeDb,
-  decideTerms,
-  registrationIdOf,
-  setGenderHardAttribute,
-  termIdOf,
-} from "./support/db"
+  newParticipant,
+  register,
+  setHardAttribute,
+  setUpEvent,
+  type OpenEvent,
+  type TermSpec,
+} from "./support/api"
+import { closeDb, decideTerms, registrationIdOf, termIdOf } from "./support/db"
 
 // Přihlášky → Vyhodnocení → fronta → Změnit pořadí (S3-03, F39-1): the
 // organizer places an unconfirmed person right before another one of the
@@ -47,7 +48,7 @@ test("the organizer moves a person in the queue with a reason; only that term ch
   page,
 }) => {
   const event = await setUpEvent(page.request, { terms, rooms })
-  await setGenderHardAttribute(event.eventId)
+  await setHardAttribute(page.request, event, "gender")
   const participants: Record<string, string> = {}
   for (const [name, gender] of [
     ["Tereza", "female"],
@@ -117,7 +118,7 @@ test("the organizer moves a person in the queue with a reason; only that term ch
 
 test("a move made on an older queue is refused and needs a new confirmation", async ({ page }) => {
   const event = await setUpEvent(page.request, { terms, rooms })
-  await setGenderHardAttribute(event.eventId)
+  await setHardAttribute(page.request, event, "gender")
   for (const name of ["Jana", "Klara"]) {
     await register(page.request, event.publicId, newParticipant(name), event.termIds, {
       gender: "female",

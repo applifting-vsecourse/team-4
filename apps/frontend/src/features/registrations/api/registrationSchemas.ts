@@ -1,15 +1,11 @@
 import { z } from "zod"
 
+import { TERM_PARTICIPATIONS } from "@/lib/participation"
+
 /** What the organizer filters by; a released term is no participation. */
 export const activeParticipationStatusSchema = z.enum(["pending", "confirmed", "waitlisted"])
 
-/**
- * A term of a registration: "pending" waits for the organizer's decision
- * (S3-01), "cancelled" is a term the participant released (F35-2a).
- */
-export const participationStatusSchema = z.enum(["pending", "confirmed", "waitlisted", "cancelled"])
-
-export type ParticipationStatus = z.infer<typeof participationStatusSchema>
+export const participationStatusSchema = z.enum(TERM_PARTICIPATIONS)
 
 /** The voluntary answer for accommodation (F64); null elsewhere is "not answered". */
 export const genderSchema = z.enum(["female", "male", "other", "undisclosed"])
@@ -37,8 +33,11 @@ export const paymentInstructionsSchema = z.object({
   reminderAt: z.string(),
 })
 
-/** Entered by the organizer, or paid through the QR link (F21-1). */
-export const paymentSourceSchema = z.enum(["organizer", "qr_link"])
+/**
+ * Entered by the organizer, paid through the QR link (F21-1), or an imported
+ * bank transaction paired with the registration (F24).
+ */
+export const paymentSourceSchema = z.enum(["organizer", "qr_link", "bank_transfer"])
 
 export const receivedPaymentSchema = z.object({
   id: z.string().uuid(),
@@ -136,4 +135,6 @@ export type RegistrationInput = {
   gender: Gender | null
   /** Own words for `other` only; null when none. */
   genderOther: string | null
+  /** Ticked "I have read the participation terms" (F07); sent, never stored. */
+  conditionsConfirmed: boolean
 }

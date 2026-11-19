@@ -51,7 +51,7 @@ function fixture() {
       command,
       bot(
         requirementsMarker(12, sha, 78, 'grant') + '\nRequirements approved',
-        1,
+        3,
       ),
       bot(
         `<!-- agent-review-scope issue=78 -->\n<!-- agent-review pr=12 sha=${sha} result=findings attempt=1 -->\nFindings remain visible`,
@@ -64,11 +64,16 @@ function fixture() {
           '\nManually waived by David',
         4,
       ),
+      bot(
+        requirementsMarker(12, sha, 78, 'severity-high-review') +
+          '\nAgent review starts',
+        1,
+      ),
     ],
   };
 }
 
-test('the owner can waive any PR, with full head SHA and a reason', () => {
+test('a human commenter can waive any PR, with full head SHA and a reason', () => {
   const f = fixture();
   const waiver = copilotWaiver(f);
   assert.equal(
@@ -82,17 +87,22 @@ test('the owner can waive any PR, with full head SHA and a reason', () => {
 });
 
 for (const user of [
-  { login: 'MatejKrones', type: 'User' },
+  { login: 'developer', type: 'User' },
   { login: 'collaborator', type: 'User' },
   { login: 'github-actions[bot]', type: 'Bot' },
-  { login: 'darebakdavca', type: 'Bot' },
+  { login: 'custom-bot', type: 'Bot' },
   { login: 'darebakdavca' },
 ]) {
-  test(`does not accept another actor or a bot: ${JSON.stringify(user)}`, () => {
+  test(`accepts human commenters and rejects non-user actors: ${JSON.stringify(user)}`, () => {
     const f = fixture();
     f.comments[0].user = user;
-    assert.equal(copilotWaiver(f), null);
-    assert.equal(evaluate(f).pass, false);
+    if (user.type === 'User') {
+      assert.equal(copilotWaiver(f).actor, user.login);
+      assert.equal(evaluate(f).pass, true);
+    } else {
+      assert.equal(copilotWaiver(f), null);
+      assert.equal(evaluate(f).pass, false);
+    }
   });
 }
 
@@ -165,14 +175,20 @@ test('new/edited commands need a fresh matching handoff and later QA', () => {
   f.comments[3].body =
     readyMarker(12, sha, 78) + '\n' + waiverMarker(waiver) + '\nNew handoff';
   f.comments[3].created_at = at(7);
+  f.comments[1].created_at = at(6);
   assert.equal(evaluate(f).pass, false);
   f.reviews[0].submitted_at = at(8);
   assert.equal(evaluate(f).pass, true);
 });
 
-test('latest valid owner command determines the handoff identity', () => {
+test('latest valid human command determines the handoff identity', () => {
   const f = fixture();
-  f.comments.push({ ...f.comments[0], id: 11, updated_at: at(6) });
+  f.comments.push({
+    ...f.comments[0],
+    id: 11,
+    user: { login: 'collaborator', type: 'User' },
+    updated_at: at(6),
+  });
   assert.equal(copilotWaiver(f).commentId, 11);
   assert.equal(evaluate(f).pass, false);
 });
@@ -290,10 +306,22 @@ async function checkScenario(mode) {
     );
     comments[1] = bot(
       requirementsMarker(12, sha, 78, decision.approval.id) + '\n',
-      '2000-01-01',
+      '2002-06-01',
+    );
+    comments.push(
+      bot(
+        requirementsMarker(
+          12,
+          sha,
+          78,
+          `severity-high-review:${decision.version}`,
+        ) + '\n',
+        '2000-01-01',
+      ),
     );
   }
-  if (mode === 'forged') command.user.login = 'collaborator';
+  if (mode === 'bot')
+    command.user = { login: 'github-actions[bot]', type: 'Bot' };
   if (mode === 'deleted') comments.shift();
   const reviews =
     mode === 'no-qa'
@@ -446,7 +474,7 @@ for (const mode of [
   'valid',
   'pr-requirements',
   'no-qa',
-  'forged',
+  'bot',
   'deleted',
   'api-error',
   'moved',
@@ -540,7 +568,7 @@ for (const mode of [
     }
     assert.equal(check.context, 'Delivery stages');
     if (mode === 'valid')
-      assert.match(check.description, /manually waived by darebakdavca/);
+      assert.match(check.description, /manually waived by @darebakdavca/);
     if (mode === 'no-qa')
       assert.match(check.description, /QA approval by MatejKrones is missing/);
   });
@@ -658,7 +686,7 @@ test('waiver cannot replace a missing or stale requirements handoff record', () 
     assert.equal(result.pass, false);
     assert.ok(
       result.reasons.includes(
-        'Issue #78 has not entered code review after current requirements approval.',
+        'Issue #78 has not recorded requirements approval after code review.',
       ),
     );
   }

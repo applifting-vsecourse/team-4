@@ -158,7 +158,7 @@ test("an organizer opens an event, participants register and payments settle the
     await page.getByRole("link", { name: "Přihláška Anna Nováková" }).click()
     await recordPayment("2000")
     await expect(page.getByText("Částečně zaplaceno")).toBeVisible()
-    await expect(definition(page, "Dluh")).toHaveText("2 500 Kč")
+    await expect(definition(page, "Zbývá zaplatit")).toHaveText("2 500 Kč")
   })
 
   await step(page, "12 · Doplatek 2 500 Kč vyrovná dluh", async () => {

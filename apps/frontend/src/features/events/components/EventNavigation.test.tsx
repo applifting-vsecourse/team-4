@@ -29,6 +29,8 @@ async function renderNavigation(isSidebar = false) {
     ROUTES.event,
     ROUTES.eventSettings,
     ROUTES.eventRooms,
+    ROUTES.eventProgramme,
+    ROUTES.eventPayments,
     ROUTES.editEvent,
     ROUTES.eventRegistrations,
     ROUTES.registration,
@@ -61,7 +63,7 @@ async function renderNavigation(isSidebar = false) {
 }
 
 describe("EventNavigation", () => {
-  it("opens settings, registrations and rooms within the selected organization and event", async () => {
+  it("opens settings, registrations, payments, rooms and the programme within the selected organization and event", async () => {
     const router = await renderNavigation()
     expect(screen.queryByRole("link", { name: "Přehled" })).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole("link", { name: "Nastavení" }))
@@ -74,15 +76,23 @@ describe("EventNavigation", () => {
         "/organizations/org-a/events/event-a/registrations",
       ),
     )
+    await userEvent.click(screen.getByRole("link", { name: "Platby" }))
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe("/organizations/org-a/events/event-a/payments"),
+    )
     await userEvent.click(screen.getByRole("link", { name: "Ubytování" }))
     await waitFor(() =>
       expect(router.state.location.pathname).toBe("/organizations/org-a/events/event-a/rooms"),
+    )
+    await userEvent.click(screen.getByRole("link", { name: "Program" }))
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe("/organizations/org-a/events/event-a/programme"),
     )
   })
 
   it("shows unfinished destinations as plain tiles instead of links", async () => {
     await renderNavigation()
-    for (const name of ["Platby", "Komunikace"]) {
+    for (const name of ["Komunikace"]) {
       const tile = screen.getByText(name).closest("li")!
       expect(within(tile).getByText("Připravujeme")).toBeInTheDocument()
       expect(within(tile).queryByRole("link")).not.toBeInTheDocument()

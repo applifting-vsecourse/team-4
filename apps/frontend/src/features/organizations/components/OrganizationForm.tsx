@@ -1,11 +1,10 @@
 import { useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+import { FormError } from "@/components/FormError"
+import { PendingButton } from "@/components/PendingButton"
 import {
   Form,
   FormControl,
@@ -58,11 +57,7 @@ export function OrganizationForm({
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-4"
       >
-        {errorMessage ? (
-          <Alert variant="destructive">
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        ) : null}
+        {errorMessage ? <FormError message={errorMessage} /> : null}
 
         <FormField
           control={form.control}
@@ -72,6 +67,7 @@ export function OrganizationForm({
               <FormLabel>Název organizace</FormLabel>
               <FormControl>
                 <Input
+                  placeholder="např. Spolek Podlesí"
                   autoComplete="organization"
                   {...field}
                 />
@@ -81,15 +77,14 @@ export function OrganizationForm({
           )}
         />
 
-        <Button
+        <PendingButton
           type="submit"
           size="lg"
-          className="w-full"
-          disabled={isLoading}
+          className="w-full max-w-sm"
+          isPending={isLoading}
         >
-          {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}
           Založit organizaci
-        </Button>
+        </PendingButton>
       </form>
     </Form>
   )

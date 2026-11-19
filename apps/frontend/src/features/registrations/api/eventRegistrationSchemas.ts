@@ -67,11 +67,46 @@ export type RegistrationSummary = z.infer<typeof registrationSummarySchema>
 export type RegistrationList = z.infer<typeof registrationListSchema>
 export type RegistrationDetail = z.infer<typeof registrationDetailSchema>
 
+/** Who a payment or a balance belongs to (S4-09). */
+const paymentRegistrationSchema = z.object({
+  id: z.string().uuid(),
+  firstName: z.string(),
+  lastName: z.string(),
+  /** Null while nothing is due. */
+  variableSymbol: z.string().nullable(),
+})
+
+/** A received payment of the event, with the registration it was recorded to. */
+export const eventPaymentSchema = receivedPaymentSchema.extend({
+  registration: paymentRegistrationSchema,
+})
+
+/** Amounts of one registration, computed by the server as in the list and detail. */
+export const registrationBalanceSchema = z.object({
+  registration: paymentRegistrationSchema,
+  amountDueMinor: z.number().int(),
+  paidMinor: z.number().int(),
+  /** Positive a debt, zero settled, negative an overpayment. */
+  balanceMinor: z.number().int(),
+  paymentState: paymentStateSchema,
+})
+
+/** Správa akce → Platby: payments newest first, balances by the oldest registration. */
+export const eventPaymentsSchema = z.object({
+  payments: z.array(eventPaymentSchema),
+  balances: z.array(registrationBalanceSchema),
+})
+
+export type EventPayment = z.infer<typeof eventPaymentSchema>
+export type RegistrationBalance = z.infer<typeof registrationBalanceSchema>
+export type EventPayments = z.infer<typeof eventPaymentsSchema>
+
 /** The list filters; they live in the URL, so a refresh keeps them. */
 export const registrationFilterSchema = z.object({
   termId: z.string().uuid().optional().catch(undefined),
   status: activeParticipationStatusSchema.optional().catch(undefined),
   payment: paymentStateSchema.optional().catch(undefined),
+  q: z.string().max(120).optional().catch(undefined),
 })
 
 export type RegistrationFilter = z.infer<typeof registrationFilterSchema>

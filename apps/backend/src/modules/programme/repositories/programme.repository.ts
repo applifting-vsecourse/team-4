@@ -14,6 +14,7 @@ const itemSelect = {
   title: true,
   startDate: true,
   startTime: true,
+  endTime: true,
   place: true,
   description: true,
 } satisfies Prisma.ProgrammeItemSelect;
@@ -136,6 +137,7 @@ export class ProgrammeRepository {
       title: input.title,
       startDate: toDate(input.startDate),
       startTime: input.startTime,
+      endTime: input.endTime,
       place: input.place,
       description: input.description,
     };

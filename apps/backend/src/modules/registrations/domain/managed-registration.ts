@@ -40,12 +40,16 @@ export const paymentState = (
   return paidMinor < dueMinor ? 'partial' : 'paid';
 };
 
-/** Entered by the organizer, or paid through the QR link (F21-1). */
-export type PaymentSource = 'organizer' | 'qr_link';
+/**
+ * Entered by the organizer, paid through the QR link (F21-1), or an imported
+ * bank transaction paired with the registration (F24).
+ */
+export type PaymentSource = 'organizer' | 'qr_link' | 'bank_transfer';
 
 export const PAYMENT_SOURCES: readonly PaymentSource[] = [
   'organizer',
   'qr_link',
+  'bank_transfer',
 ];
 
 export type ReceivedPayment = {

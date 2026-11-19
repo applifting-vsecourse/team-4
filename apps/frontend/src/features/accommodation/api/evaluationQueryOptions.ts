@@ -5,6 +5,7 @@ import { api } from "@/lib/api-client"
 
 import {
   evaluationModeResponseSchema,
+  hardAttributeSettingSchema,
   moveRecordSchema,
   registrationAccommodationSchema,
   runEvidenceSchema,
@@ -19,6 +20,8 @@ export const evaluationKeys = {
     ["accommodation", organizationId, eventId] as const,
   mode: (organizationId: string, eventId: string) =>
     [...evaluationKeys.event(organizationId, eventId), "mode"] as const,
+  hardAttribute: (organizationId: string, eventId: string) =>
+    [...evaluationKeys.event(organizationId, eventId), "hard-attribute"] as const,
   term: (organizationId: string, eventId: string, termId: string) =>
     [...evaluationKeys.event(organizationId, eventId), "term", termId] as const,
   runs: (organizationId: string, eventId: string, termId: string) =>
@@ -44,6 +47,15 @@ export const evaluationModeQueryOptions = (organizationId: string, eventId: stri
       evaluationModeResponseSchema.parse(
         await api.get(`${accommodationPath(organizationId, eventId)}/evaluation-mode`).json(),
       ).mode,
+  })
+
+export const hardAttributeQueryOptions = (organizationId: string, eventId: string) =>
+  queryOptions({
+    queryKey: evaluationKeys.hardAttribute(organizationId, eventId),
+    queryFn: async () =>
+      hardAttributeSettingSchema.parse(
+        await api.get(`${accommodationPath(organizationId, eventId)}/hard-attribute`).json(),
+      ),
   })
 
 export const termEvaluationQueryOptions = (

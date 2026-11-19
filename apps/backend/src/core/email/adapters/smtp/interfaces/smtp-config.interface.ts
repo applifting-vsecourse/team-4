@@ -4,4 +4,6 @@ export interface SMTPConfig {
   secure: boolean;
   user: string;
   pass: string;
+  /** Sender header; defaults to `user`. Gmail keeps only the display name. */
+  from?: string;
 }

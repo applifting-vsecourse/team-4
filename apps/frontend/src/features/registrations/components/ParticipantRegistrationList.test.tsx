@@ -41,6 +41,11 @@ vi.mock("@tanstack/react-router", () => ({
       {children}
     </a>
   ),
+  createLink:
+    (Anchor: React.ComponentType<React.AnchorHTMLAttributes<HTMLAnchorElement>>) =>
+    ({ children, to }: { children: React.ReactNode; to: string }) => (
+      <Anchor href={to}>{children}</Anchor>
+    ),
 }))
 
 const T1 = "0190c0de-0000-7000-8000-000000000001"
@@ -142,10 +147,9 @@ describe("ParticipantRegistrationList", () => {
     expect(within(terms[1]!).getByText("Náhradník")).toBeInTheDocument()
     const value = (label: string) =>
       plain(within(mixed).getByText(label, { selector: "dt" }).nextElementSibling?.textContent)
-    expect(value("Cena výběru")).toBe("9 000 Kč")
-    expect(value("K úhradě za potvrzené termíny")).toBe("4 500 Kč")
-    expect(value("Zaplaceno")).toBe("0 Kč")
+    expect(value("Cena celkem")).toBe("9 000 Kč")
     expect(value("Zbývá zaplatit")).toBe("4 500 Kč")
+    expect(within(mixed).queryByText("Zaplaceno", { selector: "dt" })).not.toBeInTheDocument()
     expect(value("Datum připomenutí platby")).toBe("28. 6. 2027")
     expect(within(mixed).getByRole("link", { name: /Detail přihlášky/ })).toHaveAttribute(
       "href",
@@ -167,17 +171,15 @@ describe("ParticipantRegistrationList", () => {
   it("says there are no registrations", async () => {
     get.mockReturnValue(respondWith([]))
     renderList()
-    expect(await screen.findByText("Zatím nemáte žádné přihlášky.")).toBeInTheDocument()
+    expect(await screen.findByText("Zatím nemáte žádné přihlášky")).toBeInTheDocument()
   })
 
   it("never turns a failed first load into the empty state, and retries", async () => {
     get.mockReturnValueOnce(failWith(500)).mockReturnValue(respondWith([MIXED]))
     renderList()
 
-    expect(
-      await screen.findByText("Data se nepodařilo načíst. Zkuste to znovu."),
-    ).toBeInTheDocument()
-    expect(screen.queryByText("Zatím nemáte žádné přihlášky.")).not.toBeInTheDocument()
+    expect(await screen.findByText("Data se nepodařilo načíst")).toBeInTheDocument()
+    expect(screen.queryByText("Zatím nemáte žádné přihlášky")).not.toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Zkusit znovu" }))
     expect(await screen.findByRole("heading", { name: MIXED.event.name })).toBeInTheDocument()
@@ -204,6 +206,6 @@ describe("ParticipantRegistrationList", () => {
     get.mockReturnValue(failWith(401))
     renderList()
     expect(await screen.findByText("Přihlášení vypršelo.")).toBeInTheDocument()
-    expect(screen.queryByText("Zatím nemáte žádné přihlášky.")).not.toBeInTheDocument()
+    expect(screen.queryByText("Zatím nemáte žádné přihlášky")).not.toBeInTheDocument()
   })
 })

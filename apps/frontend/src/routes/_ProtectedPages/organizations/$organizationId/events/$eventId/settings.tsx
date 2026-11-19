@@ -3,14 +3,17 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { Pencil } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { WorkspacePage } from "@/components/WorkspacePage"
 
 import { EvaluationModeSection } from "@/features/accommodation/components/EvaluationModeSection"
+import { HardAttributeSection } from "@/features/accommodation/components/HardAttributeSection"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { ChangeApprovalSection } from "@/features/events/components/ChangeApprovalSection"
@@ -24,6 +27,7 @@ import { RegistrationSection } from "@/features/events/components/RegistrationSe
 import { TermsSection } from "@/features/events/components/TermsSection"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
+import { eventRegistrationKeys } from "@/features/registrations/api/eventRegistrationQueryOptions"
 
 // Configuration of one event, ordered from basic details to opening registration.
 export const Route = createFileRoute(
@@ -60,15 +64,11 @@ function EventPage() {
       />
       <div className="space-y-10">
         {event.isLocked ? <EventLockedAlert status={event.status} /> : null}
-        <section aria-labelledby="event-details-heading">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-            <h2
-              id="event-details-heading"
-              className="text-h4"
-            >
-              Základní údaje
-            </h2>
-            {!event.isLocked ? (
+        <CollapsibleSection
+          headingId="basic-details-heading"
+          title="Základní údaje"
+          actions={
+            !event.isLocked ? (
               <Button
                 asChild
                 variant="outline"
@@ -81,27 +81,21 @@ function EventPage() {
                   Upravit akci
                 </Link>
               </Button>
-            ) : null}
-          </div>
+            ) : null
+          }
+        >
           <Card>
-            <CardContent className="space-y-4">
-              <dl className="space-y-4 text-sm">
-                <div>
-                  <dt className="text-muted-foreground">Název</dt>
-                  <dd className="mt-1 break-words">{event.name}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Místo</dt>
-                  <dd className="mt-1 break-words">{event.location}</dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground">Popis</dt>
-                  <dd className="mt-1 break-words whitespace-pre-line">{event.description}</dd>
-                </div>
-              </dl>
+            <CardContent>
+              <DefinitionList layout="stacked">
+                <DefinitionRow label="Název">{event.name}</DefinitionRow>
+                <DefinitionRow label="Místo">{event.location}</DefinitionRow>
+                <DefinitionRow label="Popis">
+                  <span className="whitespace-pre-line">{event.description}</span>
+                </DefinitionRow>
+              </DefinitionList>
             </CardContent>
           </Card>
-        </section>
+        </CollapsibleSection>
 
         <TermsSection
           organizationId={organizationId}
@@ -127,6 +121,11 @@ function EventPage() {
         <PresentationSection
           organizationId={organizationId}
           event={event}
+        />
+        <HardAttributeSection
+          organizationId={organizationId}
+          eventId={eventId}
+          invalidate={eventRegistrationKeys.event(organizationId, eventId)}
         />
         <EvaluationModeSection
           organizationId={organizationId}

@@ -1,14 +1,11 @@
 import { useState, type FormEvent } from "react"
-import { Loader2 } from "lucide-react"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
+import { DialogActions } from "@/components/DialogActions"
+import { FormError } from "@/components/FormError"
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -173,11 +170,7 @@ function RoomCapacityForm({
       onSubmit={submit}
     >
       {conflicts?.length ? <CapacityConflictAlert conflicts={conflicts} /> : null}
-      {errorMessage ? (
-        <Alert variant="destructive">
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-      ) : null}
+      {errorMessage ? <FormError message={errorMessage} /> : null}
 
       <Field data-invalid={labelError ? true : undefined}>
         <FieldLabel htmlFor="room-label">Označení</FieldLabel>
@@ -219,23 +212,10 @@ function RoomCapacityForm({
         />
       ))}
 
-      <DialogFooter>
-        <DialogClose asChild>
-          <Button
-            type="button"
-            variant="outline"
-          >
-            Zrušit
-          </Button>
-        </DialogClose>
-        <Button
-          type="submit"
-          disabled={isSaving}
-        >
-          {isSaving ? <Loader2 className="size-4 animate-spin" /> : null}
-          Uložit
-        </Button>
-      </DialogFooter>
+      <DialogActions
+        submitLabel="Uložit"
+        isPending={isSaving}
+      />
     </form>
   )
 }

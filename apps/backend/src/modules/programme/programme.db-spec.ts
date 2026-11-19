@@ -180,6 +180,7 @@ const ITEM = {
   title: 'Společná večeře',
   startDate: '2027-07-02',
   startTime: '19:00',
+  endTime: '21:00',
 };
 
 const register = async (
@@ -212,6 +213,7 @@ describe('organizer programme', () => {
         title: 'Snídaně',
         startDate: '2027-07-03',
         startTime: '8:30'.padStart(5, '0'),
+        endTime: '09:15',
       },
     });
     const added = await call('POST', f.path(0), {
@@ -228,6 +230,7 @@ describe('organizer programme', () => {
       description: null,
       startDate: '2027-07-02',
       startTime: '19:00',
+      endTime: '21:00',
     });
 
     const id = added.body.items[0].id as string;
@@ -288,6 +291,38 @@ describe('organizer programme', () => {
       body: { ...ITEM, startTime: '25:00' },
     });
     expect(badTime.status).toBe(400);
+    for (const endTime of ['19:00', '18:59']) {
+      const badEnd = await call('POST', f.path(0), {
+        ...opts,
+        body: { ...ITEM, endTime },
+      });
+      expect(badEnd.status).toBe(400);
+      expect(badEnd.body).toMatchObject({
+        code: 'programme_end_not_after_start',
+        field: 'endTime',
+      });
+    }
+    const noEnd = await call('POST', f.path(0), {
+      ...opts,
+      body: {
+        title: ITEM.title,
+        startDate: ITEM.startDate,
+        startTime: '19:00',
+      },
+    });
+    expect(noEnd.status).toBe(400);
+    await expect(
+      prisma.programmeItem.create({
+        data: {
+          eventId: f.event.id,
+          termId: f.terms[0].id,
+          title: 'Rovnou do databáze',
+          startDate: new Date('2027-07-02'),
+          startTime: '19:00',
+          endTime: '19:00',
+        },
+      }),
+    ).rejects.toThrow();
     const badDate = await call('POST', f.path(0), {
       ...opts,
       body: { ...ITEM, startDate: '2027-02-31' },

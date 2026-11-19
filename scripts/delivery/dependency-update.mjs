@@ -4,8 +4,8 @@ export const DEPENDABOT = 'dependabot[bot]';
 export const DEPENDENCIES_LABEL = 'dependencies';
 
 /**
- * A standard Dependabot version or security update. Only these PRs may be
- * delivered without a linked issue. The author is the Dependabot app, the PR
+ * A standard Dependabot version or security update. Only these PRs skip
+ * issue linkage, agent review, human review and QA and merge after CI. The author is the Dependabot app, the PR
  * comes from a branch of this repository and targets main with `dependencies`
  * and Standard severity. High PRs always need the scope approval of an issue.
  */
@@ -21,12 +21,3 @@ export function isDependencyUpdate(pr, repo) {
     return false;
   }
 }
-
-/**
- * Such a PR is its own delivery scope: a pull request is an issue number too,
- * so the evidence records that normally name an issue name the PR itself.
- */
-export const dependencyScope = (pr, repo) => ({
-  number: pr.number,
-  repository: { nameWithOwner: repo },
-});

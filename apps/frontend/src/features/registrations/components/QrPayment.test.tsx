@@ -24,12 +24,15 @@ const { get, post, FakeHttpError } = vi.hoisted(() => {
   }
 })
 
+type MockLinkProps = { children: React.ReactNode; to: string; params: object }
+const mockHref = ({ to, params }: MockLinkProps) =>
+  to.replace("$registrationId", (params as { registrationId: string }).registrationId)
+
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children, to, params }: { children: React.ReactNode; to: string; params: object }) => (
-    <a href={to.replace("$registrationId", (params as { registrationId: string }).registrationId)}>
-      {children}
-    </a>
-  ),
+  Link: (props: MockLinkProps) => <a href={mockHref(props)}>{props.children}</a>,
+  createLink:
+    (Anchor: React.ComponentType<React.AnchorHTMLAttributes<HTMLAnchorElement>>) =>
+    (props: MockLinkProps) => <Anchor href={mockHref(props)}>{props.children}</Anchor>,
 }))
 
 vi.mock("@/lib/api-client", () => ({ api: { get, post }, HTTPError: FakeHttpError }))
