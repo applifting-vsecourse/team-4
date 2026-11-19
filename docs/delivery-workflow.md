@@ -313,9 +313,11 @@ PRs into an integration branch link exactly one open issue, with `Closes #N` or
 `Refs #N`. GitHub closes issues only for merges into `main`, so the Integration
 merge workflow closes a merged child's sub-issue as completed, but only when the
 child PR says `Closes #<sub-issue>` and its merged head passed agent review for
-that sub-issue. A child that only `Refs` its sub-issue is partial work and closes
-nothing; neither does integration work. The workflow runs once per merge: if it
-fails, re-run it or close the sub-issue by hand.
+that sub-issue. When `PAUSE_COPILOT_REVIEW` is `true`, the repository pause also
+permits closure without inventing a review pass; the completion comment records
+that review was skipped. A child that only `Refs` its sub-issue is partial work
+and closes nothing; neither does integration work. The workflow runs once per
+merge: if it fails, re-run it or close the sub-issue by hand.
 
 - **Child PR:** links the sub-issue. It needs exactly one `area:` label, and its
   parent issue must be open and link the PR's base branch.
@@ -324,7 +326,9 @@ fails, re-run it or close the sub-issue by hand.
 
 For these PRs Delivery stages requires a non-draft PR and a passing agent review
 (or manual Copilot waiver) on the current commit, made after the PR's latest
-retarget. A verified main sync is exempt from duplicate agent review because
+retarget. When `PAUSE_COPILOT_REVIEW` is exactly `true`, child PRs may skip this
+review requirement; integration PRs linked to the parent issue still require
+review or a manual waiver. A verified main sync is exempt from duplicate agent review because
 its merge result is computed solely from the protected integration base and
 `main`; the exact tree and merge parents are verified on every run. It does not require requirements
 approval, technical review, QA or any other human review: those gates apply to the
@@ -346,8 +350,11 @@ reopen the PR. PRs from forks are not supported, because GitHub does not
 associate their CI runs with the PR. A PR that skips Copilot on its way to
 `main` clears any earlier successful `child-verify` status on that commit.
 
-The agent-review runner reviews these PRs like any other, but records no
-requirements step, posts no QA handoff and requests no QA. A review from before
+The agent-review runner reviews these PRs like any other when the pause is off,
+but records no requirements step, posts no QA handoff and requests no QA. With
+the pause enabled, child PRs wait for CI and are recorded as skipped without a
+fabricated review pass; integration PRs linked to the parent still require
+review. A review from before
 the PR's latest retarget was made against another base and is repeated. A sub-issue moves to
 Ready for Code Review once its child PR is ready for review and stays there until
 the merge closes it. Integration PRs never move the parent issue's card. A
@@ -384,20 +391,24 @@ reviewed frontend and backend changes do not break each other: integration probl
 (including E2E) and QA of the parent PR. QA of the parent commit is still
 required.
 
-## Pause Copilot review for main
+## Pause Copilot review for main and child PRs
 
 When Copilot credits are exhausted, a repository administrator can set
 `PAUSE_COPILOT_REVIEW` to exactly `true` in **Settings → Secrets and variables →
 Actions → Repository secrets**. Unset it, delete it, or set it to `false` to
 restore the requirement.
 
-This applies to PRs delivering to `main`, including stacks. After CI passes,
-the workflow skips Copilot for those PRs and records the pause in the QA
-handoff and delivery verdict. Existing findings stay visible, and no Copilot
-pass is created. A valid existing Copilot pass keeps its normal handoff, and
-a valid manual waiver still applies. The `verify` and `Delivery stages` checks
-remain required, as do applicable scope, human review, ADR and QA approvals. PRs into `integration/*` still
-need review evidence or a manual waiver under the integration rules.
+This applies to PRs delivering to `main`, including stacks, and to child PRs
+into `integration/*` that link a frontend or backend sub-issue. Once CI passes,
+the workflow skips Copilot review for those PRs. A skipped review is never
+recorded as a pass. Existing findings stay visible, and a valid existing pass
+or manual waiver keeps its normal handling. The `verify`, `child-verify` and
+`Delivery stages` checks remain required, as do applicable scope, human review,
+ADR and QA approvals. Integration PRs linked to the parent issue still need
+review evidence or a manual waiver. A child merged while paused does not count
+as a reviewed child for parent review carry-over; when the pause is off, the
+parent PR must receive its own review unless every merged child has valid review
+evidence.
 
 After changing the secret, start a **new run** of **Agent code review** with
 **dry run** turned off. That workflow also reconciles **Delivery stages**.
@@ -407,7 +418,8 @@ review** and **Delivery stage enforcement** runs finish or cancel them.
 [GitHub reads repository secrets when it queues a run](https://docs.github.com/en/actions/reference/security/secrets#when-github-actions-reads-secrets).
 Start a fresh **Agent code review** run after those earlier runs clear and
 check each affected PR's `Delivery stages` result before merging. An open PR that relied on a paused
-handoff needs review or a valid waiver and the corresponding QA handoff.
+review needs review or a valid waiver and, for PRs to `main`, the corresponding
+QA handoff.
 
 ## Manual Copilot waiver
 
