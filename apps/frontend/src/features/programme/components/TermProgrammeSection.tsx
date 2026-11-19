@@ -95,7 +95,6 @@ export function TermProgrammeSection({
       // Land where the result is visible: the day the item is on.
       setOpenDays((current) => ({ ...current, [input.startDate]: true }))
       setEditing(undefined)
-      await onChanged?.()
     } catch (error) {
       const described = describeProgrammeError(
         error,
@@ -106,7 +105,10 @@ export function TermProgrammeSection({
       }
       setSaveMessage(described.errorMessage ?? undefined)
       if (described.shouldRefresh) await refresh()
+      return
     }
+    // The saved change stands even when reloading the item count fails.
+    await onChanged?.()
   }
 
   const handleDelete = async () => {
@@ -117,7 +119,6 @@ export function TermProgrammeSection({
       toast.success("Položka byla odstraněna.")
       setDeleting(undefined)
       setEditing(undefined)
-      await onChanged?.()
     } catch (error) {
       const described = describeProgrammeError(
         error,
@@ -125,7 +126,9 @@ export function TermProgrammeSection({
       )
       setDeleteMessage(described.errorMessage ?? undefined)
       if (described.shouldRefresh) await refresh()
+      return
     }
+    await onChanged?.()
   }
 
   return (

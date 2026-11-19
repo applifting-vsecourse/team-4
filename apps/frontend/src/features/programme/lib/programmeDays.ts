@@ -53,13 +53,19 @@ function eachDay(startDate: string, endDate: string) {
   return days
 }
 
-/** Every day of the term, the ones without items too. */
+/**
+ * Every day of the term, the ones without items too. Items left outside the
+ * term by a later change of its dates get their own days, so they can still be
+ * edited or deleted.
+ */
 export function termCalendar(
   term: { startDate: string; endDate: string },
   items: ProgrammeItemData[],
 ): ProgrammeDay[] {
   const withItems = new Map(groupByDay(items).map((day) => [day.id, day]))
-  return eachDay(term.startDate, term.endDate).map(
-    (date) => withItems.get(date) ?? { id: date, label: formatProgrammeDay(date), items: [] },
-  )
+  const termDays = eachDay(term.startDate, term.endDate)
+  const outside = [...withItems.keys()].filter((date) => !termDays.includes(date))
+  return [...termDays, ...outside]
+    .sort()
+    .map((date) => withItems.get(date) ?? { id: date, label: formatProgrammeDay(date), items: [] })
 }

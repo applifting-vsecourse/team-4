@@ -62,4 +62,17 @@ describe("termCalendar", () => {
   it("is one day for a one-day term", () => {
     expect(termCalendar({ startDate: "2026-11-05", endDate: "2026-11-05" }, [])).toHaveLength(1)
   })
+
+  it("keeps the days of items left outside the term", () => {
+    const days = termCalendar({ startDate: "2026-11-06", endDate: "2026-11-07" }, [
+      item("a", "2026-11-04", "17:00"),
+      item("b", "2026-11-09", "17:00"),
+    ])
+    expect(days.map((day) => [day.id, day.items.length])).toEqual([
+      ["2026-11-04", 1],
+      ["2026-11-06", 0],
+      ["2026-11-07", 0],
+      ["2026-11-09", 1],
+    ])
+  })
 })
