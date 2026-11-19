@@ -173,6 +173,14 @@ export const UNAVAILABLE_ROOM_STORE: PlacementStore = {
   ),
 }
 
+/** Ondřej's answer changed after placing: Chatka 2 is mixed, and nobody confirmed it. */
+export const TURNED_MIXED_STORE: PlacementStore = {
+  ...PLACEMENTS_STORE,
+  people: PEOPLE.map((entry) =>
+    entry.name === "Ondřej Černý" ? { ...entry, value: "female" } : entry,
+  ),
+}
+
 export const TERM_PLACEMENTS = placementResponse(PLACEMENTS_STORE)
 export const TERM_WITHOUT_PLACEMENTS = placementResponse(WITHOUT_PLACEMENTS_STORE)
 export const TERM_NOT_SPLIT = placementResponse(NOT_SPLIT_STORE)

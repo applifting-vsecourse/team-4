@@ -248,15 +248,23 @@ function DropZone({ title, occupancy, onDrop, children }: DropZoneProps) {
 }
 
 function Occupancy({ room }: { room: BoardRoom }) {
-  if (!room.isAvailable) {
-    // Shown only while someone is still in it; nobody new can be placed.
-    return (
-      <p className="text-right text-sm font-medium text-destructive">Není v termínu k dispozici</p>
-    )
-  }
+  return (
+    <div className="flex flex-col items-end gap-1 text-right text-sm">
+      {room.isAvailable ? (
+        <Beds room={room} />
+      ) : (
+        // Shown only while someone is still in it; nobody new can be placed.
+        <p className="font-medium text-destructive">Není v termínu k dispozici</p>
+      )}
+      <RoomFlags room={room} />
+    </div>
+  )
+}
+
+function Beds({ room }: { room: BoardRoom }) {
   const isOver = room.people.length > room.baseBeds + room.extraBeds
   return (
-    <div className="text-right text-sm">
+    <>
       <p className="font-mono tabular-nums">
         {room.people.length} / {room.baseBeds}
         {room.extraBeds > 0 ? ` + ${room.extraBeds}` : ""}
@@ -264,6 +272,29 @@ function Occupancy({ room }: { room: BoardRoom }) {
       <p className={cn("font-medium", isOver ? "text-destructive" : "text-muted-foreground")}>
         {isOver ? "Překročena kapacita" : `Volná místa: ${room.free}`}
       </p>
+    </>
+  )
+}
+
+/**
+ * A rule the room breaks now, also one that appeared after placing (a changed
+ * answer or determination). A mixed room the organizer confirmed reads as an
+ * exception; one that turned mixed on its own as a warning.
+ */
+function RoomFlags({ room }: { room: BoardRoom }) {
+  const isMixed = room.warnings.includes("mixed")
+  const hasExtraBed = room.warnings.includes("extra_bed")
+  if (!isMixed && !hasExtraBed) return null
+  return (
+    <div className="flex justify-end gap-1">
+      {isMixed ? (
+        room.confirmedWarnings.includes("mixed") ? (
+          <Badge variant="secondary">Smíšený, výjimka</Badge>
+        ) : (
+          <Badge variant="warning">Smíšený pokoj</Badge>
+        )
+      ) : null}
+      {hasExtraBed ? <Badge variant="secondary">Přistýlka</Badge> : null}
     </div>
   )
 }

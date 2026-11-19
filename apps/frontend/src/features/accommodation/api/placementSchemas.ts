@@ -51,6 +51,7 @@ export const placementWarningsErrorSchema = z.object({
 })
 
 export type ConfirmableWarning = z.infer<typeof confirmableWarningSchema>
+export type RoomWarning = z.infer<typeof roomWarningSchema>
 export type TermPlacementsResponse = z.infer<typeof termPlacementsResponseSchema>
 
 /** A room the board shows. */
@@ -61,6 +62,10 @@ export type PlacementRoom = {
   extraBeds: number
   /** An unavailable room is shown only while someone is still in it, and takes nobody new. */
   isAvailable: boolean
+  /** What the server finds wrong with the room now, also what changed after placing. */
+  warnings: RoomWarning[]
+  /** The warnings the organizer confirmed for someone in the room. */
+  confirmedWarnings: ConfirmableWarning[]
 }
 
 /** A participant confirmed in the term, with or without a room. */
@@ -87,12 +92,16 @@ export function toTermPlacements(response: TermPlacementsResponse): TermPlacemen
     hardAttribute: response.hardAttribute,
     rooms: response.rooms
       .filter((room) => room.isAvailable || room.occupants.length > 0)
-      .map(({ roomId, label, baseBeds, extraBeds, isAvailable }) => ({
+      .map(({ roomId, label, baseBeds, extraBeds, isAvailable, warnings, occupants }) => ({
         id: roomId,
         label,
         baseBeds,
         extraBeds,
         isAvailable,
+        warnings,
+        confirmedWarnings: [
+          ...new Set(occupants.flatMap((occupant) => occupant.confirmedWarnings)),
+        ],
       })),
     people: [
       ...response.rooms.flatMap((room) =>
