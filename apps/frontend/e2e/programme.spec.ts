@@ -167,7 +167,10 @@ test("the organizer edits a term's programme and the confirmed participant reads
   await expect(page.getByRole("button", { name: /Snídaně/ })).toBeVisible()
 
   // Edit, then the saved state survives a reload.
-  await page.getByRole("button", { name: /Společná večeře/ }).click()
+  await page
+    .getByRole("button", { name: /Společná večeře/ })
+    .getByText("Upravit", { exact: true })
+    .click()
   await dialog.getByLabel("Název").fill("Slavnostní večeře")
   await dialog.getByRole("button", { name: "Uložit položku" }).click()
   await expect(dialog).toBeHidden()

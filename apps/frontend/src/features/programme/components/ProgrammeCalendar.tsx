@@ -1,4 +1,4 @@
-import { ChevronDown, Plus } from "lucide-react"
+import { ChevronDown, Pencil, Plus } from "lucide-react"
 
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
@@ -92,19 +92,21 @@ export function ProgrammeCalendar({
                       aria-hidden
                       className="shrink-0 -rotate-90 transition-transform in-data-[state=open]:rotate-0 motion-reduce:transition-none"
                     />
-                    <span className="font-medium">{day.label}</span>
-                    <span className="text-sm font-normal text-muted-foreground">
-                      {formatItemCount(day.items.length)}
+                    <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-left whitespace-normal">
+                      <span className="font-medium">{day.label}</span>
+                      <span className="text-sm font-normal text-muted-foreground">
+                        {formatItemCount(day.items.length)}
+                      </span>
                     </span>
                   </Button>
                 </CollapsibleTrigger>
                 <Button
                   variant="outline"
-                  size="icon"
-                  aria-label="Přidat položku"
+                  size="sm"
                   onClick={() => onAdd?.(day.id)}
                 >
-                  <Plus />
+                  <Plus aria-hidden />
+                  Přidat položku
                 </Button>
               </div>
               <CollapsibleContent>
@@ -118,6 +120,10 @@ export function ProgrammeCalendar({
                           onClick={() => onEdit?.(item.id)}
                         >
                           <ProgrammeItemContent item={item} />
+                          <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap">
+                            <Pencil aria-hidden />
+                            Upravit
+                          </span>
                         </Button>
                       </li>
                     ))}

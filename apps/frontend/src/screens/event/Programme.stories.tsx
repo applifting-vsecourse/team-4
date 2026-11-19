@@ -31,7 +31,7 @@ async function openAddDialog(
   index = 0,
 ) {
   const buttons = await canvas.findAllByRole("button", { name: "Přidat položku" }, TIMEOUT)
-  await userEvent.click(buttons[index]!)
+  await userEvent.click(within(buttons[index]!).getByText("Přidat položku"))
   const dialog = await screen.findByRole("dialog", { name: "Nová položka programu" }, TIMEOUT)
   await waitFor(() => expect(dialog).toBeVisible())
   return dialog
@@ -119,7 +119,9 @@ export const EndBeforeStart: Story = {
 
 export const EditItemDialog: Story = {
   play: async ({ canvas }) => {
-    await userEvent.click(await canvas.findByRole("button", { name: new RegExp(FIRST) }, TIMEOUT))
+    const row = await canvas.findByRole("button", { name: new RegExp(FIRST) }, TIMEOUT)
+    await expect(within(row).getByText("Upravit", { exact: true })).toBeVisible()
+    await userEvent.click(within(row).getByText(FIRST, { exact: true }))
     const dialog = await screen.findByRole("dialog", { name: "Upravit položku programu" }, TIMEOUT)
     await expect(within(dialog).getByLabelText("Název")).toHaveValue(FIRST)
     await waitFor(() => expect(dialog).toBeVisible())
