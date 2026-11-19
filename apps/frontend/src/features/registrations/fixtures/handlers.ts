@@ -3,6 +3,7 @@ import { z } from "zod"
 
 import { env } from "@/config/env"
 
+import type { EventPayments } from "@/features/registrations/api/eventRegistrationSchemas"
 import type { ParticipantRegistration } from "@/features/registrations/api/participantRegistrationSchemas"
 import type { QrPaymentPage } from "@/features/registrations/api/qrPaymentSchemas"
 import type {
@@ -28,6 +29,7 @@ import {
   makeOwnChange,
 } from "@/features/registrations/fixtures/registrationChanges"
 import {
+  makeEventPayments,
   makeRegistrationDetail,
   makeRegistrationList,
 } from "@/features/registrations/fixtures/registrations"
@@ -67,8 +69,13 @@ export const registrationHandlers = {
       })
     }),
   ],
+  /** Správa akce → Platby: received payments and balances (S4-09). */
+  eventPayments: (overview: EventPayments = makeEventPayments()) => [
+    http.get(`${EVENT_CHANGES}/payments`, () => HttpResponse.json(overview)),
+  ],
   event: () => [
     http.get(EVENT_LIST, () => HttpResponse.json(makeRegistrationList())),
+    http.get(`${EVENT_CHANGES}/payments`, () => HttpResponse.json(makeEventPayments())),
     http.get(`${EVENT_CHANGES}/change-requests`, () => HttpResponse.json({ changes: [] })),
     http.get(`${EVENT_LIST}/:registrationId/changes`, () => HttpResponse.json({ changes: [] })),
     http.put(`${EVENT_LIST}/:registrationId/needs`, async ({ request }) => {

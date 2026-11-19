@@ -48,10 +48,12 @@ Samotné dokončení běhu ani absence komentářů úspěch neznamená.
 
 ## Pozastavení Copilot review
 
-Při vyčerpání kreditů lze pro PR směřující do `main` (včetně stacků)
-pozastavit Copilot review pomocí Actions secretu `PAUSE_COPILOT_REVIEW=true`.
-CI, schválení a QA nadále platí.
-Viz [postup zapnutí a vypnutí](delivery-workflow.md#pause-copilot-review-for-main).
+Při vyčerpání kreditů lze pro PR směřující do `main` (včetně stacků) a pro
+child PR do chráněné feature integrační větve pozastavit Copilot review pomocí
+Actions secretu `PAUSE_COPILOT_REVIEW=true`. CI a příslušná schválení nadále
+platí. Child PR sloučený během pozastavení se nezapočítá jako review důkaz pro
+parent PR.
+Viz [postup zapnutí a vypnutí](delivery-workflow.md#pause-copilot-review-for-main-and-child-prs).
 
 ## Ruční výjimka z Copilot review
 
@@ -114,13 +116,25 @@ roles and merge configuration.
 The 100,000-byte limit applies to each complete prompt, not to the whole PR.
 Small PRs still get one full-diff review. Larger diffs are grouped into bounded
 batches, preserving whole files where possible and splitting oversized files at
-line boundaries. No text changes are silently truncated or excluded, including
-lockfiles and generated component code. Binary files are skipped without separate
-approval and listed in a collapsed coverage section. Binary-only PRs satisfy the
+line boundaries. No text changes are silently truncated or excluded, except
+lockfiles (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`), which CI guards and
+a model cannot meaningfully review. Binary files and lockfiles are skipped without
+separate approval and listed in a collapsed coverage section. Binary-only PRs satisfy the
 text review gate without a Copilot call; CI, requirements and QA still apply. Before any Copilot call, the runner
 compares file and added/deleted-line counts against GitHub's PR metadata. A
 mismatch, oversized individual line or excessive context blocks
 review before it starts.
+
+The prompt carries only review-relevant rules: the CLAUDE.md sections on
+architecture decisions, product identity and UI, DESIGN.md only when the diff
+touches `apps/frontend`, and a short CI summary instead of the workflow file.
+Copilot runs with `--no-custom-instructions`, so the repository instructions are
+not loaded a second time. By default the prompt is one `-p` argument (Linux caps
+it at 128 KiB). Setting `COPILOT_PROMPT_TRANSPORT=stdin` pipes it over stdin and
+raises the limit to 400,000 bytes; enable it only after confirming that a large
+piped prompt gets a real reply from the pinned CLI version (the CLI accepted a
+300 KB stdin prompt, but a full reply could not be verified because the quota was
+exhausted). The cross-file pass reserves one summary cap (2,000 bytes) per batch.
 
 Every batch receives the PR title and description, issue, main-branch repository rules and a complete file
 manifest. It returns findings and a bounded summary of public contracts and

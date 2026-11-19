@@ -7,6 +7,10 @@ import {
 
 export const DEFAULT_COUNTRY: CountryCode = "CZ"
 
+/** For a number entered through `PhoneField` that is not valid in the chosen country. */
+export const PHONE_FIELD_MESSAGE =
+  "Zadejte platné telefonní číslo pro vybranou zemi, např. 777 123 456."
+
 const names = new Intl.DisplayNames(["cs"], { type: "region" })
 
 /** The flag emoji of a country: its two letters as regional indicator symbols. */

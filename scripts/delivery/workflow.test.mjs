@@ -54,6 +54,9 @@ test('merged child PRs close their sub-issue with trusted code from main only', 
   assert.ok(merge.includes('if: github.event.pull_request.merged == true'));
   assert.ok(merge.includes('ref: main'));
   assert.ok(merge.includes('persist-credentials: false'));
+  assert.ok(
+    merge.includes('PAUSE_COPILOT_REVIEW: ${{ secrets.PAUSE_COPILOT_REVIEW }}'),
+  );
   assert.ok(merge.includes('node scripts/delivery/close-child.mjs'));
   // Nothing from the merged PR is checked out, installed or run.
   assert.ok(!merge.includes('github.event.pull_request.head'));

@@ -5,6 +5,8 @@ import { failOn, neverAnswer } from "@/screens/msw"
 import { screenMeta, showsHeading } from "@/screens/screenMeta"
 import { showsText } from "@/screens/steps"
 
+import { participantHandlers } from "@/features/participant-access/fixtures/handlers"
+import { EMPTY_PROFILE, PROFILE } from "@/features/participant-access/fixtures/participant"
 import { publicEventHandlers } from "@/features/public-events/fixtures/handlers"
 import {
   PUBLIC_EVENT,
@@ -25,7 +27,11 @@ const meta = {
   ...screenMeta,
   args: { url: `/e/${PUBLIC_ID}/registration` },
   beforeEach: ({ msw }) => {
-    msw.use(...publicEventHandlers.detail(), ...registrationHandlers.submitted())
+    msw.use(
+      ...participantHandlers.signedOut(),
+      ...publicEventHandlers.detail(),
+      ...registrationHandlers.submitted(),
+    )
   },
 } satisfies Meta<typeof screenMeta.component>
 
@@ -55,6 +61,36 @@ export const Form: Story = {
     await showsHeading(PUBLIC_EVENT.name)(context)
     const back = within(context.canvasElement).getByRole("link", { name: "Zpět na detail akce" })
     await expect(back).toHaveAttribute("href", `/e/${PUBLIC_ID}`)
+  },
+}
+
+/** A signed-in participant's profile prefills the contact details, which stay editable (S4-08). */
+export const PrefilledFromProfile: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...participantHandlers.profile())
+  },
+  play: async ({ canvas }) => {
+    const firstName = await canvas.findByLabelText(/^Jméno/, {}, { timeout: 5000 })
+    await expect(firstName).toHaveValue(PROFILE.firstName)
+    await expect(canvas.getByLabelText(/^Příjmení/)).toHaveValue(PROFILE.lastName)
+    await expect(canvas.getByLabelText(/^E-mail/)).toHaveValue(PROFILE.email)
+    await expect(canvas.getByLabelText(/^Telefon/)).toHaveValue("604 123 456")
+    await userEvent.clear(firstName)
+    await userEvent.type(firstName, "Tereza")
+    await expect(firstName).toHaveValue("Tereza")
+  },
+}
+
+/** An incomplete profile prefills only what it holds and the sign-in e-mail (S4-08). */
+export const PrefilledFromEmptyProfile: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...participantHandlers.profile(EMPTY_PROFILE))
+  },
+  play: async ({ canvas }) => {
+    const email = await canvas.findByLabelText(/^E-mail/, {}, { timeout: 5000 })
+    await expect(email).toHaveValue(EMPTY_PROFILE.email)
+    await expect(canvas.getByLabelText(/^Jméno/)).toHaveValue("")
+    await expect(canvas.getByLabelText(/^Telefon/)).toHaveValue("")
   },
 }
 

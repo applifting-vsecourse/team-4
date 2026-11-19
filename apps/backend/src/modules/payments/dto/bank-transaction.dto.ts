@@ -2,7 +2,10 @@ import {
   BankTransactionModel,
   StatementImportModel,
 } from '@/modules/payments/domain/bank-transaction';
+import { trim } from '@/modules/registrations/dto/registration-input.dto';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
+import { IsNotEmpty, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class BankTransactionDto {
   @ApiProperty({ format: 'uuid' })
@@ -72,7 +75,34 @@ export class StatementImportDto {
   @ApiProperty({ description: 'Outgoing movements in the file, not imported.' })
   skippedOutgoing!: number;
 
+  @ApiProperty({
+    description:
+      'Transactions of the event paired by their variable symbol, also ones ' +
+      'that waited from an earlier import.',
+  })
+  paired!: number;
+
   static from(model: StatementImportModel): StatementImportDto {
     return { ...model };
   }
+}
+
+/** The organizer's manual pairing of a queued transaction (F24). */
+export class ManualPairingDto {
+  @ApiProperty({
+    format: 'uuid',
+    description: 'A registration of the same event.',
+  })
+  @IsUUID('all', { message: 'Vyberte přihlášku.' })
+  registrationId!: string;
+
+  @ApiProperty({
+    maxLength: 500,
+    description: 'Why the transaction belongs to it.',
+  })
+  @Transform(trim)
+  @IsString({ message: 'Uveďte důvod přiřazení.' })
+  @IsNotEmpty({ message: 'Uveďte důvod přiřazení.' })
+  @MaxLength(500, { message: 'Důvod může mít nejvýše 500 znaků.' })
+  reason!: string;
 }

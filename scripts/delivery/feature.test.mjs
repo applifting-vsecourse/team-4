@@ -176,28 +176,37 @@ test('child-verify fails for invalid PRs and PRs outside integration branches', 
   });
 });
 
-test('a main sync is verified only for an exact protected-main merge commit', () => {
+test('a main sync is verified only for Git’s exact merge of the protected base and main', () => {
   const baseSha = 'a'.repeat(40);
   const mainSha = 'b'.repeat(40);
-  const treeSha = 'd'.repeat(40);
+  const mainTreeSha = 'c'.repeat(40);
+  const mergeTreeSha = 'd'.repeat(40);
   const syncPr = pr({
     base: { ref: BRANCH, sha: baseSha, repo: REPO },
     head: { ref: 'sync/400-main', sha, repo: REPO },
   });
-  const mainCommit = { sha: mainSha, commit: { tree: { sha: treeSha } } };
+  const mainCommit = { sha: mainSha, commit: { tree: { sha: mainTreeSha } } };
   const headCommit = {
     sha,
-    commit: { tree: { sha: treeSha } },
+    commit: { tree: { sha: mergeTreeSha } },
     parents: [{ sha: baseSha }, { sha: mainSha }],
   };
   const role = integrationRole({ pr: syncPr, issues: [parentIssue()] });
 
   assert.equal(
-    isVerifiedMainSync({ pr: syncPr, role, mainCommit, headCommit }),
+    isVerifiedMainSync({
+      pr: syncPr,
+      role,
+      mainCommit,
+      headCommit,
+      expectedTreeSha: mergeTreeSha,
+    }),
     true,
   );
 
   const invalid = [
+    { expectedTreeSha: mainTreeSha },
+    { expectedTreeSha: 'e'.repeat(40) },
     {
       headCommit: { ...headCommit, commit: { tree: { sha: 'e'.repeat(40) } } },
     },
@@ -222,6 +231,7 @@ test('a main sync is verified only for an exact protected-main merge commit', ()
         role,
         mainCommit,
         headCommit,
+        expectedTreeSha: mergeTreeSha,
         ...overrides,
       }),
       false,
@@ -289,6 +299,31 @@ test('a verdict from before the latest retarget does not count', () => {
     integrationStages({
       ...args,
       since: Date.parse('2003-01-01T00:00:00Z'),
+    }).join(' '),
+    /agent review has not passed/,
+  );
+});
+
+test('the repository Copilot pause waives review for child PRs only', () => {
+  const childRole = integrationRole({ pr: pr(), issues: [sub()] });
+  const args = { pr: pr(), role: childRole, files: [], comments: [] };
+  assert.deepEqual(
+    integrationStages({ ...args, copilotReviewPaused: true }),
+    [],
+  );
+  assert.match(
+    integrationStages({ ...args, copilotReviewPaused: false }).join(' '),
+    /agent review has not passed/,
+  );
+
+  const parentRole = integrationRole({ pr: pr(), issues: [parentIssue()] });
+  assert.match(
+    integrationStages({
+      pr: pr(),
+      role: parentRole,
+      files: [],
+      comments: [],
+      copilotReviewPaused: true,
     }).join(' '),
     /agent review has not passed/,
   );

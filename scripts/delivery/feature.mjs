@@ -165,12 +165,17 @@ export function childVerify({ role, jobs }) {
 
 /**
  * A sync PR may carry enforcement files into an integration branch only when
- * its merge commit is exactly the merge of the current base and current main,
- * with the same resulting tree as main. This trusts only content already
- * present on protected main and prevents a sync branch from adding its own
- * changes under the exception.
+ * its merge commit is exactly Git's automatic merge of the current base and
+ * current main. This preserves feature work already present on the base while
+ * preventing a sync branch from adding its own edits or conflict resolutions.
  */
-export function isVerifiedMainSync({ pr, role, mainCommit, headCommit }) {
+export function isVerifiedMainSync({
+  pr,
+  role,
+  mainCommit,
+  headCommit,
+  expectedTreeSha,
+}) {
   return Boolean(
     role?.kind === 'integration' &&
     isIntegrationBranch(pr.base?.ref) &&
@@ -180,8 +185,8 @@ export function isVerifiedMainSync({ pr, role, mainCommit, headCommit }) {
     pr.base?.sha &&
     mainCommit?.sha &&
     headCommit?.sha === pr.head?.sha &&
-    mainCommit.commit?.tree?.sha &&
-    headCommit.commit?.tree?.sha === mainCommit.commit.tree.sha &&
+    expectedTreeSha &&
+    headCommit.commit?.tree?.sha === expectedTreeSha &&
     headCommit.parents?.length === 2 &&
     headCommit.parents[0]?.sha === pr.base.sha &&
     headCommit.parents[1]?.sha === mainCommit.sha,
@@ -191,8 +196,9 @@ export function isVerifiedMainSync({ pr, role, mainCommit, headCommit }) {
 /**
  * Delivery stages for a PR into an integration branch: no human review,
  * requirements approval or QA, but a current-commit agent review (or manual
- * Copilot waiver) and no review or merge enforcement changes, except for a
- * verified merge-only sync from protected main. `sharedHead` are the other
+ * Copilot waiver). A repository Copilot pause waives review for child PRs only.
+ * There must be no review or merge enforcement changes, except for a verified
+ * merge-only sync from protected main. `sharedHead` are the other
  * open PRs with the same head commit or branch; `since` is when the PR's base
  * last changed; `protectedBase` whether the integration branch ruleset is in
  * force on the base.
@@ -207,6 +213,7 @@ export function integrationStages({
   since = 0,
   protectedBase = true,
   mainSync = false,
+  copilotReviewPaused = false,
 }) {
   if (role.kind === 'invalid') return [role.reason];
   const reasons = [];
@@ -230,9 +237,12 @@ export function integrationStages({
     reasons.push(
       `Review and merge enforcement changes cannot go through ${pr.base.ref}; open them against main.`,
     );
+  const reviewSkipped =
+    role.kind === 'child' && copilotReviewPaused && !mainSync;
   if (
     !mainSync &&
     !waiver &&
+    !reviewSkipped &&
     !agentReviewPassed({
       // A verdict from before the latest retarget reviewed another base.
       comments: comments.filter((c) => Date.parse(c.created_at) > since),

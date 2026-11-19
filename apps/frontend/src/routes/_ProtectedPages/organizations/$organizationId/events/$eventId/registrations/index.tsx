@@ -12,9 +12,11 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { WorkspacePage } from "@/components/WorkspacePage"
 
+import { ACCOMMODATION_RULES_HEADING } from "@/features/accommodation/components/HardAttributeSection"
 import { TermEvaluationSection } from "@/features/accommodation/components/TermEvaluationSection"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
+import { EventSettingsButton } from "@/features/events/components/EventSettingsButton"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { pendingChangesQueryOptions } from "@/features/registrations/api/eventRegistrationQueryOptions"
@@ -100,6 +102,13 @@ function RegistrationsPage() {
         title={event.name}
         badge={<EventStatusBadge status={event.status} />}
         description={event.location}
+        actions={
+          <EventSettingsButton
+            organizationId={organizationId}
+            eventId={eventId}
+            section={ACCOMMODATION_RULES_HEADING}
+          />
+        }
       />
       <Tabs
         value={view}
