@@ -144,6 +144,7 @@ function ProgrammeItemForm({
           <FieldLabel htmlFor="programme-title">Název</FieldLabel>
           <Input
             id="programme-title"
+            placeholder="např. Ranní nástup"
             value={values.title}
             aria-invalid={errors.title ? true : undefined}
             onChange={(event) => change({ title: event.target.value })}
@@ -192,6 +193,7 @@ function ProgrammeItemForm({
           <FieldLabel htmlFor="programme-place">Místo (nepovinné)</FieldLabel>
           <Input
             id="programme-place"
+            placeholder="např. Hlavní louka"
             value={values.place}
             aria-invalid={errors.place ? true : undefined}
             onChange={(event) => change({ place: event.target.value })}
@@ -202,6 +204,7 @@ function ProgrammeItemForm({
           <FieldLabel htmlFor="programme-description">Krátký popis (nepovinné)</FieldLabel>
           <Textarea
             id="programme-description"
+            placeholder="Co účastníky čeká?"
             value={values.description}
             aria-invalid={errors.description ? true : undefined}
             onChange={(event) => change({ description: event.target.value })}

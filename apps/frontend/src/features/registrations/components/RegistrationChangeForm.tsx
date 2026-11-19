@@ -128,6 +128,7 @@ export function RegistrationChangeForm({
                 <Input
                   id="change-first-name"
                   autoComplete="given-name"
+                  placeholder="Jan"
                   defaultValue={contact.firstName}
                   aria-invalid={errors.firstName ? true : undefined}
                   onChange={(event) => onContactChange?.("firstName", event.target.value)}
@@ -139,6 +140,7 @@ export function RegistrationChangeForm({
                 <Input
                   id="change-last-name"
                   autoComplete="family-name"
+                  placeholder="Novák"
                   defaultValue={contact.lastName}
                   aria-invalid={errors.lastName ? true : undefined}
                   onChange={(event) => onContactChange?.("lastName", event.target.value)}
@@ -174,6 +176,7 @@ export function RegistrationChangeForm({
                   id="change-phone"
                   type="tel"
                   autoComplete="tel"
+                  placeholder="+420 777 123 456"
                   defaultValue={contact.phone}
                   aria-invalid={errors.phone ? true : undefined}
                   onChange={(event) => onContactChange?.("phone", event.target.value)}

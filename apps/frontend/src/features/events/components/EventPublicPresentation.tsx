@@ -243,6 +243,7 @@ export function EventPublicPresentation({
                         <FormControl>
                           <Textarea
                             rows={6}
+                            placeholder="Popište program a průběh akce."
                             maxLength={5000}
                             disabled={isDescriptionLocked}
                             {...field}
@@ -270,6 +271,7 @@ export function EventPublicPresentation({
                         <FormControl>
                           <Textarea
                             rows={4}
+                            placeholder="Každou podmínku napište na samostatný řádek."
                             maxLength={2000}
                             {...field}
                           />
@@ -296,6 +298,7 @@ export function EventPublicPresentation({
                         <FormLabel>Jméno nebo název</FormLabel>
                         <FormControl>
                           <Input
+                            placeholder="Jan Novák"
                             autoComplete="off"
                             {...field}
                           />

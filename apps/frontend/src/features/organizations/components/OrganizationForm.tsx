@@ -67,6 +67,7 @@ export function OrganizationForm({
               <FormLabel>Název organizace</FormLabel>
               <FormControl>
                 <Input
+                  placeholder="např. Spolek Podlesí"
                   autoComplete="organization"
                   {...field}
                 />
