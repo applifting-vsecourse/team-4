@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { type Control } from "react-hook-form"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -28,12 +29,15 @@ export function ParticipationConditionsField({
       aria-labelledby="registration-conditions-heading"
       className="space-y-4 rounded-lg border border-border bg-card p-4 sm:p-6"
     >
-      <h2
-        id="registration-conditions-heading"
-        className="text-h4"
-      >
-        Podmínky účasti
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2
+          id="registration-conditions-heading"
+          className="text-h4"
+        >
+          Podmínky účasti
+        </h2>
+        <Badge variant="outline">Povinné</Badge>
+      </div>
 
       <Collapsible
         open={isOpen}

@@ -6,18 +6,13 @@ import { Money } from "@/components/Money"
 import { ParticipationBadge } from "@/components/ParticipationBadge"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  formatCalendarDate,
-  formatCalendarRange,
-  formatPragueDate,
-  formatPragueDateTime,
-} from "@/lib/date"
+import { formatCalendarRange, formatPragueDate, formatPragueDateTime } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 
 import { type RegistrationDetail as Detail } from "@/features/registrations/api/eventRegistrationSchemas"
+import { BalanceAmount } from "@/features/registrations/components/BalanceAmount"
 import { PaymentStateBadge } from "@/features/registrations/components/PaymentStateBadge"
-import { SimulatedPaymentHistory } from "@/features/registrations/components/SimulatedPaymentHistory"
-import { describeBalance } from "@/features/registrations/lib/balance"
+import { ReceivedPaymentsTable } from "@/features/registrations/components/ReceivedPaymentsTable"
 
 type RegistrationDetailProps = {
   registration: Detail
@@ -143,8 +138,8 @@ export function RegistrationDetail({
 }
 
 function PaymentSummary({ registration }: { registration: Detail }) {
-  const balance = describeBalance(registration.balanceMinor)
   const hasNoObligation = registration.paymentState === "none"
+  const isOverpaid = registration.balanceMinor < 0
 
   return (
     <section aria-label="Platba">
@@ -152,50 +147,40 @@ function PaymentSummary({ registration }: { registration: Detail }) {
         <h2 className="text-sm font-semibold">Platba</h2>
         <PaymentStateBadge state={registration.paymentState} />
       </div>
-      <div className="space-y-3">
-        <DefinitionList>
-          <DefinitionRow label="Cena vybraných termínů">
-            <Money minor={registration.selectedPriceMinor} />
-          </DefinitionRow>
-          <DefinitionRow label="Částka za potvrzené termíny">
+      <DefinitionList>
+        {hasNoObligation ? null : (
+          <DefinitionRow label="Celkem k úhradě">
             <Money minor={registration.amountDueMinor} />
           </DefinitionRow>
-          <DefinitionRow label="Zaplaceno">
-            <Money minor={registration.paidMinor} />
+        )}
+        <DefinitionRow label="Zaplaceno">
+          <Money minor={registration.paidMinor} />
+        </DefinitionRow>
+        {hasNoObligation ? null : (
+          <DefinitionRow
+            label={isOverpaid ? "Přeplatek" : "Zbývá zaplatit"}
+            isEmphasised
+          >
+            <BalanceAmount
+              amount={formatCzk(Math.abs(registration.balanceMinor))}
+              isSettled={registration.balanceMinor <= 0}
+            />
           </DefinitionRow>
-          {hasNoObligation ? null : (
-            <DefinitionRow label={balance.label}>
-              <Money
-                minor={Math.abs(registration.balanceMinor)}
-                isEmphasised
-              />
-            </DefinitionRow>
-          )}
-          {registration.reminderAt ? (
-            <DefinitionRow label="Datum připomenutí platby">
-              {formatPragueDate(registration.reminderAt)}
-            </DefinitionRow>
-          ) : null}
-          {registration.variableSymbol ? (
-            <DefinitionRow label="Variabilní symbol">
-              <span className="font-mono">{registration.variableSymbol}</span>
-            </DefinitionRow>
-          ) : null}
-        </DefinitionList>
-        {hasNoObligation ? (
-          <p className="text-sm text-muted-foreground">Bez platební povinnosti</p>
+        )}
+        {registration.reminderAt ? (
+          <DefinitionRow label="Datum připomenutí platby">
+            {formatPragueDate(registration.reminderAt)}
+          </DefinitionRow>
         ) : null}
-      </div>
+        {registration.variableSymbol ? (
+          <DefinitionRow label="Variabilní symbol">
+            <span className="font-mono">{registration.variableSymbol}</span>
+          </DefinitionRow>
+        ) : null}
+      </DefinitionList>
       <div className="mt-4 space-y-3 border-t border-border pt-4">
         <h3 className="text-sm font-semibold">Přijaté platby</h3>
-        <SimulatedPaymentHistory
-          payments={registration.payments.map((payment) => ({
-            id: payment.id,
-            date: formatCalendarDate(payment.receivedOn),
-            amount: formatCzk(payment.amountMinor),
-            isSimulated: payment.source === "qr_link",
-          }))}
-        />
+        <ReceivedPaymentsTable payments={registration.payments} />
       </div>
     </section>
   )
