@@ -555,6 +555,7 @@ export class RegistrationChangesRepository {
       ...new Set([
         ...snapshot.terms.map((term) => term.termId),
         ...proposal.moves.map((move) => move.toTermId),
+        ...(proposal.addedTermIds ?? []),
       ]),
     ];
     await tx.$queryRaw`
@@ -573,7 +574,12 @@ export class RegistrationChangesRepository {
     const targets = await db.eventTerm.findMany({
       where: {
         eventId: snapshot.eventId,
-        id: { in: proposal.moves.map((move) => move.toTermId) },
+        id: {
+          in: [
+            ...proposal.moves.map((move) => move.toTermId),
+            ...(proposal.addedTermIds ?? []),
+          ],
+        },
       },
       select: termInfoSelect,
     });

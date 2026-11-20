@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { type TermParticipation } from "@/lib/participation"
+import { cn } from "@/lib/utils"
 
 /** A personal or contact value, or a part of the needs (F63), the change replaces. */
 export type ChangedValue = { label: string; original: string; proposed: string }
@@ -49,19 +50,23 @@ export function ChangeSummary({ values = [], terms = [], money = [] }: ChangeSum
           firstColumn="Údaj"
         >
           {values.map((value) => (
-            <TableRow key={value.label}>
-              <TableCell>
-                <span className="text-muted-foreground">{value.label}</span>
-              </TableCell>
-              <TableCell>
-                <span className="block wrap-break-word whitespace-pre-line">{value.original}</span>
-              </TableCell>
-              <TableCell>
-                <span className="block font-medium wrap-break-word whitespace-pre-line">
+            <StackedRow key={value.label}>
+              <FirstCell>
+                <span className="text-muted-foreground max-sm:font-medium max-sm:text-foreground">
+                  {value.label}
+                </span>
+              </FirstCell>
+              <SideCell side="Původně">
+                <span className="block wrap-break-word whitespace-pre-line max-sm:text-right">
+                  {value.original}
+                </span>
+              </SideCell>
+              <SideCell side="Nově">
+                <span className="block font-medium wrap-break-word whitespace-pre-line max-sm:text-right">
                   {value.proposed}
                 </span>
-              </TableCell>
-            </TableRow>
+              </SideCell>
+            </StackedRow>
           ))}
         </ComparisonTable>
       ) : null}
@@ -72,20 +77,20 @@ export function ChangeSummary({ values = [], terms = [], money = [] }: ChangeSum
           firstColumn="Termín"
         >
           {terms.map((term) => (
-            <TableRow key={term.id}>
-              <TableCell>
+            <StackedRow key={term.id}>
+              <FirstCell>
                 <p className="font-medium">{term.label}</p>
                 <p className="text-muted-foreground">
                   {term.dates} · <span className="font-mono">{term.price}</span>
                 </p>
-              </TableCell>
-              <TableCell>
+              </FirstCell>
+              <SideCell side="Původně">
                 <TermStateBadge state={term.original} />
-              </TableCell>
-              <TableCell>
+              </SideCell>
+              <SideCell side="Nově">
                 <TermStateBadge state={term.proposed} />
-              </TableCell>
-            </TableRow>
+              </SideCell>
+            </StackedRow>
           ))}
         </ComparisonTable>
       ) : null}
@@ -97,21 +102,73 @@ export function ChangeSummary({ values = [], terms = [], money = [] }: ChangeSum
           isNumeric
         >
           {money.map((line) => (
-            <TableRow key={line.label}>
-              <TableCell>
-                <span className="text-muted-foreground">{line.label}</span>
-              </TableCell>
-              <TableCell className="text-right whitespace-nowrap">
+            <StackedRow key={line.label}>
+              <FirstCell>
+                <span className="text-muted-foreground max-sm:font-medium max-sm:text-foreground">
+                  {line.label}
+                </span>
+              </FirstCell>
+              <SideCell
+                side="Původně"
+                className="text-right"
+              >
                 <span className="font-mono">{line.original}</span>
-              </TableCell>
-              <TableCell className="text-right whitespace-nowrap">
+              </SideCell>
+              <SideCell
+                side="Nově"
+                className="text-right"
+              >
                 <span className="font-mono font-medium">{line.proposed}</span>
-              </TableCell>
-            </TableRow>
+              </SideCell>
+            </StackedRow>
           ))}
         </ComparisonTable>
       ) : null}
     </div>
+  )
+}
+
+/**
+ * A row of the comparison: a table row from the small breakpoint up; on a
+ * narrow screen the first cell is a heading and each value is a labelled line
+ * below it, so nothing scrolls sideways. The cells keep their own padding; the
+ * negative margins in the wrappers line every line up at the same edge.
+ */
+function StackedRow({ children }: { children: ReactNode }) {
+  return <TableRow className="max-sm:grid">{children}</TableRow>
+}
+
+/** The first cell of a stacked row: the term, the field or the amount's name. */
+function FirstCell({ children }: { children: ReactNode }) {
+  return (
+    <TableCell className="max-sm:whitespace-normal">
+      <div className="max-sm:-ml-4">{children}</div>
+    </TableCell>
+  )
+}
+
+/** One side ("Původně" or "Nově") of a row; the side's name shows only where the header is hidden. */
+function SideCell({
+  side,
+  className,
+  children,
+}: {
+  side: "Původně" | "Nově"
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <TableCell className={cn("max-sm:whitespace-normal", className)}>
+      <div
+        className={cn(
+          "max-sm:flex max-sm:flex-wrap max-sm:items-center max-sm:justify-between max-sm:gap-x-3 max-sm:gap-y-1 max-sm:py-1",
+          side === "Původně" ? "max-sm:-mx-2" : "max-sm:-mr-4 max-sm:-ml-2",
+        )}
+      >
+        <span className="text-muted-foreground sm:hidden">{side}</span>
+        {children}
+      </div>
+    </TableCell>
   )
 }
 
@@ -134,7 +191,8 @@ function ComparisonTable({ heading, firstColumn, isNumeric, children }: Comparis
     <section className="space-y-2">
       <h3 className="text-sm font-medium">{heading}</h3>
       <Table>
-        <TableHeader>
+        {/* Narrow screens label each value in its row instead (StackedRow). */}
+        <TableHeader className="max-sm:hidden">
           <TableRow>
             <TableHead>{firstColumn}</TableHead>
             <TableHead className={isNumeric ? "text-right" : undefined}>Původně</TableHead>

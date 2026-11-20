@@ -42,6 +42,7 @@ const programme = (titles: string[]) => ({
     title,
     startDate: "2026-11-06",
     startTime: "19:00",
+    endTime: "21:00",
     place: null,
     description: null,
   })),
@@ -72,35 +73,91 @@ beforeEach(() => {
 })
 
 describe("TermProgrammeSection", () => {
-  it("offers the first item for an empty programme", async () => {
+  it("shows every day of the term, the empty ones with their own add button", async () => {
     requests.get.mockReturnValue(respond({ items: [] }))
     renderSection()
-    expect(await screen.findByText("Program zatím nemá žádné položky")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /Přidat položku/ })).toBeInTheDocument()
+    expect(await screen.findByText("Pátek 6. 11. 2026")).toBeInTheDocument()
+    expect(screen.getByText("Sobota 7. 11. 2026")).toBeInTheDocument()
+    expect(screen.getByText("Neděle 8. 11. 2026")).toBeInTheDocument()
+    expect(screen.getAllByRole("button", { name: "Přidat položku" })).toHaveLength(3)
+  })
+
+  it("opens a day to its items", async () => {
+    requests.get.mockReturnValue(respond(programme(["Večeře"])))
+    renderSection()
+    expect(await screen.findByRole("button", { name: /Večeře/ })).toBeVisible()
+    await userEvent.click(screen.getByRole("button", { name: /Pátek 6\. 11\. 2026/ }))
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Večeře/ })).toBeNull())
+    await userEvent.click(screen.getByRole("button", { name: /Pátek 6\. 11\. 2026/ }))
+    expect(await screen.findByRole("button", { name: /Večeře/ })).toBeVisible()
+  })
+
+  it("adds an item on the day whose button was used, with the date filled in", async () => {
+    requests.get.mockReturnValue(respond({ items: [] }))
+    requests.post.mockReturnValue(respond(programme(["Snídaně"])))
+    renderSection()
+    await screen.findByText("Sobota 7. 11. 2026")
+    await userEvent.click(screen.getAllByRole("button", { name: "Přidat položku" })[1]!)
+    const dialog = await screen.findByRole("dialog")
+    expect(within(dialog).getByLabelText("Datum")).toHaveTextContent("7. 11. 2026")
+    await userEvent.type(within(dialog).getByLabelText("Název"), "Snídaně")
+    await userEvent.type(within(dialog).getByLabelText("Začátek"), "08:30")
+    await userEvent.type(within(dialog).getByLabelText("Konec"), "09:15")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Uložit položku" }))
+
+    await waitFor(() =>
+      expect(requests.post).toHaveBeenCalledWith(expect.stringContaining("/programme"), {
+        json: {
+          title: "Snídaně",
+          startDate: "2026-11-07",
+          startTime: "08:30",
+          endTime: "09:15",
+          place: null,
+          description: null,
+        },
+      }),
+    )
+    expect(toast.success).toHaveBeenCalledWith("Položka byla přidána.")
   })
 
   it("shows a failed load with a retry, never an empty programme", async () => {
     requests.get.mockReturnValueOnce(await refuse(500, {}))
     renderSection()
     expect(await screen.findByText("Program se nepodařilo načíst")).toBeInTheDocument()
-    expect(screen.queryByText("Program zatím nemá žádné položky")).not.toBeInTheDocument()
+    expect(screen.queryByText("Bez položek")).not.toBeInTheDocument()
 
     requests.get.mockReturnValue(respond(programme(["Večeře"])))
     await userEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }))
     expect(await screen.findByText("Večeře")).toBeInTheDocument()
   })
 
-  it("keeps the dialog and the input when the day is outside the term, saving nothing", async () => {
+  it("explains the missing fields at the fields and saves nothing", async () => {
     requests.get.mockReturnValue(respond({ items: [] }))
     renderSection()
-    await userEvent.click(await screen.findByRole("button", { name: /Přidat položku/ }))
+    await userEvent.click((await screen.findAllByRole("button", { name: "Přidat položku" }))[0]!)
     const dialog = await screen.findByRole("dialog")
-    await userEvent.type(within(dialog).getByLabelText("Název"), "Snídaně")
     await userEvent.click(within(dialog).getByRole("button", { name: "Uložit položku" }))
 
-    expect(await within(dialog).findByText("Vyberte platné datum.")).toBeInTheDocument()
+    expect(await within(dialog).findByText("Vyplňte název položky.")).toBeInTheDocument()
     expect(within(dialog).getByText("Zadejte čas začátku.")).toBeInTheDocument()
-    expect(within(dialog).getByLabelText("Název")).toHaveValue("Snídaně")
+    expect(within(dialog).getByText("Zadejte čas konce.")).toBeInTheDocument()
+    expect(requests.post).not.toHaveBeenCalled()
+  })
+
+  it("refuses an end that is not later than the start and keeps the input", async () => {
+    requests.get.mockReturnValue(respond({ items: [] }))
+    renderSection()
+    await userEvent.click((await screen.findAllByRole("button", { name: "Přidat položku" }))[0]!)
+    const dialog = await screen.findByRole("dialog")
+    await userEvent.type(within(dialog).getByLabelText("Název"), "Večeře")
+    await userEvent.type(within(dialog).getByLabelText("Začátek"), "19:00")
+    await userEvent.type(within(dialog).getByLabelText("Konec"), "19:00")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Uložit položku" }))
+
+    expect(
+      await within(dialog).findByText("Čas konce musí být pozdější než čas začátku."),
+    ).toBeInTheDocument()
+    expect(within(dialog).getByLabelText("Název")).toHaveValue("Večeře")
     expect(requests.post).not.toHaveBeenCalled()
   })
 
@@ -108,7 +165,7 @@ describe("TermProgrammeSection", () => {
     requests.get.mockReturnValue(respond(programme(["Večeře"])))
     requests.put.mockReturnValue(await refuse(500, {}))
     renderSection()
-    await userEvent.click(await screen.findByRole("button", { name: "Upravit položku Večeře" }))
+    await userEvent.click(await screen.findByRole("button", { name: /Večeře/ }))
     const dialog = await screen.findByRole("dialog")
     await userEvent.clear(within(dialog).getByLabelText("Název"))
     await userEvent.type(within(dialog).getByLabelText("Název"), "Nová večeře")
@@ -125,7 +182,7 @@ describe("TermProgrammeSection", () => {
     requests.get.mockReturnValue(respond(programme(["Večeře"])))
     requests.put.mockReturnValue(respond(programme(["Nová večeře"])))
     renderSection()
-    await userEvent.click(await screen.findByRole("button", { name: "Upravit položku Večeře" }))
+    await userEvent.click(await screen.findByRole("button", { name: /Večeře/ }))
     const dialog = await screen.findByRole("dialog")
     await userEvent.clear(within(dialog).getByLabelText("Název"))
     await userEvent.type(within(dialog).getByLabelText("Název"), "Nová večeře")
@@ -137,6 +194,7 @@ describe("TermProgrammeSection", () => {
         title: "Nová večeře",
         startDate: "2026-11-06",
         startTime: "19:00",
+        endTime: "21:00",
         place: null,
         description: null,
       },
@@ -148,18 +206,19 @@ describe("TermProgrammeSection", () => {
     requests.get.mockReturnValue(respond(programme(["Večeře"])))
     requests.delete.mockReturnValueOnce(await refuse(500, {}))
     renderSection()
-    await userEvent.click(await screen.findByRole("button", { name: "Odstranit položku Večeře" }))
-    const dialog = await screen.findByRole("dialog")
-    await userEvent.click(within(dialog).getByRole("button", { name: "Odstranit" }))
+    await userEvent.click(await screen.findByRole("button", { name: /Večeře/ }))
+    const edit = await screen.findByRole("dialog")
+    await userEvent.click(within(edit).getByRole("button", { name: "Odstranit" }))
+    const confirm = (await screen.findAllByRole("dialog")).at(-1)!
+    await userEvent.click(within(confirm).getByRole("button", { name: "Odstranit" }))
     expect(
-      await within(dialog).findByText("Položku se nepodařilo odstranit. Zkuste to prosím znovu."),
+      await within(confirm).findByText("Položku se nepodařilo odstranit. Zkuste to prosím znovu."),
     ).toBeInTheDocument()
     expect(toast.success).not.toHaveBeenCalled()
 
     requests.delete.mockReturnValue(respond({ items: [] }))
-    await userEvent.click(within(dialog).getByRole("button", { name: "Odstranit" }))
-    await waitFor(() =>
-      expect(screen.getByText("Program zatím nemá žádné položky")).toBeInTheDocument(),
-    )
+    await userEvent.click(within(confirm).getByRole("button", { name: "Odstranit" }))
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Položka byla odstraněna."))
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Večeře/ })).toBeNull())
   })
 })

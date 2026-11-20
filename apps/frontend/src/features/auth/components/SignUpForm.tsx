@@ -54,6 +54,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
               <FormLabel>Jméno</FormLabel>
               <FormControl>
                 <Input
+                  placeholder="Jan Novák"
                   autoComplete="name"
                   {...field}
                 />
@@ -91,6 +92,7 @@ export function SignUpForm({ isLoading, errorMessage, onSubmit }: SignUpFormProp
               <FormControl>
                 <Input
                   type="password"
+                  placeholder="Zadejte heslo"
                   autoComplete="new-password"
                   {...field}
                 />

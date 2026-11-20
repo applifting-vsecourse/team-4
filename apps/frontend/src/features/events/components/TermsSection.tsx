@@ -95,8 +95,9 @@ export function TermsSection({ organizationId, event }: TermsSectionProps) {
                         asChild
                       >
                         <Link
-                          to={ROUTES.termProgramme}
-                          params={{ organizationId, eventId: event.id, termId: term.id }}
+                          to={ROUTES.eventProgramme}
+                          params={{ organizationId, eventId: event.id }}
+                          search={{ term: term.id }}
                         >
                           <ListChecks />
                           Program

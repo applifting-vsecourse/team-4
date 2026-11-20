@@ -87,20 +87,17 @@ export function PairTransactionDialog({
       await pair.mutateAsync(pairing)
       const registration = options.data?.find((option) => option.id === pairing.registrationId)
       setIsOpen(false)
-      // Plain colours, as in TermDialog: the rich success colours fail the
-      // contrast check.
       toast.success(
         registration
           ? `Transakce přiřazena k přihlášce ${registration.firstName} ${registration.lastName}`
           : "Transakce přiřazena",
-        { richColors: false },
       )
       onPaired?.()
     } catch (error) {
       const refusal = pairingFailure(error)
       if (refusal.kind === "alreadyPaired") {
         setIsOpen(false)
-        toast.error(refusal.message, { richColors: false })
+        toast.error(refusal.message)
         onPaired?.()
       } else {
         setFailure(refusal)

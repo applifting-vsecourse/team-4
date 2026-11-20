@@ -106,6 +106,7 @@ export function PairTransactionForm({
               <FormLabel>Důvod přiřazení</FormLabel>
               <FormControl>
                 <Textarea
+                  placeholder="Např. platba za přihlášku"
                   rows={3}
                   maxLength={MAX_REASON}
                   {...field}

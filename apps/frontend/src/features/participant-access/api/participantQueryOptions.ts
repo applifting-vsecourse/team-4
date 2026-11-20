@@ -2,6 +2,7 @@ import { queryOptions } from "@tanstack/react-query"
 
 import { api, HTTPError } from "@/lib/api-client"
 
+import { participantNotificationListSchema } from "@/features/participant-access/api/participantNotificationSchemas"
 import {
   participantProfileSchema,
   participantSchema,
@@ -10,6 +11,7 @@ import {
 export const participantKeys = {
   session: () => ["participant-session"] as const,
   profile: () => ["participant-profile"] as const,
+  notifications: () => ["participant-notifications"] as const,
 }
 
 /** Reads a participant endpoint; `null` when there is no valid session. */
@@ -39,5 +41,19 @@ export const participantProfileQueryOptions = () =>
     queryKey: participantKeys.profile(),
     queryFn: () =>
       readSigned("participant/profile", (body) => participantProfileSchema.parse(body)),
+    retry: false,
+  })
+
+/**
+ * The signed-in account's notifications (S4-06), shared by Oznámení and the
+ * unread dot of the account menu; `null` without a valid session.
+ */
+export const participantNotificationsQueryOptions = () =>
+  queryOptions({
+    queryKey: participantKeys.notifications(),
+    queryFn: () =>
+      readSigned("participant/notifications", (body) =>
+        participantNotificationListSchema.parse(body),
+      ),
     retry: false,
   })

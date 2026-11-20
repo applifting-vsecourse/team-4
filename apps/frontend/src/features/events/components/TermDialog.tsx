@@ -72,7 +72,7 @@ export function TermDialog({
       return
     }
     setIsOpen(false)
-    toast.success(term ? "Termín byl upraven." : "Termín byl přidán.", { richColors: false })
+    toast.success(term ? "Termín byl upraven." : "Termín byl přidán.")
     onSaved?.()
   }
 

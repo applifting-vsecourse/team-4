@@ -34,10 +34,7 @@ type Story = StoryObj<typeof meta>
 const firstName = ({ canvas }: Pick<StoryContext, "canvas">) =>
   canvas.findByLabelText("Jméno", {}, TIMEOUT)
 
-/**
- * The success toast is checked, then dismissed: the kit's rich-coloured
- * success toast is below the contrast threshold app-wide, reported separately.
- */
+/** The success toast is checked, then dismissed, so it does not outlive the story. */
 async function showsSavedToast() {
   await showsText("Profil uložen")
   toast.dismiss()
@@ -168,6 +165,7 @@ export const AccountMenu: Story = {
     const menu = await screen.findByRole("menu", {}, TIMEOUT)
     // The menu fades in.
     await waitFor(() => expect(within(menu).getByText(PARTICIPANT.email)).toBeVisible(), TIMEOUT)
+    await expect(within(menu).getByRole("menuitem", { name: "Oznámení" })).toBeVisible()
     await expect(within(menu).getByRole("menuitem", { name: "Můj profil" })).toBeVisible()
     await expect(within(menu).getByRole("menuitem", { name: "Odhlásit se" })).toBeVisible()
     // Closed again, the page is back in the accessibility tree.
