@@ -14,7 +14,7 @@ import {
 /**
  * Stores the participant's roommate wishes at once, without the organizer's
  * approval (S4-05). The answer is the stored list with the current candidates;
- * it replaces the cached one.
+ * it replaces the cached one. A failed save reloads the candidates.
  */
 export function useSaveRoommateWishes(registrationId: string) {
   const queryClient = useQueryClient()
@@ -26,5 +26,7 @@ export function useSaveRoommateWishes(registrationId: string) {
     onSuccess: (wishes) => {
       queryClient.setQueryData(roommateWishesKey(registrationId), wishes)
     },
+    // A refused list may name someone no longer confirmed: reload the candidates.
+    onError: () => queryClient.invalidateQueries({ queryKey: roommateWishesKey(registrationId) }),
   })
 }

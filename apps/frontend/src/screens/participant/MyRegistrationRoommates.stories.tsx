@@ -8,9 +8,14 @@ import { showsText } from "@/screens/steps"
 
 import { participantHandlers } from "@/features/participant-access/fixtures/handlers"
 import { participantRegistrationDetailSchema } from "@/features/registrations/api/participantRegistrationSchemas"
+import { roommateWishesSchema } from "@/features/registrations/api/roommateWishSchemas"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
 import { OWN_REGISTRATION } from "@/features/registrations/fixtures/participantRegistrations"
-import { NO_CANDIDATES, NO_WISHES } from "@/features/registrations/fixtures/roommateWishes"
+import {
+  NO_CANDIDATES,
+  NO_WISHES,
+  STORED_WISHES,
+} from "@/features/registrations/fixtures/roommateWishes"
 
 // Moje přihlášky → Detail přihlášky → Úprava přihlášky (S4-05): the roommate
 // wishes of a confirmed participant, saved on their own without approval.
@@ -232,6 +237,68 @@ export const SaveFailed: Story = {
     await showsText("Spolubydlící se nepodařilo uložit. Výběr zůstává, zkuste to prosím znovu.")
     const selected = within(form.getByRole("list", { name: "Vybraní spolubydlící" }))
     await expect(selected.getByText("Veronika Pokorná")).toBeVisible()
+  },
+}
+
+/**
+ * Refused: someone picked stopped being confirmed meanwhile. The server's
+ * reason shows, the candidates reload without that person, and the pick keeps
+ * its name, marked as the one to remove.
+ */
+export const SaveRefused: Story = {
+  beforeEach: ({ msw }) => {
+    let isRefused = false
+    msw.use(
+      http.get(apiUrl(WISHES), () =>
+        HttpResponse.json(
+          roommateWishesSchema.parse({
+            ...STORED_WISHES,
+            candidates: isRefused
+              ? STORED_WISHES.candidates.filter((person) => person.name !== "Veronika Pokorná")
+              : STORED_WISHES.candidates,
+          }),
+        ),
+      ),
+      http.put(apiUrl(WISHES), () => {
+        isRefused = true
+        return apiError(400, {
+          code: "roommate_invalid",
+          message: "Vyberte potvrzené účastníky této akce.",
+        })
+      }),
+    )
+  },
+  play: async ({ canvas }) => {
+    const form = await startEditing(canvas)
+    await pick(form, "Veronika Pokorná")
+    await userEvent.click(form.getByRole("button", { name: "Uložit" }))
+    await showsText(
+      "Vyberte potvrzené účastníky této akce. Seznam účastníků je aktualizovaný, upravte výběr.",
+    )
+    const selected = within(form.getByRole("list", { name: "Vybraní spolubydlící" }))
+    await expect(await selected.findByText("· už není potvrzený účastník")).toBeVisible()
+    await expect(selected.getByText("Veronika Pokorná")).toBeVisible()
+    await expect(form.getByRole("button", { name: "Odebrat Veronika Pokorná" })).toBeVisible()
+  },
+}
+
+/** Twenty picked, the most the event stores: nobody more can be added. */
+export const FullList: Story = {
+  beforeEach: ({ msw }) => {
+    const people = Array.from({ length: 21 }, (_, index) => ({
+      registrationId: `0190c0de-0000-7000-8000-${String(950 + index).padStart(12, "0")}`,
+      name: `Účastník ${String(index + 1).padStart(2, "0")}`,
+    }))
+    msw.use(
+      ...registrationHandlers.roommateWishes(
+        roommateWishesSchema.parse({ candidates: people, wishes: people.slice(0, 20) }),
+      ),
+    )
+  },
+  play: async ({ canvas }) => {
+    const form = await startEditing(canvas)
+    await expect(form.getByText("Vybrat lze nejvýš 20 spolubydlících.")).toBeVisible()
+    await expect(form.getByRole("button", { name: "Přidat spolubydlícího" })).toBeDisabled()
   },
 }
 
