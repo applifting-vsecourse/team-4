@@ -33,7 +33,7 @@ import {
   makeRegistrationDetail,
   makeRegistrationList,
 } from "@/features/registrations/fixtures/registrations"
-import { STORED_WISHES } from "@/features/registrations/fixtures/roommateWishes"
+import { ORGANIZER_WISHES, STORED_WISHES } from "@/features/registrations/fixtures/roommateWishes"
 
 // MSW handlers for registrations: the organizer's view of an event and the
 // participant's own. Install with `msw.use(...)` in a story's `beforeEach`.
@@ -78,6 +78,10 @@ export const registrationHandlers = {
     http.get(`${EVENT_CHANGES}/payments`, () => HttpResponse.json(makeEventPayments())),
     http.get(`${EVENT_CHANGES}/change-requests`, () => HttpResponse.json({ changes: [] })),
     http.get(`${EVENT_LIST}/:registrationId/changes`, () => HttpResponse.json({ changes: [] })),
+    // The participant's roommate wishes, read-only for the organizer (S4-05).
+    http.get(`${EVENT_LIST}/:registrationId/roommate-wishes`, () =>
+      HttpResponse.json(ORGANIZER_WISHES),
+    ),
     http.put(`${EVENT_LIST}/:registrationId/needs`, async ({ request }) => {
       const { needs, expectedVersion } = registrationNeedsCorrectionSchema.parse(
         await request.json(),

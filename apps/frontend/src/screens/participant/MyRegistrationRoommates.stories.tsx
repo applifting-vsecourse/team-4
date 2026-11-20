@@ -1,49 +1,35 @@
 import type { Meta, StoryContext, StoryObj } from "@storybook/react-vite"
-import { http } from "msw"
+import { http, HttpResponse } from "msw"
 import { expect, screen, userEvent, waitFor, within } from "storybook/test"
 
-import { PageHeader } from "@/components/PageHeader"
-import { Toaster } from "@/components/ui/sonner"
 import { apiError, apiUrl, failOn, neverAnswer } from "@/screens/msw"
+import { screenMeta } from "@/screens/screenMeta"
 import { showsText } from "@/screens/steps"
 
-import { ParticipantLayout } from "@/features/participant-access/components/ParticipantLayout"
-import { RoommateWishesCard } from "@/features/registrations/components/RoommateWishesCard"
+import { participantHandlers } from "@/features/participant-access/fixtures/handlers"
+import { participantRegistrationDetailSchema } from "@/features/registrations/api/participantRegistrationSchemas"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
 import { OWN_REGISTRATION } from "@/features/registrations/fixtures/participantRegistrations"
 import { NO_CANDIDATES, NO_WISHES } from "@/features/registrations/fixtures/roommateWishes"
 
-// The roommate wishes of a confirmed participant (#338) on Úprava přihlášky.
-// The card is real and talks to the API through MSW; placing it on the route,
-// and showing it only to confirmed participants, come with the integration of
-// #319.
+// Moje přihlášky → Detail přihlášky → Úprava přihlášky (S4-05): the roommate
+// wishes of a confirmed participant, saved on their own without approval.
 
 const WISHES = `/participant/registrations/:registrationId/roommate-wishes`
 
-function RoommateWishes() {
-  return (
-    <ParticipantLayout>
-      <div className="space-y-6">
-        <PageHeader
-          title="Úprava přihlášky"
-          description={OWN_REGISTRATION.event.name}
-        />
-        <RoommateWishesCard registrationId={OWN_REGISTRATION.id} />
-      </div>
-      <Toaster />
-    </ParticipantLayout>
-  )
-}
-
 const meta = {
-  title: "Not implemented/S4-05 Roommate wishes",
-  component: RoommateWishes,
-  parameters: { layout: "fullscreen" },
-  globals: { viewport: { value: "desktop", isRotated: false } },
+  title: "Screens/Participant/MyRegistrationRoommates",
+  ...screenMeta,
+  args: { url: `/my-registrations/${OWN_REGISTRATION.id}/edit` },
   beforeEach: ({ msw }) => {
-    msw.use(...registrationHandlers.roommateWishes())
+    msw.use(
+      ...participantHandlers.signedIn(),
+      ...registrationHandlers.own(),
+      ...registrationHandlers.ownChange(),
+      ...registrationHandlers.roommateWishes(),
+    )
   },
-} satisfies Meta<typeof RoommateWishes>
+} satisfies Meta<typeof screenMeta.component>
 
 export default meta
 
@@ -99,6 +85,29 @@ export const NothingChosen: Story = {
   play: async ({ canvas }) => {
     await showsText("Zatím jste nikoho nevybrali.")
     await expect(canvas.getByRole("button", { name: "Vybrat spolubydlící" })).toBeVisible()
+  },
+}
+
+/** Not confirmed in any term: no wishes on the page (S4-05). */
+export const NotConfirmed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      http.get(apiUrl("/participant/registrations/:registrationId"), () =>
+        HttpResponse.json(
+          participantRegistrationDetailSchema.parse({
+            ...OWN_REGISTRATION,
+            terms: OWN_REGISTRATION.terms.map((term) => ({ ...term, status: "waitlisted" })),
+            availableTerms: [],
+          }),
+        ),
+      ),
+    )
+  },
+  play: async ({ canvas }) => {
+    await expect(
+      await canvas.findByRole("heading", { name: "Úprava přihlášky" }, TIMEOUT),
+    ).toBeVisible()
+    await expect(canvas.queryByText("Spolubydlící", { exact: true })).not.toBeInTheDocument()
   },
 }
 
