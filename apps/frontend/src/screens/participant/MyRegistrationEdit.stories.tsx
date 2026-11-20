@@ -28,6 +28,7 @@ const meta = {
       ...participantHandlers.signedIn(),
       ...registrationHandlers.own(),
       ...registrationHandlers.ownChange(),
+      ...registrationHandlers.roommateWishes(),
       // After a saved change the detail opens and loads the programme.
       ...programmeHandlers.participant(),
     )

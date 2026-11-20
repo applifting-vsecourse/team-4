@@ -61,6 +61,7 @@ export type ApiErrorCode =
   | "statement_invalid"
   | "statement_too_large"
   | "transaction_already_paired"
+  | "roommate_wishes_unavailable"
 
 export type ApiError = {
   status: number | null

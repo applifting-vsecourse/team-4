@@ -18,6 +18,7 @@ import {
   CommandList,
 } from "@/components/ui/command"
 import { Skeleton } from "@/components/ui/skeleton"
+import { readApiError } from "@/lib/apiError"
 import { cn } from "@/lib/utils"
 
 import { roommateWishesQueryOptions } from "@/features/registrations/api/roommateWishQueryOptions"
@@ -74,6 +75,11 @@ export function RoommateWishesCard({ registrationId }: RoommateWishesCardProps) 
           ) : (
             <StoredWishes data={data} />
           )
+        ) : query.isError && readApiError(query.error).code === "roommate_wishes_unavailable" ? (
+          // The registration stopped being confirmed: no retry helps.
+          <p className="text-sm text-muted-foreground">
+            Přání na spolubydlící jsou dostupná jen s potvrzenou účastí.
+          </p>
         ) : query.isError ? (
           <LoadError
             title="Spolubydlící se nepodařilo načíst"
@@ -151,7 +157,8 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
           { registrationIds: selected },
           {
             onSuccess: () => {
-              toast.success("Přání na spolubydlící je uložené")
+              // The app-wide green toast fails the contrast check (#400).
+              toast.success("Přání na spolubydlící je uložené", { richColors: false })
               onDone()
             },
           },

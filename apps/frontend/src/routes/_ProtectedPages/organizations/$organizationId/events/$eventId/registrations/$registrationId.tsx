@@ -24,6 +24,7 @@ import {
 } from "@/features/registrations/api/eventRegistrationQueryOptions"
 import { OrganizerAccommodationCard } from "@/features/registrations/components/OrganizerAccommodationCard"
 import { OrganizerNeedsSection } from "@/features/registrations/components/OrganizerNeedsSection"
+import { OrganizerRoommateWishes } from "@/features/registrations/components/OrganizerRoommateWishes"
 import { RecordPaymentDialog } from "@/features/registrations/components/RecordPaymentDialog"
 import {
   RegistrationChangeDecision,
@@ -110,7 +111,12 @@ function RegistrationPage() {
         updatedAt={registration.dataUpdatedAt}
         isRefreshing={registration.isFetching}
         hasRefreshFailed={registration.isRefetchError}
-        onRefresh={() => registration.refetch()}
+        // Also reloads what hangs under the detail, e.g. the roommate wishes.
+        onRefresh={() =>
+          queryClient.invalidateQueries({
+            queryKey: eventRegistrationKeys.detail(organizationId, eventId, registrationId),
+          })
+        }
         accommodation={
           <OrganizerAccommodationCard
             organizationId={organizationId}
@@ -131,6 +137,13 @@ function RegistrationPage() {
                 person={name}
                 // The F64 notice follows the determination.
                 invalidate={eventRegistrationKeys.detail(organizationId, eventId, registrationId)}
+              />
+            }
+            wishes={
+              <OrganizerRoommateWishes
+                organizationId={organizationId}
+                eventId={eventId}
+                registrationId={registrationId}
               />
             }
           />

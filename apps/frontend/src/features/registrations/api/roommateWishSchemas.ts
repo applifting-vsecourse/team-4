@@ -17,6 +17,9 @@ export const roommateWishesSchema = z.object({
   wishes: z.array(roommateSchema),
 })
 
+/** The wishes of a registration as its event's organizer sees them, by name. */
+export const organizerRoommateWishesSchema = roommateWishesSchema.pick({ wishes: true })
+
 /** The whole list replaces the stored one; an empty list removes every wish. */
 export const roommateWishesInputSchema = z.object({
   registrationIds: z.array(z.string().uuid()),
@@ -25,3 +28,4 @@ export const roommateWishesInputSchema = z.object({
 export type Roommate = z.infer<typeof roommateSchema>
 export type RoommateWishes = z.infer<typeof roommateWishesSchema>
 export type RoommateWishesInput = z.infer<typeof roommateWishesInputSchema>
+export type OrganizerRoommateWishes = z.infer<typeof organizerRoommateWishesSchema>

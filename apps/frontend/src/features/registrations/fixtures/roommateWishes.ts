@@ -1,5 +1,7 @@
 import {
+  organizerRoommateWishesSchema,
   roommateWishesSchema,
+  type OrganizerRoommateWishes,
   type RoommateWishes,
 } from "@/features/registrations/api/roommateWishSchemas"
 
@@ -33,4 +35,9 @@ export const NO_WISHES: RoommateWishes = roommateWishesSchema.parse({
 export const NO_CANDIDATES: RoommateWishes = roommateWishesSchema.parse({
   candidates: [],
   wishes: [],
+})
+
+/** The stored wishes as the event's organizer sees them. */
+export const ORGANIZER_WISHES: OrganizerRoommateWishes = organizerRoommateWishesSchema.parse({
+  wishes: STORED_WISHES.wishes,
 })
