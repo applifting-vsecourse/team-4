@@ -169,8 +169,11 @@ export const Proposal: Story = {
     await expect(await section.findByText("Aktuální návrh")).toBeVisible()
     // Reason H names the event's hard attribute.
     await expect(await section.findByText(/hodnotou „Pohlaví“/)).toBeVisible()
-    // The term is in the URL; switching it stays on Ubytování.
-    const [first, second] = section.getAllByRole("tab")
+    // One set of term tabs for the proposal, the placements and the wishes;
+    // the term is in the URL, and switching it stays on Ubytování.
+    const tabs = within(canvas.getByRole("tablist", { name: "Termín" }))
+    await expect(section.queryByRole("tablist")).not.toBeInTheDocument()
+    const [first, second] = tabs.getAllByRole("tab")
     await expect(first).toHaveAttribute("aria-selected", "true")
     await user.click(second!)
     await expect(second).toHaveAttribute("aria-selected", "true")

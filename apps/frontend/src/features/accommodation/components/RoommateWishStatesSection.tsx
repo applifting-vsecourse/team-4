@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 
 import {
   termRoomProposalQueryOptions,
@@ -25,8 +25,16 @@ export function RoommateWishStatesSection({
   termId,
   attribute,
 }: RoommateWishStatesSectionProps) {
-  const wishes = useQuery(termWishesQueryOptions(organizationId, eventId, termId))
-  const proposal = useQuery(termRoomProposalQueryOptions(organizationId, eventId, termId))
+  // Another term keeps the previous one shown until it arrives, as the
+  // proposal and the placements above do.
+  const wishes = useQuery({
+    ...termWishesQueryOptions(organizationId, eventId, termId),
+    placeholderData: keepPreviousData,
+  })
+  const proposal = useQuery({
+    ...termRoomProposalQueryOptions(organizationId, eventId, termId),
+    placeholderData: keepPreviousData,
+  })
   const shown = proposal.data?.lastSolved
 
   return (
@@ -34,7 +42,8 @@ export function RoommateWishStatesSection({
       rows={wishes.data ? toWishRows(wishes.data.wishes, shown?.layout?.wishes) : []}
       attribute={attribute}
       proposal={
-        proposal.isError
+        // A failed poll keeps what was read, as the proposal section does.
+        proposal.isError && !proposal.data
           ? "failed"
           : shown?.layout
             ? shown.isCurrent
@@ -45,7 +54,7 @@ export function RoommateWishStatesSection({
       // Until the proposal is read too, "Bez návrhu" could be wrong. A failed
       // proposal read says so and keeps the saved state.
       isLoading={wishes.isPending || proposal.isPending}
-      isLoadFailed={wishes.isError}
+      isLoadFailed={wishes.isError && !wishes.data}
       onRetryLoad={() => {
         if (wishes.isError) void wishes.refetch()
         if (proposal.isError) void proposal.refetch()

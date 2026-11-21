@@ -2,10 +2,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/lib/api-client"
 
-import {
-  accommodationPath,
-  evaluationKeys,
-} from "@/features/accommodation/api/evaluationQueryOptions"
+import { accommodationPath } from "@/features/accommodation/api/evaluationQueryOptions"
+import { placementKeys } from "@/features/accommodation/api/placementQueryOptions"
+import { roomProposalKeys } from "@/features/accommodation/api/roomProposalQueryOptions"
 import { appliedProposalSchema } from "@/features/accommodation/api/roomProposalSchemas"
 
 /**
@@ -17,11 +16,16 @@ import { appliedProposalSchema } from "@/features/accommodation/api/roomProposal
  */
 export function useApplyProposal(organizationId: string, eventId: string, termId: string) {
   const queryClient = useQueryClient()
+  // The term's proposal and wishes, and the saved placements it changed.
   const reload = () =>
-    queryClient.invalidateQueries({
-      queryKey: evaluationKeys.event(organizationId, eventId),
-      predicate: (query) => query.queryKey[3] === "room-proposal",
-    })
+    Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: roomProposalKeys.terms(organizationId, eventId),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: placementKeys.term(organizationId, eventId, termId),
+      }),
+    ])
   return useMutation({
     mutationFn: async (input: { proposalId: string; submissionKey: string }) =>
       appliedProposalSchema.parse(

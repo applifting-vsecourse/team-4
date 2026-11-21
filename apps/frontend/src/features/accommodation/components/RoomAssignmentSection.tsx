@@ -10,10 +10,7 @@ import {
 } from "@/features/accommodation/api/placementQueryOptions"
 import type { TermPlacements } from "@/features/accommodation/api/placementSchemas"
 import { PlacementWarningDialog } from "@/features/accommodation/components/PlacementWarningDialog"
-import {
-  RoomAssignment,
-  type AssignmentTerm,
-} from "@/features/accommodation/components/RoomAssignment"
+import { RoomAssignment } from "@/features/accommodation/components/RoomAssignment"
 import {
   useSavePlacement,
   type PlacementChange,
@@ -50,10 +47,8 @@ const FINAL_REFUSALS = new Set([
 type RoomAssignmentSectionProps = {
   organizationId: string
   eventId: string
-  /** At least one term; the route keeps the selected one in the URL. */
-  terms: AssignmentTerm[]
+  /** The term the page's tabs selected; the route keeps it in the URL. */
   selectedTermId: string
-  onSelectTerm: (termId: string) => void
 }
 
 // The saved room placements of the selected term (F14-2). A placement
@@ -65,9 +60,7 @@ type RoomAssignmentSectionProps = {
 export function RoomAssignmentSection({
   organizationId,
   eventId,
-  terms,
   selectedTermId,
-  onSelectTerm,
 }: RoomAssignmentSectionProps) {
   const queryClient = useQueryClient()
   const placements = useQuery(placementsQueryOptions(organizationId, eventId, selectedTermId))
@@ -169,9 +162,6 @@ export function RoomAssignmentSection({
   return (
     <>
       <RoomAssignment
-        terms={terms}
-        selectedTermId={selectedTermId}
-        onSelectTerm={onSelectTerm}
         board={data ? toPlacementBoard(data) : undefined}
         isLoadFailed={placements.isError}
         onRetryLoad={placements.refetch}

@@ -100,9 +100,9 @@ export const accommodationHandlers = {
     http.post(`${BASE}/terms/:termId/room-proposal`, () =>
       HttpResponse.json(makeTermRoomProposal("running"), { status: 202 }),
     ),
-    // Přání na spolubydlící (#317): the contract proposed for #339/#337.
+    // Přání na spolubydlící (#317) of a term, with their saved state (#365).
     http.get(`${BASE}/terms/:termId/roommate-wishes`, () => HttpResponse.json(makeTermWishes())),
-    // "Použít návrh" (#390): the contract proposed for #365.
+    // "Použít návrh" (#390, #365).
     http.post(`${BASE}/terms/:termId/room-proposal/apply`, () =>
       HttpResponse.json({ added: 2, moved: 1, removed: 1, layoutVersion: 5 }),
     ),

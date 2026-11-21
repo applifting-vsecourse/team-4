@@ -9,6 +9,7 @@ import {
   type ConfirmableWarning,
   type TermPlacements,
 } from "@/features/accommodation/api/placementSchemas"
+import { roomProposalKeys } from "@/features/accommodation/api/roomProposalQueryOptions"
 
 /** One change of one participant's placement in the term. */
 export type PlacementChange =
@@ -33,7 +34,9 @@ export type PlacementResult =
  * the term's placements read back from the database; it replaces the cache,
  * so the board never shows an unsaved placement. A 409 `placement_warnings`
  * is an answer, not a failure: the organizer is asked to confirm. A failed
- * save reloads the placements.
+ * save reloads the placements. A saved one makes the room proposals and the
+ * wish states of the event's terms out of date (#365): they reload, without
+ * the board waiting for them.
  */
 export function useSavePlacement(organizationId: string, eventId: string, termId: string) {
   const queryClient = useQueryClient()
@@ -71,7 +74,12 @@ export function useSavePlacement(organizationId: string, eventId: string, termId
       }
     },
     onSuccess: async (result) => {
-      if (result.kind === "saved") queryClient.setQueryData(queryKey, result.placements)
+      if (result.kind === "saved") {
+        queryClient.setQueryData(queryKey, result.placements)
+        void queryClient.invalidateQueries({
+          queryKey: roomProposalKeys.terms(organizationId, eventId),
+        })
+      }
       // The board was behind the room the server checked.
       else await queryClient.invalidateQueries({ queryKey })
     },

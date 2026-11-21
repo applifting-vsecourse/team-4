@@ -95,7 +95,7 @@ export function TermCapacityOverview({
           ? { value: selectedTermId, onValueChange: onSelectedTermChange }
           : { defaultValue: selectedTermId })}
       >
-        <TabsList aria-label="Termín">
+        <TabsList aria-label="Kapacita podle termínu">
           {terms.map((term) => (
             <TabsTrigger
               key={term.id}

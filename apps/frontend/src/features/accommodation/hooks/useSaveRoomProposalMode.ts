@@ -2,10 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { api } from "@/lib/api-client"
 
-import {
-  accommodationPath,
-  evaluationKeys,
-} from "@/features/accommodation/api/evaluationQueryOptions"
+import { accommodationPath } from "@/features/accommodation/api/evaluationQueryOptions"
 import { type EvaluationMode } from "@/features/accommodation/api/evaluationSchemas"
 import { roomProposalKeys } from "@/features/accommodation/api/roomProposalQueryOptions"
 import { roomProposalModeResponseSchema } from "@/features/accommodation/api/roomProposalSchemas"
@@ -27,8 +24,7 @@ export function useSaveRoomProposalMode(organizationId: string, eventId: string)
       queryClient.setQueryData(key, mode)
       // Scheduled proposals may have been dropped; the evaluation mode is separate.
       await queryClient.invalidateQueries({
-        queryKey: evaluationKeys.event(organizationId, eventId),
-        predicate: (query) => query.queryKey[3] === "room-proposal",
+        queryKey: roomProposalKeys.terms(organizationId, eventId),
       })
     },
   })

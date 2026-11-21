@@ -52,7 +52,7 @@ export function RoomProposalModeSection({
       saveError={save.isError ? STILL_APPLIES[mode.data] : undefined}
       onSave={(next) =>
         save.mutate(next, {
-          onSuccess: () => toast.success("Režim návrhu pokojů byl uložen.", { richColors: false }),
+          onSuccess: () => toast.success("Režim návrhu pokojů byl uložen."),
         })
       }
     />
