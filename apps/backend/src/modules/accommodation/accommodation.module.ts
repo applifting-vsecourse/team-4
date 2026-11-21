@@ -6,6 +6,7 @@ import { OrderMovesController } from './controllers/order-moves.controller';
 import { RegistrationAccommodationController } from './controllers/registration-accommodation.controller';
 import { RoomPlacementsController } from './controllers/room-placements.controller';
 import { RoomProposalController } from './controllers/room-proposal.controller';
+import { RoomPublicationController } from './controllers/room-publication.controller';
 import { TermDecisionController } from './controllers/term-decision.controller';
 import { TermEvaluationController } from './controllers/term-evaluation.controller';
 import { AccommodationEvaluationRepository } from './repositories/accommodation-evaluation.repository';
@@ -16,6 +17,7 @@ import { ProposalQueueRepository } from './repositories/proposal-queue.repositor
 import { RegistrationAccommodationRepository } from './repositories/registration-accommodation.repository';
 import { RoomPlacementsRepository } from './repositories/room-placements.repository';
 import { RoomProposalRepository } from './repositories/room-proposal.repository';
+import { RoomPublicationRepository } from './repositories/room-publication.repository';
 import { TermDecisionRepository } from './repositories/term-decision.repository';
 import { TermEvaluationRepository } from './repositories/term-evaluation.repository';
 import { AccommodationEvaluationService } from './services/accommodation-evaluation.service';
@@ -36,6 +38,7 @@ import {
   StoredRoomPlacements,
 } from './services/room-proposal-sources';
 import { RoomProposalService } from './services/room-proposal.service';
+import { RoomPublicationService } from './services/room-publication.service';
 import { TermDecisionService } from './services/term-decision.service';
 import { TermEvaluationService } from './services/term-evaluation.service';
 import { TermRoomProposalService } from './services/term-room-proposal.service';
@@ -52,6 +55,7 @@ import { TermRoomProposalService } from './services/term-room-proposal.service';
     RegistrationAccommodationController,
     RoomProposalController,
     RoomPlacementsController,
+    RoomPublicationController,
     TermDecisionController,
     TermEvaluationController,
   ],
@@ -72,6 +76,8 @@ import { TermRoomProposalService } from './services/term-room-proposal.service';
     RoomProposalService,
     RoomPlacementsRepository,
     RoomPlacementsService,
+    RoomPublicationRepository,
+    RoomPublicationService,
     TermDecisionRepository,
     TermDecisionService,
     TermEvaluationRepository,
