@@ -405,6 +405,35 @@ describe('changes without approval', () => {
     expect(detail.body.canChange).toBe(true);
   });
 
+  it('gives up the room of a cancelled term, so a later confirmation starts without one', async () => {
+    const fixture = await setup(null);
+    const registration = await register(fixture, [1, 2]);
+    for (const index of [1, 2]) {
+      await prisma.roomPlacement.create({
+        data: {
+          registrationId: registration.id,
+          termId: fixture.terms[index].id,
+          eventId: fixture.event.id,
+          roomId: fixture.rooms[0].id,
+          isLocked: true,
+          placedById: fixture.ownerId,
+        },
+      });
+    }
+
+    const result = await submit(registration, {
+      cancelledTermIds: [fixture.terms[1].id],
+    });
+
+    expect(result.body.outcome).toBe('applied');
+    const placements = await prisma.roomPlacement.findMany({
+      where: { registrationId: registration.id },
+      select: { termId: true },
+    });
+    // Only the cancelled term's room goes, even a locked one.
+    expect(placements).toEqual([{ termId: fixture.terms[2].id }]);
+  });
+
   it('shows a registration with every term cancelled as cancelled, history kept', async () => {
     const fixture = await setup(null);
     const registration = await register(fixture, [1, 2]);

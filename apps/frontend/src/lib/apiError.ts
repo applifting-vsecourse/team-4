@@ -64,6 +64,11 @@ export type ApiErrorCode =
   | "transaction_already_paired"
   | "roommate_wishes_unavailable"
   | "roommate_invalid"
+  | "placement_warnings"
+  | "participant_not_confirmed"
+  | "room_unavailable"
+  | "placement_locked"
+  | "not_placed"
 
 export type ApiError = {
   status: number | null
