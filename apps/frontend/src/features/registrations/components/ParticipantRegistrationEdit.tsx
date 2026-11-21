@@ -23,6 +23,7 @@ import {
   type ContactErrors,
   type FormTerm,
 } from "@/features/registrations/components/RegistrationChangeForm"
+import { RoommateWishesCard } from "@/features/registrations/components/RoommateWishesCard"
 import {
   buildProposal,
   validateContact,
@@ -116,6 +117,10 @@ export function ParticipantRegistrationEdit({
               }
             />
           )}
+          {/* Wishes are saved on their own, also while a change awaits approval (S4-05). */}
+          {!data.isCancelled && data.terms.some((term) => term.status === "confirmed") ? (
+            <RoommateWishesCard registrationId={registrationId} />
+          ) : null}
         </>
       ) : query.isPending ? (
         <LoadingBlock

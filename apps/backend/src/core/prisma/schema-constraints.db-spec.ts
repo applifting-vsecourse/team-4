@@ -497,6 +497,50 @@ describe('payment', () => {
   });
 });
 
+describe('roommate_wish (#339)', () => {
+  it('never names oneself nor someone of another event, and goes with either registration', async () => {
+    const organizationId = (await createOrganization(prisma)).id;
+    const summer = await createEvent(prisma, { organizationId, terms: SUMMER });
+    const winter = await createEvent(prisma, {
+      organizationId,
+      terms: [{ startDate: '2027-12-01', endDate: '2027-12-07' }],
+    });
+    const register = (
+      created: typeof summer,
+    ): ReturnType<typeof createRegistration> =>
+      createRegistration(prisma, {
+        event: created.event,
+        terms: [{ term: created.terms[0], status: 'confirmed' }],
+      });
+    const jana = await register(summer);
+    const anna = await register(summer);
+    const stranger = await register(winter);
+    const wish = (from: string, to: string): Promise<unknown> =>
+      prisma.roommateWish.create({
+        data: {
+          eventId: summer.event.id,
+          fromRegistrationId: from,
+          toRegistrationId: to,
+        },
+      });
+
+    await expect(wish(jana.id, jana.id)).rejects.toThrow();
+    await expect(wish(jana.id, stranger.id)).rejects.toThrow();
+    await wish(jana.id, anna.id);
+    await expect(wish(jana.id, anna.id)).rejects.toThrow();
+
+    await prisma.registrationTerm.deleteMany({
+      where: { registrationId: anna.id },
+    });
+    await prisma.registration.delete({ where: { id: anna.id } });
+    expect(
+      await prisma.roommateWish.count({
+        where: { fromRegistrationId: jana.id },
+      }),
+    ).toBe(0);
+  });
+});
+
 describe('email_delivery', () => {
   it('requires the target that matches the type', async () => {
     const { event, terms } = await createEvent(prisma, {
