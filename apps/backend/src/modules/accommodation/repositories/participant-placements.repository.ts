@@ -71,7 +71,7 @@ export class ParticipantPlacementsRepository {
           startDate: term.startDate,
           endDate: term.endDate,
         };
-        if (!term.roomPublication) return { ...base, published: false };
+        if (!term.roomPublication) return { ...base, isPublished: false };
         const ownRoomId = placement?.room.id ?? null;
         const wishes = registration.roommateWishes.flatMap(({ to }) => {
           const theirs = to.terms.find((t) => t.termId === term.id);
@@ -89,7 +89,7 @@ export class ParticipantPlacementsRepository {
         });
         return {
           ...base,
-          published: true,
+          isPublished: true,
           room: placement ? { label: placement.room.label } : null,
           wishes: wishes.sort(byName),
         };

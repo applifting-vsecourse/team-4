@@ -5,6 +5,7 @@ import { ScreenPreview } from "@/screens/ScreenPreview"
 
 import { accommodationHandlers } from "@/features/accommodation/fixtures/handlers"
 import { placementHandlers } from "@/features/accommodation/fixtures/placementHandlers"
+import { publicationHandlers } from "@/features/accommodation/fixtures/publication"
 import { authHandlers } from "@/features/auth/fixtures/handlers"
 import { OPEN_EVENT } from "@/features/events/fixtures/events"
 import { eventHandlers } from "@/features/events/fixtures/handlers"
@@ -37,6 +38,7 @@ export const organizerBackend = () => [
   ...accommodationHandlers.evaluation(),
   ...accommodationHandlers.roomProposal(),
   ...placementHandlers(),
+  ...publicationHandlers(),
 ]
 
 /** URL of a page of the open summer camp. */

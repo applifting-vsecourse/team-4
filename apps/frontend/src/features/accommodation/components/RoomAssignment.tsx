@@ -38,6 +38,10 @@ export type RoomAssignmentProps = {
   /** Places the participant in the room, or removes the placement with `null`. */
   onMove: (personId: string, roomId: string | null) => unknown
   onLock: (personId: string, isLocked: boolean) => unknown
+  /** Beside the heading, e.g. the publication of the placements (S4-02). */
+  actions?: ReactNode
+  /** Above the board, e.g. a failed load of the publication. */
+  notice?: ReactNode
 }
 
 const SECTION_TITLE = "Rozdělení do pokojů"
@@ -55,9 +59,12 @@ export function RoomAssignment({
   isSaving = false,
   onMove,
   onLock,
+  actions,
+  notice,
 }: RoomAssignmentProps) {
   const content = (
     <>
+      {notice}
       {isLoadFailed ? (
         <LoadError
           title="Rozdělení do pokojů se nepodařilo načíst"
@@ -97,6 +104,7 @@ export function RoomAssignment({
     <PageSection
       title={SECTION_TITLE}
       isBusy={isSaving || isSwitching}
+      actions={actions}
     >
       {content}
     </PageSection>

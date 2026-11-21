@@ -98,7 +98,7 @@ describe('publication of the room placements of a term', () => {
     const f = await setup();
     const { status, body } = await f.call('GET', f.path());
     expect(status).toBe(200);
-    expect(body).toEqual({ published: false, publishedAt: null });
+    expect(body).toEqual({ isPublished: false, publishedAt: null });
   });
 
   it('publishes, takes the publication back and publishes again', async () => {
@@ -107,7 +107,7 @@ describe('publication of the room placements of a term', () => {
     const published = await f.call('PUT', f.path());
     expect(published.status).toBe(200);
     expect(published.body).toEqual({
-      published: true,
+      isPublished: true,
       publishedAt: expect.any(String),
     });
     expect((await f.call('GET', f.path())).body).toEqual(published.body);
@@ -118,23 +118,23 @@ describe('publication of the room placements of a term', () => {
 
     const withdrawn = await f.call('DELETE', f.path());
     expect(withdrawn.status).toBe(200);
-    expect(withdrawn.body).toEqual({ published: false, publishedAt: null });
-    expect((await f.call('GET', f.path())).body.published).toBe(false);
+    expect(withdrawn.body).toEqual({ isPublished: false, publishedAt: null });
+    expect((await f.call('GET', f.path())).body.isPublished).toBe(false);
 
     const republished = await f.call('PUT', f.path());
-    expect(republished.body.published).toBe(true);
+    expect(republished.body.isPublished).toBe(true);
   });
 
   it('decides each term on its own', async () => {
     const f = await setup();
     await f.call('PUT', f.path(0));
-    expect((await f.call('GET', f.path(0))).body.published).toBe(true);
-    expect((await f.call('GET', f.path(1))).body.published).toBe(false);
+    expect((await f.call('GET', f.path(0))).body.isPublished).toBe(true);
+    expect((await f.call('GET', f.path(1))).body.isPublished).toBe(false);
 
     await f.call('PUT', f.path(1));
     await f.call('DELETE', f.path(0));
-    expect((await f.call('GET', f.path(0))).body.published).toBe(false);
-    expect((await f.call('GET', f.path(1))).body.published).toBe(true);
+    expect((await f.call('GET', f.path(0))).body.isPublished).toBe(false);
+    expect((await f.call('GET', f.path(1))).body.isPublished).toBe(true);
   });
 
   it('places nobody into a room', async () => {
@@ -158,8 +158,8 @@ describe('publication of the room placements of a term', () => {
     expect((await f.call('GET', f.path(), stranger.id)).status).toBe(404);
     expect((await f.call('PUT', f.path(), stranger.id)).status).toBe(404);
     expect((await f.call('DELETE', f.path(1), stranger.id)).status).toBe(404);
-    expect((await f.call('GET', f.path(0))).body.published).toBe(false);
-    expect((await f.call('GET', f.path(1))).body.published).toBe(true);
+    expect((await f.call('GET', f.path(0))).body.isPublished).toBe(false);
+    expect((await f.call('GET', f.path(1))).body.isPublished).toBe(true);
   });
 
   it('is not found for a term of another event', async () => {
@@ -167,6 +167,8 @@ describe('publication of the room placements of a term', () => {
     const other = await setup();
     const foreign = f.path().replace(f.terms[0].id, other.terms[0].id);
     expect((await f.call('PUT', foreign)).status).toBe(404);
-    expect((await other.call('GET', other.path())).body.published).toBe(false);
+    expect((await other.call('GET', other.path())).body.isPublished).toBe(
+      false,
+    );
   });
 });

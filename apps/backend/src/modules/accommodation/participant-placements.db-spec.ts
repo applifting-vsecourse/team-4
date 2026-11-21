@@ -202,7 +202,7 @@ const read = async (p: Person, as: Person = p): Promise<Call> =>
 
 type TermView = {
   label: string;
-  published: boolean;
+  isPublished: boolean;
   room?: { label: string } | null;
   wishes?: { registrationId: string; name: string; state: string }[];
 };
@@ -227,7 +227,7 @@ describe('the own room placements of a participant', () => {
           label: 'T1',
           startDate: '2027-07-01',
           endDate: '2027-07-07',
-          published: false,
+          isPublished: false,
         },
       ],
     });
@@ -255,7 +255,7 @@ describe('the own room placements of a participant', () => {
       label: 'T1',
       startDate: '2027-07-01',
       endDate: '2027-07-07',
-      published: true,
+      isPublished: true,
       room: { label: 'Chatka A' },
       wishes: [
         {
@@ -320,7 +320,7 @@ describe('the own room placements of a participant', () => {
       'T2',
     ]);
     expect(term(body, 'T1')).toEqual(
-      expect.objectContaining({ published: false }),
+      expect.objectContaining({ isPublished: false }),
     );
     expect(term(body, 'T1').room).toBeUndefined();
     expect(term(body, 'T2').room).toEqual({ label: 'Chatka B' });
@@ -337,7 +337,7 @@ describe('the own room placements of a participant', () => {
 
     await prisma.roomPublication.delete({ where: { termId: f.terms[0].id } });
     const withdrawn = term((await read(jana)).body, 'T1');
-    expect(withdrawn.published).toBe(false);
+    expect(withdrawn.isPublished).toBe(false);
     expect(withdrawn.room).toBeUndefined();
 
     await prisma.roomPlacement.update({

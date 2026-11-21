@@ -21,9 +21,9 @@ export type ParticipantTermPlacement = {
   startDate: Date;
   endDate: Date;
 } & (
-  | { published: false }
+  | { isPublished: false }
   | {
-      published: true;
+      isPublished: true;
       /** The own room; null while the participant has none. */
       room: { label: string } | null;
       /** Own wishes for someone confirmed in this term too, by name. */

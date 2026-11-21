@@ -5,7 +5,7 @@ export class RoomPublicationDto {
   @ApiProperty({
     description: 'Whether the participants of the term see their rooms.',
   })
-  published!: boolean;
+  isPublished!: boolean;
 
   @ApiProperty({
     type: String,
@@ -17,7 +17,7 @@ export class RoomPublicationDto {
 
   static from(publication: TermPublication): RoomPublicationDto {
     return {
-      published: publication.publishedAt !== null,
+      isPublished: publication.publishedAt !== null,
       publishedAt: publication.publishedAt?.toISOString() ?? null,
     };
   }

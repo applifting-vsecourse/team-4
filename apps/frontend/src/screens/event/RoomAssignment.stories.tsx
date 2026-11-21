@@ -4,7 +4,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test"
 
 import { apiUrl, failOn, neverAnswer } from "@/screens/msw"
 import { eventUrl, organizerBackend, screenMeta } from "@/screens/screenMeta"
-import { openRowMenu } from "@/screens/steps"
+import { openRowMenu, showsText } from "@/screens/steps"
 
 import { placementHandlers, PLACEMENTS } from "@/features/accommodation/fixtures/placementHandlers"
 import {
@@ -16,6 +16,13 @@ import {
   WITHOUT_ROOMS_STORE,
   type PlacementStore,
 } from "@/features/accommodation/fixtures/placements"
+import {
+  PUBLICATION,
+  publicationHandlers,
+  PUBLISHED_AT,
+  type PublicationStore,
+} from "@/features/accommodation/fixtures/publication"
+import { OPEN_EVENT } from "@/features/events/fixtures/events"
 
 // Správa akce → Ubytování → Rozdělení do pokojů (F14-2): manual room
 // placements of the selected term. MSW answers with the backend's rules
@@ -28,6 +35,7 @@ const meta = {
   beforeEach: ({ msw, parameters }) => {
     msw.use(
       ...placementHandlers(parameters.placements as PlacementStore | undefined),
+      ...publicationHandlers(parameters.publication as PublicationStore | undefined),
       ...organizerBackend(),
     )
   },
@@ -434,5 +442,62 @@ export const LoadFailed: Story = {
     await expect(
       await (await section(canvas)).findByText("Rozdělení do pokojů se nepodařilo načíst"),
     ).toBeVisible()
+  },
+}
+
+/** The placements are not published yet: publishing shows them to the term's participants. */
+export const Publish: Story = {
+  play: async ({ canvas }) => {
+    const board = await section(canvas)
+    await expect(await board.findByText("Nezveřejněno")).toBeVisible()
+    await userEvent.click(board.getByRole("button", { name: "Zveřejnit rozdělení" }))
+    await expect(await board.findByText("Zveřejněno")).toBeVisible()
+    await expect(board.getByRole("button", { name: "Zrušit zveřejnění" })).toBeVisible()
+    await showsText("Rozdělení je zveřejněné účastníkům.")
+  },
+}
+
+/** A published term: taking it back hides the rooms from its participants again. */
+export const Unpublish: Story = {
+  parameters: { publication: { [OPEN_EVENT.terms[0]!.id]: PUBLISHED_AT } },
+  play: async ({ canvas }) => {
+    const board = await section(canvas)
+    await expect(await board.findByText("Zveřejněno")).toBeVisible()
+    await userEvent.click(board.getByRole("button", { name: "Zrušit zveřejnění" }))
+    await expect(await board.findByText("Nezveřejněno")).toBeVisible()
+    await expect(board.getByRole("button", { name: "Zveřejnit rozdělení" })).toBeVisible()
+    await showsText("Zveřejnění rozdělení je zrušené.")
+  },
+}
+
+/** The change failed: the state stays as it was and the organizer can try again. */
+export const PublishFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("put", PUBLICATION))
+  },
+  play: async ({ canvas }) => {
+    const board = await section(canvas)
+    await userEvent.click(await board.findByRole("button", { name: "Zveřejnit rozdělení" }))
+    await showsText("Zveřejnění se nepodařilo změnit. Zkuste to prosím znovu.")
+    await expect(board.getByText("Nezveřejněno")).toBeVisible()
+    await expect(board.getByRole("button", { name: "Zveřejnit rozdělení" })).toBeEnabled()
+  },
+}
+
+/** The state failed to load: an error with a retry, never "Nezveřejněno". */
+export const PublicationLoadFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("get", PUBLICATION))
+  },
+  play: async ({ canvas }) => {
+    const board = await section(canvas)
+    await expect(
+      await board.findByText("Stav zveřejnění se nepodařilo načíst", undefined, { timeout: 5000 }),
+    ).toBeVisible()
+    await expect(board.getByRole("button", { name: "Zkusit znovu" })).toBeVisible()
+    await expect(board.queryByText("Nezveřejněno")).not.toBeInTheDocument()
+    await expect(
+      board.queryByRole("button", { name: "Zveřejnit rozdělení" }),
+    ).not.toBeInTheDocument()
   },
 }

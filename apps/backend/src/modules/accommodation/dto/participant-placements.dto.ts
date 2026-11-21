@@ -50,7 +50,7 @@ export class ParticipantTermPlacementDto {
       'Whether the organizer published the rooms of the term; room and ' +
       'wishes are sent only when true.',
   })
-  published!: boolean;
+  isPublished!: boolean;
 
   @ApiPropertyOptional({
     type: ParticipantRoomDto,
@@ -74,10 +74,10 @@ export class ParticipantTermPlacementDto {
       startDate: fromDate(term.startDate),
       endDate: fromDate(term.endDate),
     };
-    if (!term.published) return { ...base, published: false };
+    if (!term.isPublished) return { ...base, isPublished: false };
     return {
       ...base,
-      published: true,
+      isPublished: true,
       room: term.room ? { label: term.room.label } : null,
       wishes: term.wishes.map((wish) => ({
         registrationId: wish.registrationId,

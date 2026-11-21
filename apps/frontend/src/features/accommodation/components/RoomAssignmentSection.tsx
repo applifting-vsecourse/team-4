@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { LoadError } from "@/components/LoadError"
 import { readApiError } from "@/lib/apiError"
 
 import {
@@ -9,12 +10,15 @@ import {
   placementsQueryOptions,
 } from "@/features/accommodation/api/placementQueryOptions"
 import type { TermPlacements } from "@/features/accommodation/api/placementSchemas"
+import { publicationQueryOptions } from "@/features/accommodation/api/publicationQueryOptions"
 import { PlacementWarningDialog } from "@/features/accommodation/components/PlacementWarningDialog"
 import { RoomAssignment } from "@/features/accommodation/components/RoomAssignment"
+import { RoomPublicationControl } from "@/features/accommodation/components/RoomPublicationControl"
 import {
   useSavePlacement,
   type PlacementChange,
 } from "@/features/accommodation/hooks/useSavePlacement"
+import { useSetPublication } from "@/features/accommodation/hooks/useSetPublication"
 import {
   describeWarnings,
   offersLock,
@@ -65,6 +69,8 @@ export function RoomAssignmentSection({
   const queryClient = useQueryClient()
   const placements = useQuery(placementsQueryOptions(organizationId, eventId, selectedTermId))
   const save = useSavePlacement(organizationId, eventId, selectedTermId)
+  const publication = useQuery(publicationQueryOptions(organizationId, eventId, selectedTermId))
+  const setPublication = useSetPublication(organizationId, eventId)
   const [pending, setPending] = useState<Pending | null>(null)
   const [saveError, setSaveError] = useState<string>()
   const data = placements.data
@@ -169,6 +175,39 @@ export function RoomAssignmentSection({
         isSaving={save.isPending}
         onMove={handleMove}
         onLock={handleLock}
+        actions={
+          publication.isError ? null : (
+            <RoomPublicationControl
+              publication={publication.data}
+              isSwitching={publication.isPlaceholderData}
+              isSaving={setPublication.isPending}
+              onChange={(isPublished) =>
+                setPublication.mutate(
+                  { termId: selectedTermId, isPublished },
+                  {
+                    onSuccess: () =>
+                      toast.success(
+                        isPublished
+                          ? "Rozdělení je zveřejněné účastníkům."
+                          : "Zveřejnění rozdělení je zrušené.",
+                      ),
+                    onError: () =>
+                      toast.error("Zveřejnění se nepodařilo změnit. Zkuste to prosím znovu."),
+                  },
+                )
+              }
+            />
+          )
+        }
+        notice={
+          publication.isError ? (
+            <LoadError
+              title="Stav zveřejnění se nepodařilo načíst"
+              onRetry={publication.refetch}
+              isRetrying={publication.isFetching}
+            />
+          ) : null
+        }
       />
       {pending?.termId === selectedTermId ? (
         <PlacementWarningDialog
