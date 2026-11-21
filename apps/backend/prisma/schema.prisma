@@ -85,6 +85,7 @@ model User {
   accommodationInterventions AccommodationIntervention[]
   accommodationRuns          AccommodationRun[]
   accommodationDecisions     AccommodationDecision[]
+  roomPlacements             RoomPlacement[]
 
   username        String? @db.VarChar(50)
   displayUsername String? @db.VarChar(50)
@@ -239,6 +240,7 @@ model EventTerm {
   accommodationRuns          AccommodationRun[]
   accommodationInterventions AccommodationIntervention[]
   accommodationDecisions     AccommodationDecision[]
+  roomPlacements             RoomPlacement[]
   programmeItems             ProgrammeItem[]
 
   @@unique([id, eventId])
@@ -257,6 +259,7 @@ model Room {
 
   event          Event                  @relation(fields: [eventId], references: [id], onDelete: Restrict)
   availabilities RoomTermAvailability[]
+  placements     RoomPlacement[]
 
   @@unique([id, eventId])
   @@map("room")
@@ -482,9 +485,10 @@ model RegistrationTerm {
   priceMinor     Int
   decidedAt      DateTime            @db.Timestamptz(3)
 
-  registration Registration @relation(fields: [registrationId, eventId], references: [id, eventId], onDelete: Restrict)
-  term         EventTerm    @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Restrict)
-  event        Event        @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  registration Registration   @relation(fields: [registrationId, eventId], references: [id, eventId], onDelete: Restrict)
+  term         EventTerm      @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Restrict)
+  event        Event          @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  placement    RoomPlacement?
 
   @@id([registrationId, termId])
   @@index([termId, status])
@@ -683,6 +687,36 @@ model AccommodationTermOrder {
 
   @@unique([termId, eventId])
   @@map("accommodation_term_order")
+}
+
+// A person's room in one term (F14-2, #337). At most one per term; rooms are
+// optional. It never changes the person's participation or the order of the
+// term. Only a confirmed participant is placed; a registration change that
+// leaves the confirmed participation deletes the row, and the room views
+// ignore any row of someone not confirmed.
+model RoomPlacement {
+  registrationId    String   @db.Uuid
+  termId            String   @db.Uuid
+  eventId           String   @db.Uuid
+  roomId            String   @db.Uuid
+  // A locked placement is kept by the room proposal and refuses manual moves
+  // and removal until it is unlocked.
+  isLocked          Boolean  @default(false)
+  // The warnings the organizer confirmed to save it; empty when none.
+  confirmedWarnings String[] @default([]) @db.VarChar(32)
+  placedById        String
+  placedAt          DateTime @default(now()) @db.Timestamptz(3)
+
+  registrationTerm RegistrationTerm @relation(fields: [registrationId, termId], references: [registrationId, termId], onDelete: Cascade)
+  term             EventTerm        @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Cascade)
+  room             Room             @relation(fields: [roomId, eventId], references: [id, eventId], onDelete: Cascade)
+  placedBy         User             @relation(fields: [placedById], references: [id], onDelete: Restrict)
+
+  @@id([registrationId, termId])
+  @@index([termId, roomId])
+  @@index([roomId])
+  @@index([placedById])
+  @@map("room_placement")
 }
 
 enum AccommodationInterventionKind {
