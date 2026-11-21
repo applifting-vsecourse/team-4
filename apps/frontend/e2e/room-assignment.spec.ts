@@ -27,6 +27,9 @@ test.afterAll(closeDb)
 
 const board = (page: Page) => page.getByRole("region", { name: "Rozdělení do pokojů" })
 
+/** The term tabs of the proposal, the placements and the wishes (#26). */
+const termTabs = (page: Page) => page.getByRole("tablist", { name: "Termín" }).first()
+
 const card = (page: Page, title: string | RegExp) =>
   board(page)
     .locator('[data-slot="card"]')
@@ -107,13 +110,13 @@ test("places confirmed participants, confirms a mixed room with a lock, unlocks 
   await expect(chatkaA.getByText("2 / 2")).toBeVisible()
 
   // Each term has its own rooms; the selected one is kept in the URL.
-  await board(page).getByRole("tab", { name: "2. turnus" }).click()
+  await termTabs(page).getByRole("tab", { name: "2. turnus" }).click()
   await expect(page).toHaveURL(new RegExp(`term=${event.termIds[1]}`))
   await expect(
     card(page, /^Bez pokoje/).getByRole("heading", { name: "Bez pokoje (3)" }),
   ).toBeVisible()
   await page.reload()
-  await expect(board(page).getByRole("tab", { name: "2. turnus" })).toHaveAttribute(
+  await expect(termTabs(page).getByRole("tab", { name: "2. turnus" })).toHaveAttribute(
     "aria-selected",
     "true",
   )

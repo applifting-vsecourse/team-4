@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { api, HTTPError } from "@/lib/api-client"
 
+import { evaluationKeys } from "@/features/accommodation/api/evaluationQueryOptions"
 import { placementKeys, placementsPath } from "@/features/accommodation/api/placementQueryOptions"
 import {
   placementWarningsErrorSchema,
@@ -33,7 +34,9 @@ export type PlacementResult =
  * the term's placements read back from the database; it replaces the cache,
  * so the board never shows an unsaved placement. A 409 `placement_warnings`
  * is an answer, not a failure: the organizer is asked to confirm. A failed
- * save reloads the placements.
+ * save reloads the placements. A saved one makes the room proposals and the
+ * wish states of the event's terms out of date (#365): they reload, without
+ * the board waiting for them.
  */
 export function useSavePlacement(organizationId: string, eventId: string, termId: string) {
   const queryClient = useQueryClient()
@@ -71,7 +74,13 @@ export function useSavePlacement(organizationId: string, eventId: string, termId
       }
     },
     onSuccess: async (result) => {
-      if (result.kind === "saved") queryClient.setQueryData(queryKey, result.placements)
+      if (result.kind === "saved") {
+        queryClient.setQueryData(queryKey, result.placements)
+        void queryClient.invalidateQueries({
+          queryKey: evaluationKeys.event(organizationId, eventId),
+          predicate: (query) => query.queryKey[3] === "room-proposal",
+        })
+      }
       // The board was behind the room the server checked.
       else await queryClient.invalidateQueries({ queryKey })
     },

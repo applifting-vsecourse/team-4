@@ -136,10 +136,7 @@ export const roomProposalPreferencesSchema = z.object({
 export type SoftPreferenceItem = z.infer<typeof softPreferenceItemSchema>
 export type RoomProposalPreferences = z.infer<typeof roomProposalPreferencesSchema>
 
-/**
- * "Použít návrh" (#390): what applying the proposal saved. The API contract
- * is proposed here for #365; the backend is not built yet.
- */
+/** "Použít návrh" (#390, #365): what applying the proposal saved. */
 export const appliedProposalSchema = z.object({
   added: z.number().int().nonnegative(),
   moved: z.number().int().nonnegative(),
@@ -155,8 +152,7 @@ const wishPersonSchema = z.object({ registrationId: z.string().uuid(), name: z.s
 
 /**
  * The usable roommate wishes of a term (#317): one-sided, between two people
- * confirmed in the term, with their state in the saved placements now. The
- * contract is proposed here for the backend (#339, #337).
+ * confirmed in the term, with their state in the saved placements now (#365).
  */
 export const termWishesSchema = z.object({
   wishes: z.array(

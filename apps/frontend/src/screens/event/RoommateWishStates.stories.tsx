@@ -1,12 +1,10 @@
-import type { Meta, StoryObj } from "@storybook/react-vite"
+import type { Meta, StoryContext, StoryObj } from "@storybook/react-vite"
 import { expect, waitFor, within } from "storybook/test"
 
-import { OrganizerEventPage } from "@/not-implemented/OrganizerEventPage"
 import { failOn, neverAnswer } from "@/screens/msw"
+import { eventUrl, organizerBackend, screenMeta } from "@/screens/screenMeta"
 
 import type { TermRoomProposalData } from "@/features/accommodation/api/roomProposalSchemas"
-import { RoommateWishStatesSection } from "@/features/accommodation/components/RoommateWishStatesSection"
-import { EVALUATED_TERM } from "@/features/accommodation/fixtures/evaluation"
 import { accommodationHandlers } from "@/features/accommodation/fixtures/handlers"
 import {
   makeTermRoomProposal,
@@ -14,44 +12,27 @@ import {
   type WishesPreset,
 } from "@/features/accommodation/fixtures/roomProposal"
 
-// Přání na spolubydlící (#317) on Správa akce → Ubytování → vybraný termín:
-// the state of each wish in the saved placements and in the room proposal.
-// The section and its queries are real, answered by MSW with the wishes
-// contract proposed for #339/#337; the live page gets the section with the
-// integration of #26, once wishes and saved placements are stored.
+// Správa akce → Ubytování → Přání na spolubydlící (#317) of the selected
+// term: the state of each wish in the saved placements, read live, and in
+// the term's room proposal. MSW answers with the backend's contract (#365).
 
 const WISHES =
   "/organizations/:organizationId/events/:eventId/accommodation/terms/:termId/roommate-wishes"
 
-function Wishes() {
-  return (
-    <OrganizerEventPage
-      section="Ubytování"
-      crumbs={["Ubytování"]}
-    >
-      <RoommateWishStatesSection
-        organizationId="org"
-        eventId="event"
-        termId={EVALUATED_TERM.id}
-        attribute="Pohlaví"
-      />
-    </OrganizerEventPage>
-  )
-}
-
 const meta = {
-  title: "Not implemented/F19 Roommate wish states",
-  component: Wishes,
-  parameters: { layout: "fullscreen" },
-  globals: { viewport: { value: "desktop", isRotated: false } },
+  title: "Screens/Event/Roommate Wish States",
+  ...screenMeta,
+  args: { url: eventUrl("/rooms") },
   beforeEach: ({ msw }) => {
-    msw.use(...accommodationHandlers.roomProposal())
+    msw.use(...organizerBackend())
   },
-} satisfies Meta<typeof Wishes>
+} satisfies Meta<typeof screenMeta.component>
 
 export default meta
 
 type Story = StoryObj<typeof meta>
+
+type Canvas = StoryContext["canvas"]
 
 const backend = (
   wishes: WishesPreset,
@@ -65,23 +46,24 @@ const backend = (
   },
 })
 
+const section = async (canvas: Canvas) =>
+  within(await canvas.findByRole("region", { name: "Přání na spolubydlící" }, { timeout: 5000 }))
+
 /** The row of the wish from one person, by a name that appears once. */
-const rowOf = async (canvasElement: HTMLElement, name: string) => {
-  const canvas = within(canvasElement)
-  return within((await canvas.findByRole("cell", { name })).closest("tr")!)
-}
+const rowOf = async (canvas: Canvas, name: string) =>
+  within((await (await section(canvas)).findByRole("cell", { name })).closest("tr")!)
 
 /** Saved placements and a current proposal: each state in its own column. */
 export const SavedAndProposal: Story = {
   ...backend("saved", makeTermRoomProposal("current")),
-  play: async ({ canvasElement }) => {
-    const eliska = await rowOf(canvasElement, "Eliška Malá")
+  play: async ({ canvas }) => {
+    const eliska = await rowOf(canvas, "Eliška Malá")
     // The proposal column fills in once the term's proposal is read.
     await waitFor(() => expect(eliska.getAllByText("Nesplněno")).toHaveLength(2))
-    const tomas = await rowOf(canvasElement, "Tomáš Král")
+    const tomas = await rowOf(canvas, "Tomáš Král")
     await expect(tomas.getByText("Nesplněno")).toBeVisible()
     await expect(await tomas.findByText("Čeká na umístění")).toBeVisible()
-    const petr = await rowOf(canvasElement, "Petr Svoboda")
+    const petr = await rowOf(canvas, "Petr Svoboda")
     await waitFor(() =>
       expect(petr.getAllByText("Nelze splnit: různá hodnota Pohlaví")).toHaveLength(2),
     )
@@ -91,8 +73,8 @@ export const SavedAndProposal: Story = {
 /** Nobody has a saved room yet: every wish waits; the proposal shows what it would do. */
 export const NothingSaved: Story = {
   ...backend("unsaved", makeTermRoomProposal("current")),
-  play: async ({ canvasElement }) => {
-    const eliska = await rowOf(canvasElement, "Eliška Malá")
+  play: async ({ canvas }) => {
+    const eliska = await rowOf(canvas, "Eliška Malá")
     await expect(eliska.getByText("Čeká na umístění")).toBeVisible()
     await expect(await eliska.findByText("Nesplněno")).toBeVisible()
   },
@@ -101,11 +83,11 @@ export const NothingSaved: Story = {
 /** The term changed after the proposal: its column says it is out of date. */
 export const StaleProposal: Story = {
   ...backend("saved", makeTermRoomProposal("stale")),
-  play: async ({ canvasElement }) => {
+  play: async ({ canvas }) => {
     await expect(
-      await within(canvasElement).findByText(
-        "Podle návrhu: poslední dokončený návrh, podklady se od něj změnily.",
-      ),
+      await (
+        await section(canvas)
+      ).findByText("Podle návrhu: poslední dokončený návrh, podklady se od něj změnily."),
     ).toBeVisible()
   },
 }
@@ -113,19 +95,19 @@ export const StaleProposal: Story = {
 /** No proposal yet: only the saved state. */
 export const NoProposal: Story = {
   ...backend("saved", makeTermRoomProposal("none")),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await expect(await canvas.findByText("Termín zatím nemá návrh pokojů.")).toBeVisible()
-    await expect(await canvas.findAllByText("Bez návrhu")).toHaveLength(4)
+  play: async ({ canvas }) => {
+    const wishes = await section(canvas)
+    await expect(await wishes.findByText("Termín zatím nemá návrh pokojů.")).toBeVisible()
+    await expect(await wishes.findAllByText("Bez návrhu")).toHaveLength(4)
   },
 }
 
 /** No usable wish between two people confirmed in the term. */
 export const NoWishes: Story = {
   ...backend("empty"),
-  play: async ({ canvasElement }) => {
+  play: async ({ canvas }) => {
     await expect(
-      await within(canvasElement).findByText("V termínu nejsou přání na spolubydlící"),
+      await (await section(canvas)).findByText("V termínu nejsou přání na spolubydlící"),
     ).toBeVisible()
   },
 }
@@ -134,9 +116,13 @@ export const Loading: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...neverAnswer("get", WISHES))
   },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvas }) => {
     await expect(
-      await within(canvasElement).findByRole("status", { name: "Načítání přání na spolubydlící" }),
+      await (
+        await section(canvas)
+      ).findByRole("status", {
+        name: "Načítání přání na spolubydlící",
+      }),
     ).toBeVisible()
   },
 }
@@ -145,9 +131,9 @@ export const LoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", WISHES))
   },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvas }) => {
     await expect(
-      await within(canvasElement).findByText("Přání na spolubydlící se nepodařilo načíst"),
+      await (await section(canvas)).findByText("Přání na spolubydlící se nepodařilo načíst"),
     ).toBeVisible()
   },
 }
@@ -162,12 +148,12 @@ export const ProposalLoadFailed: Story = {
       ),
     )
   },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement)
-    await expect(await canvas.findByText("Návrh pokojů se nepodařilo načíst")).toBeVisible()
-    await expect(await canvas.findAllByText("Nenačteno")).toHaveLength(4)
-    await expect(canvas.queryByText("Termín zatím nemá návrh pokojů.")).not.toBeInTheDocument()
-    const eliska = await rowOf(canvasElement, "Eliška Malá")
+  play: async ({ canvas }) => {
+    const wishes = await section(canvas)
+    await expect(await wishes.findByText("Návrh pokojů se nepodařilo načíst")).toBeVisible()
+    await expect(await wishes.findAllByText("Nenačteno")).toHaveLength(4)
+    await expect(wishes.queryByText("Termín zatím nemá návrh pokojů.")).not.toBeInTheDocument()
+    const eliska = await rowOf(canvas, "Eliška Malá")
     await expect(eliska.getByText("Nesplněno")).toBeVisible()
   },
 }

@@ -3,7 +3,6 @@ import { BedDouble, Lock, Sparkles, Users } from "lucide-react"
 
 import { EmptyState } from "@/components/EmptyState"
 import { FormError } from "@/components/FormError"
-import { HorizontalOverflowViewport } from "@/components/HorizontalOverflowViewport"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { Notice } from "@/components/Notice"
@@ -20,9 +19,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import type { RoomProposalStatus } from "@/features/accommodation/api/roomProposalSchemas"
+import { AccommodationTermTabs } from "@/features/accommodation/components/AccommodationTermTabs"
 import type { EvaluationTerm } from "@/features/accommodation/components/TermEvaluation"
 import {
   PROPOSAL_STATUS_BADGE,
@@ -61,6 +60,8 @@ export type RoomProposalProps = {
   /** "Navrhnout pokoje" was refused or failed, already worded; the shown data stay. */
   proposeError?: string
   onRetryLoad?: () => void
+  /** False on Ubytování, where one set of tabs carries every section of the term. */
+  hasTermTabs?: boolean
 }
 
 function count(n: number, one: string, few: string, many: string) {
@@ -367,142 +368,136 @@ export function RoomProposal({
   applyAction,
   proposeError,
   onRetryLoad,
+  hasTermTabs = true,
 }: RoomProposalProps) {
   const selectedTerm = terms.find((term) => term.id === selectedTermId)
   const isRunning = status === "running"
   const badge = PROPOSAL_STATUS_BADGE[status]
 
+  const content = (
+    <>
+      {isLoadFailed ? (
+        <LoadError
+          title="Návrh pokojů se nepodařilo načíst"
+          onRetry={onRetryLoad}
+        />
+      ) : isLoading ? (
+        <LoadingBlock
+          label="Načítání návrhu pokojů"
+          className="mt-2"
+        >
+          <Skeleton className="h-96 w-full" />
+        </LoadingBlock>
+      ) : (
+        <div
+          className="mt-2 space-y-6"
+          inert={isSwitching}
+          aria-busy={isSwitching}
+        >
+          <Card>
+            <CardContent>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium">
+                      {selectedTerm?.label}, {selectedTerm?.dates}
+                    </p>
+                    {status === "none" ? null : (
+                      <Badge variant={badge.variant}>{badge.label}</Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {proposedAt ? `Návrh z ${proposedAt} · ` : ""}
+                    {mode === "automatic"
+                      ? "Automatický návrh zapnutý"
+                      : "Automatický návrh vypnutý"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <PendingButton
+                    variant="outline"
+                    isPending={isRunning}
+                    icon={<Sparkles />}
+                    onClick={onPropose}
+                  >
+                    {isRunning ? "Navrhuje se…" : "Navrhnout pokoje"}
+                  </PendingButton>
+                  {applyAction}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {proposeError ? (
+            <FormError
+              title="Návrh pokojů se nepodařilo spustit"
+              message={proposeError}
+            />
+          ) : null}
+
+          <StatusNotice
+            status={status}
+            mode={mode}
+            hasLayout={layout !== undefined}
+            isShownStale={isShownStale}
+          />
+
+          {layout ? (
+            layout.isEmpty ? (
+              <EmptyState
+                icon={Users}
+                title="V termínu nejsou potvrzení účastníci"
+              />
+            ) : layout.rooms.length === 0 ? (
+              // Everyone has the reason N: one message instead of a row each.
+              <>
+                <EmptyState
+                  icon={BedDouble}
+                  title="Termín nemá dostupný pokoj"
+                />
+                {layout.lockConflicts.length > 0 ? <LockConflicts layout={layout} /> : null}
+              </>
+            ) : (
+              <>
+                {!layout.isComplete ? (
+                  <Notice
+                    tone="warning"
+                    title="Rozdělení nemusí být nejlepší možné"
+                  >
+                    Výpočet nestihl v časovém limitu prověřit všechny možnosti; rozdělení dodržuje
+                    všechna pravidla.
+                  </Notice>
+                ) : null}
+                <Summary layout={layout} />
+                <RoomsTable layout={layout} />
+                {layout.unplaced.length > 0 ? (
+                  <UnplacedTable
+                    layout={layout}
+                    attribute={attribute}
+                  />
+                ) : null}
+                {layout.lockConflicts.length > 0 ? <LockConflicts layout={layout} /> : null}
+              </>
+            )
+          ) : null}
+        </div>
+      )}
+    </>
+  )
+
   return (
     <RoomProposalFrame>
-      <Tabs
-        value={selectedTermId}
-        onValueChange={onSelectTerm}
-      >
-        <HorizontalOverflowViewport>
-          <TabsList
-            aria-label="Termín"
-            className="w-max min-w-full"
-          >
-            {terms.map((term) => (
-              <TabsTrigger
-                key={term.id}
-                value={term.id}
-              >
-                {term.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </HorizontalOverflowViewport>
-
-        <TabsContent value={selectedTermId}>
-          {isLoadFailed ? (
-            <LoadError
-              title="Návrh pokojů se nepodařilo načíst"
-              onRetry={onRetryLoad}
-            />
-          ) : isLoading ? (
-            <LoadingBlock
-              label="Načítání návrhu pokojů"
-              className="mt-2"
-            >
-              <Skeleton className="h-96 w-full" />
-            </LoadingBlock>
-          ) : (
-            <div
-              className="mt-2 space-y-6"
-              inert={isSwitching}
-              aria-busy={isSwitching}
-            >
-              <Card>
-                <CardContent>
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium">
-                          {selectedTerm?.label}, {selectedTerm?.dates}
-                        </p>
-                        {status === "none" ? null : (
-                          <Badge variant={badge.variant}>{badge.label}</Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {proposedAt ? `Návrh z ${proposedAt} · ` : ""}
-                        {mode === "automatic"
-                          ? "Automatický návrh zapnutý"
-                          : "Automatický návrh vypnutý"}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <PendingButton
-                        variant="outline"
-                        isPending={isRunning}
-                        icon={<Sparkles />}
-                        onClick={onPropose}
-                      >
-                        {isRunning ? "Navrhuje se…" : "Navrhnout pokoje"}
-                      </PendingButton>
-                      {applyAction}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {proposeError ? (
-                <FormError
-                  title="Návrh pokojů se nepodařilo spustit"
-                  message={proposeError}
-                />
-              ) : null}
-
-              <StatusNotice
-                status={status}
-                mode={mode}
-                hasLayout={layout !== undefined}
-                isShownStale={isShownStale}
-              />
-
-              {layout ? (
-                layout.isEmpty ? (
-                  <EmptyState
-                    icon={Users}
-                    title="V termínu nejsou potvrzení účastníci"
-                  />
-                ) : layout.rooms.length === 0 ? (
-                  // Everyone has the reason N: one message instead of a row each.
-                  <>
-                    <EmptyState
-                      icon={BedDouble}
-                      title="Termín nemá dostupný pokoj"
-                    />
-                    {layout.lockConflicts.length > 0 ? <LockConflicts layout={layout} /> : null}
-                  </>
-                ) : (
-                  <>
-                    {!layout.isComplete ? (
-                      <Notice
-                        tone="warning"
-                        title="Rozdělení nemusí být nejlepší možné"
-                      >
-                        Výpočet nestihl v časovém limitu prověřit všechny možnosti; rozdělení
-                        dodržuje všechna pravidla.
-                      </Notice>
-                    ) : null}
-                    <Summary layout={layout} />
-                    <RoomsTable layout={layout} />
-                    {layout.unplaced.length > 0 ? (
-                      <UnplacedTable
-                        layout={layout}
-                        attribute={attribute}
-                      />
-                    ) : null}
-                    {layout.lockConflicts.length > 0 ? <LockConflicts layout={layout} /> : null}
-                  </>
-                )
-              ) : null}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      {hasTermTabs ? (
+        <AccommodationTermTabs
+          terms={terms}
+          selectedTermId={selectedTermId}
+          onSelectTerm={onSelectTerm}
+        >
+          {content}
+        </AccommodationTermTabs>
+      ) : (
+        content
+      )}
     </RoomProposalFrame>
   )
 }

@@ -9,6 +9,7 @@ import {
   type OpenEvent,
   type TermSpec,
 } from "./support/api"
+import { addRoommateWish, closeDb } from "./support/db"
 
 // Ubytování → Návrh pokojů (#385) and Nastavení → Automatizace: the organizer
 // proposes rooms for the confirmed participants of a term. The proposal
@@ -28,12 +29,14 @@ const rooms = [
 const roomsUrl = (event: OpenEvent) =>
   `/organizations/${event.organizationId}/events/${event.eventId}/rooms`
 
+test.afterAll(closeDb)
+
 async function confirmed(
   page: Page,
   event: OpenEvent,
   name: string,
   gender: "female" | "male",
-): Promise<void> {
+): Promise<string> {
   const { id } = await register(
     page.request,
     event.publicId,
@@ -42,6 +45,7 @@ async function confirmed(
     { gender },
   )
   await confirm(page.request, event, event.termIds[0]!, id)
+  return id
 }
 
 test("proposing rooms by hand, stale after a change, and automatically", async ({ page }) => {
@@ -67,7 +71,11 @@ test("proposing rooms by hand, stale after a change, and automatically", async (
   await expect(roomOf("Petr")).not.toContainText("Tereza")
 
   // The other term is in the URL and has no proposal yet.
-  await proposal.getByRole("tab", { name: /2\. turnus/ }).click()
+  await page
+    .getByRole("tablist", { name: "Termín" })
+    .first()
+    .getByRole("tab", { name: /2\. turnus/ })
+    .click()
   await expect(page).toHaveURL(new RegExp(`term=${event.termIds[1]}`))
   await expect(proposal.getByText("Vytvořte návrh tlačítkem Navrhnout pokoje.")).toBeVisible()
   await page.goBack()
@@ -101,4 +109,49 @@ test("proposing rooms by hand, stale after a change, and automatically", async (
     timeout: 45_000,
   })
   await expect(roomOf("Lucie")).toBeVisible()
+})
+
+test("applying a proposal saves its rooms, and the wishes follow the saved rooms", async ({
+  page,
+}) => {
+  test.setTimeout(90_000)
+  const event = await setUpEvent(page.request, { terms, rooms })
+  await setHardAttribute(page.request, event, "gender")
+  const tereza = await confirmed(page, event, "Tereza", "female")
+  const jana = await confirmed(page, event, "Jana", "female")
+  const petr = await confirmed(page, event, "Petr", "male")
+  await addRoommateWish(jana, tereza)
+  await addRoommateWish(petr, tereza)
+
+  await page.goto(roomsUrl(event))
+  const wishes = page.getByRole("region", { name: "Přání na spolubydlící" })
+  const wishOf = (name: string) => wishes.getByRole("row").filter({ hasText: name })
+  // Nobody has a saved room yet; a man and a woman can't share one.
+  await expect(wishOf("Jana")).toContainText("Čeká na umístění")
+  await expect(wishOf("Petr")).toContainText("Nelze splnit")
+
+  const proposal = page.getByRole("region", { name: "Návrh pokojů" })
+  await proposal.getByRole("button", { name: "Navrhnout pokoje" }).click()
+  await expect(proposal.getByText("Aktuální návrh", { exact: true })).toBeVisible({
+    timeout: 30_000,
+  })
+  await proposal.getByRole("button", { name: "Použít návrh" }).click()
+  const dialog = page.getByRole("dialog", { name: "Použít návrh pokojů" })
+  await expect(dialog.getByText("Nová umístění (3)")).toBeVisible()
+  await dialog.getByRole("button", { name: "Použít návrh" }).click()
+  await expect(page.getByText("Návrh pokojů byl použit.")).toBeVisible()
+
+  // Saved: the board has everyone in a room, Jana with Tereza, and the
+  // applied proposal is out of date now (the next one may suggest more).
+  const board = page.getByRole("region", { name: "Rozdělení do pokojů" })
+  const roomCard = (person: string) =>
+    board.locator('[data-slot="card"]').filter({ hasText: person }).filter({ hasText: "Chatka" })
+  await expect(roomCard("Jana")).toContainText("Tereza")
+  await expect(wishOf("Jana")).toContainText("Splněno")
+  await expect(proposal.getByText("Neaktuální návrh", { exact: true })).toBeVisible()
+
+  // A manual change is read live too.
+  await board.getByRole("button", { name: /^Akce: Jana/ }).click()
+  await page.getByRole("menuitem", { name: "Odebrat z pokoje" }).click()
+  await expect(wishOf("Jana")).toContainText("Čeká na umístění")
 })

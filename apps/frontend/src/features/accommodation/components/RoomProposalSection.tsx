@@ -7,6 +7,7 @@ import { readApiError } from "@/lib/apiError"
 import { formatPragueDateTime } from "@/lib/date"
 
 import { termRoomProposalQueryOptions } from "@/features/accommodation/api/roomProposalQueryOptions"
+import { ApplyProposalAction } from "@/features/accommodation/components/ApplyProposalAction"
 import {
   RoomProposal,
   RoomProposalFrame,
@@ -27,6 +28,8 @@ export type RoomProposalSectionProps = {
   terms: Term[]
   termId: string
   onSelectTerm: (termId: string) => void
+  /** False on Ubytování, where one set of tabs carries every section of the term. */
+  hasTermTabs?: boolean
 }
 
 const PROPOSE_FAILED = "Zkuste to prosím znovu."
@@ -34,7 +37,8 @@ const PROPOSE_FAILED = "Zkuste to prosím znovu."
 // Ubytování → Návrh pokojů (#385): the room proposal of the selected term.
 // Reading never proposes; "Navrhnout pokoje" queues a proposal and the term
 // is read again until it is stored. The last usable proposal stays shown
-// while a new one runs or after one fails.
+// while a new one runs or after one fails. "Použít návrh" (#390) saves the
+// shown proposal while it is current.
 export function RoomProposalSection({
   attribute,
   organizationId,
@@ -42,6 +46,7 @@ export function RoomProposalSection({
   terms,
   termId,
   onSelectTerm,
+  hasTermTabs = true,
 }: RoomProposalSectionProps) {
   const hasTerm = termId !== ""
   const proposal = useQuery({
@@ -69,6 +74,7 @@ export function RoomProposalSection({
     terms: terms.map(toEvaluationTerm),
     selectedTermId: termId,
     onSelectTerm,
+    hasTermTabs,
   }
   const unknownTerm = { ...common, mode: "manual", status: "none" } satisfies RoomProposalProps
 
@@ -93,6 +99,8 @@ export function RoomProposalSection({
   const data = proposal.data
   if (!data) return null
   const shown = data.lastSolved
+  const layout = shown?.layout ? toProposalLayout(shown.layout) : undefined
+  const term = common.terms.find((t) => t.id === termId)
 
   return (
     <RoomProposal
@@ -102,10 +110,24 @@ export function RoomProposalSection({
       mode={data.mode}
       // While the request is on its way the term already reads as running.
       status={propose.isPending ? "running" : data.status}
-      layout={shown?.layout ? toProposalLayout(shown.layout) : undefined}
+      layout={layout}
       proposedAt={shown ? formatPragueDateTime(shown.finishedAt) : undefined}
       isShownStale={shown ? !shown.isCurrent : false}
       onPropose={() => propose.mutate()}
+      applyAction={
+        shown && layout && term ? (
+          <ApplyProposalAction
+            organizationId={organizationId}
+            eventId={eventId}
+            termId={termId}
+            term={`${term.label}, ${term.dates}`}
+            proposalId={shown.id}
+            layout={layout}
+            canApply={shown.isCurrent}
+            onPropose={() => propose.mutate()}
+          />
+        ) : null
+      }
       proposeError={
         propose.isError ? (readApiError(propose.error).message ?? PROPOSE_FAILED) : undefined
       }

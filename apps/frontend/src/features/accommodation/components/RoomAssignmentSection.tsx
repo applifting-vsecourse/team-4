@@ -53,7 +53,9 @@ type RoomAssignmentSectionProps = {
   /** At least one term; the route keeps the selected one in the URL. */
   terms: AssignmentTerm[]
   selectedTermId: string
-  onSelectTerm: (termId: string) => void
+  onSelectTerm?: (termId: string) => void
+  /** False on Ubytování, where one set of tabs carries every section of the term. */
+  hasTermTabs?: boolean
 }
 
 // The saved room placements of the selected term (F14-2). A placement
@@ -68,6 +70,7 @@ export function RoomAssignmentSection({
   terms,
   selectedTermId,
   onSelectTerm,
+  hasTermTabs = true,
 }: RoomAssignmentSectionProps) {
   const queryClient = useQueryClient()
   const placements = useQuery(placementsQueryOptions(organizationId, eventId, selectedTermId))
@@ -172,6 +175,7 @@ export function RoomAssignmentSection({
         terms={terms}
         selectedTermId={selectedTermId}
         onSelectTerm={onSelectTerm}
+        hasTermTabs={hasTermTabs}
         board={data ? toPlacementBoard(data) : undefined}
         isLoadFailed={placements.isError}
         onRetryLoad={placements.refetch}

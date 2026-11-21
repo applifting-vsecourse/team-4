@@ -88,8 +88,7 @@ export function ApplyProposalAction({
             {
               onSuccess: () => {
                 setIsOpen(false)
-                // The neutral toast: the green one fails the contrast check (#400).
-                toast.success("Návrh pokojů byl použit.", { richColors: false })
+                toast.success("Návrh pokojů byl použit.")
               },
             },
           )

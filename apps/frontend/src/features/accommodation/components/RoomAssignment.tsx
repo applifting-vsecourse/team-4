@@ -2,7 +2,6 @@ import { useState, type DragEvent, type ReactNode } from "react"
 import { BedDouble, EllipsisVertical, GripVertical, Lock, Users } from "lucide-react"
 
 import { EmptyState } from "@/components/EmptyState"
-import { HorizontalOverflowViewport } from "@/components/HorizontalOverflowViewport"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { PageSection } from "@/components/PageSection"
@@ -19,9 +18,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
+import { AccommodationTermTabs } from "@/features/accommodation/components/AccommodationTermTabs"
 import type {
   BoardPerson,
   BoardRoom,
@@ -33,7 +32,7 @@ export type AssignmentTerm = { id: string; label: string }
 export type RoomAssignmentProps = {
   terms: AssignmentTerm[]
   selectedTermId: string
-  onSelectTerm: (termId: string) => void
+  onSelectTerm?: (termId: string) => void
   /** The placements of the selected term; absent while they load or after a failed load. */
   board?: PlacementBoard
   isLoadFailed?: boolean
@@ -45,6 +44,8 @@ export type RoomAssignmentProps = {
   /** Places the participant in the room, or removes the placement with `null`. */
   onMove: (personId: string, roomId: string | null) => unknown
   onLock: (personId: string, isLocked: boolean) => unknown
+  /** False on Ubytování, where one set of tabs carries every section of the term. */
+  hasTermTabs?: boolean
 }
 
 const SECTION_TITLE = "Rozdělení do pokojů"
@@ -65,67 +66,61 @@ export function RoomAssignment({
   isSaving = false,
   onMove,
   onLock,
+  hasTermTabs = true,
 }: RoomAssignmentProps) {
+  const content = (
+    <>
+      {isLoadFailed ? (
+        <LoadError
+          title="Rozdělení do pokojů se nepodařilo načíst"
+          onRetry={onRetryLoad}
+        />
+      ) : !board ? (
+        <LoadingBlock
+          label="Načítání rozdělení do pokojů"
+          className="grid gap-4 lg:grid-cols-3"
+        >
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64 lg:col-span-2" />
+        </LoadingBlock>
+      ) : board.people.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="V termínu nejsou potvrzení účastníci"
+        />
+      ) : board.rooms.length === 0 ? (
+        <EmptyState
+          icon={BedDouble}
+          title="V termínu nejsou dostupné pokoje"
+        />
+      ) : (
+        <Board
+          board={board}
+          isInert={isSwitching}
+          isSaving={isSaving}
+          onMove={onMove}
+          onLock={onLock}
+        />
+      )}
+    </>
+  )
+
   return (
     <PageSection
       title={SECTION_TITLE}
       isBusy={isSaving || isSwitching}
     >
-      <Tabs
-        value={selectedTermId}
-        onValueChange={onSelectTerm}
-      >
-        <HorizontalOverflowViewport>
-          <TabsList
-            aria-label="Termín"
-            className="w-max min-w-full"
-          >
-            {terms.map((term) => (
-              <TabsTrigger
-                key={term.id}
-                value={term.id}
-              >
-                {term.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </HorizontalOverflowViewport>
-
-        <TabsContent value={selectedTermId}>
-          {isLoadFailed ? (
-            <LoadError
-              title="Rozdělení do pokojů se nepodařilo načíst"
-              onRetry={onRetryLoad}
-            />
-          ) : !board ? (
-            <LoadingBlock
-              label="Načítání rozdělení do pokojů"
-              className="grid gap-4 lg:grid-cols-3"
-            >
-              <Skeleton className="h-64" />
-              <Skeleton className="h-64 lg:col-span-2" />
-            </LoadingBlock>
-          ) : board.people.length === 0 ? (
-            <EmptyState
-              icon={Users}
-              title="V termínu nejsou potvrzení účastníci"
-            />
-          ) : board.rooms.length === 0 ? (
-            <EmptyState
-              icon={BedDouble}
-              title="V termínu nejsou dostupné pokoje"
-            />
-          ) : (
-            <Board
-              board={board}
-              isInert={isSwitching}
-              isSaving={isSaving}
-              onMove={onMove}
-              onLock={onLock}
-            />
-          )}
-        </TabsContent>
-      </Tabs>
+      {hasTermTabs ? (
+        <AccommodationTermTabs
+          terms={terms}
+          selectedTermId={selectedTermId}
+          onSelectTerm={onSelectTerm}
+        >
+          {content}
+        </AccommodationTermTabs>
+      ) : (
+        content
+      )}
     </PageSection>
   )
 }
