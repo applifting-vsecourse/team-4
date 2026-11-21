@@ -68,6 +68,8 @@ export function RoomProposalModeSettings({
       <CardFooter className="justify-end">
         <PendingButton
           isPending={isSaving}
+          // Nothing to save until the choice differs from the saved mode.
+          disabled={selected === mode}
           onClick={() => onSave?.(selected)}
         >
           Uložit

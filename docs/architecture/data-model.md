@@ -471,8 +471,10 @@ current data; a run only proposes and never changes a participation, a debt or a
   failed one), and the `layoutVersion` it read; a trigger keeps it immutable. The term state's
   `layoutVersion` is bumped by the layout changes of spec §7.1: rooms (every term), a
   confirmation, an answer, determination or change of a person confirmed in the term, a saved
-  placement or lock (in its term and the person's other confirmed terms), and a roommate wish
-  (in the terms where both people are confirmed). Proposals are queued on the same row (`proposalDueAt`, `proposalRunning*`) and run by
+  placement or lock (in its term and the person's other confirmed terms), a roommate wish
+  (in the terms where both people are confirmed), and a change of the hard attribute or the soft
+  preference list (every term of the event). Choosing a hard attribute also removes it from
+  the soft preference list. Proposals are queued on the same row (`proposalDueAt`, `proposalRunning*`) and run by
   their own worker, one at a time per process; with `event.isRoomProposalAutomatic` (off for a
   new event) a layout change makes one due 10 s later. Turning it off drops the scheduled ones
   but keeps a "Navrhnout pokoje" the organizer asked for. The organizer's view of a term shows
