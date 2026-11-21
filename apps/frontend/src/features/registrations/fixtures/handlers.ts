@@ -16,6 +16,10 @@ import type {
 import { registrationNeedsSchema } from "@/features/registrations/api/registrationSchemas"
 import type { RegistrationResult } from "@/features/registrations/api/registrationSchemas"
 import {
+  roommateWishesInputSchema,
+  type RoommateWishes,
+} from "@/features/registrations/api/roommateWishSchemas"
+import {
   AVAILABLE_TERMS,
   OWN_REGISTRATIONS,
 } from "@/features/registrations/fixtures/participantRegistrations"
@@ -32,6 +36,7 @@ import {
   makeRegistrationDetail,
   makeRegistrationList,
 } from "@/features/registrations/fixtures/registrations"
+import { ORGANIZER_WISHES, STORED_WISHES } from "@/features/registrations/fixtures/roommateWishes"
 
 // MSW handlers for registrations: the organizer's view of an event and the
 // participant's own. Install with `msw.use(...)` in a story's `beforeEach`.
@@ -76,6 +81,10 @@ export const registrationHandlers = {
     http.get(`${EVENT_CHANGES}/payments`, () => HttpResponse.json(makeEventPayments())),
     http.get(`${EVENT_CHANGES}/change-requests`, () => HttpResponse.json({ changes: [] })),
     http.get(`${EVENT_LIST}/:registrationId/changes`, () => HttpResponse.json({ changes: [] })),
+    // The participant's roommate wishes, read-only for the organizer (S4-05).
+    http.get(`${EVENT_LIST}/:registrationId/roommate-wishes`, () =>
+      HttpResponse.json(ORGANIZER_WISHES),
+    ),
     http.put(`${EVENT_LIST}/:registrationId/needs`, async ({ request }) => {
       const { needs, expectedVersion } = registrationNeedsCorrectionSchema.parse(
         await request.json(),
@@ -131,6 +140,24 @@ export const registrationHandlers = {
   ownChanges: (changes: RegistrationChange[]) => [
     http.get(`${OWN_LIST}/:registrationId/changes`, () => HttpResponse.json({ changes })),
   ],
+  /** Roommate wishes of the own registration (S4-05); a save replaces them. */
+  roommateWishes: (initial: RoommateWishes = STORED_WISHES) => {
+    let stored = initial
+    return [
+      http.get(`${OWN_LIST}/:registrationId/roommate-wishes`, () => HttpResponse.json(stored)),
+      http.put(`${OWN_LIST}/:registrationId/roommate-wishes`, async ({ request }) => {
+        const { registrationIds } = roommateWishesInputSchema.parse(await request.json())
+        const people = [...stored.wishes, ...stored.candidates]
+        stored = {
+          ...stored,
+          wishes: registrationIds.flatMap(
+            (id) => people.find(({ registrationId }) => registrationId === id) ?? [],
+          ),
+        }
+        return HttpResponse.json(stored)
+      }),
+    ]
+  },
   /** What the server shows before a change, and how it stores it. */
   ownChange: (
     preview: ChangePreview = makeChangePreview(),

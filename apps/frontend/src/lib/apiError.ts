@@ -62,6 +62,8 @@ export type ApiErrorCode =
   | "statement_invalid"
   | "statement_too_large"
   | "transaction_already_paired"
+  | "roommate_wishes_unavailable"
+  | "roommate_invalid"
   | "placement_warnings"
   | "participant_not_confirmed"
   | "room_unavailable"
