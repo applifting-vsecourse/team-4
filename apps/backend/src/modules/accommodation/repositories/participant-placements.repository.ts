@@ -3,7 +3,10 @@ import {
   ParticipantTermPlacement,
   participantWishState,
 } from '@/modules/accommodation/domain/participant-placements';
-import { byName, fullName } from '@/modules/registrations/domain/roommate-wish';
+import {
+  byName,
+  fullName,
+} from '@/modules/accommodation/domain/room-placement';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -63,6 +66,27 @@ export class ParticipantPlacementsRepository {
     });
     if (!registration) return null;
 
+    // A placement in a room the term no longer offers is no valid room: the
+    // organizer sees it flagged, the participant sees none (#316).
+    const available = new Set(
+      (
+        await this.prisma.roomTermAvailability.findMany({
+          where: {
+            termId: { in: registration.terms.map(({ term }) => term.id) },
+            isAvailable: true,
+          },
+          select: { termId: true, roomId: true },
+        })
+      ).map(({ termId, roomId }) => `${termId}:${roomId}`),
+    );
+    const validRoom = (
+      termId: string,
+      roomId: string | undefined,
+    ): string | null =>
+      roomId !== undefined && available.has(`${termId}:${roomId}`)
+        ? roomId
+        : null;
+
     return registration.terms
       .map(({ term, placement }): ParticipantTermPlacement => {
         const base = {
@@ -72,7 +96,7 @@ export class ParticipantPlacementsRepository {
           endDate: term.endDate,
         };
         if (!term.roomPublication) return { ...base, isPublished: false };
-        const ownRoomId = placement?.room.id ?? null;
+        const ownRoomId = validRoom(term.id, placement?.room.id);
         const wishes = registration.roommateWishes.flatMap(({ to }) => {
           const theirs = to.terms.find((t) => t.termId === term.id);
           if (!theirs) return [];
@@ -82,7 +106,7 @@ export class ParticipantPlacementsRepository {
               name: fullName(to),
               state: participantWishState(
                 ownRoomId,
-                theirs.placement?.roomId ?? null,
+                validRoom(term.id, theirs.placement?.roomId),
               ),
             },
           ];
@@ -90,7 +114,7 @@ export class ParticipantPlacementsRepository {
         return {
           ...base,
           isPublished: true,
-          room: placement ? { label: placement.room.label } : null,
+          room: placement && ownRoomId ? { label: placement.room.label } : null,
           wishes: wishes.sort(byName),
         };
       })

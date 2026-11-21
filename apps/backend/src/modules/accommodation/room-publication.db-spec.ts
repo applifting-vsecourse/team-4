@@ -137,6 +137,16 @@ describe('publication of the room placements of a term', () => {
     expect((await f.call('GET', f.path(1))).body.isPublished).toBe(true);
   });
 
+  it('publishes once when several requests publish the term at the same time', async () => {
+    const f = await setup();
+    const calls = await Promise.all(
+      Array.from({ length: 8 }, () => f.call('PUT', f.path())),
+    );
+    expect(calls.map((c) => c.status)).toEqual(Array(8).fill(200));
+    expect(calls[0].body.isPublished).toBe(true);
+    for (const call of calls) expect(call.body).toEqual(calls[0].body);
+  });
+
   it('places nobody into a room', async () => {
     const f = await setup();
     await createRegistration(prisma, {

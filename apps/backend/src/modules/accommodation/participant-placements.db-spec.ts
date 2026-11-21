@@ -355,6 +355,70 @@ describe('the own room placements of a participant', () => {
     });
   });
 
+  it('shows no room while the placement is in a room unavailable in the term', async () => {
+    const f = await setup();
+    const jana = await person(f, 'Jana Svobodová', ['confirmed']);
+    const anna = await person(f, 'Anna Procházková', ['confirmed']);
+    await place(f, jana, 1);
+    await place(f, anna, 1);
+    await wish(f, jana, anna);
+    await publish(f);
+    await prisma.roomTermAvailability.update({
+      where: {
+        roomId_termId: { roomId: f.rooms[1].id, termId: f.terms[0].id },
+      },
+      data: { isAvailable: false },
+    });
+
+    const t1 = term((await read(jana)).body, 'T1');
+    expect(t1.room).toBeNull();
+    expect(t1.wishes).toEqual([
+      expect.objectContaining({ name: 'Anna Procházková', state: 'unplaced' }),
+    ]);
+  });
+
+  it('drops a published term and its wishes once a participation is cancelled', async () => {
+    const f = await setup();
+    const jana = await person(f, 'Jana Svobodová', ['confirmed', 'confirmed']);
+    const anna = await person(f, 'Anna Procházková', [
+      'confirmed',
+      'confirmed',
+    ]);
+    await place(f, jana, 0);
+    await place(f, anna, 0);
+    await wish(f, jana, anna);
+    await publish(f, 0);
+    await publish(f, 1);
+    expect(term((await read(jana)).body, 'T1').wishes).toHaveLength(1);
+
+    // Anna leaves T1: Jana's wish no longer applies there, but still in T2.
+    await prisma.registrationTerm.update({
+      where: {
+        registrationId_termId: {
+          registrationId: anna.registration.id,
+          termId: f.terms[0].id,
+        },
+      },
+      data: { status: 'cancelled' },
+    });
+    let body = (await read(jana)).body;
+    expect(term(body, 'T1').wishes).toEqual([]);
+    expect(term(body, 'T2').wishes).toHaveLength(1);
+
+    // Jana leaves T1: the term is gone from her rooms.
+    await prisma.registrationTerm.update({
+      where: {
+        registrationId_termId: {
+          registrationId: jana.registration.id,
+          termId: f.terms[0].id,
+        },
+      },
+      data: { status: 'cancelled' },
+    });
+    body = (await read(jana)).body;
+    expect(body.terms.map((t: TermView) => t.label)).toEqual(['T2']);
+  });
+
   it('leaves out a term the participant is not confirmed in', async () => {
     const f = await setup();
     const jana = await person(f, 'Jana Svobodová', ['cancelled', 'confirmed']);

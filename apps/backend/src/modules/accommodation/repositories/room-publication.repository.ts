@@ -36,10 +36,14 @@ export class RoomPublicationRepository {
     userId: string,
   ): Promise<TermPublication | null> {
     if (!(await this.exists(scope, termId))) return null;
-    const row = await this.prisma.roomPublication.upsert({
+    // `INSERT … ON CONFLICT DO NOTHING`: two publishes at once both succeed
+    // and keep the first date; Prisma's upsert would read, then insert.
+    await this.prisma.roomPublication.createMany({
+      data: [{ termId, eventId: scope.eventId, publishedById: userId }],
+      skipDuplicates: true,
+    });
+    const row = await this.prisma.roomPublication.findUniqueOrThrow({
       where: { termId },
-      create: { termId, eventId: scope.eventId, publishedById: userId },
-      update: {},
       select: { publishedAt: true },
     });
     return { publishedAt: row.publishedAt };
