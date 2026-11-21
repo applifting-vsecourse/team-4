@@ -1,7 +1,13 @@
 import {
+  AppliedProposalDto,
+  ApplyProposalDto,
+  TermWishesDto,
+} from '@/modules/accommodation/dto/room-placements.dto';
+import {
   RoomProposalModeDto,
   TermRoomProposalDto,
 } from '@/modules/accommodation/dto/room-proposal.dto';
+import { RoomPlacementsService } from '@/modules/accommodation/services/room-placements.service';
 import { TermRoomProposalService } from '@/modules/accommodation/services/term-room-proposal.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
 import { Identity } from '@/shared/auth/domain/identity';
@@ -41,7 +47,10 @@ import {
   }),
 )
 export class RoomProposalController {
-  constructor(private readonly proposals: TermRoomProposalService) {}
+  constructor(
+    private readonly proposals: TermRoomProposalService,
+    private readonly placements: RoomPlacementsService,
+  ) {}
 
   @Get('room-proposal-mode')
   @ApiOperation({ summary: 'Whether room proposals run automatically' })
@@ -119,6 +128,55 @@ export class RoomProposalController {
   ): Promise<TermRoomProposalDto> {
     return TermRoomProposalDto.from(
       await this.proposals.propose(
+        { organizationId, ownerId: user.id, eventId },
+        termId,
+      ),
+    );
+  }
+
+  @Post('terms/:termId/room-proposal/apply')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Použít návrh: saves the proposal’s rooms, all of it or nothing',
+    description:
+      'Every unlocked confirmed person gets the proposed room; an unplaced ' +
+      'one loses theirs, a locked one stays. 409 `proposal_stale` when the ' +
+      'term’s layout changed since the proposal. Never publishes and never ' +
+      'changes participation.',
+  })
+  @ApiResponse({ status: 200, type: AppliedProposalDto })
+  async apply(
+    @User() user: Identity,
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @Param('termId', ParseUUIDPipe) termId: string,
+    @Body() body: ApplyProposalDto,
+  ): Promise<AppliedProposalDto> {
+    return AppliedProposalDto.from(
+      await this.placements.apply(
+        { organizationId, ownerId: user.id, eventId },
+        termId,
+        body,
+      ),
+    );
+  }
+
+  @Get('terms/:termId/roommate-wishes')
+  @ApiOperation({
+    summary: 'The roommate wishes of the term and whether the rooms meet them',
+    description:
+      'Wishes between two participants confirmed in the term, with their ' +
+      'state in the saved placements (#317).',
+  })
+  @ApiResponse({ status: 200, type: TermWishesDto })
+  async wishes(
+    @User() user: Identity,
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @Param('termId', ParseUUIDPipe) termId: string,
+  ): Promise<TermWishesDto> {
+    return TermWishesDto.from(
+      await this.placements.wishes(
         { organizationId, ownerId: user.id, eventId },
         termId,
       ),

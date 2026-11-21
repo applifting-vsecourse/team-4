@@ -605,14 +605,16 @@ export class RegistrationChangesRepository {
     plan: ChangePlan,
     now: Date,
   ): Promise<void> {
+    let hasDroppedRoom = false;
     for (const row of plan.summary.terms) {
       if (row.original === row.proposed || row.proposed === null) continue;
       if (row.original === 'confirmed') {
         // Leaving the confirmed participation gives up the room too (F14-2):
         // a later confirmation must not bring back an unchecked placement.
-        await tx.roomPlacement.deleteMany({
+        const dropped = await tx.roomPlacement.deleteMany({
           where: { registrationId: snapshot.id, termId: row.termId },
         });
+        if (dropped.count > 0) hasDroppedRoom = true;
       }
       if (row.proposed === 'cancelled') {
         await tx.registrationTerm.update({
@@ -671,7 +673,8 @@ export class RegistrationChangesRepository {
           (row.original === 'confirmed' || row.proposed === 'confirmed'),
       )
       .map((row) => row.termId);
-    if (fields.gender !== undefined) {
+    // A dropped room is a placement in another term of the person (§7.1).
+    if (fields.gender !== undefined || hasDroppedRoom) {
       layout.push(...(await confirmedTermsOf(tx, snapshot.id)));
     }
     await termLayoutChanged(tx, snapshot.eventId, [...new Set(layout)]);

@@ -1,12 +1,15 @@
 import {
   ConfirmableWarning,
   PlacementWarning,
+  SavedWishState,
 } from '@/modules/accommodation/domain/room-placement';
 import {
+  AppliedProposal,
   Occupant,
   PlacementPerson,
   PlacementRoom,
   TermPlacements,
+  TermWish,
 } from '@/modules/accommodation/repositories/room-placements.repository';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
@@ -185,5 +188,90 @@ export class TermPlacementsDto {
       rooms: placements.rooms.map((room) => PlacementRoomDto.from(room)),
       unplaced: placements.unplaced.map((p) => PlacementPersonDto.from(p)),
     };
+  }
+}
+
+export class ApplyProposalDto {
+  @ApiProperty({
+    format: 'uuid',
+    description:
+      'The proposal the organizer reviewed; 409 `proposal_stale` unless it ' +
+      'is a solved proposal of the term’s current layout version.',
+  })
+  @IsUUID('all', { message: 'Načtěte návrh pokojů znovu.' })
+  proposalId!: string;
+
+  @ApiProperty({
+    format: 'uuid',
+    description:
+      'One per attempt: the same key answers with the first result and ' +
+      'saves nothing again.',
+  })
+  @IsUUID('all', { message: 'Zkuste návrh použít znovu.' })
+  submissionKey!: string;
+}
+
+export class AppliedProposalDto {
+  @ApiProperty({ description: 'People who got a room they had none of.' })
+  added!: number;
+
+  @ApiProperty({ description: 'People moved to another room.' })
+  moved!: number;
+
+  @ApiProperty({ description: 'People who lost their room.' })
+  removed!: number;
+
+  @ApiProperty({
+    description: 'The term’s layout version after the apply.',
+  })
+  layoutVersion!: number;
+
+  static from(applied: AppliedProposal): AppliedProposalDto {
+    return { ...applied };
+  }
+}
+
+const WISH_STATES: SavedWishState[] = [
+  'satisfied',
+  'unsatisfied',
+  'unplaced',
+  'impossible',
+];
+
+export class WishPersonDto {
+  @ApiProperty({ format: 'uuid' })
+  registrationId!: string;
+
+  @ApiProperty()
+  name!: string;
+}
+
+export class TermWishDto {
+  @ApiProperty({ type: WishPersonDto })
+  from!: WishPersonDto;
+
+  @ApiProperty({ type: WishPersonDto })
+  to!: WishPersonDto;
+
+  @ApiProperty({
+    enum: WISH_STATES,
+    description:
+      'In the saved placements now: the same room wins, then different ' +
+      'values of the hard attribute, then someone without a room.',
+  })
+  saved!: SavedWishState;
+}
+
+export class TermWishesDto {
+  @ApiProperty({
+    type: [TermWishDto],
+    description:
+      'Wishes between two participants confirmed in the term, by the ' +
+      'names of both.',
+  })
+  wishes!: TermWishDto[];
+
+  static from(wishes: TermWish[]): TermWishesDto {
+    return { wishes: wishes.map((wish) => ({ ...wish })) };
   }
 }

@@ -1,9 +1,11 @@
 import { PlacementRefusal } from '@/modules/accommodation/domain/room-placement';
 import {
+  AppliedProposal,
   PlaceInput,
   PlacementOutcome,
   RoomPlacementsRepository,
   TermPlacements,
+  TermWish,
 } from '@/modules/accommodation/repositories/room-placements.repository';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import {
@@ -81,6 +83,38 @@ export class RoomPlacementsService {
     return this.saved(
       await this.repository.lock(scope, termId, registrationId, isLocked),
     );
+  }
+
+  /** "Použít návrh" (#365, spec §7.2): all of the proposal or nothing. */
+  async apply(
+    scope: EventScope,
+    termId: string,
+    input: { proposalId: string; submissionKey: string },
+  ): Promise<AppliedProposal> {
+    const outcome = await this.repository.applyProposal(
+      scope,
+      termId,
+      input,
+      scope.ownerId,
+    );
+    switch (outcome.kind) {
+      case 'applied':
+        return outcome.applied;
+      case 'not_found':
+        throw notAvailable();
+      case 'stale':
+        throw conflict(
+          'proposal_stale',
+          'Návrh pokojů je neaktuální, načtěte nový.',
+        );
+    }
+  }
+
+  /** The usable wishes of a term with their saved state (#317). */
+  async wishes(scope: EventScope, termId: string): Promise<TermWish[]> {
+    const wishes = await this.repository.termWishes(scope, termId);
+    if (!wishes) throw notAvailable();
+    return wishes;
   }
 
   private saved(outcome: PlacementOutcome): TermPlacements {

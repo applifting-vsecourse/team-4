@@ -85,6 +85,7 @@ model User {
   accommodationInterventions AccommodationIntervention[]
   accommodationRuns          AccommodationRun[]
   roomProposals              AccommodationRoomProposal[]
+  proposalApplications       RoomProposalApplication[]
   accommodationDecisions     AccommodationDecision[]
   roomPlacements             RoomPlacement[]
 
@@ -199,6 +200,7 @@ model Event {
   accommodationRules         AccommodationRules?
   accommodationRuns          AccommodationRun[]
   roomProposals              AccommodationRoomProposal[]
+  proposalApplications       RoomProposalApplication[]
   accommodationInterventions AccommodationIntervention[]
   accommodationDecisions     AccommodationDecision[]
   registrationResultEvents   RegistrationResultEvent[]
@@ -243,6 +245,7 @@ model EventTerm {
   accommodationState         AccommodationTermState?
   accommodationRuns          AccommodationRun[]
   roomProposals              AccommodationRoomProposal[]
+  proposalApplications       RoomProposalApplication[]
   accommodationInterventions AccommodationIntervention[]
   accommodationDecisions     AccommodationDecision[]
   roomPlacements             RoomPlacement[]
@@ -878,8 +881,40 @@ model AccommodationRoomProposal {
   term        EventTerm @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Restrict)
   triggeredBy User?     @relation(fields: [triggeredById], references: [id], onDelete: Restrict)
 
+  applications RoomProposalApplication[]
+
+  // The target of an application's proposal of the same term.
+  @@unique([id, termId])
   @@index([termId, startedAt])
   @@map("accommodation_room_proposal")
+}
+
+// "Použít návrh" (#365, phase-2 spec §7.2): one apply of a term's room proposal
+// to the saved placements, all of it or nothing. Immutable; its key answers a
+// repeated request with the same result.
+model RoomProposalApplication {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  eventId       String   @db.Uuid
+  termId        String   @db.Uuid
+  proposalId    String   @db.Uuid
+  // One per attempt of the organizer (a double click, a retry).
+  submissionKey String   @db.Uuid
+  actorId       String
+  added         Int
+  moved         Int
+  removed       Int
+  // The term's layout version after the apply.
+  layoutVersion Int
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  event    Event                     @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  term     EventTerm                 @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Restrict)
+  proposal AccommodationRoomProposal @relation(fields: [proposalId, termId], references: [id, termId], onDelete: Restrict)
+  actor    User                      @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@unique([termId, submissionKey])
+  @@index([proposalId])
+  @@map("accommodation_proposal_application")
 }
 
 enum AccommodationDecisionKind {

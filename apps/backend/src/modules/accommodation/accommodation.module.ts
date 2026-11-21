@@ -30,10 +30,10 @@ import { ProposalWorker } from './services/proposal-worker.service';
 import { RegistrationAccommodationService } from './services/registration-accommodation.service';
 import { RoomPlacementsService } from './services/room-placements.service';
 import {
-  NoRoommateWishes,
-  NoRoomPlacements,
   RoommateWishes,
   RoomPlacements,
+  StoredRoommateWishes,
+  StoredRoomPlacements,
 } from './services/room-proposal-sources';
 import { RoomProposalService } from './services/room-proposal.service';
 import { TermDecisionService } from './services/term-decision.service';
@@ -81,9 +81,9 @@ import { TermRoomProposalService } from './services/term-room-proposal.service';
       provide: HardAttributeAnswers,
       useClass: RegistrationHardAttributeAnswers,
     },
-    // Placements and wishes come with #337 and #339.
-    { provide: RoomPlacements, useClass: NoRoomPlacements },
-    { provide: RoommateWishes, useClass: NoRoommateWishes },
+    // The saved placements (F14-2, #337) and wishes (S4-05, #339).
+    { provide: RoomPlacements, useClass: StoredRoomPlacements },
+    { provide: RoommateWishes, useClass: StoredRoommateWishes },
   ],
 })
 export class AccommodationModule {}
