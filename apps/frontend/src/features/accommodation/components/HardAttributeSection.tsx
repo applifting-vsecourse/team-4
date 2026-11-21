@@ -55,8 +55,7 @@ export function HardAttributeSection({
       saveError={save.isError ? stillApplies(setting.data.hardAttribute) : undefined}
       onSave={(next) =>
         save.mutate(next, {
-          // The neutral toast: the green one fails the contrast check (as in TermDialog).
-          onSuccess: () => toast.success("Pravidla ubytování byla uložena.", { richColors: false }),
+          onSuccess: () => toast.success("Pravidla ubytování byla uložena."),
         })
       }
     />

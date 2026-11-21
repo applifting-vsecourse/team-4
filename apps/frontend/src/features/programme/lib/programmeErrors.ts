@@ -1,7 +1,7 @@
 import { readApiError } from "@/lib/apiError"
 
 export type ProgrammeSaveError = {
-  fieldError: { field: "date"; message: string } | null
+  fieldError: { field: "date" | "endTime"; message: string } | null
   errorMessage: string | null
   /** The programme or term changed meanwhile or is gone; reload it. */
   shouldRefresh: boolean
@@ -18,6 +18,17 @@ export function describeProgrammeError(error: unknown, fallback: string): Progra
   ) {
     return {
       fieldError: { field: "date", message: apiError.message },
+      errorMessage: null,
+      shouldRefresh: false,
+    }
+  }
+  if (
+    apiError.field === "endTime" &&
+    apiError.code === "programme_end_not_after_start" &&
+    apiError.message
+  ) {
+    return {
+      fieldError: { field: "endTime", message: apiError.message },
       errorMessage: null,
       shouldRefresh: false,
     }

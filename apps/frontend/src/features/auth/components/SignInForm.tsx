@@ -72,6 +72,7 @@ export function SignInForm({ isLoading, errorMessage, onSubmit }: SignInFormProp
               <FormControl>
                 <Input
                   type="password"
+                  placeholder="Zadejte heslo"
                   autoComplete="current-password"
                   {...field}
                 />

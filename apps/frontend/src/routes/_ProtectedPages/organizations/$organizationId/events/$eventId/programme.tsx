@@ -1,82 +1,76 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
+import { z } from "zod"
 
-import { ROUTES } from "@/app/routes"
 import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
-import { Badge } from "@/components/ui/badge"
 import { WorkspacePage } from "@/components/WorkspacePage"
-import { formatCalendarRange } from "@/lib/date"
 
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
+import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { useRefreshEvent } from "@/features/events/hooks/useEventMutations"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
-import { TermProgrammeSection } from "@/features/programme/components/TermProgrammeSection"
+import { EventProgramme } from "@/features/programme/components/EventProgramme"
 
-// Správa akce → Nastavení → Termíny a ceny → Program termínu (F65). Part of
-// the existing term settings, not a new navigation branch.
+// Správa akce → Program (F65-1): a section of its own beside Ubytování. The
+// selected term stays in the URL, so a refresh and the way back keep it.
 export const Route = createFileRoute(
-  "/_ProtectedPages/organizations/$organizationId/events/$eventId/terms/$termId/programme",
+  "/_ProtectedPages/organizations/$organizationId/events/$eventId/programme",
 )({
+  validateSearch: z.object({ term: z.string().uuid().optional().catch(undefined) }),
   loader: ({ context, params }) =>
     Promise.all([
       context.queryClient.ensureQueryData(organizationQueryOptions(params.organizationId)),
       context.queryClient.ensureQueryData(eventQueryOptions(params.organizationId, params.eventId)),
     ]),
-  component: TermProgrammePage,
+  component: ProgrammePage,
   errorComponent: Unavailable,
 })
 
-function TermProgrammePage() {
-  const { organizationId, eventId, termId } = Route.useParams()
+function ProgrammePage() {
+  const { organizationId, eventId } = Route.useParams()
+  const { term } = Route.useSearch()
+  const navigate = Route.useNavigate()
   const { data: organization } = useSuspenseQuery(organizationQueryOptions(organizationId))
   const { data: event } = useSuspenseQuery(eventQueryOptions(organizationId, eventId))
-  const term = event.terms.find((candidate) => candidate.id === termId)
   const refreshEvent = useRefreshEvent(organizationId, eventId)
-
-  if (!term) return <Unavailable />
+  const selectedTermId =
+    event.terms.find((candidate) => candidate.id === term)?.id ?? event.terms[0]?.id ?? ""
 
   return (
     <WorkspacePage>
-      <Seo title={`Program – ${term.label}`} />
+      <Seo title={`Program – ${event.name}`} />
       <PageHeader
         breadcrumb={
           <EventBreadcrumb
             organizationId={organizationId}
             organizationName={organization.name}
             event={event}
-            section={
-              <Link
-                to={ROUTES.eventSettings}
-                params={{ organizationId, eventId }}
-              >
-                Nastavení
-              </Link>
-            }
-            current={`Program – ${term.label}`}
+            current="Program"
           />
         }
-        title={`Program – ${term.label}`}
-        badge={
-          <Badge variant="secondary">{formatCalendarRange(term.startDate, term.endDate)}</Badge>
-        }
-        description={event.name}
+        title={event.name}
+        badge={<EventStatusBadge status={event.status} />}
+        description={event.location}
       />
-      <TermProgrammeSection
+      <EventProgramme
         organizationId={organizationId}
         eventId={eventId}
-        term={term}
+        terms={event.terms}
+        selectedTermId={selectedTermId}
+        // Switching a term stays at the place on the page; Back returns to the previous term.
+        onSelectTerm={(next) => void navigate({ search: { term: next }, resetScroll: false })}
         onChanged={refreshEvent}
       />
     </WorkspacePage>
   )
 }
 
-// A foreign and a missing event or term look the same (S2-03).
+// A foreign and a missing event look the same (S2-03).
 function Unavailable() {
   const { user } = useSession()
   const { organizationId } = Route.useParams()
@@ -90,7 +84,7 @@ function Unavailable() {
             organizationName={organization?.name}
           />
         }
-        title="Program termínu"
+        title="Program"
       />
       <RecordUnavailable
         action={

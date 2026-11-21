@@ -57,10 +57,18 @@ export type ApiErrorCode =
   | "programme_unavailable"
   | "programme_date_out_of_term"
   | "programme_date_invalid"
+  | "programme_end_not_after_start"
   | "statement_format"
   | "statement_invalid"
   | "statement_too_large"
   | "transaction_already_paired"
+  | "roommate_wishes_unavailable"
+  | "roommate_invalid"
+  | "placement_warnings"
+  | "participant_not_confirmed"
+  | "room_unavailable"
+  | "placement_locked"
+  | "not_placed"
 
 export type ApiError = {
   status: number | null

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react"
 
 import { DialogActions } from "@/components/DialogActions"
 import { FormError } from "@/components/FormError"
+import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/ui/date-picker"
 import {
   Dialog,
@@ -38,6 +39,8 @@ export type ProgrammeItemDialogProps = {
   onOpenChange?: (isOpen: boolean) => void
   /** Called with valid values only. */
   onSubmit?: (input: ProgrammeItemInput) => void
+  /** Only for an existing item; opens the confirmation of its deletion. */
+  onDelete?: () => void
 }
 
 // Add or edit one programme item of a term (F65), organizer. The form is
@@ -54,6 +57,7 @@ export function ProgrammeItemDialog({
   isSubmitting = false,
   onOpenChange,
   onSubmit,
+  onDelete,
 }: ProgrammeItemDialogProps) {
   return (
     <Dialog
@@ -72,6 +76,7 @@ export function ProgrammeItemDialog({
           errorMessage={errorMessage}
           isSubmitting={isSubmitting}
           onSubmit={onSubmit}
+          onDelete={isEdit ? onDelete : undefined}
         />
       </DialogContent>
     </Dialog>
@@ -85,6 +90,7 @@ type ProgrammeItemFormProps = {
   errorMessage?: string
   isSubmitting: boolean
   onSubmit?: (input: ProgrammeItemInput) => void
+  onDelete?: () => void
 }
 
 function ProgrammeItemForm({
@@ -94,6 +100,7 @@ function ProgrammeItemForm({
   errorMessage,
   isSubmitting,
   onSubmit,
+  onDelete,
 }: ProgrammeItemFormProps) {
   const [values, setValues] = useState(initialValues)
   const [validationErrors, setValidationErrors] = useState<ProgrammeItemErrors>({})
@@ -137,6 +144,7 @@ function ProgrammeItemForm({
           <FieldLabel htmlFor="programme-title">Název</FieldLabel>
           <Input
             id="programme-title"
+            placeholder="např. Ranní nástup"
             value={values.title}
             aria-invalid={errors.title ? true : undefined}
             onChange={(event) => change({ title: event.target.value })}
@@ -150,26 +158,42 @@ function ProgrammeItemForm({
               id="programme-date"
               value={values.date}
               onChange={(date) => change({ date })}
+              disabledBefore={termRange?.startDate}
+              disabledAfter={termRange?.endDate}
               aria-invalid={errors.date ? true : undefined}
             />
             <FieldError>{errors.date}</FieldError>
           </Field>
-          <Field data-invalid={errors.time ? true : undefined}>
-            <FieldLabel htmlFor="programme-time">Začátek (čas Europe/Prague)</FieldLabel>
-            <Input
-              id="programme-time"
-              type="time"
-              value={values.time}
-              aria-invalid={errors.time ? true : undefined}
-              onChange={(event) => change({ time: event.target.value })}
-            />
-            <FieldError>{errors.time}</FieldError>
-          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field data-invalid={errors.time ? true : undefined}>
+              <FieldLabel htmlFor="programme-time">Začátek</FieldLabel>
+              <Input
+                id="programme-time"
+                type="time"
+                value={values.time}
+                aria-invalid={errors.time ? true : undefined}
+                onChange={(event) => change({ time: event.target.value })}
+              />
+              <FieldError>{errors.time}</FieldError>
+            </Field>
+            <Field data-invalid={errors.endTime ? true : undefined}>
+              <FieldLabel htmlFor="programme-end-time">Konec</FieldLabel>
+              <Input
+                id="programme-end-time"
+                type="time"
+                value={values.endTime}
+                aria-invalid={errors.endTime ? true : undefined}
+                onChange={(event) => change({ endTime: event.target.value })}
+              />
+              <FieldError>{errors.endTime}</FieldError>
+            </Field>
+          </div>
         </div>
         <Field data-invalid={errors.place ? true : undefined}>
           <FieldLabel htmlFor="programme-place">Místo (nepovinné)</FieldLabel>
           <Input
             id="programme-place"
+            placeholder="např. Hlavní louka"
             value={values.place}
             aria-invalid={errors.place ? true : undefined}
             onChange={(event) => change({ place: event.target.value })}
@@ -180,6 +204,7 @@ function ProgrammeItemForm({
           <FieldLabel htmlFor="programme-description">Krátký popis (nepovinné)</FieldLabel>
           <Textarea
             id="programme-description"
+            placeholder="Co účastníky čeká?"
             value={values.description}
             aria-invalid={errors.description ? true : undefined}
             onChange={(event) => change({ description: event.target.value })}
@@ -190,6 +215,17 @@ function ProgrammeItemForm({
       <DialogActions
         submitLabel="Uložit položku"
         isPending={isSubmitting}
+        leading={
+          onDelete ? (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={onDelete}
+            >
+              Odstranit
+            </Button>
+          ) : undefined
+        }
       />
     </form>
   )

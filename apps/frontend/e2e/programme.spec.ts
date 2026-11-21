@@ -10,7 +10,6 @@ import {
   type OpenEvent,
 } from "./support/api"
 import { closeDb, createMagicLink, decideTerms } from "./support/db"
-import { pickDate } from "./support/ui"
 
 // Programme of a term (F65): the organizer's editing, what a confirmed
 // participant reads, failures that keep the saved state, and the doors that
@@ -25,8 +24,18 @@ const rooms = [{ label: "Chatka", baseBeds: 1, terms: [0, 1] }]
 const origin = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3050").origin
 const writeHeaders = { Origin: origin }
 
-const DINNER = { title: "Společná večeře", startDate: "2027-08-02", startTime: "19:00" }
-const BREAKFAST = { title: "Snídaně", startDate: "2027-08-03", startTime: "08:30" }
+const DINNER = {
+  title: "Společná večeře",
+  startDate: "2027-08-02",
+  startTime: "19:00",
+  endTime: "21:00",
+}
+const BREAKFAST = {
+  title: "Snídaně",
+  startDate: "2027-08-03",
+  startTime: "08:30",
+  endTime: "09:15",
+}
 
 test.afterAll(closeDb)
 
@@ -37,7 +46,7 @@ async function addItem(
   request: APIRequestContext,
   event: OpenEvent,
   termIndex: number,
-  item: { title: string; startDate: string; startTime: string },
+  item: { title: string; startDate: string; startTime: string; endTime: string },
 ) {
   const response = await request.post(programmeUrl(event, termIndex), {
     data: { ...item, place: null, description: null },
@@ -46,8 +55,8 @@ async function addItem(
   expect(response.status()).toBe(201)
 }
 
-const termProgrammePage = (event: OpenEvent, termIndex: number) =>
-  `/organizations/${event.organizationId}/events/${event.eventId}/terms/${event.termIds[termIndex]}/programme`
+const programmePage = (event: OpenEvent, termIndex = 0) =>
+  `/organizations/${event.organizationId}/events/${event.eventId}/programme?term=${event.termIds[termIndex]}`
 
 /** Opens a magic link for `email` and the first registration in the list. */
 async function signIn(page: Page, event: OpenEvent, email: string) {
@@ -92,48 +101,76 @@ test("the organizer edits a term's programme and the confirmed participant reads
   })
   const before = await snapshot()
 
-  // Entry from the existing term settings, no new navigation branch.
+  // Entry from the term settings lands on the programme section of that term.
   await page.goto(`/organizations/${event.organizationId}/events/${event.eventId}/settings`)
   await expect(page.getByRole("row", { name: /Turnus 1/ })).toContainText("Bez položek")
   await page.getByRole("link", { name: "Program termínu Turnus 1" }).click()
-  await expect(page.getByRole("heading", { name: "Program – Turnus 1", level: 1 })).toBeVisible()
-  await expect(page.getByText("Program zatím nemá žádné položky")).toBeVisible()
+  await expect(page).toHaveURL(new RegExp(`/programme\\?term=${event.termIds[0]}`))
+  await expect(page.getByRole("tab", { name: "Turnus 1", selected: true })).toBeVisible()
+  // Every day of the term is there, the empty ones with their add button.
+  await expect(page.getByRole("button", { name: "Přidat položku" })).toHaveCount(7)
+  await expect(page.getByText("Neděle 1. 8. 2027")).toBeVisible()
+  await expect(page.getByText("Sobota 7. 8. 2027")).toBeVisible()
 
-  // Add: required fields are explained at the fields and nothing is saved.
-  await page.getByRole("button", { name: "Přidat položku" }).click()
-  const dialog = page.locator('[data-slot="dialog-content"]')
+  // The term stays in the URL: the second tab, then back.
+  await page.getByRole("tab", { name: "Turnus 2" }).click()
+  await expect(page).toHaveURL(new RegExp(`term=${event.termIds[1]}`))
+  await page.goBack()
+  await expect(page.getByRole("tab", { name: "Turnus 1", selected: true })).toBeVisible()
+
+  // Add on the second day: the date is filled in; required fields are
+  // explained at the fields and nothing is saved.
+  await page.getByRole("button", { name: "Přidat položku" }).nth(1).click()
+  const dialog = page.getByRole("dialog").last()
+  await expect(dialog.getByLabel("Datum")).toContainText("2. 8. 2027")
   await dialog.getByLabel("Název").fill("Společná večeře")
   await dialog.getByRole("button", { name: "Uložit položku" }).click()
-  await expect(dialog.getByText("Vyberte platné datum.")).toBeVisible()
   await expect(dialog.getByText("Zadejte čas začátku.")).toBeVisible()
+  await expect(dialog.getByText("Zadejte čas konce.")).toBeVisible()
   await expect(dialog.getByLabel("Název")).toHaveValue("Společná večeře")
 
-  // A day outside the term is refused with the term's range.
-  await pickDate(page, dialog.getByLabel("Datum"), "2027-08-10")
-  await dialog.getByLabel(/Začátek/).fill("19:00")
+  // An end that is not later than the start is refused.
+  await dialog.getByLabel("Začátek").fill("19:00")
+  await dialog.getByLabel("Konec").fill("19:00")
   await dialog.getByRole("button", { name: "Uložit položku" }).click()
-  await expect(dialog.getByText(/Datum musí být v rozsahu termínu/)).toBeVisible()
+  await expect(dialog.getByText("Čas konce musí být pozdější než čas začátku.")).toBeVisible()
 
-  await pickDate(page, dialog.getByLabel("Datum"), "2027-08-02")
+  // Only days of the term can be picked.
+  await dialog.getByLabel("Datum").click()
+  await expect(page.locator('button[data-day="10. 8. 2027"]')).toBeDisabled()
+  await page.keyboard.press("Escape")
+
+  await dialog.getByLabel("Konec").fill("21:00")
   await dialog.getByLabel("Místo (nepovinné)").fill("Jídelna")
   await dialog.getByRole("button", { name: "Uložit položku" }).click()
   await expect(dialog).toBeHidden()
-  await expect(page.getByRole("heading", { name: /Pondělí 2\. 8\. 2027/ })).toBeVisible()
+  await expect(page.getByText("Pondělí 2. 8. 2027")).toBeVisible()
   await expect(page.getByText("Společná večeře")).toBeVisible()
+  await expect(page.getByText("19:00 – 21:00")).toBeVisible()
 
-  // A second item on an earlier day is listed first, by day.
+  // More items on other days are listed under their days.
   await addItem(page.request, event, 0, BREAKFAST)
   await addItem(page.request, event, 0, {
     title: "Příjezd",
     startDate: "2027-08-01",
     startTime: "15:00",
+    endTime: "17:00",
   })
   await page.reload()
-  const days = page.getByRole("heading", { level: 3 })
-  await expect(days).toHaveText(["Neděle 1. 8. 2027", "Pondělí 2. 8. 2027", "Úterý 3. 8. 2027"])
+  await expect(page.getByRole("button", { name: /Příjezd/ })).toBeVisible()
+  await expect(page.getByRole("button", { name: /Snídaně/ })).toBeVisible()
+
+  // A day can be closed and opened again.
+  await page.getByRole("button", { name: /Úterý 3\. 8\. 2027/ }).click()
+  await expect(page.getByRole("button", { name: /Snídaně/ })).toBeHidden()
+  await page.getByRole("button", { name: /Úterý 3\. 8\. 2027/ }).click()
+  await expect(page.getByRole("button", { name: /Snídaně/ })).toBeVisible()
 
   // Edit, then the saved state survives a reload.
-  await page.getByRole("button", { name: "Upravit položku Společná večeře" }).click()
+  await page
+    .getByRole("button", { name: /Společná večeře/ })
+    .getByText("Upravit", { exact: true })
+    .click()
   await dialog.getByLabel("Název").fill("Slavnostní večeře")
   await dialog.getByRole("button", { name: "Uložit položku" }).click()
   await expect(dialog).toBeHidden()
@@ -147,15 +184,16 @@ test("the organizer edits a term's programme and the confirmed participant reads
   await signIn(participant, event, jana.email)
   await expect(participant.getByRole("heading", { name: "Program – Turnus 1" })).toBeVisible()
   await expect(participant.getByText("Slavnostní večeře")).toBeVisible()
-  await expect(participant.getByText("19:00")).toBeVisible()
-  await expect(participant.getByText("8:30", { exact: true })).toBeVisible()
+  await expect(participant.getByText("19:00 – 21:00")).toBeVisible()
+  await expect(participant.getByText("8:30 – 9:15", { exact: true })).toBeVisible()
   // They can only read: no editing or booking controls.
   await expect(participant.getByRole("button", { name: /položku|Přidat|Rezervovat/ })).toBeHidden()
 
   // Delete after confirmation; the participant sees it gone on reload.
-  await page.getByRole("button", { name: "Odstranit položku Slavnostní večeře" }).click()
+  await page.getByRole("button", { name: /Slavnostní večeře/ }).click()
   await dialog.getByRole("button", { name: "Odstranit" }).click()
-  await expect(dialog).toBeHidden()
+  await dialog.getByRole("button", { name: "Odstranit" }).click()
+  await expect(page.getByRole("dialog")).toBeHidden()
   await expect(page.getByText("Slavnostní večeře")).toBeHidden()
   await participant.reload()
   await expect(participant.getByText("Slavnostní večeře")).toBeHidden()
@@ -177,9 +215,9 @@ test("a failed load, save or delete keeps the saved programme and shows no succe
   await page.route(`${API_URL}/organizations/**/programme`, (route) =>
     route.request().method() === "GET" ? route.abort() : route.continue(),
   )
-  await page.goto(termProgrammePage(event, 0))
+  await page.goto(programmePage(event, 0))
   await expect(page.getByText("Program se nepodařilo načíst")).toBeVisible()
-  await expect(page.getByText("Program zatím nemá žádné položky")).toBeHidden()
+  await expect(page.getByText("Bez položek")).toBeHidden()
   await page.unroute(`${API_URL}/organizations/**/programme`)
   await page.getByRole("button", { name: "Zkusit znovu" }).click()
   await expect(page.getByText(DINNER.title)).toBeVisible()
@@ -188,8 +226,8 @@ test("a failed load, save or delete keeps the saved programme and shows no succe
   await page.route(`${API_URL}/organizations/**/programme/*`, (route) =>
     route.fulfill({ status: 500, body: "{}", contentType: "application/json" }),
   )
-  await page.getByRole("button", { name: `Upravit položku ${DINNER.title}` }).click()
-  const dialog = page.locator('[data-slot="dialog-content"]')
+  await page.getByRole("button", { name: new RegExp(DINNER.title) }).click()
+  const dialog = page.getByRole("dialog").last()
   await dialog.getByLabel("Název").fill("Přejmenovaná večeře")
   await dialog.getByRole("button", { name: "Uložit položku" }).click()
   await expect(
@@ -201,13 +239,15 @@ test("a failed load, save or delete keeps the saved programme and shows no succe
   await expect(page.getByText(DINNER.title)).toBeVisible()
 
   // A failed delete keeps the item.
-  await page.getByRole("button", { name: `Odstranit položku ${DINNER.title}` }).click()
+  await page.getByRole("button", { name: new RegExp(DINNER.title) }).click()
+  await dialog.getByRole("button", { name: "Odstranit" }).click()
   await dialog.getByRole("button", { name: "Odstranit" }).click()
   await expect(
     dialog.getByText("Položku se nepodařilo odstranit. Zkuste to prosím znovu."),
   ).toBeVisible()
   await expect(page.getByText("Položka byla odstraněna.")).toBeHidden()
   await dialog.getByRole("button", { name: "Zrušit" }).click()
+  await page.getByRole("dialog").last().getByRole("button", { name: "Zrušit" }).click()
   await page.unroute(`${API_URL}/organizations/**/programme/*`)
   await page.reload()
   await expect(page.getByText(DINNER.title)).toBeVisible()
@@ -303,7 +343,7 @@ test("direct links and forged requests reach no foreign programme", async ({ pag
 
   // The organizer page of a foreign term shows nothing of it.
   const otherPage = await otherContext.newPage()
-  await otherPage.goto(termProgrammePage(event, 0))
+  await otherPage.goto(programmePage(event, 0))
   await expect(otherPage.getByText("Záznam není dostupný", { exact: true })).toBeVisible()
   await expect(otherPage.getByText(DINNER.title)).toBeHidden()
   await otherContext.close()

@@ -17,6 +17,7 @@ export function useParticipantLogout() {
       // Nothing of the account stays for the next visitor, not even the
       // contact details in an unsent registration form.
       queryClient.removeQueries({ queryKey: participantKeys.profile() })
+      queryClient.removeQueries({ queryKey: participantKeys.notifications() })
       clearRegistrationDrafts()
     },
   })

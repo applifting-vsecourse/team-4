@@ -20,9 +20,10 @@ import { type ChangeProposal } from "@/features/registrations/api/registrationCh
 import { ChangeReviewDialog } from "@/features/registrations/components/ChangeReviewDialog"
 import {
   RegistrationChangeForm,
-  type ChangeableTerm,
   type ContactErrors,
+  type FormTerm,
 } from "@/features/registrations/components/RegistrationChangeForm"
+import { RoommateWishesCard } from "@/features/registrations/components/RoommateWishesCard"
 import {
   buildProposal,
   validateContact,
@@ -45,11 +46,11 @@ type ParticipantRegistrationEditProps = {
 }
 
 const NOTHING_CHANGED =
-  "Nic jste nezměnili. Upravte údaje nebo pohlaví pro ubytování, přesuňte termín nebo se z něj odhlaste."
+  "Nic jste nezměnili. Upravte údaje nebo pohlaví pro ubytování, přidejte termín nebo se z termínu odhlaste."
 
 // Moje přihlášky → Detail přihlášky → Úprava přihlášky (F35-2a): personal and
-// contact data in the scope of the registration form (not the e-mail), a move
-// to another term of the same event, cancelling single terms, and transport,
+// contact data in the scope of the registration form (not the e-mail), one
+// list of the event's terms to add or cancel terms (F35-2c), and transport,
 // diet and health (F63).
 export function ParticipantRegistrationEdit({
   registrationId,
@@ -116,6 +117,10 @@ export function ParticipantRegistrationEdit({
               }
             />
           )}
+          {/* Wishes are saved on their own, also while a change awaits approval (S4-05). */}
+          {!data.isCancelled && data.terms.some((term) => term.status === "confirmed") ? (
+            <RoommateWishesCard registrationId={registrationId} />
+          ) : null}
         </>
       ) : query.isPending ? (
         <LoadingBlock
@@ -140,6 +145,7 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
   const { contact, needs, terms, availableTerms } = registration
   const active = useMemo(() => terms.filter((term) => term.status !== "cancelled"), [terms])
 
+  const heldTermIds = useMemo(() => active.map((term) => term.termId), [active])
   const initial = useMemo<EditState>(
     () => ({
       firstName: contact.firstName,
@@ -148,11 +154,9 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
       needs,
       gender: contact.gender,
       genderOther: contact.genderOther,
-      terms: Object.fromEntries(
-        active.map((term) => [term.termId, { selectedTermId: term.termId, isCancelled: false }]),
-      ),
+      selectedTermIds: heldTermIds,
     }),
-    [contact, needs, active],
+    [contact, needs, heldTermIds],
   )
   const [state, setState] = useState(initial)
   const [errors, setErrors] = useState<ContactErrors>({})
@@ -160,29 +164,20 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
   const [message, setMessage] = useState<string>()
   const [proposal, setProposal] = useState<ChangeProposal | null>(null)
 
-  const formTerms = useMemo<ChangeableTerm[]>(
-    () =>
-      active.map((term) => ({
-        id: term.termId,
-        label: term.label,
-        details: `${formatCalendarRange(term.startDate, term.endDate)} · ${formatCzk(term.priceMinor)}`,
-        status: term.status,
-        selectedTermId: term.termId,
-        options: [
-          {
-            id: term.termId,
-            label: `${term.label} · ${formatCalendarRange(term.startDate, term.endDate)} · ${formatCzk(term.priceMinor)}`,
-          },
-          ...availableTerms
-            .filter((other) => !active.some((own) => own.termId === other.termId))
-            .map((other) => ({
-              id: other.termId,
-              label: `${other.label} · ${formatCalendarRange(other.startDate, other.endDate)} · ${formatCzk(other.priceMinor)}`,
-            })),
-        ],
-      })),
-    [active, availableTerms],
-  )
+  // Every term of the event in one list by start; the held ones carry their participation.
+  const formTerms = useMemo<FormTerm[]>(() => {
+    const held = new Map(active.map((term) => [term.termId, term]))
+    const all = [
+      ...availableTerms,
+      ...active.filter((own) => !availableTerms.some((other) => other.termId === own.termId)),
+    ].sort((a, b) => a.startDate.localeCompare(b.startDate) || a.termId.localeCompare(b.termId))
+    return all.map((term) => ({
+      id: term.termId,
+      label: term.label,
+      details: `${formatCalendarRange(term.startDate, term.endDate)} · ${formatCzk(held.get(term.termId)?.priceMinor ?? term.priceMinor)}`,
+      status: held.get(term.termId)?.status ?? null,
+    }))
+  }, [active, availableTerms])
 
   const review = () => {
     const contactErrors = validateContact(state)
@@ -193,7 +188,7 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
       setMessage(undefined)
       return
     }
-    const next = buildProposal({ ...contact, needs }, state)
+    const next = buildProposal({ ...contact, needs, heldTermIds }, state)
     if (!next) {
       setMessage(NOTHING_CHANGED)
       return
@@ -214,8 +209,8 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
         onContactChange={(field, value) => setState((current) => ({ ...current, [field]: value }))}
         onNeedsChange={(next) => setState((current) => ({ ...current, needs: next }))}
         onGenderChange={(answer) => setState((current) => ({ ...current, ...answer }))}
-        onTermChange={(termId, change) =>
-          setState((current) => ({ ...current, terms: { ...current.terms, [termId]: change } }))
+        onSelectedTermsChange={(selectedTermIds) =>
+          setState((current) => ({ ...current, selectedTermIds }))
         }
         onReview={review}
         onCancel={onLeave}
@@ -224,6 +219,7 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
         <ChangeReviewDialog
           registrationId={registration.id}
           proposal={proposal}
+          heldTerms={active}
           onClose={() => setProposal(null)}
           onDone={onLeave}
           onReload={() => {

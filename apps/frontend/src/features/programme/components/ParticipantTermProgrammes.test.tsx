@@ -43,6 +43,7 @@ describe("ParticipantTermProgrammes", () => {
               title: "Společná večeře",
               startDate: "2026-11-06",
               startTime: "19:00",
+              endTime: "21:00",
               place: "Jídelna",
               description: null,
             },

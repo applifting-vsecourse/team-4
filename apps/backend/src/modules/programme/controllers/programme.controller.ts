@@ -23,12 +23,14 @@ import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 const RULES =
   '404 `programme_unavailable` for a term or item of another event or ' +
   'organization, the same as a missing one; 400 `programme_date_out_of_term` ' +
-  'for a day outside the term. Returns the programme read back.';
+  'for a day outside the term; 400 `programme_end_not_after_start` for an end ' +
+  'that is not later than the start. Returns the programme read back.';
 
 const toInput = (dto: ProgrammeItemInputDto): ProgrammeItemInput => ({
   title: dto.title,
   startDate: dto.startDate,
   startTime: dto.startTime,
+  endTime: dto.endTime,
   place: dto.place ?? null,
   description: dto.description ?? null,
 });

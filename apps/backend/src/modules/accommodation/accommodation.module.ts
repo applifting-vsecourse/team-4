@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { AccommodationRulesController } from './controllers/accommodation-rules.controller';
 import { OrderMovesController } from './controllers/order-moves.controller';
 import { RegistrationAccommodationController } from './controllers/registration-accommodation.controller';
+import { RoomPlacementsController } from './controllers/room-placements.controller';
 import { RoomProposalController } from './controllers/room-proposal.controller';
 import { TermDecisionController } from './controllers/term-decision.controller';
 import { TermEvaluationController } from './controllers/term-evaluation.controller';
@@ -13,6 +14,7 @@ import { EvaluationQueueRepository } from './repositories/evaluation-queue.repos
 import { OrderMovesRepository } from './repositories/order-moves.repository';
 import { ProposalQueueRepository } from './repositories/proposal-queue.repository';
 import { RegistrationAccommodationRepository } from './repositories/registration-accommodation.repository';
+import { RoomPlacementsRepository } from './repositories/room-placements.repository';
 import { RoomProposalRepository } from './repositories/room-proposal.repository';
 import { TermDecisionRepository } from './repositories/term-decision.repository';
 import { TermEvaluationRepository } from './repositories/term-evaluation.repository';
@@ -26,6 +28,7 @@ import {
 import { OrderMovesService } from './services/order-moves.service';
 import { ProposalWorker } from './services/proposal-worker.service';
 import { RegistrationAccommodationService } from './services/registration-accommodation.service';
+import { RoomPlacementsService } from './services/room-placements.service';
 import {
   NoRoommateWishes,
   NoRoomPlacements,
@@ -40,6 +43,7 @@ import { TermRoomProposalService } from './services/term-room-proposal.service';
 // Accommodation evaluation (S3-T4, S3-01, S3-03, #365, #384, #389): the
 // rules and the term evaluation of the organizer, the manual order of a
 // term, and the workers that run the due evaluations and room proposals.
+// Manual room placement (F14-2, #337).
 @Module({
   imports: [AuthModule, PrismaModule],
   controllers: [
@@ -47,6 +51,7 @@ import { TermRoomProposalService } from './services/term-room-proposal.service';
     OrderMovesController,
     RegistrationAccommodationController,
     RoomProposalController,
+    RoomPlacementsController,
     TermDecisionController,
     TermEvaluationController,
   ],
@@ -65,6 +70,8 @@ import { TermRoomProposalService } from './services/term-room-proposal.service';
     RegistrationAccommodationService,
     RoomProposalRepository,
     RoomProposalService,
+    RoomPlacementsRepository,
+    RoomPlacementsService,
     TermDecisionRepository,
     TermDecisionService,
     TermEvaluationRepository,

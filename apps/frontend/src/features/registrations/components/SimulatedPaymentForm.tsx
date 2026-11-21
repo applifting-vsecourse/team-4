@@ -106,6 +106,7 @@ export function SimulatedPaymentForm({
                 <FieldLabel htmlFor="payment-amount">Částka (Kč)</FieldLabel>
                 <Input
                   id="payment-amount"
+                  placeholder="např. 1 500"
                   inputMode="decimal"
                   value={amount}
                   onChange={(event) => onAmountChange?.(event.target.value)}

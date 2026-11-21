@@ -4,7 +4,10 @@ import { z } from "zod"
 import { env } from "@/config/env"
 
 import type { EventPayments } from "@/features/registrations/api/eventRegistrationSchemas"
-import type { ParticipantRegistration } from "@/features/registrations/api/participantRegistrationSchemas"
+import type {
+  AvailableTerm,
+  ParticipantRegistration,
+} from "@/features/registrations/api/participantRegistrationSchemas"
 import type { QrPaymentPage } from "@/features/registrations/api/qrPaymentSchemas"
 import type {
   ChangePreview,
@@ -12,6 +15,10 @@ import type {
 } from "@/features/registrations/api/registrationChangeSchemas"
 import { registrationNeedsSchema } from "@/features/registrations/api/registrationSchemas"
 import type { RegistrationResult } from "@/features/registrations/api/registrationSchemas"
+import {
+  roommateWishesInputSchema,
+  type RoommateWishes,
+} from "@/features/registrations/api/roommateWishSchemas"
 import {
   AVAILABLE_TERMS,
   OWN_REGISTRATIONS,
@@ -29,6 +36,7 @@ import {
   makeRegistrationDetail,
   makeRegistrationList,
 } from "@/features/registrations/fixtures/registrations"
+import { ORGANIZER_WISHES, STORED_WISHES } from "@/features/registrations/fixtures/roommateWishes"
 
 // MSW handlers for registrations: the organizer's view of an event and the
 // participant's own. Install with `msw.use(...)` in a story's `beforeEach`.
@@ -73,6 +81,10 @@ export const registrationHandlers = {
     http.get(`${EVENT_CHANGES}/payments`, () => HttpResponse.json(makeEventPayments())),
     http.get(`${EVENT_CHANGES}/change-requests`, () => HttpResponse.json({ changes: [] })),
     http.get(`${EVENT_LIST}/:registrationId/changes`, () => HttpResponse.json({ changes: [] })),
+    // The participant's roommate wishes, read-only for the organizer (S4-05).
+    http.get(`${EVENT_LIST}/:registrationId/roommate-wishes`, () =>
+      HttpResponse.json(ORGANIZER_WISHES),
+    ),
     http.put(`${EVENT_LIST}/:registrationId/needs`, async ({ request }) => {
       const { needs, expectedVersion } = registrationNeedsCorrectionSchema.parse(
         await request.json(),
@@ -116,15 +128,36 @@ export const registrationHandlers = {
     http.get(`${EVENT_LIST}/:registrationId/changes`, () => HttpResponse.json({ changes })),
   ],
   /** The own registration, changed for one story (cancelled, pending request…). */
-  ownRegistration: (registration: ParticipantRegistration) => [
+  ownRegistration: (
+    registration: ParticipantRegistration,
+    availableTerms: AvailableTerm[] = AVAILABLE_TERMS,
+  ) => [
     http.get(`${OWN_LIST}/:registrationId`, () =>
-      HttpResponse.json({ ...registration, availableTerms: AVAILABLE_TERMS }),
+      HttpResponse.json({ ...registration, availableTerms }),
     ),
   ],
   /** Stored changes of the own registration: requests and their history. */
   ownChanges: (changes: RegistrationChange[]) => [
     http.get(`${OWN_LIST}/:registrationId/changes`, () => HttpResponse.json({ changes })),
   ],
+  /** Roommate wishes of the own registration (S4-05); a save replaces them. */
+  roommateWishes: (initial: RoommateWishes = STORED_WISHES) => {
+    let stored = initial
+    return [
+      http.get(`${OWN_LIST}/:registrationId/roommate-wishes`, () => HttpResponse.json(stored)),
+      http.put(`${OWN_LIST}/:registrationId/roommate-wishes`, async ({ request }) => {
+        const { registrationIds } = roommateWishesInputSchema.parse(await request.json())
+        const people = [...stored.wishes, ...stored.candidates]
+        stored = {
+          ...stored,
+          wishes: registrationIds.flatMap(
+            (id) => people.find(({ registrationId }) => registrationId === id) ?? [],
+          ),
+        }
+        return HttpResponse.json(stored)
+      }),
+    ]
+  },
   /** What the server shows before a change, and how it stores it. */
   ownChange: (
     preview: ChangePreview = makeChangePreview(),

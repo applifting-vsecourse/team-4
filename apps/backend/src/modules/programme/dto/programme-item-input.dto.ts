@@ -43,6 +43,17 @@ export class ProgrammeItemInputDto {
   })
   startTime!: string;
 
+  @ApiProperty({
+    example: '21:00',
+    description:
+      'Europe/Prague, `HH:mm`, later than the start. Otherwise: 400 `programme_end_not_after_start`.',
+  })
+  @IsString({ message: 'Zadejte čas konce.' })
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, {
+    message: 'Zadejte platný čas konce.',
+  })
+  endTime!: string;
+
   @ApiPropertyOptional({ maxLength: 200, nullable: true, example: 'Jídelna' })
   @Transform(blankToNull)
   @IsOptional()

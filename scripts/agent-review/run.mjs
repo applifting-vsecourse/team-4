@@ -59,9 +59,9 @@ import {
   integrationRole,
   isIntegrationBranch,
   isParentPr,
-  parentReasons,
   retargetedAt,
 } from '../delivery/feature.mjs';
+import { parentReviewReasons } from './parent-review.mjs';
 import {
   integratedReview,
   readIssueDetails,
@@ -391,6 +391,7 @@ async function reviewPr({
   requirements,
   stack,
   integration = false,
+  integrationChild = false,
 }) {
   const meta = await api(cfg.githubToken, `/repos/${cfg.repo}/pulls/${pr}`);
   const sha = meta.head.sha;
@@ -474,9 +475,10 @@ async function reviewPr({
     }
     return { pr, sha, status: 'waived', waiver, url: waiver.url };
   }
-  // The outage switch applies to PRs delivering to main (including stacks).
-  // Integration-only PRs still need review evidence for child completion.
-  if (cfg.copilotReviewPaused && !integration) {
+  // The outage switch applies to PRs delivering to main (including stacks)
+  // and child PRs into integration branches. Parent integration PRs still
+  // need review evidence for parent review carry-over.
+  if (cfg.copilotReviewPaused && (!integration || integrationChild)) {
     const evidence = { comments, pr, sha, issue: issue.number };
     const verdict = agentVerdict(evidence);
     if (
@@ -691,7 +693,7 @@ async function parentWaiting(board, item, snapshot) {
       ...referencedIssueNumbers(pr.body, { stacked: true }),
     ]);
     blocked.push(
-      ...parentReasons({
+      ...parentReviewReasons({
         pr,
         issues: await Promise.all([...numbers].map(issueDetails)),
         openInto: await pagedGet(
@@ -764,6 +766,7 @@ async function reviewIntegrationPrs(board, item, prs, { ownsBoard }) {
         ).toISOString(),
       },
       integration: true,
+      integrationChild: role.kind === 'child',
     });
     console.log(
       `  -> #${pr.number} (${role.kind} of #${role.parent}): ${result.status}${result.reason ? `: ${result.reason}` : ''}`,
