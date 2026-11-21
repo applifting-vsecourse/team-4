@@ -480,9 +480,11 @@ current data; a run only proposes and never changes a participation, a debt or a
   placements it read. A proposal reads the saved placements and locks of `room_placement`
   (here and in the people's other terms) and the wishes of `roommate_wish` between the term's
   confirmed people. "Použít návrh" saves the rooms of every unlocked confirmed person of a
-  current proposal in one transaction, or nothing: it holds the term `NO KEY UPDATE` and the
-  event's term state rows `FOR UPDATE` before the version check, bumps the layout version and
-  stores an immutable `accommodation_proposal_application` with its counts. Its
+  current proposal in one transaction, or nothing. Like a manual placement it locks the
+  event's terms in id order (its own `NO KEY UPDATE`, the others `KEY SHARE`); it then locks
+  or creates every state row of the event in one ordered upsert before the version check,
+  bumps the layout version and stores an immutable `accommodation_proposal_application` with
+  its counts. Its
   `(termId, submissionKey)` answers a repeated request with the first result.
 
 ## 4. Field reference
