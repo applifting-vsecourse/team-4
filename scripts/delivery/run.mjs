@@ -31,7 +31,11 @@ import {
   parentReasons,
   retargetedAt,
 } from './feature.mjs';
-import { protectedBranch, readIssueDetails } from './feature-github.mjs';
+import {
+  closedByParentPrs,
+  protectedBranch,
+  readIssueDetails,
+} from './feature-github.mjs';
 
 const repo = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
@@ -105,6 +109,24 @@ async function issuesFor(pr) {
     closes: closingNumbers.has(issue.number),
   }));
 }
+
+// The issues closed by open parent PRs, read once per integration branch in
+// a run, and only when a PR into it is not recognised by the branch link.
+const parentClosers = new Map();
+const closedByParentPrsOf = (branch) => {
+  if (!parentClosers.has(branch))
+    parentClosers.set(
+      branch,
+      closedByParentPrs({
+        get: (path) => api(path),
+        graphql: (query, variables) =>
+          api('/graphql', 'POST', { query, variables }),
+        repo,
+        branch,
+      }),
+    );
+  return parentClosers.get(branch);
+};
 
 // The entries of docs/adr/ at a commit or branch; empty when it is absent. A
 // listing reports symlinks and directories as such instead of following them.
@@ -329,7 +351,13 @@ for (let pr of candidates) {
       const details = () =>
         Promise.all(linked.map((issue) => issueDetails(issue.number)));
       const issues = await details();
-      const role = integrationRole({ pr, issues });
+      let role = integrationRole({ pr, issues });
+      if (role.kind === 'invalid')
+        role = integrationRole({
+          pr,
+          issues,
+          closedByParentPr: await closedByParentPrsOf(pr.base.ref),
+        });
       const files = await list(`/repos/${repo}/pulls/${pr.number}/files`);
       if (files.length !== pr.changed_files)
         throw new Error('Incomplete changed-file coverage');

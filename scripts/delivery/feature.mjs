@@ -67,6 +67,27 @@ export function areasOf(issue) {
 
 const invalid = (reason) => ({ kind: 'invalid', reason });
 
+/** The issue number an `integration/<issue>-<slug>` branch is named after. */
+const branchIssueOf = (branch) => {
+  const number = /^integration\/([1-9]\d*)-[^/]+$/.exec(branch)?.[1];
+  return number === undefined ? null : Number(number);
+};
+
+/**
+ * Whether `issue` (`{ number, branches }`) owns the integration `branch`: it
+ * links the branch, or GitHub replaced that link with the parent PR opened
+ * from it. Then the branch is named after the issue and an open parent PR
+ * from it closes the issue (`closedByParentPr`, the issue numbers closed by
+ * open PRs from the branch into main): an explicit native link either way.
+ */
+export function ownsIntegrationBranch(issue, branch, closedByParentPr = []) {
+  return (
+    issue.branches.includes(branch) ||
+    (branchIssueOf(branch) === issue.number &&
+      closedByParentPr.includes(issue.number))
+  );
+}
+
 /**
  * What a PR into an integration branch is. `issues` are its linked issues as
  * `{ number, state, labels, branches, parent }`, where `branches` are the
@@ -78,9 +99,13 @@ const invalid = (reason) => ({ kind: 'invalid', reason });
  *   parent issue links the PR's base branch.
  * - `invalid`: anything else, with the reason.
  *
+ * `closedByParentPr` are the issues closed by open PRs from the base branch
+ * into main; see `ownsIntegrationBranch`. Without it, work into the branch
+ * would be refused for as long as its parent PR is open.
+ *
  * Returns null for a PR whose base is not an integration branch.
  */
-export function integrationRole({ pr, issues }) {
+export function integrationRole({ pr, issues, closedByParentPr = [] }) {
   const base = pr.base.ref;
   if (!isIntegrationBranch(base)) return null;
   if (issues.length !== 1)
@@ -91,7 +116,7 @@ export function integrationRole({ pr, issues }) {
   if (issue.state !== 'OPEN')
     return invalid(`Issue #${issue.number} is closed.`);
   // Checked first: the parent issue may itself be a sub-issue of an epic.
-  if (issue.branches.includes(base))
+  if (ownsIntegrationBranch(issue, base, closedByParentPr))
     return {
       kind: 'integration',
       issue: issue.number,
@@ -101,7 +126,7 @@ export function integrationRole({ pr, issues }) {
   if (issue.parent) {
     if (issue.parent.state !== 'OPEN')
       return invalid(`Parent issue #${issue.parent.number} is closed.`);
-    if (!issue.parent.branches.includes(base))
+    if (!ownsIntegrationBranch(issue.parent, base, closedByParentPr))
       return invalid(
         `Parent issue #${issue.parent.number} of #${issue.number} does not link ${base}.`,
       );
@@ -274,22 +299,11 @@ export function parentReasons({
 }) {
   const head = pr.head.ref;
   if (!isParentPr(pr)) return [];
-  const linkedOwners = issues.filter((issue) => issue.branches.includes(head));
   // GitHub replaces an issue's linked-branch entry with the linked PR after a
-  // PR is opened from that branch. For a parent PR, the closing issue is still
-  // an explicit native link, and the integration/<issue>-<slug> name binds it
-  // to exactly one parent. Preserve that ownership check when the branch link
-  // has been superseded by the PR link.
-  const branchIssue = /^integration\/(\d+)-[^/]+$/.exec(head)?.[1];
-  const owners = linkedOwners.length
-    ? linkedOwners
-    : branchIssue
-      ? issues.filter(
-          (issue) =>
-            issue.number === Number(branchIssue) &&
-            closingIssueNumbers.includes(issue.number),
-        )
-      : [];
+  // PR is opened from that branch; this PR's own closing link stands in.
+  const owners = issues.filter((issue) =>
+    ownsIntegrationBranch(issue, head, closingIssueNumbers),
+  );
   if (owners.length !== 1)
     return [
       `A PR from ${head} must link the one parent issue that links that branch.`,
