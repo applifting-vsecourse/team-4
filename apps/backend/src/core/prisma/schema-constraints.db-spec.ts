@@ -758,3 +758,69 @@ describe('room_placement (#337)', () => {
     ).toBe(0);
   });
 });
+
+describe('room proposal applications (#365)', () => {
+  it('counts what it did, belongs to a proposal of its term and is never changed', async () => {
+    const owner = await createOrganizer(prisma);
+    const organization = await createOrganization(prisma, {
+      ownerId: owner.id,
+    });
+    const { event, terms } = await createEvent(prisma, {
+      organizationId: organization.id,
+      terms: SUMMER,
+    });
+    const proposal = await prisma.accommodationRoomProposal.create({
+      data: {
+        eventId: event.id,
+        termId: terms[0]!.id,
+        status: 'solved',
+        solverVersion: 'test',
+        input: {},
+        result: {},
+        layoutVersion: 0,
+        startedAt: new Date('2027-01-01T10:00:00Z'),
+        finishedAt: new Date('2027-01-01T10:00:05Z'),
+      },
+    });
+    const row = {
+      eventId: event.id,
+      termId: terms[0]!.id,
+      proposalId: proposal.id,
+      actorId: owner.id,
+      added: 1,
+      moved: 0,
+      removed: 0,
+      layoutVersion: 1,
+    };
+
+    await expect(
+      prisma.roomProposalApplication.create({
+        data: { ...row, submissionKey: randomUUID(), removed: -1 },
+      }),
+    ).rejects.toThrow(/accommodation_proposal_application_counts_chk/);
+    await expect(
+      prisma.roomProposalApplication.create({
+        data: { ...row, submissionKey: randomUUID(), layoutVersion: 0 },
+      }),
+    ).rejects.toThrow(/accommodation_proposal_application_layout_version_chk/);
+    // The proposal of another term.
+    await expect(
+      prisma.roomProposalApplication.create({
+        data: { ...row, submissionKey: randomUUID(), termId: terms[1]!.id },
+      }),
+    ).rejects.toThrow(/Foreign key constraint/);
+
+    const stored = await prisma.roomProposalApplication.create({
+      data: { ...row, submissionKey: randomUUID() },
+    });
+    await expect(
+      prisma.roomProposalApplication.update({
+        where: { id: stored.id },
+        data: { added: 2 },
+      }),
+    ).rejects.toThrow(/is immutable/);
+    await expect(
+      prisma.roomProposalApplication.delete({ where: { id: stored.id } }),
+    ).rejects.toThrow(/is immutable/);
+  });
+});

@@ -44,8 +44,8 @@ jest.setTimeout(30_000);
 // #365 slice 2 against a real database: the room proposal of a term reads its
 // rooms, confirmed participants and rules as they are now, stores an immutable
 // record, and is queued like the evaluation, on the term's layout version
-// (phase-2 spec §7). Answers, placements and wishes come from fakes; the real
-// placements and wishes arrive with #337 and #339. Needs a migrated Postgres
+// (phase-2 spec §7). Answers, placements and wishes come from fakes here; the
+// stored ones are in room-proposal-apply.db-spec.ts. Needs a migrated Postgres
 // in DATABASE_URL: `pnpm backend test:db`.
 
 class FakeAnswers extends HardAttributeAnswers {
