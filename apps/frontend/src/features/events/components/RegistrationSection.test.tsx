@@ -124,7 +124,7 @@ describe("RegistrationSection", () => {
   it("shows the full public link already in a draft", () => {
     renderPage({ ...READY, openingBlockers: ["terms"] })
 
-    expect(screen.getByLabelText("Veřejný odkaz na přihlášku")).toHaveValue(
+    expect(screen.getByLabelText("Odkaz na přihlášku")).toHaveValue(
       `${window.location.origin}/e/abcdefghijkl/registration`,
     )
   })
@@ -138,7 +138,8 @@ describe("RegistrationSection", () => {
     expect(post).toHaveBeenCalledWith(
       `organizations/${ORGANIZATION_ID}/events/${EVENT_ID}/open-registration`,
     )
-    expect(await screen.findByText("Přihlašování je otevřené")).toBeInTheDocument()
+    expect(await screen.findByText("Otevřeno")).toBeInTheDocument()
+    expect(screen.queryByText("Přihlašování je otevřené")).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Otevřít přihlašování" })).not.toBeInTheDocument()
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
   })
@@ -159,7 +160,7 @@ describe("RegistrationSection", () => {
     renderPage(OPENED)
 
     expect(screen.queryByText("Zkopírováno")).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole("button", { name: "Kopírovat" }))
+    await userEvent.click(screen.getByRole("button", { name: "Kopírovat přihlášku" }))
 
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/e/abcdefghijkl/registration`)
     expect(await screen.findByText("Zkopírováno")).toBeInTheDocument()
@@ -170,10 +171,10 @@ describe("RegistrationSection", () => {
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true })
     renderPage(OPENED)
 
-    await userEvent.click(screen.getByRole("button", { name: "Kopírovat" }))
+    await userEvent.click(screen.getByRole("button", { name: "Kopírovat přihlášku" }))
 
     await waitFor(() => expect(screen.getByText(/zkopírujte ručně/)).toBeInTheDocument())
     expect(screen.queryByText("Zkopírováno")).not.toBeInTheDocument()
-    expect(screen.getByLabelText("Veřejný odkaz na přihlášku")).toBeVisible()
+    expect(screen.getByLabelText("Odkaz na přihlášku")).toBeVisible()
   })
 })

@@ -5,6 +5,7 @@ import {
 } from '@/modules/events/dto/event.dto';
 import { EventPhotosService } from '@/modules/events/services/event-photos.service';
 import { EventsService } from '@/modules/events/services/events.service';
+import { Config } from '@/shared/config/config.service';
 import {
   Controller,
   Get,
@@ -21,6 +22,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
+import { publicEventSharePage } from './public-event-share-page';
 
 // Same shape check as the registration link: anything else cannot match.
 const PUBLIC_ID = /^[A-Za-z0-9_-]{1,32}$/;
@@ -34,6 +36,7 @@ export class PublicCatalogController {
   constructor(
     private readonly events: EventsService,
     private readonly photos: EventPhotosService,
+    private readonly config: Config,
   ) {}
 
   @Get()
@@ -65,6 +68,58 @@ export class PublicCatalogController {
   ): Promise<PublicCatalogEventDto> {
     if (!PUBLIC_ID.test(publicId)) throw notAvailable();
     return PublicCatalogEventDto.from(await this.events.getPublished(publicId));
+  }
+
+  @Get(':publicId/share')
+  @ApiOperation({
+    summary: 'A shareable page with public event preview metadata',
+    description:
+      'No sign-in. Published events return title, description and an optional ' +
+      'cover image for link previews, then send visitors to the public detail. ' +
+      'Unpublished and unknown events go to the public catalog without event data.',
+  })
+  @ApiProduces('text/html')
+  async share(
+    @Param('publicId') publicId: string,
+    @Res() response: Response,
+  ): Promise<void> {
+    if (!PUBLIC_ID.test(publicId)) {
+      response
+        .set('Cache-Control', 'no-store')
+        .redirect(302, new URL('/events', this.config.frontendUrl).toString());
+      return;
+    }
+
+    try {
+      const event = await this.events.getPublished(publicId);
+      const detailUrl = new URL(
+        `/e/${encodeURIComponent(publicId)}`,
+        this.config.frontendUrl,
+      ).toString();
+      const imageUrl = event.photoIds[0]
+        ? new URL(
+            `/api/public/catalog/events/${encodeURIComponent(publicId)}/photos/${encodeURIComponent(event.photoIds[0])}`,
+            this.config.backendUrl,
+          ).toString()
+        : null;
+
+      response
+        .set('Cache-Control', 'no-store')
+        .type('html')
+        .send(
+          publicEventSharePage({
+            title: event.name,
+            description: event.description,
+            detailUrl,
+            imageUrl,
+          }),
+        );
+    } catch (error) {
+      if (!(error instanceof NotFoundException)) throw error;
+      response
+        .set('Cache-Control', 'no-store')
+        .redirect(302, new URL('/events', this.config.frontendUrl).toString());
+    }
   }
 
   @Get(':publicId/photos/:photoId')

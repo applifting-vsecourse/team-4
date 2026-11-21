@@ -1,11 +1,13 @@
 import { useEffect, useRef } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { ImageOff, ImagePlus, Trash2 } from "lucide-react"
+import { ExternalLink, ImageOff, ImagePlus, Trash2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
+import { ROUTES } from "@/app/routes"
 import { FormError } from "@/components/FormError"
 import { PendingButton } from "@/components/PendingButton"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { FieldLegend, FieldSet } from "@/components/ui/field"
@@ -91,6 +93,8 @@ export type PresentationPhoto = {
 }
 
 export type EventPublicPresentationProps = {
+  publicId: string
+  isPublished: boolean
   initialValues: PresentationFormValues
   /** After the first opening the description is locked like the other basics. */
   isDescriptionLocked?: boolean
@@ -109,6 +113,8 @@ export type EventPublicPresentationProps = {
 
 // The values stay filled in after a failed save, so it can be fixed or repeated.
 export function EventPublicPresentation({
+  publicId,
+  isPublished,
   initialValues,
   isDescriptionLocked = false,
   photos,
@@ -157,72 +163,94 @@ export function EventPublicPresentation({
     >
       <Card>
         <CardContent>
-          <div className="space-y-8">
+          <div className="space-y-6">
             <section
               aria-labelledby="presentation-photos-heading"
-              className="space-y-4"
+              className="space-y-3"
             >
-              <h3
-                id="presentation-photos-heading"
-                className="text-base font-medium"
-              >
-                Fotky
-              </h3>
-              {photos.length > 0 ? (
-                <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                  {photos.map((photo) => (
-                    <li
-                      key={photo.id}
-                      className="space-y-2"
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <h3
+                    id="presentation-photos-heading"
+                    className="text-base font-medium"
+                  >
+                    Fotky
+                  </h3>
+                  <span className="text-sm text-muted-foreground">
+                    {photos.length}/{MAX_PHOTOS}
+                  </span>
+                </div>
+                {isPublished ? (
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                  >
+                    <a
+                      href={ROUTES.publicEvent.replace("$publicId", encodeURIComponent(publicId))}
+                      target="_blank"
+                      rel="noreferrer"
                     >
-                      <PhotoPreview photo={photo} />
-                      <PendingButton
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="w-full max-w-sm"
-                        isPending={removingPhotoId === photo.id}
-                        icon={<Trash2 aria-hidden />}
-                        disabled={removingPhotoId !== null}
-                        onClick={() => onRemovePhoto(photo.id)}
-                      >
-                        Odebrat
-                        <span className="sr-only"> {photo.alt}</span>
-                      </PendingButton>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm">Zatím nejsou nahrané žádné fotky.</p>
-              )}
-              <div className="space-y-2">
-                <Input
-                  ref={fileInput}
-                  type="file"
-                  accept={PHOTO_TYPES.join(",")}
-                  className="hidden"
-                  aria-label="Soubor s fotkou"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0]
-                    event.target.value = ""
-                    if (file) onAddPhoto(file)
-                  }}
-                />
-                <PendingButton
-                  type="button"
-                  variant="outline"
-                  isPending={isUploading}
-                  icon={<ImagePlus aria-hidden />}
-                  disabled={!canAddPhoto}
-                  onClick={() => fileInput.current?.click()}
-                >
-                  {isUploading ? "Nahrávám…" : "Přidat fotku"}
-                </PendingButton>
-                <p className="text-sm text-muted-foreground">
-                  JPEG, PNG nebo WebP do 5 MB, nejvýše {MAX_PHOTOS} fotky.
-                </p>
-                {photoError ? <FormError message={photoError} /> : null}
+                      <ExternalLink aria-hidden />
+                      Náhled veřejné stránky
+                    </a>
+                  </Button>
+                ) : null}
               </div>
+              <Input
+                ref={fileInput}
+                type="file"
+                accept={PHOTO_TYPES.join(",")}
+                className="hidden"
+                aria-label="Soubor s fotkou"
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  event.target.value = ""
+                  if (file) onAddPhoto(file)
+                }}
+              />
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {photos.map((photo) => (
+                  <li
+                    key={photo.id}
+                    className="space-y-2"
+                  >
+                    <PhotoPreview photo={photo} />
+                    <PendingButton
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full max-w-sm"
+                      isPending={removingPhotoId === photo.id}
+                      icon={<Trash2 aria-hidden />}
+                      disabled={removingPhotoId !== null}
+                      onClick={() => onRemovePhoto(photo.id)}
+                    >
+                      Odebrat<span className="sr-only"> {photo.alt}</span>
+                    </PendingButton>
+                  </li>
+                ))}
+                <li>
+                  <PendingButton
+                    type="button"
+                    variant="outline"
+                    className="aspect-video h-auto w-full"
+                    isPending={isUploading}
+                    icon={<ImagePlus aria-hidden />}
+                    disabled={!canAddPhoto}
+                    onClick={() => fileInput.current?.click()}
+                  >
+                    {isUploading ? "Nahrávám…" : "Přidat fotku"}
+                  </PendingButton>
+                </li>
+              </ul>
+              {photos.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Zatím nejsou nahrané žádné fotky.</p>
+              ) : null}
+              <p className="text-sm text-muted-foreground">
+                JPEG, PNG nebo WebP do 5 MB; nejvýše {MAX_PHOTOS} fotky.
+              </p>
+              {photoError ? <FormError message={photoError} /> : null}
             </section>
 
             <Form {...form}>
@@ -230,126 +258,129 @@ export function EventPublicPresentation({
                 noValidate
                 aria-label="Veřejná prezentace"
                 onSubmit={form.handleSubmit(submit)}
-                className="space-y-8"
+                className="space-y-6"
               >
-                <FieldSet>
-                  <FieldLegend>O akci</FieldLegend>
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Popis akce</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            rows={6}
-                            placeholder="Popište program a průběh akce."
-                            maxLength={5000}
-                            disabled={isDescriptionLocked}
-                            {...field}
-                          />
-                        </FormControl>
-                        {isDescriptionLocked ? (
-                          <FormDescription>
-                            Od prvního otevření přihlašování popis nelze měnit.
-                          </FormDescription>
-                        ) : null}
-                        <FormMessage className="min-h-0" />
-                      </FormItem>
-                    )}
-                  />
-                </FieldSet>
+                <div className="grid gap-8 lg:grid-cols-2">
+                  <div className="space-y-8">
+                    <FieldSet>
+                      <FieldLegend>O akci</FieldLegend>
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Popis akce</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                rows={5}
+                                placeholder="Popište program a průběh akce."
+                                maxLength={5000}
+                                disabled={isDescriptionLocked}
+                                {...field}
+                              />
+                            </FormControl>
+                            {isDescriptionLocked ? (
+                              <FormDescription>
+                                Od prvního otevření přihlašování popis nelze měnit.
+                              </FormDescription>
+                            ) : null}
+                            <FormMessage className="min-h-0" />
+                          </FormItem>
+                        )}
+                      />
+                    </FieldSet>
 
-                <FieldSet>
-                  <FieldLegend>Podmínky účasti</FieldLegend>
-                  <FormField
-                    control={form.control}
-                    name="conditions"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="sr-only">Podmínky účasti</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            rows={4}
-                            placeholder="Každou podmínku napište na samostatný řádek."
-                            maxLength={2000}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Každou podmínku napište na samostatný řádek.
-                        </FormDescription>
-                        <FormMessage className="min-h-0" />
-                      </FormItem>
-                    )}
-                  />
-                </FieldSet>
+                    <FieldSet>
+                      <FieldLegend>Podmínky účasti</FieldLegend>
+                      <FormField
+                        control={form.control}
+                        name="conditions"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="sr-only">Podmínky účasti</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                rows={3}
+                                placeholder="Každou podmínku napište na samostatný řádek."
+                                maxLength={2000}
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Každou podmínku napište na samostatný řádek.
+                            </FormDescription>
+                            <FormMessage className="min-h-0" />
+                          </FormItem>
+                        )}
+                      />
+                    </FieldSet>
+                  </div>
 
-                <FieldSet>
-                  <FieldLegend>Veřejný kontakt</FieldLegend>
-                  <p className="text-sm text-muted-foreground">
-                    Zobrazí se na veřejném detailu akce. Kontakt vašeho účtu se nezveřejňuje.
-                  </p>
-                  <FormField
-                    control={form.control}
-                    name="contactName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Jméno nebo název</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Jan Novák"
-                            autoComplete="off"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="contactEmail"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>E-mail</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="email"
-                            autoComplete="off"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="contactPhone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Telefon (nepovinné)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="tel"
-                            inputMode="tel"
-                            autoComplete="off"
-                            placeholder="+420 777 123 456"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </FieldSet>
+                  <FieldSet>
+                    <FieldLegend>Veřejný kontakt</FieldLegend>
+                    <FormField
+                      control={form.control}
+                      name="contactName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Jméno nebo název</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Jan Novák"
+                              autoComplete="off"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="contactEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>E-mail</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              autoComplete="off"
+                              placeholder="jan.novak@example.cz"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="contactPhone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Telefon (nepovinné)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="tel"
+                              inputMode="tel"
+                              autoComplete="off"
+                              placeholder="+420 777 123 456"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </FieldSet>
+                </div>
 
                 {errorMessage ? <FormError message={errorMessage} /> : null}
                 <div className="flex justify-end">
                   <PendingButton
                     type="submit"
                     isPending={isSaving}
+                    disabled={!form.formState.isDirty}
                   >
                     {isSaving ? "Ukládám…" : "Uložit"}
                   </PendingButton>

@@ -41,6 +41,22 @@ beforeEach(() => {
 })
 
 describe("EvaluationModeSection", () => {
+  it("disables save until the evaluation mode changes", async () => {
+    get.mockReturnValue(answer({ mode: "automatic" }))
+    renderSection()
+
+    const save = await screen.findByRole("button", { name: "Uložit" })
+    expect(save).toBeDisabled()
+    await userEvent.click(
+      screen.getByRole("radio", { name: "Přepočítat návrh jen tlačítkem Přepočítat" }),
+    )
+    expect(save).toBeEnabled()
+    await userEvent.click(
+      screen.getByRole("radio", { name: "Přepočítat návrh automaticky po každé změně" }),
+    )
+    expect(save).toBeDisabled()
+  })
+
   it("starts on the saved mode and saves the chosen one", async () => {
     get.mockReturnValue(answer({ mode: "automatic" }))
     put.mockReturnValue(answer({ mode: "manual" }))

@@ -34,6 +34,7 @@ export const NewEvent: Story = { play: showsHeading("Nová akce") }
 
 export const ValidationErrors: Story = {
   play: async ({ canvas }) => {
+    await userEvent.type(await canvas.findByLabelText("Název akce"), "  ")
     await userEvent.click(await canvas.findByRole("button", { name: "Vytvořit akci" }))
     await showsText("Vyplňte název akce.")
     await showsText("Vyplňte místo.")

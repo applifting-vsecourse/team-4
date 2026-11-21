@@ -91,9 +91,11 @@ test("an organizer opens an event, participants register and payments settle the
 
   const publicUrl = await step(page, "6 · Otevře přihlašování a sdílí odkaz", async () => {
     await page.getByRole("link", { name: "Nastavení" }).first().click()
+    const publicAccess = page.getByRole("button", { name: "Veřejný přístup" })
+    if ((await publicAccess.getAttribute("aria-expanded")) !== "true") await publicAccess.click()
     await page.getByRole("button", { name: "Otevřít přihlašování" }).click()
-    await expect(page.getByText("Přihlašování je otevřené")).toBeVisible()
-    return page.getByLabel("Veřejný odkaz na přihlášku").inputValue()
+    await expect(page.getByText("Přihlašování otevřeno", { exact: true })).toBeVisible()
+    return page.getByLabel("Odkaz na přihlášku").inputValue()
   })
 
   // Participants are anonymous visitors in their own browser.

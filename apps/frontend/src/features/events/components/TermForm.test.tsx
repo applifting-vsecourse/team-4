@@ -41,6 +41,8 @@ const save = () => userEvent.click(screen.getByRole("button", { name: "Uložit t
 describe("TermForm", () => {
   it("requires a label, both dates and a price", async () => {
     const { onSubmit } = renderForm(EMPTY)
+    expect(screen.getByRole("button", { name: "Uložit termín" })).toBeDisabled()
+    await userEvent.type(screen.getByLabelText("Označení"), " ")
     await save()
     expect(await screen.findByText("Vyplňte označení.")).toBeInTheDocument()
     expect(screen.getByText("Vyberte datum začátku.")).toBeInTheDocument()
@@ -51,6 +53,7 @@ describe("TermForm", () => {
 
   it("rejects an end before the start", async () => {
     const { onSubmit } = renderForm({ ...JULY, startDate: "2027-07-07", endDate: "2027-07-06" })
+    await userEvent.type(screen.getByLabelText("Označení"), " ")
     await save()
     expect(await screen.findByText("Konec nesmí být před začátkem.")).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
@@ -63,6 +66,7 @@ describe("TermForm", () => {
       endDate: "2027-07-08",
       price: "0",
     })
+    await userEvent.type(screen.getByLabelText("Označení"), " ")
     await save()
     expect(onSubmit).toHaveBeenCalledWith({
       label: "Výlet",
@@ -86,6 +90,7 @@ describe("TermForm", () => {
     ["10,001", "Cena může mít nejvýše dvě desetinná místa."],
   ])("rejects the price %j", async (input, message) => {
     const { onSubmit } = renderForm({ ...JULY, price: input })
+    await userEvent.type(screen.getByLabelText("Označení"), " ")
     await save()
     expect(await screen.findByText(message)).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()

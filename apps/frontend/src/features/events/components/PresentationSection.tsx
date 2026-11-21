@@ -103,6 +103,8 @@ export function PresentationSection({ organizationId, event }: PresentationSecti
   return (
     <EventPublicPresentation
       initialValues={toPresentationValues(event)}
+      publicId={event.publicId}
+      isPublished={event.isPublished}
       isDescriptionLocked={event.isLocked}
       photos={photoIds.map((id, index) => ({
         id,

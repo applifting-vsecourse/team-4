@@ -73,6 +73,7 @@ describe("ChangeApprovalSection", () => {
   it("saves the entered days and shows them as the saved setting", async () => {
     renderPage(EVENT)
     expect(screen.getByText("Žádné změny přihlášek nepodléhají vašemu schválení")).toBeVisible()
+    expect(save()).toBeDisabled()
 
     await userEvent.type(input(), "14")
     await userEvent.click(save())
@@ -83,6 +84,17 @@ describe("ChangeApprovalSection", () => {
     expect(put).toHaveBeenCalledWith(expect.stringContaining("/change-approval"), {
       json: { days: 14 },
     })
+  })
+
+  it("disables save when the original value is restored", async () => {
+    renderPage({ ...EVENT, changeApprovalDays: 7 })
+    expect(save()).toBeDisabled()
+    await userEvent.clear(input())
+    await userEvent.type(input(), "8")
+    expect(save()).toBeEnabled()
+    await userEvent.clear(input())
+    await userEvent.type(input(), "7")
+    expect(save()).toBeDisabled()
   })
 
   it("saves 0 as approval from the start day", async () => {
