@@ -59,9 +59,9 @@ import {
   integrationRole,
   isIntegrationBranch,
   isParentPr,
-  parentReasons,
   retargetedAt,
 } from '../delivery/feature.mjs';
+import { parentReviewReasons } from './parent-review.mjs';
 import {
   integratedReview,
   readIssueDetails,
@@ -693,7 +693,7 @@ async function parentWaiting(board, item, snapshot) {
       ...referencedIssueNumbers(pr.body, { stacked: true }),
     ]);
     blocked.push(
-      ...parentReasons({
+      ...parentReviewReasons({
         pr,
         issues: await Promise.all([...numbers].map(issueDetails)),
         openInto: await pagedGet(
