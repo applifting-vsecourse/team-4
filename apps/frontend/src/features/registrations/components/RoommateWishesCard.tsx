@@ -8,7 +8,7 @@ import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   CommandDialog,
   CommandEmpty,
@@ -30,6 +30,22 @@ import { useSaveRoommateWishes } from "@/features/registrations/hooks/useSaveRoo
 
 const NO_CANDIDATES = "Na akci zatím nejsou další potvrzení účastníci."
 
+/** As many as the backend stores (`MAX_ROOMMATE_WISHES`). */
+const MAX_WISHES = 20
+
+/** A failed save, worded by what helps next; the selection stays either way. */
+function saveErrorMessage(error: unknown): string {
+  const { code, message } = readApiError(error)
+  if (code === "roommate_wishes_unavailable") {
+    return "Přání na spolubydlící jsou dostupná jen s potvrzenou účastí."
+  }
+  // Someone picked stopped being confirmed meanwhile: the list is reloaded.
+  if (code === "roommate_invalid") {
+    return `${message ?? "Výběr už neplatí."} Seznam účastníků je aktualizovaný, upravte výběr.`
+  }
+  return "Spolubydlící se nepodařilo uložit. Výběr zůstává, zkuste to prosím znovu."
+}
+
 type RoommateWishesCardProps = {
   registrationId: string
 }
@@ -43,9 +59,15 @@ export function RoommateWishesCard({ registrationId }: RoommateWishesCardProps) 
   const [draft, setDraft] = useState<string[] | null>(null)
   const isEditing = draft !== null
   const { data } = query
+  // Also after a failed save: the reload refuses, the kept list must not stay editable.
+  const isUnavailable =
+    query.isError && readApiError(query.error).code === "roommate_wishes_unavailable"
 
   const action =
-    data && !isEditing && (data.wishes.length > 0 || data.candidates.length > 0) ? (
+    data &&
+    !isEditing &&
+    !isUnavailable &&
+    (data.wishes.length > 0 || data.candidates.length > 0) ? (
       <Button
         variant="outline"
         size="sm"
@@ -57,13 +79,17 @@ export function RoommateWishesCard({ registrationId }: RoommateWishesCardProps) 
 
   return (
     <Card>
-      {/* A flex row keeps the title centred against the taller action button. */}
-      <CardHeader className="flex min-h-8 items-center justify-between">
+      <CardHeader>
         <CardTitle>Spolubydlící</CardTitle>
-        {action}
+        {action ? <CardAction>{action}</CardAction> : null}
       </CardHeader>
       <CardContent>
-        {data ? (
+        {isUnavailable ? (
+          // The registration stopped being confirmed: no retry helps.
+          <p className="text-sm text-muted-foreground">
+            Přání na spolubydlící jsou dostupná jen s potvrzenou účastí.
+          </p>
+        ) : data ? (
           isEditing ? (
             <WishesForm
               registrationId={registrationId}
@@ -75,11 +101,6 @@ export function RoommateWishesCard({ registrationId }: RoommateWishesCardProps) 
           ) : (
             <StoredWishes data={data} />
           )
-        ) : query.isError && readApiError(query.error).code === "roommate_wishes_unavailable" ? (
-          // The registration stopped being confirmed: no retry helps.
-          <p className="text-sm text-muted-foreground">
-            Přání na spolubydlící jsou dostupná jen s potvrzenou účastí.
-          </p>
         ) : query.isError ? (
           <LoadError
             title="Spolubydlící se nepodařilo načíst"
@@ -129,21 +150,30 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
   const save = useSaveRoommateWishes(registrationId)
   const [isPickerOpen, setIsPickerOpen] = useState(false)
 
-  // A stored wish may name someone who is no longer a candidate; it can still be removed.
+  // A stored wish may name someone who is no longer a candidate; it can still be
+  // removed. Names seen once are kept, so a pick that a reload drops keeps its name.
+  const [known, setKnown] = useState(() => new Map<string, Roommate>())
   const people = useMemo(() => {
-    const byId = new Map<string, Roommate>()
+    const byId = new Map(known)
     for (const person of [...data.wishes, ...data.candidates]) {
       byId.set(person.registrationId, person)
     }
     return byId
-  }, [data])
+  }, [data, known])
+  if (people.size !== known.size) setKnown(people)
 
-  const toggle = (registrationId: string) =>
-    onChange(
-      selected.includes(registrationId)
-        ? selected.filter((id) => id !== registrationId)
-        : [...selected, registrationId],
-    )
+  const isFull = selected.length >= MAX_WISHES
+  const candidateIds = new Set(data.candidates.map((person) => person.registrationId))
+  const storedIds = new Set(data.wishes.map((person) => person.registrationId))
+  const toggle = (registrationId: string) => {
+    // A changed selection is a new attempt: the last error no longer applies.
+    save.reset()
+    if (selected.includes(registrationId)) {
+      onChange(selected.filter((id) => id !== registrationId))
+    } else if (!isFull) {
+      onChange([...selected, registrationId])
+    }
+  }
 
   return (
     <form
@@ -172,12 +202,19 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
         >
           {selected.map((id) => {
             const name = people.get(id)?.name ?? ""
+            // Newly picked, but no longer confirmed: the one a save refuses.
+            const isGone = !candidateIds.has(id) && !storedIds.has(id)
             return (
               <li
                 key={id}
                 className="flex items-center justify-between gap-2 text-sm"
               >
-                <span className="min-w-0">{name}</span>
+                <span className="min-w-0">
+                  {name}
+                  {isGone ? (
+                    <span className="text-muted-foreground"> · už není potvrzený účastník</span>
+                  ) : null}
+                </span>
                 <Button
                   type="button"
                   variant="ghost"
@@ -198,9 +235,12 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
         <p className="text-sm text-muted-foreground">{NO_CANDIDATES}</p>
       ) : null}
 
-      {save.isError ? (
-        <FormError message="Spolubydlící se nepodařilo uložit. Výběr zůstává, zkuste to prosím znovu." />
+      {isFull ? (
+        <p className="text-sm text-muted-foreground">
+          Vybrat lze nejvýš {MAX_WISHES} spolubydlících.
+        </p>
       ) : null}
+      {save.isError ? <FormError message={saveErrorMessage(save.error)} /> : null}
       {/* Wrapped on a narrow screen, the add button keeps to the right like the others. */}
       <div className="flex flex-wrap items-center justify-end gap-2">
         {data.candidates.length > 0 ? (
@@ -208,7 +248,7 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
             type="button"
             variant="outline"
             aria-haspopup="dialog"
-            disabled={save.isPending}
+            disabled={save.isPending || isFull}
             onClick={() => setIsPickerOpen(true)}
           >
             <Plus aria-hidden />
@@ -244,6 +284,11 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
           <CommandInput placeholder="Hledat účastníka…" />
           <CommandList>
             <CommandEmpty>Nikdo nenalezen.</CommandEmpty>
+            {isFull ? (
+              <p className="px-2 py-1.5 text-sm text-muted-foreground">
+                Vybrat lze nejvýš {MAX_WISHES} spolubydlících.
+              </p>
+            ) : null}
             <CommandGroup>
               {data.candidates.map((candidate) => {
                 const isSelected = selected.includes(candidate.registrationId)
@@ -253,6 +298,7 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
                     value={candidate.registrationId}
                     keywords={[candidate.name]}
                     aria-checked={isSelected}
+                    disabled={isFull && !isSelected}
                     onSelect={() => toggle(candidate.registrationId)}
                   >
                     <Check

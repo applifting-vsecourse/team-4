@@ -68,7 +68,7 @@ export function OrganizerAccommodationCard({
       isManualAccommodation={registration.requiresManualAccommodation}
       isSection={isSection}
       extra={
-        determination || wishes ? (
+        (!isEditing && determination) || wishes ? (
           <div className="space-y-4">
             {isEditing ? null : determination}
             {wishes}
