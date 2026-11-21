@@ -62,6 +62,11 @@ export type ApiErrorCode =
   | "statement_invalid"
   | "statement_too_large"
   | "transaction_already_paired"
+  | "placement_warnings"
+  | "participant_not_confirmed"
+  | "room_unavailable"
+  | "placement_locked"
+  | "not_placed"
 
 export type ApiError = {
   status: number | null

@@ -536,3 +536,67 @@ describe('email_delivery', () => {
     ).resolves.toBeDefined();
   });
 });
+
+describe('room_placement (#337)', () => {
+  it('keeps the room, term and person in one event, and only confirmable warnings', async () => {
+    const owner = await createOrganizer(prisma);
+    const organizationId = (
+      await createOrganization(prisma, { ownerId: owner.id })
+    ).id;
+    const { event, terms, rooms } = await createEvent(prisma, {
+      organizationId,
+      terms: SUMMER,
+      rooms: [{ baseBeds: 2, termIndexes: [0, 1] }],
+    });
+    const other = await createEvent(prisma, {
+      organizationId,
+      terms: [{ startDate: '2027-09-01', endDate: '2027-09-07' }],
+      rooms: [{ baseBeds: 2, termIndexes: [0] }],
+    });
+    const registration = await createRegistration(prisma, {
+      event,
+      terms: [{ term: terms[0], status: 'confirmed' }],
+    });
+    const row = {
+      registrationId: registration.id,
+      termId: terms[0].id,
+      eventId: event.id,
+      roomId: rooms[0].id,
+      placedById: owner.id,
+    };
+
+    // A room of another event.
+    await expect(
+      prisma.roomPlacement.create({
+        data: { ...row, roomId: other.rooms[0].id },
+      }),
+    ).rejects.toThrow(/Foreign key constraint/);
+    // A term the person is not registered in.
+    await expect(
+      prisma.roomPlacement.create({ data: { ...row, termId: terms[1].id } }),
+    ).rejects.toThrow(/Foreign key constraint/);
+    await expect(
+      prisma.roomPlacement.create({
+        data: { ...row, confirmedWarnings: ['room_unavailable'] },
+      }),
+    ).rejects.toThrow(/room_placement_confirmed_warnings_chk/);
+
+    await prisma.roomPlacement.create({
+      data: { ...row, confirmedWarnings: ['mixed', 'extra_bed'] },
+    });
+    // Leaving the term drops the placement with it.
+    await prisma.registrationTerm.delete({
+      where: {
+        registrationId_termId: {
+          registrationId: registration.id,
+          termId: terms[0].id,
+        },
+      },
+    });
+    expect(
+      await prisma.roomPlacement.count({
+        where: { registrationId: registration.id },
+      }),
+    ).toBe(0);
+  });
+});
