@@ -99,7 +99,11 @@ async function issuesFor(pr) {
   ];
   if (issues.some((i) => i.repository.nameWithOwner !== repo))
     throw new Error('Cross-repository issue links are not supported');
-  return issues;
+  const closingNumbers = new Set(linked.nodes.map((issue) => issue.number));
+  return issues.map((issue) => ({
+    ...issue,
+    closes: closingNumbers.has(issue.number),
+  }));
 }
 
 // The entries of docs/adr/ at a commit or branch; empty when it is absent. A
@@ -605,6 +609,9 @@ for (let pr of candidates) {
       const blocked = parentReasons({
         pr,
         issues: details,
+        closingIssueNumbers: issues
+          .filter((issue) => issue.closes)
+          .map((issue) => issue.number),
         openInto: openInto.map((number) => ({ number })),
       });
       if (blocked.length) {

@@ -266,10 +266,30 @@ export function integrationStages({
  * state, stateReason, labels }`); `openInto` are the open PRs whose base is the
  * PR's head branch.
  */
-export function parentReasons({ pr, issues, openInto }) {
+export function parentReasons({
+  pr,
+  issues,
+  closingIssueNumbers = [],
+  openInto,
+}) {
   const head = pr.head.ref;
   if (!isParentPr(pr)) return [];
-  const owners = issues.filter((issue) => issue.branches.includes(head));
+  const linkedOwners = issues.filter((issue) => issue.branches.includes(head));
+  // GitHub replaces an issue's linked-branch entry with the linked PR after a
+  // PR is opened from that branch. For a parent PR, the closing issue is still
+  // an explicit native link, and the integration/<issue>-<slug> name binds it
+  // to exactly one parent. Preserve that ownership check when the branch link
+  // has been superseded by the PR link.
+  const branchIssue = /^integration\/(\d+)-[^/]+$/.exec(head)?.[1];
+  const owners = linkedOwners.length
+    ? linkedOwners
+    : branchIssue
+      ? issues.filter(
+          (issue) =>
+            issue.number === Number(branchIssue) &&
+            closingIssueNumbers.includes(issue.number),
+        )
+      : [];
   if (owners.length !== 1)
     return [
       `A PR from ${head} must link the one parent issue that links that branch.`,
