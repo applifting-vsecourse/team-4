@@ -25,7 +25,8 @@ export type TermRoomProposal = ProposalTermView & {
  * The organizer's room proposal of a term (#365, spec §7): the automatic
  * proposal setting, the view of a term's last proposal and "Navrhnout
  * pokoje". Reading never proposes; a request is queued for the proposal
- * worker. Applying a proposal comes with #390.
+ * worker. "Použít návrh" saves placements, so it lives with them
+ * (`RoomPlacementsService.apply`).
  */
 @Injectable()
 export class TermRoomProposalService {

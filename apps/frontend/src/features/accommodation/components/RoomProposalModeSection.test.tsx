@@ -41,6 +41,20 @@ beforeEach(() => {
 })
 
 describe("RoomProposalModeSection", () => {
+  it("disables save until the room proposal mode changes", async () => {
+    get.mockReturnValue(answer({ mode: "manual" }))
+    renderSection()
+
+    const save = await screen.findByRole("button", { name: "Uložit" })
+    expect(save).toBeDisabled()
+    await userEvent.click(
+      screen.getByRole("radio", { name: "Navrhovat pokoje automaticky po každé změně" }),
+    )
+    expect(save).toBeEnabled()
+    await userEvent.click(screen.getByRole("radio", { name: "Navrhovat pokoje jen ručně" }))
+    expect(save).toBeDisabled()
+  })
+
   it("starts on the saved mode and saves the chosen one", async () => {
     get.mockReturnValue(answer({ mode: "manual" }))
     put.mockReturnValue(answer({ mode: "automatic" }))

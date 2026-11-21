@@ -44,6 +44,20 @@ export const preferenceLabel = (id: string, wishes: string) =>
 
 const arrowId = (id: string, direction: "up" | "down") => `preference-${id}-${direction}`
 
+/** The same ranking and the same neutral answers of each item (in any order). */
+export const samePreferences = (a: SoftPreferenceItem[], b: SoftPreferenceItem[]) =>
+  a.length === b.length &&
+  a.every((item, index) => {
+    const other = b[index]!
+    const values = new Set(item.neutralValues ?? [])
+    const otherValues = other.neutralValues ?? []
+    return (
+      item.id === other.id &&
+      values.size === otherValues.length &&
+      otherValues.every((value) => values.has(value))
+    )
+  })
+
 const move = <T,>(items: T[], from: number, to: number): T[] => {
   const next = [...items]
   const [item] = next.splice(from, 1)
@@ -249,6 +263,8 @@ export function RoomProposalPreferences({
       <CardFooter className="justify-end">
         <PendingButton
           isPending={isSaving}
+          // Nothing to save until the list differs from the saved one.
+          disabled={samePreferences(items, preferences)}
           onClick={() => onSave?.(items)}
         >
           Uložit

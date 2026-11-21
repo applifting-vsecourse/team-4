@@ -53,6 +53,22 @@ beforeEach(() => {
 })
 
 describe("RoomProposalPreferencesSection", () => {
+  it("disables save until the list or a neutral answer changes", async () => {
+    get.mockReturnValue(answer(RANKED))
+    renderSection()
+
+    await userEvent.click(await screen.findByRole("button", { name: "Posunout Přání výš" }))
+    const save = screen.getByRole("button", { name: "Uložit" })
+    expect(save).toBeEnabled()
+    await userEvent.click(screen.getByRole("button", { name: "Posunout Přání níž" }))
+    expect(save).toBeDisabled()
+    const other = screen.getByRole("checkbox", { name: "Jiná odpověď" })
+    await userEvent.click(other)
+    expect(save).toBeEnabled()
+    await userEvent.click(other)
+    expect(save).toBeDisabled()
+  })
+
   it("saves the new order and neutral answers and makes the room proposals stale", async () => {
     get.mockReturnValue(answer(RANKED))
     const saved = {
@@ -118,7 +134,9 @@ describe("RoomProposalPreferencesSection", () => {
     })
     renderSection()
 
-    await userEvent.click(await screen.findByRole("button", { name: "Uložit" }))
+    // Any change of the list is refused while it holds the hard attribute.
+    await userEvent.click(await screen.findByRole("button", { name: "Posunout Přání výš" }))
+    await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
 
     expect(
       await screen.findByText(/^Tvrdé pravidlo ubytování nelze přidat mezi měkké preference/),
