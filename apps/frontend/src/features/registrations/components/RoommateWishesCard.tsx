@@ -187,8 +187,7 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
           { registrationIds: selected },
           {
             onSuccess: () => {
-              // The app-wide green toast fails the contrast check (#400).
-              toast.success("Přání na spolubydlící je uložené", { richColors: false })
+              toast.success("Přání na spolubydlící je uložené")
               onDone()
             },
           },
