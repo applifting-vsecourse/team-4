@@ -12,6 +12,7 @@ import { PublicEventsController } from '@/modules/events/controllers/public-even
 import { EventsRepository } from '@/modules/events/repositories/events.repository';
 import { EventPhotosService } from '@/modules/events/services/event-photos.service';
 import { EventsService } from '@/modules/events/services/events.service';
+import { Config } from '@/shared/config/config.service';
 import {
   createEvent,
   createOrganization,
@@ -66,7 +67,18 @@ beforeAll(async () => {
       EventPhotosController,
       PublicCatalogController,
     ],
-    providers: [EventsService, EventPhotosService, EventsRepository],
+    providers: [
+      EventsService,
+      EventPhotosService,
+      EventsRepository,
+      {
+        provide: Config,
+        useValue: {
+          frontendUrl: 'http://app.test',
+          backendUrl: 'http://api.test',
+        },
+      },
+    ],
   }).compile();
   app = moduleRef.createNestApplication();
   await app.listen(0);
@@ -1182,6 +1194,11 @@ describe('public presentation and catalog detail (F55)', () => {
     return { status: response.status, body: await response.json() };
   };
 
+  const shareCall = (publicId: string): Promise<Response> =>
+    fetch(`${baseUrl}/public/catalog/events/${publicId}/share`, {
+      redirect: 'manual',
+    });
+
   const upload = async (
     userId: string,
     path: string,
@@ -1307,6 +1324,21 @@ describe('public presentation and catalog detail (F55)', () => {
       ],
     });
 
+    const sharePage = await shareCall(publicId);
+    expect(sharePage.status).toBe(200);
+    expect(sharePage.headers.get('content-type')).toContain('text/html');
+    const shareHtml = await sharePage.text();
+    expect(shareHtml).toContain(
+      `<meta property="og:title" content="${BASICS.name}">`,
+    );
+    expect(shareHtml).toContain(
+      `<meta property="og:url" content="http://app.test/e/${publicId}">`,
+    );
+    expect(shareHtml).toContain(
+      `<meta property="og:image" content="http://api.test/api/public/catalog/events/${publicId}/photos/${photoId}">`,
+    );
+    expect(shareHtml).not.toContain(PRESENTATION.contactEmail);
+
     const photo = await fetch(
       `${baseUrl}/public/catalog/events/${publicId}/photos/${photoId}`,
     );
@@ -1329,6 +1361,11 @@ describe('public presentation and catalog detail (F55)', () => {
     const unknown = await catalogCall('nonexistent12');
     expect(withdrawn.status).toBe(404);
     expect(withdrawn.body).toEqual(unknown.body);
+    const unavailableShare = await shareCall(publicId);
+    expect(unavailableShare.status).toBe(302);
+    expect(unavailableShare.headers.get('location')).toBe(
+      'http://app.test/events',
+    );
     expect(
       (
         await fetch(

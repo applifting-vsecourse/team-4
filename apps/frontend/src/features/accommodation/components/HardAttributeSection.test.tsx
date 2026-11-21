@@ -48,6 +48,18 @@ beforeEach(() => {
 })
 
 describe("HardAttributeSection", () => {
+  it("disables save until the room rule changes", async () => {
+    get.mockReturnValue(answer(makeHardAttributeSetting("gender")))
+    renderSection()
+
+    const save = await screen.findByRole("button", { name: "Uložit" })
+    expect(save).toBeDisabled()
+    await userEvent.click(screen.getByRole("radio", { name: "Nedělit" }))
+    expect(save).toBeEnabled()
+    await userEvent.click(screen.getByRole("radio", { name: "Pohlaví" }))
+    expect(save).toBeDisabled()
+  })
+
   it("starts on the saved rule and saves none", async () => {
     get.mockReturnValue(answer(makeHardAttributeSetting("gender")))
     put.mockReturnValue(answer(makeHardAttributeSetting(null)))

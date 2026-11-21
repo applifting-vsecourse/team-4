@@ -78,6 +78,7 @@ export function HardAttributeSettings({
       <CardFooter className="justify-end">
         <PendingButton
           isPending={isSaving}
+          disabled={selected === (hardAttribute ?? NONE)}
           onClick={() => onSave?.(selected === NONE ? null : selected)}
         >
           Uložit

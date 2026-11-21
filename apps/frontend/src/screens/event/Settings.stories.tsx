@@ -188,6 +188,8 @@ export const ChangeApprovalSaveFailed: Story = {
   },
   play: async ({ canvas }) => {
     const approval = await region(canvas, "Schvalování změn přihlášek")
+    const days = approval.getByLabelText("Počet dní před začátkem termínu")
+    await userEvent.type(days, "14")
     await userEvent.click(approval.getByRole("button", { name: "Uložit schvalování změn" }))
     await showsText("Uložení se nezdařilo")
   },
@@ -198,7 +200,7 @@ export const PublicationSaveFailed: Story = {
     msw.use(...failOn("put", `${EVENT}/publication`))
   },
   play: async ({ canvas }) => {
-    const publication = await region(canvas, "Publikace")
+    const publication = await region(canvas, "Zveřejnění v katalogu")
     await userEvent.click(publication.getByRole("switch"))
     await showsText("Změnu publikace se nepodařilo uložit. Zkuste to prosím znovu.")
   },
@@ -215,12 +217,26 @@ export const PresentationInvalid: Story = {
   },
 }
 
+export const PublishedPresentationPreview: Story = {
+  args: { url: draftUrl },
+  beforeEach: ({ msw }) => {
+    msw.use(...eventHandlers.detail({ ...DRAFT_EVENT, isPublished: true }))
+  },
+  play: async ({ canvas }) => {
+    const presentation = await region(canvas, "Veřejná prezentace")
+    const preview = presentation.getByRole("link", { name: "Náhled veřejné stránky" })
+    await expect(preview).toHaveAttribute("href", `/e/${DRAFT_EVENT.publicId}`)
+    await expect(preview).toHaveAttribute("target", "_blank")
+  },
+}
+
 export const PresentationSaveFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("put", `${EVENT}/presentation`))
   },
   play: async ({ canvas }) => {
     const presentation = await region(canvas, "Veřejná prezentace")
+    await userEvent.type(presentation.getByLabelText("Podmínky účasti"), "Plavky")
     await userEvent.click(presentation.getByRole("button", { name: "Uložit" }))
     await showsText("Veřejnou prezentaci se nepodařilo uložit. Zkuste to prosím znovu.")
   },
@@ -273,6 +289,7 @@ export const TermInvalid: Story = {
   args: { url: draftUrl },
   play: async ({ canvas }) => {
     const dialog = await openDialog(canvas, "Přidat termín", "Nový termín")
+    await userEvent.type(within(dialog).getByLabelText("Označení"), "  ")
     await userEvent.click(within(dialog).getByRole("button", { name: "Uložit termín" }))
     await showsText("Vyplňte označení.")
     await showsText("Vyberte datum začátku.")
@@ -286,6 +303,7 @@ export const TermSaveFailed: Story = {
   },
   play: async ({ canvas }) => {
     const dialog = await openDialog(canvas, "Upravit termín Víkend", "Upravit termín")
+    await userEvent.type(within(dialog).getByLabelText("Označení"), " upraveno")
     await userEvent.click(within(dialog).getByRole("button", { name: "Uložit termín" }))
     await showsText("Termín se nepodařilo uložit. Zkuste to prosím znovu.")
   },

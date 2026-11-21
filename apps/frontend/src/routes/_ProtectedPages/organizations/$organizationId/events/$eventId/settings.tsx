@@ -19,11 +19,10 @@ import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { ChangeApprovalSection } from "@/features/events/components/ChangeApprovalSection"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
 import { EventLockedAlert } from "@/features/events/components/EventLockedAlert"
-import { EventPublication } from "@/features/events/components/EventPublication"
 import { EventStatusBadge } from "@/features/events/components/EventStatusBadge"
 import { PaymentSettingsSection } from "@/features/events/components/PaymentSettingsSection"
 import { PresentationSection } from "@/features/events/components/PresentationSection"
-import { RegistrationSection } from "@/features/events/components/RegistrationSection"
+import { PublicEventAccessSection } from "@/features/events/components/PublicEventAccessSection"
 import { TermsSection } from "@/features/events/components/TermsSection"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
@@ -106,15 +105,11 @@ function EventPage() {
           organizationId={organizationId}
           event={event}
         />
-        <RegistrationSection
-          organizationId={organizationId}
-          event={event}
-        />
         <ChangeApprovalSection
           organizationId={organizationId}
           event={event}
         />
-        <EventPublication
+        <PublicEventAccessSection
           organizationId={organizationId}
           event={event}
         />

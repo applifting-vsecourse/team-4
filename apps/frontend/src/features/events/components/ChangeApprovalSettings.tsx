@@ -73,6 +73,7 @@ export function ChangeApprovalSettings({
                 <PendingButton
                   type="submit"
                   isPending={isSaving}
+                  disabled={value === days}
                 >
                   Uložit schvalování změn
                 </PendingButton>

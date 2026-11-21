@@ -134,6 +134,7 @@ export function EventForm({
           <PendingButton
             type="submit"
             isPending={isLoading}
+            disabled={!form.formState.isDirty}
           >
             {submitLabel}
           </PendingButton>

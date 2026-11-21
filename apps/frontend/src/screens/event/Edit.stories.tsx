@@ -46,6 +46,7 @@ export const SaveFailed: Story = {
     msw.use(...failOn("put", EVENT))
   },
   play: async ({ canvas }) => {
+    await userEvent.type(await canvas.findByLabelText("Název akce"), " upraveno")
     await userEvent.click(await canvas.findByRole("button", { name: "Uložit změny" }))
     await showsText("Změny se nepodařilo uložit. Zkuste to prosím znovu.")
   },
@@ -62,6 +63,7 @@ export const LockedMeanwhile: Story = {
     )
   },
   play: async ({ canvas }) => {
+    await userEvent.type(await canvas.findByLabelText("Název akce"), " upraveno")
     await userEvent.click(await canvas.findByRole("button", { name: "Uložit změny" }))
     await showsText("Akce je od otevření přihlašování zamčená.")
   },

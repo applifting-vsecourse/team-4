@@ -22,11 +22,23 @@ function renderForm(props: Partial<Parameters<typeof EventForm>[0]> = {}) {
 describe("EventForm", () => {
   it("requires name, location and description", async () => {
     const { onSubmit } = renderForm()
+    await userEvent.type(screen.getByLabelText("Název akce"), " ")
     await userEvent.click(screen.getByRole("button", { name: "Vytvořit akci" }))
     expect(await screen.findByText("Vyplňte název akce.")).toBeInTheDocument()
     expect(screen.getByText("Vyplňte místo.")).toBeInTheDocument()
     expect(screen.getByText("Vyplňte popis.")).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it("keeps save disabled until a value changes", async () => {
+    renderForm({
+      submitLabel: "Uložit změny",
+      initialValues: { name: "Tábor", location: "Podlesí", description: "Popis" },
+    })
+    const save = screen.getByRole("button", { name: "Uložit změny" })
+    expect(save).toBeDisabled()
+    await userEvent.type(screen.getByLabelText("Název akce"), " 2027")
+    expect(save).toBeEnabled()
   })
 
   it("shows the saved values when editing and submits the trimmed changes", async () => {

@@ -175,9 +175,11 @@ test(sprintReviewTitle, async ({ page, browser }) => {
 
     await step(page, "4/9 · Alena otevře přihlašování a sdílí odkaz — S2-06", async () => {
       await nav("Nastavení").click()
-      publicUrl = await page.getByLabel("Veřejný odkaz na přihlášku").inputValue()
+      const publicAccess = page.getByRole("button", { name: "Veřejný přístup" })
+      if ((await publicAccess.getAttribute("aria-expanded")) !== "true") await publicAccess.click()
+      publicUrl = await page.getByLabel("Odkaz na přihlášku").inputValue()
       await page.getByRole("button", { name: "Otevřít přihlašování" }).click()
-      await expect(page.getByText("Přihlašování je otevřené")).toBeVisible()
+      await expect(page.getByText("Přihlašování otevřeno", { exact: true })).toBeVisible()
     })
 
     await step(mobileWindow, "5/9 · Jana se přihlásí z telefonu — S2-07, S2-08", async () => {

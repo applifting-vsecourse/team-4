@@ -59,7 +59,7 @@ function renderPage() {
   )
 }
 
-const toggle = () => screen.getByRole("switch", { name: "Zveřejnit ve veřejném katalogu" })
+const toggle = () => screen.getByRole("switch", { name: "Zveřejnit akci v katalogu" })
 
 describe("EventPublication", () => {
   beforeEach(() => put.mockReset())

@@ -68,6 +68,7 @@ export function EvaluationModeSettings({
       <CardFooter className="justify-end">
         <PendingButton
           isPending={isSaving}
+          disabled={selected === mode}
           onClick={() => onSave?.(selected)}
         >
           Uložit
