@@ -83,6 +83,37 @@ export const Stored: Story = {
   },
 }
 
+/**
+ * A stored wish names someone who is no longer confirmed: marked in the stored
+ * list and in the form, where it can be removed.
+ */
+export const StoredNotConfirmed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...registrationHandlers.roommateWishes(
+        roommateWishesSchema.parse({
+          ...STORED_WISHES,
+          candidates: STORED_WISHES.candidates.filter(
+            (person) => person.name !== "Kristýna Dvořáková",
+          ),
+        }),
+      ),
+    )
+  },
+  play: async ({ canvas }) => {
+    const list = within(await storedList(canvas))
+    await expect(list.getByText("· už není potvrzený účastník")).toBeVisible()
+    await expect(list.getAllByRole("listitem")[1]).toHaveTextContent(
+      "Kristýna Dvořáková · už není potvrzený účastník",
+    )
+    await expect(list.getAllByRole("listitem")[0]).toHaveTextContent(/^Barbora Kučerová$/)
+    const form = await startEditing(canvas)
+    const selected = within(form.getByRole("list", { name: "Vybraní spolubydlící" }))
+    await expect(selected.getByText("· už není potvrzený účastník")).toBeVisible()
+    await expect(form.getByRole("button", { name: "Odebrat Kristýna Dvořáková" })).toBeVisible()
+  },
+}
+
 export const NothingChosen: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...registrationHandlers.roommateWishes(NO_WISHES))

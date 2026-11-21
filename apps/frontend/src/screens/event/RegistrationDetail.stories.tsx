@@ -10,6 +10,7 @@ import { organizerRoommateWishesSchema } from "@/features/registrations/api/room
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
 import { makeOwnChange } from "@/features/registrations/fixtures/registrationChanges"
 import { makeRegistrationDetail } from "@/features/registrations/fixtures/registrations"
+import { ORGANIZER_WISHES, STORED_WISHES } from "@/features/registrations/fixtures/roommateWishes"
 
 const REGISTRATION_ID = makeRegistrationDetail().id
 const DETAIL = "/organizations/:organizationId/events/:eventId/registrations/:registrationId"
@@ -71,6 +72,35 @@ export const RoommateWishesFailed: Story = {
     await showsHeading(NAME)(context)
     await expect(
       await context.canvas.findByText("Přání na spolubydlící se nepodařilo načíst"),
+    ).toBeVisible()
+  },
+}
+
+/** "Aktualizovat" also reloads the wishes, not only the registration. */
+export const RoommateWishesRefreshed: Story = {
+  beforeEach: ({ msw }) => {
+    let requests = 0
+    msw.use(
+      http.get(apiUrl(ORGANIZER_WISHES_URL), () => {
+        requests += 1
+        return HttpResponse.json(
+          requests === 1
+            ? ORGANIZER_WISHES
+            : organizerRoommateWishesSchema.parse({
+                wishes: [...ORGANIZER_WISHES.wishes, STORED_WISHES.candidates[0]],
+              }),
+        )
+      }),
+    )
+  },
+  play: async (context) => {
+    await showsHeading(NAME)(context)
+    await expect(
+      await context.canvas.findByText("Barbora Kučerová, Kristýna Dvořáková"),
+    ).toBeVisible()
+    await refresh(context.canvas)
+    await expect(
+      await context.canvas.findByText("Barbora Kučerová, Kristýna Dvořáková, Adéla Horáková"),
     ).toBeVisible()
   },
 }

@@ -117,15 +117,25 @@ export function RoommateWishesCard({ registrationId }: RoommateWishesCardProps) 
   )
 }
 
+// The candidates are the other confirmed participants: anyone chosen who isn't
+// one of them is no longer confirmed. A stored wish stays until it is removed.
+function NotConfirmedMark() {
+  return <span className="text-muted-foreground"> · už není potvrzený účastník</span>
+}
+
 function StoredWishes({ data }: { data: RoommateWishes }) {
   if (data.wishes.length > 0) {
+    const candidateIds = new Set(data.candidates.map((person) => person.registrationId))
     return (
       <ul
         aria-label="Vybraní spolubydlící"
         className="space-y-1 text-sm"
       >
         {data.wishes.map((wish) => (
-          <li key={wish.registrationId}>{wish.name}</li>
+          <li key={wish.registrationId}>
+            {wish.name}
+            {candidateIds.has(wish.registrationId) ? null : <NotConfirmedMark />}
+          </li>
         ))}
       </ul>
     )
@@ -164,7 +174,6 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
 
   const isFull = selected.length >= MAX_WISHES
   const candidateIds = new Set(data.candidates.map((person) => person.registrationId))
-  const storedIds = new Set(data.wishes.map((person) => person.registrationId))
   const toggle = (registrationId: string) => {
     // A changed selection is a new attempt: the last error no longer applies.
     save.reset()
@@ -201,8 +210,6 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
         >
           {selected.map((id) => {
             const name = people.get(id)?.name ?? ""
-            // Newly picked, but no longer confirmed: the one a save refuses.
-            const isGone = !candidateIds.has(id) && !storedIds.has(id)
             return (
               <li
                 key={id}
@@ -210,9 +217,7 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
               >
                 <span className="min-w-0">
                   {name}
-                  {isGone ? (
-                    <span className="text-muted-foreground"> · už není potvrzený účastník</span>
-                  ) : null}
+                  {candidateIds.has(id) ? null : <NotConfirmedMark />}
                 </span>
                 <Button
                   type="button"
