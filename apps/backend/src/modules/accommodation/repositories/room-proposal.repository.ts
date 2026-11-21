@@ -312,14 +312,25 @@ export class RoomProposalRepository {
         layoutVersion: true,
         input: true,
         result: true,
+        applications: {
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: 1,
+          select: { layoutVersion: true, createdAt: true },
+        },
       },
     });
-    return row
-      ? {
-          ...row,
-          input: (row.input as unknown as ProposalSnapshot).input,
-          result: row.result as RoomProposalResult | null,
-        }
-      : null;
+    if (!row) return null;
+    const { applications, ...stored } = row;
+    return {
+      ...stored,
+      input: (row.input as unknown as ProposalSnapshot).input,
+      result: row.result as RoomProposalResult | null,
+      lastApplied: applications[0]
+        ? {
+            layoutVersion: applications[0].layoutVersion,
+            at: applications[0].createdAt,
+          }
+        : null,
+    };
   }
 }

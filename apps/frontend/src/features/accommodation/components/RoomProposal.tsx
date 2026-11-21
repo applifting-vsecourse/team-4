@@ -296,6 +296,15 @@ function StatusNotice({
   isShownStale,
 }: Pick<RoomProposalProps, "status" | "mode" | "isShownStale"> & { hasLayout: boolean }) {
   switch (status) {
+    case "applied":
+      return (
+        <Notice
+          tone="success"
+          title="Návrh je použitý"
+        >
+          Uložené rozdělení odpovídá tomuto návrhu. Po další změně podkladů bude neaktuální.
+        </Notice>
+      )
     case "stale":
       return (
         <Notice

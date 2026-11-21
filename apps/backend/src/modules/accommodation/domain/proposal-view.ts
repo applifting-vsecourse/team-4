@@ -22,6 +22,12 @@ export type ProposalViewStatus =
   | 'running'
   /** The last proposal read the term's current layout version. */
   | 'current'
+  /**
+   * The last proposal was applied ("Použít návrh", §7.2) and nothing changed
+   * since: the saved placements are its rooms. Its own layout version is
+   * older, as applying moved the term's on.
+   */
+  | 'applied'
   /** A layout change came after the last proposal (§7.1). */
   | 'stale'
   /** The last proposal failed; nothing usable. */
@@ -94,6 +100,8 @@ export type StoredProposalView = {
   finishedAt: Date;
   layoutVersion: number;
   isCurrent: boolean;
+  /** When it was applied, while nothing changed since; null otherwise. */
+  appliedAt: Date | null;
   /** A solved proposal only. */
   layout: ProposalLayoutView | null;
 };
@@ -120,6 +128,8 @@ export type StoredProposal = {
   layoutVersion: number;
   input: RoomProposalInput;
   result: RoomProposalResult | null;
+  /** Its newest application: the term's layout version after it, and when. */
+  lastApplied: { layoutVersion: number; at: Date } | null;
 };
 
 export type Names = ReadonlyMap<
@@ -215,6 +225,10 @@ function storedView(
     finishedAt: stored.finishedAt,
     layoutVersion: stored.layoutVersion,
     isCurrent: stored.layoutVersion === layoutVersion,
+    appliedAt:
+      stored.lastApplied?.layoutVersion === layoutVersion
+        ? stored.lastApplied.at
+        : null,
     layout:
       stored.result?.status === 'solved'
         ? buildLayout(stored.input, stored.result, names)
@@ -243,7 +257,9 @@ export function buildProposalView({
       : proposal.status === 'solved'
         ? proposal.isCurrent
           ? 'current'
-          : 'stale'
+          : proposal.appliedAt
+            ? 'applied'
+            : 'stale'
         : proposal.status;
   return {
     status,

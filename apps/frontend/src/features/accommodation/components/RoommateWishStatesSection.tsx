@@ -46,7 +46,8 @@ export function RoommateWishStatesSection({
         proposal.isError && !proposal.data
           ? "failed"
           : shown?.layout
-            ? shown.isCurrent
+            ? // An applied proposal still stands for the term until it changes.
+              shown.isCurrent || shown.appliedAt
               ? "current"
               : "stale"
             : "none"

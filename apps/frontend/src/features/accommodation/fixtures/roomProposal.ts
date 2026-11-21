@@ -149,12 +149,14 @@ const stored = (overrides: Partial<StoredProposalData> = {}): StoredProposalData
   finishedAt: "2027-03-12T13:32:04Z",
   layoutVersion: 4,
   isCurrent: true,
+  appliedAt: null,
   layout: LAYOUT,
   ...overrides,
 })
 
 export type ProposalPreset =
   | "current"
+  | "applied"
   | "withSaved"
   | "incomplete"
   | "stale"
@@ -184,6 +186,18 @@ export function makeTermRoomProposal(
   const byPreset: Record<ProposalPreset, TermRoomProposalData> = {
     current: base("current", stored()),
     withSaved: base("current", stored({ layout: WITH_SAVED })),
+    // "Použít návrh" moved the term's version on; nothing changed since.
+    applied: {
+      ...base(
+        "applied",
+        stored({
+          layout: WITH_SAVED,
+          isCurrent: false,
+          appliedAt: "2027-03-12T13:40:00Z",
+        }),
+      ),
+      layoutVersion: 5,
+    },
     incomplete: base("current", stored({ layout: { ...LAYOUT, isComplete: false } })),
     stale: base("stale", stored({ isCurrent: false, layoutVersion: 3 })),
     running: base("running", stored({ isCurrent: false, layoutVersion: 3 })),

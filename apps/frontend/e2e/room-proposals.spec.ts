@@ -143,17 +143,19 @@ test("applying a proposal saves its rooms, and the wishes follow the saved rooms
   await expect(page.getByText("Návrh pokojů byl použit.")).toBeVisible()
 
   // Saved: the board has everyone in a room, Jana with Tereza, and the
-  // applied proposal is out of date now (the next one may suggest more).
+  // proposal reads as applied while nothing changes.
   const board = page.getByRole("region", { name: "Rozdělení do pokojů" })
   const roomCard = (person: string) =>
     board.locator('[data-slot="card"]').filter({ hasText: person }).filter({ hasText: "Chatka" })
   await expect(roomCard("Jana")).toContainText("Tereza")
   // The saved column, not the proposal's, which said so before the apply.
   await expect(savedStateOf("Jana")).toHaveText("Splněno")
-  await expect(proposal.getByText("Neaktuální návrh", { exact: true })).toBeVisible()
+  await expect(proposal.getByText("Použitý návrh", { exact: true })).toBeVisible()
+  await expect(proposal.getByRole("button", { name: "Použít návrh" })).toHaveCount(0)
 
-  // A manual change is read live too.
+  // A manual change is read live too, and the proposal is out of date then.
   await board.getByRole("button", { name: /^Akce: Jana/ }).click()
   await page.getByRole("menuitem", { name: "Odebrat z pokoje" }).click()
   await expect(savedStateOf("Jana")).toHaveText("Čeká na umístění")
+  await expect(proposal.getByText("Neaktuální návrh", { exact: true })).toBeVisible()
 })

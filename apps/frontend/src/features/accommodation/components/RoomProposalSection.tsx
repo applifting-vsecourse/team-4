@@ -15,7 +15,7 @@ import {
 } from "@/features/accommodation/components/RoomProposal"
 import { useProposeRooms } from "@/features/accommodation/hooks/useProposeRooms"
 import { toEvaluationTerm } from "@/features/accommodation/lib/evaluationView"
-import { toProposalLayout } from "@/features/accommodation/lib/roomProposalView"
+import { asApplied, toProposalLayout } from "@/features/accommodation/lib/roomProposalView"
 
 type Term = { id: string; label: string; startDate: string; endDate: string }
 
@@ -93,7 +93,9 @@ export function RoomProposalSection({
   const data = proposal.data
   if (!data) return null
   const shown = data.lastSolved
-  const layout = shown?.layout ? toProposalLayout(shown.layout) : undefined
+  const proposed = shown?.layout ? toProposalLayout(shown.layout) : undefined
+  // Applied and nothing changed since: the saved placements are its rooms.
+  const layout = proposed && shown?.appliedAt ? asApplied(proposed) : proposed
   const term = common.terms.find((t) => t.id === termId)
 
   return (
@@ -106,7 +108,7 @@ export function RoomProposalSection({
       status={propose.isPending ? "running" : data.status}
       layout={layout}
       proposedAt={shown ? formatPragueDateTime(shown.finishedAt) : undefined}
-      isShownStale={shown ? !shown.isCurrent : false}
+      isShownStale={shown ? !shown.isCurrent && !shown.appliedAt : false}
       onPropose={() => propose.mutate()}
       applyAction={
         shown && layout && term ? (
