@@ -445,7 +445,44 @@ test('a parent PR is eligible once both areas exist, all sub-issues closed and n
   );
   assert.match(reasons(parentIssue(), [{ number: 41 }]), /#41 into/);
   assert.match(
-    reasons(parentIssue({ branches: [] })),
+    reasons(parentIssue({ number: 999, branches: [] })),
+    /must link the one parent issue/,
+  );
+});
+
+test('a parent PR links its integration branch through the matching issue reference', () => {
+  const parentPr = pr({
+    number: 50,
+    body: 'Closes #400',
+    base: { ref: 'main', repo: REPO },
+    head: { ref: BRANCH, sha, repo: REPO },
+  });
+  // GitHub shows the PR in Development and removes the standalone branch link.
+  assert.deepEqual(
+    parentReasons({
+      pr: parentPr,
+      issues: [parentIssue({ branches: [] })],
+      closingIssueNumbers: [400],
+      openInto: [],
+    }),
+    [],
+  );
+});
+
+test('a Refs-only issue cannot own the parent branch fallback', () => {
+  const parentPr = pr({
+    number: 50,
+    body: 'Refs #400',
+    base: { ref: 'main', repo: REPO },
+    head: { ref: BRANCH, sha, repo: REPO },
+  });
+  assert.match(
+    parentReasons({
+      pr: parentPr,
+      issues: [parentIssue({ branches: [] })],
+      closingIssueNumbers: [],
+      openInto: [],
+    }).join(' '),
     /must link the one parent issue/,
   );
 });
