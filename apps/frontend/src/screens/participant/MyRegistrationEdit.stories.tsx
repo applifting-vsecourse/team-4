@@ -8,16 +8,23 @@ import { showsText } from "@/screens/steps"
 import { participantHandlers } from "@/features/participant-access/fixtures/handlers"
 import { programmeHandlers } from "@/features/programme/fixtures/handlers"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
-import { OWN_REGISTRATION } from "@/features/registrations/fixtures/participantRegistrations"
 import {
+  AVAILABLE_TERMS,
+  OWN_REGISTRATION,
+} from "@/features/registrations/fixtures/participantRegistrations"
+import {
+  ADD_TERM_PREVIEW,
   CANCEL_TERM_SUMMARY,
   makeChangePreview,
+  PENDING_ADD_PREVIEW,
   RELEASING_MOVE_PREVIEW,
+  REPLACE_TERM_PREVIEW,
 } from "@/features/registrations/fixtures/registrationChanges"
 
 const DETAIL = "/participant/registrations/:registrationId"
 const CHANGES = `${DETAIL}/changes`
 const REVIEW = "Kontrola změn přihlášky"
+const MOBILE = { viewport: { value: "mobile", isRotated: false } }
 
 const meta = {
   title: "Screens/Participant/MyRegistrationEdit",
@@ -142,7 +149,7 @@ export const ReviewCancelTerm: Story = {
   },
   play: async ({ canvas }) => {
     await userEvent.click(
-      await canvas.findByLabelText("Odhlásit z termínu Turnus 1", {}, { timeout: 5000 }),
+      await canvas.findByRole("checkbox", { name: /^Turnus 1/ }, { timeout: 5000 }),
     )
     await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
     // Only cancelling: the review reads as leaving the term.
@@ -150,6 +157,207 @@ export const ReviewCancelTerm: Story = {
     await expect(
       dialog.getByText("Storno poplatek a případnou vratku řeší organizátor podle podmínek akce."),
     ).toBeVisible()
+  },
+}
+
+/** One list of the event's terms: the held ones are ticked, another can be ticked to add it (F35-2c). */
+export const AddTermAvailable: Story = {
+  play: async ({ canvas }) => {
+    const free = await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 })
+    await expect(free).not.toBeChecked()
+    await expect(canvas.getByRole("checkbox", { name: /^Turnus 1/ })).toBeChecked()
+    await expect(canvas.getByRole("checkbox", { name: /^Turnus 2/ })).toBeChecked()
+  },
+}
+
+/** Unticking a held term and ticking another: the review lists what stays, is added and is removed. */
+export const ReviewReplaceTerm: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.ownChange(REPLACE_TERM_PREVIEW))
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 1/ }, { timeout: 5000 }),
+    )
+    await userEvent.click(canvas.getByRole("checkbox", { name: /^Turnus 3/ }))
+    await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
+    const dialog = await review()
+    // Turnus 2 stays, Turnus 1 is removed and Turnus 3 is added.
+    await expect(dialog.getByRole("row", { name: /Turnus 1.*Odhlášeno/ })).toBeVisible()
+    await expect(dialog.getByRole("row", { name: /Turnus 2/ })).toBeVisible()
+    await expect(dialog.getByRole("row", { name: /Turnus 3/ })).toBeVisible()
+  },
+}
+
+/** Ticking a free term says what happens next: the others stay, the capacity decides. */
+export const AddTermNotice: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 }),
+    )
+    const notice = await canvas.findByRole("status")
+    await expect(notice).toHaveTextContent("Přidání termínu Turnus 3")
+    await expect(notice).toHaveTextContent("Stávající termíny zůstanou")
+    await expect(notice).toHaveTextContent("jinak budete náhradníkem")
+  },
+}
+
+/** Unticking a held term says that the place is released and the fee is up to the organizer. */
+export const RemoveTermNotice: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 1/ }, { timeout: 5000 }),
+    )
+    const notice = await canvas.findByRole("status")
+    await expect(notice).toHaveTextContent("Odhlášení z termínu Turnus 1")
+    await expect(notice).toHaveTextContent("Místo se uvolní")
+  },
+}
+
+/** Unticking every term warns that the whole registration is cancelled. */
+export const RemoveAllTermsNotice: Story = {
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 1/ }, { timeout: 5000 }),
+    )
+    await userEvent.click(canvas.getByRole("checkbox", { name: /^Turnus 2/ }))
+    await expect(await canvas.findByText("Odhlášení ze všech termínů")).toBeVisible()
+    await expect(canvas.getByText(/Celá přihláška bude odhlášená/)).toBeVisible()
+  },
+}
+
+/** The review with pending badges on both sides and the approval notice stays inside the dialog. */
+export const ReviewStaysInsideDialog: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.ownChange(PENDING_ADD_PREVIEW))
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 }),
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
+    const dialog = await review()
+    const element = screen.getByRole("dialog")
+    // The content ends before the dialog's own right padding, not just before its edge.
+    const inner =
+      element.getBoundingClientRect().right - parseFloat(getComputedStyle(element).paddingRight)
+    for (const part of element.querySelectorAll("[role=alert], [data-slot=table-container]")) {
+      await expect(part.getBoundingClientRect().right).toBeLessThanOrEqual(inner + 1)
+    }
+    await expect(dialog.getByRole("button", { name: "Odeslat žádost o schválení" })).toBeVisible()
+  },
+}
+
+/** At 360 px the review stacks each term and amount as labelled lines: nothing scrolls sideways. */
+export const ReviewMobile: Story = {
+  globals: MOBILE,
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.ownChange(PENDING_ADD_PREVIEW))
+  },
+  play: async ({ canvas }) => {
+    // Browsers with classic scrollbars (CI) give the scrolling dialog 15 px less width than
+    // the overlay scrollbars of a Mac, so the review is checked at that narrower width.
+    const scrollbar = document.createElement("style")
+    scrollbar.textContent = "[role=dialog] { padding-right: 39px !important; }"
+    document.head.append(scrollbar)
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 }),
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
+    const dialog = await review()
+    await expect(dialog.getAllByText("Původně").length).toBeGreaterThan(0)
+    for (const table of screen
+      .getByRole("dialog")
+      .querySelectorAll("[data-slot=table-container]")) {
+      await expect(table.scrollWidth).toBeLessThanOrEqual(table.clientWidth)
+    }
+    scrollbar.remove()
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
+    // The content is taller than the screen: the dialog scrolls and reaches the confirming button.
+    const element = screen.getByRole("dialog")
+    await expect(element.scrollHeight).toBeGreaterThan(element.clientHeight)
+    const confirm = dialog.getByRole("button", { name: "Odeslat žádost o schválení" })
+    confirm.scrollIntoView()
+    await expect(confirm.getBoundingClientRect().bottom).toBeLessThanOrEqual(window.innerHeight)
+  },
+}
+
+/** Several terms are free to add: each one is a row of its own. */
+export const AddTermSeveralAvailable: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...registrationHandlers.ownRegistration(OWN_REGISTRATION, [
+        ...AVAILABLE_TERMS,
+        {
+          termId: "0190c0de-0000-7000-8000-000000000104",
+          label: "Turnus 4",
+          startDate: "2027-09-01",
+          endDate: "2027-09-14",
+          priceMinor: 450_000,
+        },
+      ]),
+    )
+  },
+  play: async ({ canvas }) => {
+    await expect(
+      await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 }),
+    ).toBeVisible()
+    await expect(canvas.getByRole("checkbox", { name: /^Turnus 4/ })).toBeVisible()
+  },
+}
+
+/** Ticking the term opens a review that shows it as new and how it is evaluated. */
+export const ReviewAddTerm: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.ownChange(ADD_TERM_PREVIEW))
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 }),
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
+    const dialog = await review()
+    await expect(dialog.getByText("Turnus 3")).toBeVisible()
+    await expect(
+      dialog.getByText(/Účast v termínu Turnus 3 se vyhodnotí podle kapacity/),
+    ).toBeVisible()
+    await expect(dialog.getByText(/se k ceně přidá/)).toBeVisible()
+    await expect(dialog.getByRole("button", { name: "Potvrdit změnu" })).toBeVisible()
+  },
+}
+
+/** The registration already holds every term of the event. */
+export const NoFurtherTerm: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...registrationHandlers.ownRegistration(
+        OWN_REGISTRATION,
+        AVAILABLE_TERMS.filter((term) =>
+          OWN_REGISTRATION.terms.some((own) => own.termId === term.termId),
+        ),
+      ),
+    )
+  },
+  play: async ({ canvas }) => {
+    await showsText("Další termín není k dispozici, na přihlášce už máte všechny termíny akce.")
+    await expect(canvas.queryByRole("checkbox", { name: /^Turnus 3/ })).not.toBeInTheDocument()
+  },
+}
+
+/** The server refuses the addition: the held terms stay as they were. */
+export const AddTermFailed: Story = {
+  beforeEach: ({ msw }) => {
+    // The first matching handler answers: the save fails after the review loaded.
+    msw.use(...failOn("post", CHANGES), ...registrationHandlers.ownChange(ADD_TERM_PREVIEW))
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 3/ }, { timeout: 5000 }),
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
+    const dialog = await review()
+    await userEvent.click(dialog.getByRole("button", { name: "Potvrdit změnu" }))
+    await showsText("Změnu se nepodařilo odeslat. Zkuste to prosím znovu.")
   },
 }
 

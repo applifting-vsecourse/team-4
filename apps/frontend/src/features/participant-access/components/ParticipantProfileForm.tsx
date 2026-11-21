@@ -107,6 +107,7 @@ export function ParticipantProfileForm({ profile }: ParticipantProfileFormProps)
                       <FormLabel>Jméno</FormLabel>
                       <FormControl>
                         <Input
+                          placeholder="Jan"
                           autoComplete="given-name"
                           {...field}
                         />
@@ -123,6 +124,7 @@ export function ParticipantProfileForm({ profile }: ParticipantProfileFormProps)
                       <FormLabel>Příjmení</FormLabel>
                       <FormControl>
                         <Input
+                          placeholder="Novák"
                           autoComplete="family-name"
                           {...field}
                         />

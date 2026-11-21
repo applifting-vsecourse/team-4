@@ -16,7 +16,7 @@ You are extending an existing product, not designing a new one. Most UI rework s
 | Area             | Routes                                                                                     | Shell                                                             | Audience and viewport                                |
 | ---------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- | ---------------------------------------------------- |
 | Public           | `/`, `/for-*`, `/events`, `/e/$publicId`, `/e/$publicId/registration`, `/login`, `/signup` | `PublicShell`; landing pages own layout; `AuthLayout` for sign-in | Anyone; **mobile first**                             |
-| Participant      | `/my-registrations/*`, `/my-profile`, `/platba/$token`                                     | `ParticipantLayout`                                               | Event attendee, usually on a phone; **mobile first** |
+| Participant      | `/my-registrations/*`, `/my-profile`, `/my-notifications`, `/platba/$token`                | `ParticipantLayout`                                               | Event attendee, usually on a phone; **mobile first** |
 | Organization     | `/organizations`, `/organizations/$organizationId`                                         | sidebar + `WorkspacePage` + `PageHeader`                          | Organizer at a desktop                               |
 | Event management | `/organizations/$organizationId/events/$eventId/*`                                         | sidebar + `WorkspacePage` + `PageHeader` with `EventBreadcrumb`   | Organizer at a desktop                               |
 
@@ -104,7 +104,7 @@ Patterns built from them:
 - **Status labels:** `Badge` with a status variant (table below).
 - **Table labels:** Place a badge that leads a left-aligned cell directly inside `TableCell`. Its text aligns with the column header and the fill extends into the gutter.
 - **Confirmation of destructive actions:** `ConfirmDeleteDialog` (below).
-- **Feedback after an action:** `toast` from `sonner` (the `Toaster` is mounted in `__root.tsx`).
+- **Feedback after an action:** `toast` from `sonner` (the `Toaster` is mounted in `__root.tsx`). Each tone uses the status pair of its badge: success `success` on `success-subtle`, warning `warning` on `warning-subtle`, error `destructive-subtle-foreground` on `destructive-subtle`; info and plain toasts use the `popover` surface. These colours are set once in `components/ui/sonner.tsx` and pass WCAG AA in both themes; do not turn them off with `richColors: false`. The `Toasts` stories of the design-system screen check their contrast.
 
 ### Shared app components
 

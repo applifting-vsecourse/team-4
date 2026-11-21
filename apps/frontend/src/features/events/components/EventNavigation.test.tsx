@@ -29,6 +29,7 @@ async function renderNavigation(isSidebar = false) {
     ROUTES.event,
     ROUTES.eventSettings,
     ROUTES.eventRooms,
+    ROUTES.eventProgramme,
     ROUTES.eventPayments,
     ROUTES.editEvent,
     ROUTES.eventRegistrations,
@@ -62,7 +63,7 @@ async function renderNavigation(isSidebar = false) {
 }
 
 describe("EventNavigation", () => {
-  it("opens settings, registrations, payments and rooms within the selected organization and event", async () => {
+  it("opens settings, registrations, payments, rooms and the programme within the selected organization and event", async () => {
     const router = await renderNavigation()
     expect(screen.queryByRole("link", { name: "Přehled" })).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole("link", { name: "Nastavení" }))
@@ -82,6 +83,10 @@ describe("EventNavigation", () => {
     await userEvent.click(screen.getByRole("link", { name: "Ubytování" }))
     await waitFor(() =>
       expect(router.state.location.pathname).toBe("/organizations/org-a/events/event-a/rooms"),
+    )
+    await userEvent.click(screen.getByRole("link", { name: "Program" }))
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe("/organizations/org-a/events/event-a/programme"),
     )
   })
 

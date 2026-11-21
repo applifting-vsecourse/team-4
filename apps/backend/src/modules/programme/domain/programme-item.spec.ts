@@ -1,4 +1,8 @@
-import { isCalendarDate, isWithinTerm } from './programme-item';
+import {
+  isCalendarDate,
+  isEndAfterStart,
+  isWithinTerm,
+} from './programme-item';
 
 describe('isCalendarDate', () => {
   it('accepts real dates only', () => {
@@ -21,5 +25,13 @@ describe('isWithinTerm', () => {
   it('rejects days outside the term', () => {
     expect(isWithinTerm('2026-11-05', term)).toBe(false);
     expect(isWithinTerm('2026-11-09', term)).toBe(false);
+  });
+});
+
+describe('isEndAfterStart', () => {
+  it('requires the end to be later than the start', () => {
+    expect(isEndAfterStart('09:00', '09:01')).toBe(true);
+    expect(isEndAfterStart('09:00', '09:00')).toBe(false);
+    expect(isEndAfterStart('18:00', '09:00')).toBe(false);
   });
 });

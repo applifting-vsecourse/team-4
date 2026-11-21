@@ -1,5 +1,7 @@
+import { useId } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { LogOut, UserRound } from "lucide-react"
+import { Bell, LogOut, UserRound } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -13,6 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+import { participantNotificationsQueryOptions } from "@/features/participant-access/api/participantQueryOptions"
+import { UnreadDot } from "@/features/participant-access/components/UnreadDot"
 import { useParticipantLogout } from "@/features/participant-access/hooks/useParticipantLogout"
 
 type ParticipantAccountMenuProps = {
@@ -21,9 +25,13 @@ type ParticipantAccountMenuProps = {
 }
 
 // The participant's account under the user icon: the sign-in e-mail, the
-// profile and the end of the session.
+// notifications (S4-06), the profile and the end of the session. A dot on
+// the icon and on Oznámení says that a notification was not opened yet.
 export function ParticipantAccountMenu({ email }: ParticipantAccountMenuProps) {
   const logout = useParticipantLogout()
+  const notifications = useQuery(participantNotificationsQueryOptions())
+  const hasUnread = notifications.data?.items.some((item) => !item.isRead) ?? false
+  const unreadId = useId()
 
   return (
     <DropdownMenu>
@@ -32,12 +40,25 @@ export function ParticipantAccountMenu({ email }: ParticipantAccountMenuProps) {
           variant="ghost"
           size="icon"
           aria-label="Účet"
+          aria-describedby={hasUnread ? unreadId : undefined}
+          className="relative"
         >
           <Avatar className="size-8">
             <AvatarFallback>
               <UserRound aria-hidden />
             </AvatarFallback>
           </Avatar>
+          {hasUnread ? (
+            <>
+              <UnreadDot className="absolute top-1 right-1 ring-2 ring-background" />
+              <span
+                id={unreadId}
+                className="sr-only"
+              >
+                Máte nepřečtená oznámení
+              </span>
+            </>
+          ) : null}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -48,6 +69,18 @@ export function ParticipantAccountMenu({ email }: ParticipantAccountMenuProps) {
           <span className="break-all">{email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to={ROUTES.myNotifications}>
+            <Bell aria-hidden />
+            Oznámení
+            {hasUnread ? (
+              <>
+                <span className="sr-only"> (nepřečtená)</span>
+                <UnreadDot className="ml-auto" />
+              </>
+            ) : null}
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link to={ROUTES.myProfile}>
             <UserRound aria-hidden />

@@ -2,14 +2,7 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-} from "@/components/ui/field"
+import { Field, FieldError, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
@@ -56,111 +49,139 @@ export function RegistrationNeedsFields({
       hasNoDietRestriction: isChecked ? false : needs.hasNoDietRestriction,
     })
 
-  return (
-    <FieldGroup>
-      <FieldSet>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <FieldLegend>Doprava</FieldLegend>
-          {needs.transport ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => update({ transport: null })}
-            >
-              Zrušit výběr
-            </Button>
-          ) : null}
-        </div>
-        <RadioGroup
-          value={needs.transport ?? ""}
-          onValueChange={(value) => update({ transport: transportChoiceSchema.parse(value) })}
-          aria-label="Doprava"
-        >
-          {transportChoiceSchema.options.map((choice) => (
-            <Field
-              key={choice}
-              orientation="horizontal"
-            >
-              <RadioGroupItem
-                id={`needs-transport-${choice}`}
-                value={choice}
-              />
-              <FieldLabel htmlFor={`needs-transport-${choice}`}>
-                {TRANSPORT_LABELS[choice]}
-              </FieldLabel>
-            </Field>
-          ))}
-        </RadioGroup>
-        <Field data-invalid={errors.transportNote ? true : undefined}>
-          <FieldLabel htmlFor="needs-transport-note">Poznámka k dopravě</FieldLabel>
-          <Input
-            id="needs-transport-note"
-            value={needs.transportNote}
-            onChange={(event) => update({ transportNote: event.target.value })}
-            aria-invalid={errors.transportNote ? true : undefined}
-          />
-          <FieldError>{errors.transportNote}</FieldError>
-        </Field>
-      </FieldSet>
+  const hasDietSelection = needs.hasNoDietRestriction || needs.diet.length > 0
 
-      <FieldSet>
-        <FieldLegend>Strava</FieldLegend>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field
-            orientation="horizontal"
-            className="sm:col-span-2"
+  return (
+    <div className="flex w-full flex-col gap-6">
+      <div className="rounded-lg border border-border bg-background p-4 sm:p-5">
+        <FieldSet>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <FieldLegend>Doprava</FieldLegend>
+            {needs.transport ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => update({ transport: null })}
+              >
+                Zrušit výběr
+              </Button>
+            ) : null}
+          </div>
+          <RadioGroup
+            value={needs.transport ?? ""}
+            onValueChange={(value) => update({ transport: transportChoiceSchema.parse(value) })}
+            aria-label="Doprava"
           >
-            <Checkbox
-              id="needs-diet-none"
-              checked={needs.hasNoDietRestriction}
-              onCheckedChange={(state) =>
-                update({
-                  hasNoDietRestriction: state === true,
-                  diet: state === true ? [] : needs.diet,
-                })
-              }
+            {transportChoiceSchema.options.map((choice) => (
+              <Field
+                key={choice}
+                orientation="horizontal"
+              >
+                <RadioGroupItem
+                  id={`needs-transport-${choice}`}
+                  value={choice}
+                />
+                <FieldLabel htmlFor={`needs-transport-${choice}`}>
+                  {TRANSPORT_LABELS[choice]}
+                </FieldLabel>
+              </Field>
+            ))}
+          </RadioGroup>
+          <Field data-invalid={errors.transportNote ? true : undefined}>
+            <FieldLabel htmlFor="needs-transport-note">Poznámka k dopravě</FieldLabel>
+            <Input
+              id="needs-transport-note"
+              placeholder="Např. odjezd z Brna"
+              value={needs.transportNote}
+              onChange={(event) => update({ transportNote: event.target.value })}
+              aria-invalid={errors.transportNote ? true : undefined}
             />
-            <FieldLabel htmlFor="needs-diet-none">{NO_DIET_RESTRICTION}</FieldLabel>
+            <FieldError>{errors.transportNote}</FieldError>
           </Field>
-          {DIET_CHOICES.map((choice) => (
+        </FieldSet>
+      </div>
+
+      <div className="rounded-lg border border-border bg-background p-4 sm:p-5">
+        <FieldSet>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <FieldLegend>Strava</FieldLegend>
+            {hasDietSelection ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => update({ hasNoDietRestriction: false, diet: [] })}
+              >
+                Zrušit výběr
+              </Button>
+            ) : null}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field
-              key={choice}
               orientation="horizontal"
+              className="sm:col-span-2"
             >
               <Checkbox
-                id={`needs-diet-${choice}`}
-                checked={needs.diet.includes(choice)}
-                onCheckedChange={(state) => toggleDiet(choice, state === true)}
+                id="needs-diet-none"
+                checked={needs.hasNoDietRestriction}
+                onCheckedChange={(state) =>
+                  update({
+                    hasNoDietRestriction: state === true,
+                    diet: state === true ? [] : needs.diet,
+                  })
+                }
               />
-              <FieldLabel htmlFor={`needs-diet-${choice}`}>{DIET_LABELS[choice]}</FieldLabel>
+              <FieldLabel htmlFor="needs-diet-none">{NO_DIET_RESTRICTION}</FieldLabel>
             </Field>
-          ))}
-        </div>
-        <FieldError>{errors.diet}</FieldError>
-        <Field data-invalid={errors.dietNote ? true : undefined}>
-          <FieldLabel htmlFor="needs-diet-note">Vlastní text ke stravě</FieldLabel>
-          <Input
-            id="needs-diet-note"
-            value={needs.dietNote}
-            onChange={(event) => update({ dietNote: event.target.value })}
-            aria-invalid={errors.dietNote ? true : undefined}
-          />
-          <FieldError>{errors.dietNote}</FieldError>
-        </Field>
-      </FieldSet>
+            {DIET_CHOICES.map((choice) => (
+              <Field
+                key={choice}
+                orientation="horizontal"
+              >
+                <Checkbox
+                  id={`needs-diet-${choice}`}
+                  checked={needs.diet.includes(choice)}
+                  onCheckedChange={(state) => toggleDiet(choice, state === true)}
+                />
+                <FieldLabel htmlFor={`needs-diet-${choice}`}>{DIET_LABELS[choice]}</FieldLabel>
+              </Field>
+            ))}
+          </div>
+          <FieldError>{errors.diet}</FieldError>
+          <Field data-invalid={errors.dietNote ? true : undefined}>
+            <FieldLabel htmlFor="needs-diet-note">Vlastní text ke stravě</FieldLabel>
+            <Input
+              id="needs-diet-note"
+              placeholder="Např. alergie na ořechy"
+              value={needs.dietNote}
+              onChange={(event) => update({ dietNote: event.target.value })}
+              aria-invalid={errors.dietNote ? true : undefined}
+            />
+            <FieldError>{errors.dietNote}</FieldError>
+          </Field>
+        </FieldSet>
+      </div>
 
-      <Field data-invalid={errors.health ? true : undefined}>
-        <FieldLabel htmlFor="needs-health">Zdravotní omezení</FieldLabel>
-        <Textarea
-          id="needs-health"
-          rows={4}
-          value={needs.health}
-          onChange={(event) => update({ health: event.target.value })}
-          aria-invalid={errors.health ? true : undefined}
-        />
-        <FieldError>{errors.health}</FieldError>
-      </Field>
-    </FieldGroup>
+      <div className="rounded-lg border border-border bg-background p-4 sm:p-5">
+        <FieldSet>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <FieldLegend>Zdravotní omezení</FieldLegend>
+          </div>
+          <Field data-invalid={errors.health ? true : undefined}>
+            <Textarea
+              id="needs-health"
+              aria-label="Zdravotní omezení"
+              placeholder="Popište omezení, léky nebo důležité informace."
+              rows={4}
+              value={needs.health}
+              onChange={(event) => update({ health: event.target.value })}
+              aria-invalid={errors.health ? true : undefined}
+            />
+            <FieldError>{errors.health}</FieldError>
+          </Field>
+        </FieldSet>
+      </div>
+    </div>
   )
 }

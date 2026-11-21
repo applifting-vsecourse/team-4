@@ -8,6 +8,8 @@ export const programmeItemSchema = z.object({
   startDate: z.string(),
   /** `HH:mm` */
   startTime: z.string(),
+  /** `HH:mm`, later than the start on the same day. */
+  endTime: z.string(),
   place: z.string().nullable(),
   description: z.string().nullable(),
 })

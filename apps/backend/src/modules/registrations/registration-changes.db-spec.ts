@@ -304,6 +304,84 @@ describe('changes without approval', () => {
     expect(detail.body.payments).toHaveLength(1);
   });
 
+  it('adds a term and keeps the confirmed ones, even when its beds are taken (F35-2c)', async () => {
+    const fixture = await setup(null, 1);
+    const registration = await register(fixture, [1]);
+    // Someone else holds the only bed of Turnus 3.
+    await register(fixture, [2]);
+
+    const result = await submit(registration, {
+      addedTermIds: [fixture.terms[2].id],
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.body.outcome).toBe('applied');
+    expect(result.body.change.kinds).toEqual(['add_terms']);
+    expect(await statuses(registration)).toEqual({
+      'Turnus 2': 'confirmed',
+      'Turnus 3': 'pending',
+    });
+    const detail = await call('GET', base(registration), own(registration));
+    expect(detail.body.terms.map((t: { label: string }) => t.label)).toEqual([
+      'Turnus 2',
+      'Turnus 3',
+    ]);
+    // Only the confirmed term is due until the organizer decides.
+    expect(detail.body.amountDueMinor).toBe(240_000);
+  });
+
+  it('files a request for an added term near its start and changes nothing until approved (F35-2c)', async () => {
+    const fixture = await setup(100);
+    const registration = await register(fixture, [0]);
+
+    const result = await submit(registration, {
+      addedTermIds: [fixture.terms[1].id],
+    });
+
+    expect(result.body.outcome).toBe('requested');
+    expect(await statuses(registration)).toEqual({ 'Turnus 1': 'confirmed' });
+    const path = `${managed(fixture, registration)}/changes/${result.body.change.id}`;
+    const approve = await call('POST', `${path}/approve`, owner(fixture));
+    expect(approve.status).toBe(200);
+    expect(await statuses(registration)).toEqual({
+      'Turnus 1': 'confirmed',
+      'Turnus 2': 'pending',
+    });
+  });
+
+  it('refuses to add a term already held or of another event and changes nothing (F35-2c)', async () => {
+    const fixture = await setup(null);
+    const registration = await register(fixture, [1]);
+    const other = await setup(null);
+
+    const held = await call(
+      'POST',
+      `${base(registration)}/changes/preview`,
+      own(registration),
+      {
+        moves: [],
+        cancelledTermIds: [],
+        addedTermIds: [fixture.terms[1].id],
+      },
+    );
+    const foreign = await call(
+      'POST',
+      `${base(registration)}/changes/preview`,
+      own(registration),
+      {
+        moves: [],
+        cancelledTermIds: [],
+        addedTermIds: [other.terms[0].id],
+      },
+    );
+
+    expect(held.status).toBe(400);
+    expect(held.body.code).toBe('term_conflict');
+    expect(foreign.status).toBe(400);
+    expect(foreign.body.code).toBe('term_unknown');
+    expect(await statuses(registration)).toEqual({ 'Turnus 2': 'confirmed' });
+  });
+
   it('cancels a term, frees only its bed and keeps an overpayment', async () => {
     const fixture = await setup(null);
     const registration = await register(fixture, [1, 2]);

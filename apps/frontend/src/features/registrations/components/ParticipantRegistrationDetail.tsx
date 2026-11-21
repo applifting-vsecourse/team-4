@@ -1,9 +1,9 @@
-import { useState, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
+import { Link, useRouterState } from "@tanstack/react-router"
 import { ChevronDown, MapPin } from "lucide-react"
 
-import { ROUTES } from "@/app/routes"
+import { ROUTES, SECTIONS } from "@/app/routes"
 import { BackLink } from "@/components/BackLink"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
@@ -67,6 +67,13 @@ export function ParticipantRegistrationDetail({
   const changesQuery = useQuery(participantChangesQueryOptions(registrationId))
   const [cancelProposal, setCancelProposal] = useState<ChangeProposal | null>(null)
   const { data } = query
+  const hash = useRouterState({ select: (state) => state.location.hash })
+  const isLoaded = data !== undefined
+  // A link to a section (an Oznámení of a payment, S4-06) lands on it once the
+  // detail has loaded; the router scrolled before the section existed.
+  useEffect(() => {
+    if (isLoaded && hash) document.getElementById(hash)?.scrollIntoView()
+  }, [isLoaded, hash])
   const changes = changesQuery.data ?? []
   const pendingRequest = changes.find((change) => change.status === "pending")
   const resolvedRequests = changes.filter(
@@ -244,7 +251,10 @@ export function ParticipantRegistrationDetail({
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            id={SECTIONS.receivedPayments}
+            className="scroll-mt-20"
+          >
             <CardHeader>
               <CardTitle>Přijaté platby</CardTitle>
             </CardHeader>
