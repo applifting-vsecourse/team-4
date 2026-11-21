@@ -56,12 +56,15 @@ type ParticipantRegistrationDetailProps = {
   sessionEnded: ReactNode
   /** The programme of the confirmed terms (F65), owned by another feature. */
   renderProgramme?: (registration: ParticipantRegistration) => ReactNode
+  /** The own rooms of the confirmed terms (S4-02), owned by another feature. */
+  renderRooms?: (registration: ParticipantRegistration) => ReactNode
 }
 
 export function ParticipantRegistrationDetail({
   registrationId,
   sessionEnded,
   renderProgramme,
+  renderRooms,
 }: ParticipantRegistrationDetailProps) {
   const query = useQuery(participantRegistrationQueryOptions(registrationId))
   const changesQuery = useQuery(participantChangesQueryOptions(registrationId))
@@ -231,6 +234,7 @@ export function ParticipantRegistrationDetail({
 
           <RegistrationNeedsSummary values={data.needs} />
           <AccommodationCard answer={data.contact} />
+          {renderRooms?.(data)}
 
           {renderProgramme?.(data)}
 
