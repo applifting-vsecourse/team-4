@@ -82,6 +82,7 @@ export function RecordPaymentForm({
               <FormControl>
                 <Input
                   inputMode="decimal"
+                  placeholder="např. 1 500"
                   autoComplete="off"
                   {...field}
                 />

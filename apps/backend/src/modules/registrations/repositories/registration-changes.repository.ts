@@ -559,6 +559,7 @@ export class RegistrationChangesRepository {
       ...new Set([
         ...snapshot.terms.map((term) => term.termId),
         ...proposal.moves.map((move) => move.toTermId),
+        ...(proposal.addedTermIds ?? []),
       ]),
     ];
     await tx.$queryRaw`
@@ -577,7 +578,12 @@ export class RegistrationChangesRepository {
     const targets = await db.eventTerm.findMany({
       where: {
         eventId: snapshot.eventId,
-        id: { in: proposal.moves.map((move) => move.toTermId) },
+        id: {
+          in: [
+            ...proposal.moves.map((move) => move.toTermId),
+            ...(proposal.addedTermIds ?? []),
+          ],
+        },
       },
       select: termInfoSelect,
     });
@@ -601,6 +607,13 @@ export class RegistrationChangesRepository {
   ): Promise<void> {
     for (const row of plan.summary.terms) {
       if (row.original === row.proposed || row.proposed === null) continue;
+      if (row.original === 'confirmed') {
+        // Leaving the confirmed participation gives up the room too (F14-2):
+        // a later confirmation must not bring back an unchecked placement.
+        await tx.roomPlacement.deleteMany({
+          where: { registrationId: snapshot.id, termId: row.termId },
+        });
+      }
       if (row.proposed === 'cancelled') {
         await tx.registrationTerm.update({
           where: {

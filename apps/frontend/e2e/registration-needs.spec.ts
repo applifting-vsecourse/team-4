@@ -89,7 +89,12 @@ test("the needs entered in the form reach the participant and the organizer, who
   const managed = needsCard(page)
   await expect(managed.getByText(HEALTH)).toBeVisible()
   await managed.getByRole("button", { name: "Upravit" }).click()
-  await page.getByRole("button", { name: "Zrušit výběr" }).click()
+  // The gender answer has its own "Zrušit výběr"; this one clears the transport.
+  await page
+    .getByRole("radiogroup", { name: "Doprava" })
+    .locator("..")
+    .getByRole("button", { name: "Zrušit výběr" })
+    .click()
   await page.getByLabel("Poznámka k dopravě").fill("")
   await page.getByLabel("Zdravotní omezení").fill("Astma, inhalátor má u sebe vedoucí.")
   await page.getByRole("button", { name: "Uložit údaje" }).click()

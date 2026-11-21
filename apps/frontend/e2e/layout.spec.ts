@@ -158,7 +158,7 @@ test("every page of the organization keeps the same side margins", async ({ page
     `${base}/registrations`,
     `${base}/rooms`,
     `${base}/settings`,
-    `${base}/terms/${event.termIds[0]}/programme`,
+    `${base}/programme`,
     `${base}/registrations/${registration.id}`,
     `${base}/edit`,
     `${organization}/events/new`,

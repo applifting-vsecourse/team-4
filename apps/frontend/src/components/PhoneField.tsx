@@ -59,7 +59,7 @@ export function PhoneField({ value, onChange, ...rest }: PhoneFieldProps) {
       >
         <SelectTrigger
           aria-label="Země a předvolba"
-          className="w-36 shrink-0"
+          className="w-fit min-w-0 shrink-0"
         >
           <SelectValue>
             {flagOf(country)} +{PHONE_COUNTRIES.find((c) => c.code === country)?.callingCode}

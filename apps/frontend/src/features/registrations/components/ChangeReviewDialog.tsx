@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { formatCzk } from "@/lib/money"
 
 import {
   type ChangePreview,
@@ -27,11 +28,13 @@ import {
   useSubmitChange,
 } from "@/features/registrations/hooks/useRegistrationChange"
 import { describeChangeError, type ChangeError } from "@/features/registrations/lib/changeErrors"
-import { toSummaryProps } from "@/features/registrations/lib/changeSummary"
+import { toSummaryProps, type HeldTerm } from "@/features/registrations/lib/changeSummary"
 
 type ChangeReviewDialogProps = {
   registrationId: string
   proposal: ChangeProposal
+  /** The terms the registration holds now; the review lists those that stay as well. */
+  heldTerms?: HeldTerm[]
   /** The review is closed without sending anything. */
   onClose: () => void
   /** The change was made or the request was filed. */
@@ -50,6 +53,7 @@ const PREVIEW_FAILED = "Kontrolu změn se nepodařilo načíst. Zkuste to prosí
 export function ChangeReviewDialog({
   registrationId,
   proposal,
+  heldTerms,
   onClose,
   onDone,
   onReload,
@@ -72,7 +76,7 @@ export function ChangeReviewDialog({
         open
         onOpenChange={(isOpen) => (isOpen ? undefined : onClose())}
       >
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Kontrola změn přihlášky</DialogTitle>
             <DialogDescription className="sr-only">
@@ -105,7 +109,7 @@ export function ChangeReviewDialog({
     )
   }
 
-  const summary = toSummaryProps(preview.summary)
+  const summary = toSummaryProps(preview.summary, heldTerms)
   const isCancellation = preview.kinds.every((kind) => kind.startsWith("cancel"))
   const consentMoves = preview.moves.filter((move) => move.requiresReleaseConsent)
   const labelsOf = (termIds: string[]) =>
@@ -120,6 +124,15 @@ export function ChangeReviewDialog({
           lostTerm: labelsOf(consentMoves.map((move) => move.fromTermId)),
         }
       : undefined
+
+  // Terms added next to the current ones, not the targets of a move (F35-2c).
+  const added = preview.summary.terms.filter(
+    (term) =>
+      preview.kinds.includes("add_terms") &&
+      term.proposed === "pending" &&
+      term.original !== "pending" &&
+      !preview.moves.some((move) => move.toTermId === term.termId),
+  )
 
   const confirm = (isReleaseAccepted: boolean) => {
     setError(null)
@@ -156,8 +169,19 @@ export function ChangeReviewDialog({
       summary={summary}
       isApprovalRequired={preview.requiresApproval && !isApprovalNewlyRequired}
       isApprovalNewlyRequired={preview.requiresApproval && isApprovalNewlyRequired}
-      hasFinancialImpact={preview.summary.terms.some((term) => term.original !== term.proposed)}
+      hasFinancialImpact={
+        preview.summary.terms.some((term) => term.original !== term.proposed) &&
+        preview.kinds.some((kind) => kind !== "data" && kind !== "add_terms")
+      }
       release={release}
+      added={
+        added.length > 0
+          ? {
+              labels: added.map((term) => term.label).join(", "),
+              price: formatCzk(added.reduce((sum, term) => sum + term.priceMinor, 0)),
+            }
+          : undefined
+      }
       errorMessage={error?.kind === "message" ? error.message : undefined}
       isStale={isStale}
       isSubmitting={submitChange.isPending}

@@ -46,7 +46,13 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-const KINDS: ChangeKind[] = ['data', 'move', 'cancel_terms', 'cancel_all'];
+const KINDS: ChangeKind[] = [
+  'data',
+  'move',
+  'add_terms',
+  'cancel_terms',
+  'cancel_all',
+];
 const FIELDS: readonly ChangeableField[] = CHANGEABLE_FIELDS;
 const STATES: ParticipationStatus[] = [
   'pending',
@@ -154,6 +160,21 @@ export class ChangeProposalDto {
   @ArrayMaxSize(100)
   @IsUUID('all', { each: true, message: 'Neplatný termín.' })
   cancelledTermIds!: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    format: 'uuid',
+    description:
+      'Terms of the same event that are not active in the registration, ' +
+      'added next to the current ones (F35-2c). They start `pending` ' +
+      'whatever their capacity and are evaluated like a new registration; ' +
+      'left out is none.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsUUID('all', { each: true, message: 'Neplatný termín.' })
+  addedTermIds?: string[];
 }
 
 export class SubmitChangeDto extends ChangeProposalDto {

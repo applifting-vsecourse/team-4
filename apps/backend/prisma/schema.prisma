@@ -86,6 +86,7 @@ model User {
   accommodationRuns          AccommodationRun[]
   roomProposals              AccommodationRoomProposal[]
   accommodationDecisions     AccommodationDecision[]
+  roomPlacements             RoomPlacement[]
 
   username        String? @db.VarChar(50)
   displayUsername String? @db.VarChar(50)
@@ -244,6 +245,7 @@ model EventTerm {
   roomProposals              AccommodationRoomProposal[]
   accommodationInterventions AccommodationIntervention[]
   accommodationDecisions     AccommodationDecision[]
+  roomPlacements             RoomPlacement[]
   programmeItems             ProgrammeItem[]
 
   @@unique([id, eventId])
@@ -262,6 +264,7 @@ model Room {
 
   event          Event                  @relation(fields: [eventId], references: [id], onDelete: Restrict)
   availabilities RoomTermAvailability[]
+  placements     RoomPlacement[]
 
   @@unique([id, eventId])
   @@map("room")
@@ -287,7 +290,8 @@ model RoomTermAvailability {
 }
 
 // One item of a term's programme (F65). Start is Europe/Prague wall-clock
-// time, so a date and an `HH:mm` string; the date lies within the term
+// time, so a date and `HH:mm` strings (the end is later than the start, the
+// same day); the date lies within the term
 // (checked by the service, as terms are editable until registration opens).
 model ProgrammeItem {
   id          String   @id @default(uuid(7)) @db.Uuid
@@ -296,6 +300,7 @@ model ProgrammeItem {
   title       String   @db.VarChar(200)
   startDate   DateTime @db.Date
   startTime   String   @db.VarChar(5)
+  endTime     String   @db.VarChar(5)
   place       String?  @db.VarChar(200)
   description String?  @db.VarChar(1000)
   createdAt   DateTime @default(now()) @db.Timestamptz(3)
@@ -324,6 +329,7 @@ model ParticipantAccount {
   magicLinks    ParticipantMagicLink[]
   sessions      ParticipantSession[]
   emails        EmailDelivery[]
+  notifications ParticipantNotificationState[]
 
   @@map("participant_account")
 }
@@ -354,6 +360,23 @@ model ParticipantSession {
 
   @@index([participantAccountId])
   @@map("participant_session")
+}
+
+// What the participant did with a notification of the portal (S4-06). The
+// notifications themselves are not stored: they are read from the saved
+// decisions, decided change requests and payments, whose id is `sourceId`
+// (uuid v7, unique across those tables). No row: unread and shown.
+model ParticipantNotificationState {
+  participantAccountId String    @db.Uuid
+  sourceId             String    @db.Uuid
+  readAt               DateTime? @db.Timestamptz(3)
+  // Hidden for good; a dismissed notification also counts as read.
+  dismissedAt          DateTime? @db.Timestamptz(3)
+
+  participantAccount ParticipantAccount @relation(fields: [participantAccountId], references: [id], onDelete: Cascade)
+
+  @@id([participantAccountId, sourceId])
+  @@map("participant_notification_state")
 }
 
 // ─── Registrations ──────────────────────────────────────────────────────────
@@ -450,6 +473,8 @@ model Registration {
   accommodationInterventions AccommodationIntervention[]
   accommodationDecisions     AccommodationDecision[]
   resultEvents               RegistrationResultEvent[]
+  roommateWishes             RoommateWish[]              @relation("RoommateWishFrom")
+  wishedAsRoommate           RoommateWish[]              @relation("RoommateWishTo")
 
   @@unique([eventId, participantAccountId])
   @@unique([id, eventId])
@@ -467,9 +492,10 @@ model RegistrationTerm {
   priceMinor     Int
   decidedAt      DateTime            @db.Timestamptz(3)
 
-  registration Registration @relation(fields: [registrationId, eventId], references: [id, eventId], onDelete: Restrict)
-  term         EventTerm    @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Restrict)
-  event        Event        @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  registration Registration   @relation(fields: [registrationId, eventId], references: [id, eventId], onDelete: Restrict)
+  term         EventTerm      @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Restrict)
+  event        Event          @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  placement    RoomPlacement?
 
   @@id([registrationId, termId])
   @@index([termId, status])
@@ -674,6 +700,36 @@ model AccommodationTermOrder {
 
   @@unique([termId, eventId])
   @@map("accommodation_term_order")
+}
+
+// A person's room in one term (F14-2, #337). At most one per term; rooms are
+// optional. It never changes the person's participation or the order of the
+// term. Only a confirmed participant is placed; a registration change that
+// leaves the confirmed participation deletes the row, and the room views
+// ignore any row of someone not confirmed.
+model RoomPlacement {
+  registrationId    String   @db.Uuid
+  termId            String   @db.Uuid
+  eventId           String   @db.Uuid
+  roomId            String   @db.Uuid
+  // A locked placement is kept by the room proposal and refuses manual moves
+  // and removal until it is unlocked.
+  isLocked          Boolean  @default(false)
+  // The warnings the organizer confirmed to save it; empty when none.
+  confirmedWarnings String[] @default([]) @db.VarChar(32)
+  placedById        String
+  placedAt          DateTime @default(now()) @db.Timestamptz(3)
+
+  registrationTerm RegistrationTerm @relation(fields: [registrationId, termId], references: [registrationId, termId], onDelete: Cascade)
+  term             EventTerm        @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Cascade)
+  room             Room             @relation(fields: [roomId, eventId], references: [id, eventId], onDelete: Cascade)
+  placedBy         User             @relation(fields: [placedById], references: [id], onDelete: Restrict)
+
+  @@id([registrationId, termId])
+  @@index([termId, roomId])
+  @@index([roomId])
+  @@index([placedById])
+  @@map("room_placement")
 }
 
 enum AccommodationInterventionKind {
@@ -884,4 +940,23 @@ model RegistrationResultEvent {
   @@unique([batchId, registrationId])
   @@index([createdAt])
   @@map("registration_result_event")
+}
+
+// A confirmed participant's wish to share a room with another participant
+// of the same event (S4-05, #339): one-sided and for the whole event, not
+// per term. Only its author and the event's organizers read it. A wish has
+// no evidence value, so it goes with either registration.
+model RoommateWish {
+  eventId            String   @db.Uuid
+  fromRegistrationId String   @db.Uuid
+  toRegistrationId   String   @db.Uuid
+  createdAt          DateTime @default(now()) @db.Timestamptz(3)
+
+  from Registration @relation("RoommateWishFrom", fields: [fromRegistrationId, eventId], references: [id, eventId], onDelete: Cascade)
+  to   Registration @relation("RoommateWishTo", fields: [toRegistrationId, eventId], references: [id, eventId], onDelete: Cascade)
+
+  @@id([fromRegistrationId, toRegistrationId])
+  @@index([eventId])
+  @@index([toRegistrationId])
+  @@map("roommate_wish")
 }

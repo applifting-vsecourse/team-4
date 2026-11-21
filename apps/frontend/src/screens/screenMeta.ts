@@ -4,6 +4,7 @@ import { expect } from "storybook/test"
 import { ScreenPreview } from "@/screens/ScreenPreview"
 
 import { accommodationHandlers } from "@/features/accommodation/fixtures/handlers"
+import { placementHandlers } from "@/features/accommodation/fixtures/placementHandlers"
 import { authHandlers } from "@/features/auth/fixtures/handlers"
 import { OPEN_EVENT } from "@/features/events/fixtures/events"
 import { eventHandlers } from "@/features/events/fixtures/handlers"
@@ -35,6 +36,7 @@ export const organizerBackend = () => [
   ...registrationHandlers.event(),
   ...accommodationHandlers.evaluation(),
   ...accommodationHandlers.roomProposal(),
+  ...placementHandlers(),
 ]
 
 /** URL of a page of the open summer camp. */

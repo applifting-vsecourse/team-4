@@ -281,7 +281,7 @@ describe("the gender answer (F64)", () => {
   it("is voluntary: the form is sent without it as not answered", async () => {
     post.mockReturnValue(respondWith(RESULT))
     renderForm()
-    expect(screen.getByRole("group", { name: "Pohlaví pro ubytování" })).toBeVisible()
+    expect(screen.getByText("Pohlaví pro ubytování")).toBeVisible()
     await user.click(screen.getByLabelText(/1\. turnus/))
     await fillContact()
 

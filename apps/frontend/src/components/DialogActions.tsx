@@ -10,6 +10,8 @@ type DialogActionsProps = {
   /** Without it the confirming button submits the dialog's form. */
   onSubmit?: () => unknown
   submitVariant?: "default" | "destructive"
+  /** A secondary action at the start of the footer, e.g. deleting the edited record. */
+  leading?: ReactNode
 }
 
 // The footer of a dialog that confirms one action: „Zrušit“ closes it, the
@@ -19,9 +21,11 @@ export function DialogActions({
   isPending,
   onSubmit,
   submitVariant = "default",
+  leading,
 }: DialogActionsProps) {
   return (
     <DialogFooter>
+      {leading ? <div className="flex sm:mr-auto">{leading}</div> : null}
       <DialogClose asChild>
         <Button
           type="button"

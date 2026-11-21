@@ -497,6 +497,50 @@ describe('payment', () => {
   });
 });
 
+describe('roommate_wish (#339)', () => {
+  it('never names oneself nor someone of another event, and goes with either registration', async () => {
+    const organizationId = (await createOrganization(prisma)).id;
+    const summer = await createEvent(prisma, { organizationId, terms: SUMMER });
+    const winter = await createEvent(prisma, {
+      organizationId,
+      terms: [{ startDate: '2027-12-01', endDate: '2027-12-07' }],
+    });
+    const register = (
+      created: typeof summer,
+    ): ReturnType<typeof createRegistration> =>
+      createRegistration(prisma, {
+        event: created.event,
+        terms: [{ term: created.terms[0], status: 'confirmed' }],
+      });
+    const jana = await register(summer);
+    const anna = await register(summer);
+    const stranger = await register(winter);
+    const wish = (from: string, to: string): Promise<unknown> =>
+      prisma.roommateWish.create({
+        data: {
+          eventId: summer.event.id,
+          fromRegistrationId: from,
+          toRegistrationId: to,
+        },
+      });
+
+    await expect(wish(jana.id, jana.id)).rejects.toThrow();
+    await expect(wish(jana.id, stranger.id)).rejects.toThrow();
+    await wish(jana.id, anna.id);
+    await expect(wish(jana.id, anna.id)).rejects.toThrow();
+
+    await prisma.registrationTerm.deleteMany({
+      where: { registrationId: anna.id },
+    });
+    await prisma.registration.delete({ where: { id: anna.id } });
+    expect(
+      await prisma.roommateWish.count({
+        where: { fromRegistrationId: jana.id },
+      }),
+    ).toBe(0);
+  });
+});
+
 describe('email_delivery', () => {
   it('requires the target that matches the type', async () => {
     const { event, terms } = await createEvent(prisma, {
@@ -648,5 +692,69 @@ describe('room proposals (#365)', () => {
         },
       }),
     ).resolves.toBeDefined();
+  });
+});
+
+describe('room_placement (#337)', () => {
+  it('keeps the room, term and person in one event, and only confirmable warnings', async () => {
+    const owner = await createOrganizer(prisma);
+    const organizationId = (
+      await createOrganization(prisma, { ownerId: owner.id })
+    ).id;
+    const { event, terms, rooms } = await createEvent(prisma, {
+      organizationId,
+      terms: SUMMER,
+      rooms: [{ baseBeds: 2, termIndexes: [0, 1] }],
+    });
+    const other = await createEvent(prisma, {
+      organizationId,
+      terms: [{ startDate: '2027-09-01', endDate: '2027-09-07' }],
+      rooms: [{ baseBeds: 2, termIndexes: [0] }],
+    });
+    const registration = await createRegistration(prisma, {
+      event,
+      terms: [{ term: terms[0], status: 'confirmed' }],
+    });
+    const row = {
+      registrationId: registration.id,
+      termId: terms[0].id,
+      eventId: event.id,
+      roomId: rooms[0].id,
+      placedById: owner.id,
+    };
+
+    // A room of another event.
+    await expect(
+      prisma.roomPlacement.create({
+        data: { ...row, roomId: other.rooms[0].id },
+      }),
+    ).rejects.toThrow(/Foreign key constraint/);
+    // A term the person is not registered in.
+    await expect(
+      prisma.roomPlacement.create({ data: { ...row, termId: terms[1].id } }),
+    ).rejects.toThrow(/Foreign key constraint/);
+    await expect(
+      prisma.roomPlacement.create({
+        data: { ...row, confirmedWarnings: ['room_unavailable'] },
+      }),
+    ).rejects.toThrow(/room_placement_confirmed_warnings_chk/);
+
+    await prisma.roomPlacement.create({
+      data: { ...row, confirmedWarnings: ['mixed', 'extra_bed'] },
+    });
+    // Leaving the term drops the placement with it.
+    await prisma.registrationTerm.delete({
+      where: {
+        registrationId_termId: {
+          registrationId: registration.id,
+          termId: terms[0].id,
+        },
+      },
+    });
+    expect(
+      await prisma.roomPlacement.count({
+        where: { registrationId: registration.id },
+      }),
+    ).toBe(0);
   });
 });

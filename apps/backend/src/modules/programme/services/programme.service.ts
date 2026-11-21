@@ -1,6 +1,7 @@
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import {
   isCalendarDate,
+  isEndAfterStart,
   isWithinTerm,
   ProgrammeItemInput,
   ProgrammeItemModel,
@@ -35,6 +36,14 @@ const dateInvalid = (): BadRequestException =>
     code: 'programme_date_invalid',
     field: 'startDate',
     message: 'Zadejte platné datum.',
+  });
+
+const endNotAfterStart = (): BadRequestException =>
+  new BadRequestException({
+    statusCode: 400,
+    code: 'programme_end_not_after_start',
+    field: 'endTime',
+    message: 'Čas konce musí být pozdější než čas začátku.',
   });
 
 /**
@@ -116,5 +125,8 @@ export class ProgrammeService {
     const term = await this.requireTerm(scope, termId);
     if (!isCalendarDate(input.startDate)) throw dateInvalid();
     if (!isWithinTerm(input.startDate, term)) throw dateOutOfTerm();
+    if (!isEndAfterStart(input.startTime, input.endTime)) {
+      throw endNotAfterStart();
+    }
   }
 }

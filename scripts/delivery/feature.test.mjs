@@ -304,6 +304,31 @@ test('a verdict from before the latest retarget does not count', () => {
   );
 });
 
+test('the repository Copilot pause waives review for child PRs only', () => {
+  const childRole = integrationRole({ pr: pr(), issues: [sub()] });
+  const args = { pr: pr(), role: childRole, files: [], comments: [] };
+  assert.deepEqual(
+    integrationStages({ ...args, copilotReviewPaused: true }),
+    [],
+  );
+  assert.match(
+    integrationStages({ ...args, copilotReviewPaused: false }).join(' '),
+    /agent review has not passed/,
+  );
+
+  const parentRole = integrationRole({ pr: pr(), issues: [parentIssue()] });
+  assert.match(
+    integrationStages({
+      pr: pr(),
+      role: parentRole,
+      files: [],
+      comments: [],
+      copilotReviewPaused: true,
+    }).join(' '),
+    /agent review has not passed/,
+  );
+});
+
 test('nothing passes into an integration branch without its ruleset', () => {
   const role = integrationRole({ pr: pr(), issues: [sub()] });
   assert.match(
@@ -420,7 +445,44 @@ test('a parent PR is eligible once both areas exist, all sub-issues closed and n
   );
   assert.match(reasons(parentIssue(), [{ number: 41 }]), /#41 into/);
   assert.match(
-    reasons(parentIssue({ branches: [] })),
+    reasons(parentIssue({ number: 999, branches: [] })),
+    /must link the one parent issue/,
+  );
+});
+
+test('a parent PR links its integration branch through the matching issue reference', () => {
+  const parentPr = pr({
+    number: 50,
+    body: 'Closes #400',
+    base: { ref: 'main', repo: REPO },
+    head: { ref: BRANCH, sha, repo: REPO },
+  });
+  // GitHub shows the PR in Development and removes the standalone branch link.
+  assert.deepEqual(
+    parentReasons({
+      pr: parentPr,
+      issues: [parentIssue({ branches: [] })],
+      closingIssueNumbers: [400],
+      openInto: [],
+    }),
+    [],
+  );
+});
+
+test('a Refs-only issue cannot own the parent branch fallback', () => {
+  const parentPr = pr({
+    number: 50,
+    body: 'Refs #400',
+    base: { ref: 'main', repo: REPO },
+    head: { ref: BRANCH, sha, repo: REPO },
+  });
+  assert.match(
+    parentReasons({
+      pr: parentPr,
+      issues: [parentIssue({ branches: [] })],
+      closingIssueNumbers: [],
+      openInto: [],
+    }).join(' '),
     /must link the one parent issue/,
   );
 });

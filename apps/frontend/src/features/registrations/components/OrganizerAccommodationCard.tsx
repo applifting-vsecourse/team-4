@@ -23,6 +23,8 @@ type OrganizerAccommodationCardProps = {
   isSection?: boolean
   /** Below the answer while it is not edited: the determination (S3-01), from another feature. */
   determination?: ReactNode
+  /** Below everything, also while the answer is edited: the roommate wishes (S4-05). */
+  wishes?: ReactNode
   /** A saved answer changes the term evaluation of another feature (S3-01). */
   onAnswerSaved?: () => void
 }
@@ -43,6 +45,7 @@ export function OrganizerAccommodationCard({
   registration,
   isSection = false,
   determination,
+  wishes,
   onAnswerSaved,
 }: OrganizerAccommodationCardProps) {
   const update = useUpdateGender(organizationId, eventId, registration.id)
@@ -64,7 +67,14 @@ export function OrganizerAccommodationCard({
       answer={stored}
       isManualAccommodation={registration.requiresManualAccommodation}
       isSection={isSection}
-      extra={isEditing ? undefined : determination}
+      extra={
+        (!isEditing && determination) || wishes ? (
+          <div className="space-y-4">
+            {isEditing ? null : determination}
+            {wishes}
+          </div>
+        ) : undefined
+      }
       action={
         isEditing ? null : (
           <Button

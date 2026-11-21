@@ -6,9 +6,11 @@ import { apiUrl, failOn, failsOnRefresh } from "@/screens/msw"
 import { eventUrl, organizerBackend, screenMeta, showsHeading } from "@/screens/screenMeta"
 import { openDialog, refresh, showsText } from "@/screens/steps"
 
+import { organizerRoommateWishesSchema } from "@/features/registrations/api/roommateWishSchemas"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
 import { makeOwnChange } from "@/features/registrations/fixtures/registrationChanges"
 import { makeRegistrationDetail } from "@/features/registrations/fixtures/registrations"
+import { ORGANIZER_WISHES, STORED_WISHES } from "@/features/registrations/fixtures/roommateWishes"
 
 const REGISTRATION_ID = makeRegistrationDetail().id
 const DETAIL = "/organizations/:organizationId/events/:eventId/registrations/:registrationId"
@@ -33,6 +35,75 @@ export const RegistrationDetail: Story = { play: showsHeading(NAME) }
 
 /** PO feedback point 11: align the overview, group payment history, and give long sections full width. */
 export const PoFeedbackLayoutPreview: Story = { play: showsHeading(NAME) }
+
+/** The participant's roommate wishes, read-only for the organizer (S4-05). */
+export const RoommateWishes: Story = {
+  play: async (context) => {
+    await showsHeading(NAME)(context)
+    await expect(await context.canvas.findByText("Přání na spolubydlící")).toBeVisible()
+    await expect(context.canvas.getByText("Barbora Kučerová, Kristýna Dvořáková")).toBeVisible()
+  },
+}
+
+const ORGANIZER_WISHES_URL =
+  "/organizations/:organizationId/events/:eventId/registrations/:registrationId/roommate-wishes"
+
+/** No wishes yet. */
+export const RoommateWishesNone: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      http.get(apiUrl(ORGANIZER_WISHES_URL), () =>
+        HttpResponse.json(organizerRoommateWishesSchema.parse({ wishes: [] })),
+      ),
+    )
+  },
+  play: async (context) => {
+    await showsHeading(NAME)(context)
+    await expect(await context.canvas.findByText("Bez přání")).toBeVisible()
+  },
+}
+
+/** The wishes failed to load: the rest of the detail stays, with a retry. */
+export const RoommateWishesFailed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("get", ORGANIZER_WISHES_URL))
+  },
+  play: async (context) => {
+    await showsHeading(NAME)(context)
+    await expect(
+      await context.canvas.findByText("Přání na spolubydlící se nepodařilo načíst"),
+    ).toBeVisible()
+  },
+}
+
+/** "Aktualizovat" also reloads the wishes, not only the registration. */
+export const RoommateWishesRefreshed: Story = {
+  beforeEach: ({ msw }) => {
+    let requests = 0
+    msw.use(
+      http.get(apiUrl(ORGANIZER_WISHES_URL), () => {
+        requests += 1
+        return HttpResponse.json(
+          requests === 1
+            ? ORGANIZER_WISHES
+            : organizerRoommateWishesSchema.parse({
+                wishes: [...ORGANIZER_WISHES.wishes, STORED_WISHES.candidates[0]],
+              }),
+        )
+      }),
+    )
+  },
+  play: async (context) => {
+    await showsHeading(NAME)(context)
+    await expect(
+      await context.canvas.findByText("Barbora Kučerová, Kristýna Dvořáková"),
+    ).toBeVisible()
+    await refresh(context.canvas)
+    await expect(
+      await context.canvas.findByText("Barbora Kučerová, Kristýna Dvořáková, Adéla Horáková"),
+    ).toBeVisible()
+  },
+}
 
 export const Unavailable: Story = {
   beforeEach: ({ msw }) => {

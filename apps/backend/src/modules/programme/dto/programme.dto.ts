@@ -14,6 +14,9 @@ export class ProgrammeItemDto {
   @ApiProperty({ example: '19:00', description: 'Europe/Prague, `HH:mm`.' })
   startTime!: string;
 
+  @ApiProperty({ example: '21:00', description: 'Europe/Prague, `HH:mm`.' })
+  endTime!: string;
+
   @ApiProperty({ nullable: true, type: String })
   place!: string | null;
 

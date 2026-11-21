@@ -145,6 +145,18 @@ export function OverlaysNavigationSection() {
               >
                 Chybový toast
               </Button>
+              <Button
+                variant="outline"
+                onClick={() => toast.warning("Termín je skoro plný")}
+              >
+                Varovný toast
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => toast.info("Návrh se přepočítává")}
+              >
+                Informační toast
+              </Button>
             </div>
           </ShowcaseItem>
         </div>
