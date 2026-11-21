@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { api, HTTPError } from "@/lib/api-client"
 
-import { evaluationKeys } from "@/features/accommodation/api/evaluationQueryOptions"
 import { placementKeys, placementsPath } from "@/features/accommodation/api/placementQueryOptions"
 import {
   placementWarningsErrorSchema,
@@ -10,6 +9,7 @@ import {
   type ConfirmableWarning,
   type TermPlacements,
 } from "@/features/accommodation/api/placementSchemas"
+import { roomProposalKeys } from "@/features/accommodation/api/roomProposalQueryOptions"
 
 /** One change of one participant's placement in the term. */
 export type PlacementChange =
@@ -77,8 +77,7 @@ export function useSavePlacement(organizationId: string, eventId: string, termId
       if (result.kind === "saved") {
         queryClient.setQueryData(queryKey, result.placements)
         void queryClient.invalidateQueries({
-          queryKey: evaluationKeys.event(organizationId, eventId),
-          predicate: (query) => query.queryKey[3] === "room-proposal",
+          queryKey: roomProposalKeys.terms(organizationId, eventId),
         })
       }
       // The board was behind the room the server checked.

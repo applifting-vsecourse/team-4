@@ -72,8 +72,7 @@ test("proposing rooms by hand, stale after a change, and automatically", async (
 
   // The other term is in the URL and has no proposal yet.
   await page
-    .getByRole("tablist", { name: "Termín" })
-    .first()
+    .getByRole("tablist", { name: "Termín", exact: true })
     .getByRole("tab", { name: /2\. turnus/ })
     .click()
   await expect(page).toHaveURL(new RegExp(`term=${event.termIds[1]}`))
@@ -126,6 +125,8 @@ test("applying a proposal saves its rooms, and the wishes follow the saved rooms
   await page.goto(roomsUrl(event))
   const wishes = page.getByRole("region", { name: "Přání na spolubydlící" })
   const wishOf = (name: string) => wishes.getByRole("row").filter({ hasText: name })
+  /** "Uložené rozdělení" of the wish from `name`. */
+  const savedStateOf = (name: string) => wishOf(name).getByRole("cell").nth(2)
   // Nobody has a saved room yet; a man and a woman can't share one.
   await expect(wishOf("Jana")).toContainText("Čeká na umístění")
   await expect(wishOf("Petr")).toContainText("Nelze splnit")
@@ -147,11 +148,12 @@ test("applying a proposal saves its rooms, and the wishes follow the saved rooms
   const roomCard = (person: string) =>
     board.locator('[data-slot="card"]').filter({ hasText: person }).filter({ hasText: "Chatka" })
   await expect(roomCard("Jana")).toContainText("Tereza")
-  await expect(wishOf("Jana")).toContainText("Splněno")
+  // The saved column, not the proposal's, which said so before the apply.
+  await expect(savedStateOf("Jana")).toHaveText("Splněno")
   await expect(proposal.getByText("Neaktuální návrh", { exact: true })).toBeVisible()
 
   // A manual change is read live too.
   await board.getByRole("button", { name: /^Akce: Jana/ }).click()
   await page.getByRole("menuitem", { name: "Odebrat z pokoje" }).click()
-  await expect(wishOf("Jana")).toContainText("Čeká na umístění")
+  await expect(savedStateOf("Jana")).toHaveText("Čeká na umístění")
 })

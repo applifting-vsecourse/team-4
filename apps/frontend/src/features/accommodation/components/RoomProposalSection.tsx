@@ -26,10 +26,8 @@ export type RoomProposalSectionProps = {
   eventId: string
   /** The event's terms, by start. */
   terms: Term[]
+  /** The term the page's tabs selected; "" when the event has none. */
   termId: string
-  onSelectTerm: (termId: string) => void
-  /** False on Ubytování, where one set of tabs carries every section of the term. */
-  hasTermTabs?: boolean
 }
 
 const PROPOSE_FAILED = "Zkuste to prosím znovu."
@@ -45,8 +43,6 @@ export function RoomProposalSection({
   eventId,
   terms,
   termId,
-  onSelectTerm,
-  hasTermTabs = true,
 }: RoomProposalSectionProps) {
   const hasTerm = termId !== ""
   const proposal = useQuery({
@@ -73,8 +69,6 @@ export function RoomProposalSection({
   const common = {
     terms: terms.map(toEvaluationTerm),
     selectedTermId: termId,
-    onSelectTerm,
-    hasTermTabs,
   }
   const unknownTerm = { ...common, mode: "manual", status: "none" } satisfies RoomProposalProps
 
@@ -117,6 +111,8 @@ export function RoomProposalSection({
       applyAction={
         shown && layout && term ? (
           <ApplyProposalAction
+            // A new term closes the dialog: it reviewed this term's proposal.
+            key={termId}
             organizationId={organizationId}
             eventId={eventId}
             termId={termId}

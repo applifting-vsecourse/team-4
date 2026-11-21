@@ -7,11 +7,9 @@ import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { WorkspacePage } from "@/components/WorkspacePage"
 
-import {
-  evaluationKeys,
-  hardAttributeQueryOptions,
-} from "@/features/accommodation/api/evaluationQueryOptions"
+import { hardAttributeQueryOptions } from "@/features/accommodation/api/evaluationQueryOptions"
 import { placementKeys } from "@/features/accommodation/api/placementQueryOptions"
+import { roomProposalKeys } from "@/features/accommodation/api/roomProposalQueryOptions"
 import { AccommodationTermTabs } from "@/features/accommodation/components/AccommodationTermTabs"
 import { RoomAssignmentSection } from "@/features/accommodation/components/RoomAssignmentSection"
 import { RoommateWishStatesSection } from "@/features/accommodation/components/RoommateWishStatesSection"
@@ -73,8 +71,7 @@ function RoomsPage() {
       refreshEvent(),
       queryClient.invalidateQueries({ queryKey: placementKeys.all() }),
       queryClient.invalidateQueries({
-        queryKey: evaluationKeys.event(organizationId, eventId),
-        predicate: (query) => query.queryKey[3] === "room-proposal",
+        queryKey: roomProposalKeys.terms(organizationId, eventId),
       }),
     ])
 
@@ -124,15 +121,11 @@ function RoomsPage() {
                 eventId={eventId}
                 terms={event.terms}
                 termId={termId}
-                onSelectTerm={selectTerm}
-                hasTermTabs={false}
               />
               <RoomAssignmentSection
                 organizationId={organizationId}
                 eventId={eventId}
-                terms={event.terms}
                 selectedTermId={termId}
-                hasTermTabs={false}
               />
               <RoommateWishStatesSection
                 organizationId={organizationId}
@@ -149,7 +142,6 @@ function RoomsPage() {
             eventId={eventId}
             terms={event.terms}
             termId=""
-            onSelectTerm={selectTerm}
           />
         )}
         <RoomsSection

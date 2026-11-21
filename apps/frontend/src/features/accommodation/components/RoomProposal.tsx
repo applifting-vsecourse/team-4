@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/table"
 
 import type { RoomProposalStatus } from "@/features/accommodation/api/roomProposalSchemas"
-import { AccommodationTermTabs } from "@/features/accommodation/components/AccommodationTermTabs"
 import type { EvaluationTerm } from "@/features/accommodation/components/TermEvaluation"
 import {
   PROPOSAL_STATUS_BADGE,
@@ -49,7 +48,6 @@ export type RoomProposalProps = {
   isLoading?: boolean
   /** Another term is loading: the previous one stays shown but inert. */
   isSwitching?: boolean
-  onSelectTerm?: (termId: string) => void
   onPropose?: () => void
   /**
    * "Použít návrh" (#390) beside "Navrhnout pokoje". Always rendered: the
@@ -60,8 +58,6 @@ export type RoomProposalProps = {
   /** "Navrhnout pokoje" was refused or failed, already worded; the shown data stay. */
   proposeError?: string
   onRetryLoad?: () => void
-  /** False on Ubytování, where one set of tabs carries every section of the term. */
-  hasTermTabs?: boolean
 }
 
 function count(n: number, one: string, few: string, many: string) {
@@ -363,12 +359,10 @@ export function RoomProposal({
   isLoadFailed = false,
   isLoading = false,
   isSwitching = false,
-  onSelectTerm,
   onPropose,
   applyAction,
   proposeError,
   onRetryLoad,
-  hasTermTabs = true,
 }: RoomProposalProps) {
   const selectedTerm = terms.find((term) => term.id === selectedTermId)
   const isRunning = status === "running"
@@ -485,21 +479,7 @@ export function RoomProposal({
     </>
   )
 
-  return (
-    <RoomProposalFrame>
-      {hasTermTabs ? (
-        <AccommodationTermTabs
-          terms={terms}
-          selectedTermId={selectedTermId}
-          onSelectTerm={onSelectTerm}
-        >
-          {content}
-        </AccommodationTermTabs>
-      ) : (
-        content
-      )}
-    </RoomProposalFrame>
-  )
+  return <RoomProposalFrame>{content}</RoomProposalFrame>
 }
 
 export function RoomProposalFrame({ children }: { children: ReactNode }) {

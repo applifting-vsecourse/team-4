@@ -20,19 +20,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
-import { AccommodationTermTabs } from "@/features/accommodation/components/AccommodationTermTabs"
 import type {
   BoardPerson,
   BoardRoom,
   PlacementBoard,
 } from "@/features/accommodation/lib/placements"
 
-export type AssignmentTerm = { id: string; label: string }
-
 export type RoomAssignmentProps = {
-  terms: AssignmentTerm[]
-  selectedTermId: string
-  onSelectTerm?: (termId: string) => void
   /** The placements of the selected term; absent while they load or after a failed load. */
   board?: PlacementBoard
   isLoadFailed?: boolean
@@ -44,8 +38,6 @@ export type RoomAssignmentProps = {
   /** Places the participant in the room, or removes the placement with `null`. */
   onMove: (personId: string, roomId: string | null) => unknown
   onLock: (personId: string, isLocked: boolean) => unknown
-  /** False on Ubytování, where one set of tabs carries every section of the term. */
-  hasTermTabs?: boolean
 }
 
 const SECTION_TITLE = "Rozdělení do pokojů"
@@ -56,9 +48,6 @@ const DRAG_TYPE = "text/plain"
 // participants without a room. A participant is dragged to a room or to
 // "Bez pokoje"; the menu of each participant does the same from the keyboard.
 export function RoomAssignment({
-  terms,
-  selectedTermId,
-  onSelectTerm,
   board,
   isLoadFailed = false,
   onRetryLoad,
@@ -66,7 +55,6 @@ export function RoomAssignment({
   isSaving = false,
   onMove,
   onLock,
-  hasTermTabs = true,
 }: RoomAssignmentProps) {
   const content = (
     <>
@@ -110,17 +98,7 @@ export function RoomAssignment({
       title={SECTION_TITLE}
       isBusy={isSaving || isSwitching}
     >
-      {hasTermTabs ? (
-        <AccommodationTermTabs
-          terms={terms}
-          selectedTermId={selectedTermId}
-          onSelectTerm={onSelectTerm}
-        >
-          {content}
-        </AccommodationTermTabs>
-      ) : (
-        content
-      )}
+      {content}
     </PageSection>
   )
 }

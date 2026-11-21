@@ -78,8 +78,7 @@ export function RoomProposalPreferencesSection({
       onSave={(next) =>
         save.mutate(next, {
           // The neutral toast: the green one fails the contrast check (#400).
-          onSuccess: () =>
-            toast.success("Preference návrhu pokojů byly uloženy.", { richColors: false }),
+          onSuccess: () => toast.success("Preference návrhu pokojů byly uloženy."),
         })
       }
     />

@@ -171,8 +171,7 @@ export const Proposal: Story = {
     await expect(await section.findByText(/hodnotou „Pohlaví“/)).toBeVisible()
     // One set of term tabs for the proposal, the placements and the wishes;
     // the term is in the URL, and switching it stays on Ubytování.
-    // (The room settings below have their own term tabs for capacities.)
-    const tabs = within(canvas.getAllByRole("tablist", { name: "Termín" })[0]!)
+    const tabs = within(canvas.getByRole("tablist", { name: "Termín" }))
     await expect(section.queryByRole("tablist")).not.toBeInTheDocument()
     const [first, second] = tabs.getAllByRole("tab")
     await expect(first).toHaveAttribute("aria-selected", "true")

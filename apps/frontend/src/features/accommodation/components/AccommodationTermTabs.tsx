@@ -11,9 +11,8 @@ export type AccommodationTermTabsProps = {
   children: ReactNode
 }
 
-// The terms of an event as tabs, with the selected term's content below. On
-// Ubytování one set of tabs carries the room proposal, the placements and the
-// roommate wishes of the term together (#26); a section shown alone has its own.
+// Ubytování: the terms of the event as tabs, with the selected term's room
+// proposal, placements and roommate wishes below, under one selection (#26).
 export function AccommodationTermTabs({
   terms,
   selectedTermId,

@@ -20,8 +20,11 @@ export const roomProposalKeys = {
     [...evaluationKeys.event(organizationId, eventId), "room-proposal-mode"] as const,
   preferences: (organizationId: string, eventId: string) =>
     [...evaluationKeys.event(organizationId, eventId), "room-proposal-preferences"] as const,
+  /** Every term's proposal and wishes: a saved placement, an apply or a mode change reloads them. */
+  terms: (organizationId: string, eventId: string) =>
+    [...evaluationKeys.event(organizationId, eventId), "room-proposal"] as const,
   term: (organizationId: string, eventId: string, termId: string) =>
-    [...evaluationKeys.event(organizationId, eventId), "room-proposal", termId] as const,
+    [...roomProposalKeys.terms(organizationId, eventId), termId] as const,
   /** Under the term's proposal: a new proposal or an apply reloads them too. */
   wishes: (organizationId: string, eventId: string, termId: string) =>
     [...roomProposalKeys.term(organizationId, eventId, termId), "wishes"] as const,

@@ -36,7 +36,6 @@ function renderSection(terms = [EVALUATED_TERM]) {
         eventId="event"
         terms={terms}
         termId={terms[0]?.id ?? ""}
-        onSelectTerm={() => undefined}
       />
     </QueryClientProvider>,
   )

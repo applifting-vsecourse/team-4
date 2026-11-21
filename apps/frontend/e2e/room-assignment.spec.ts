@@ -28,7 +28,7 @@ test.afterAll(closeDb)
 const board = (page: Page) => page.getByRole("region", { name: "Rozdělení do pokojů" })
 
 /** The term tabs of the proposal, the placements and the wishes (#26). */
-const termTabs = (page: Page) => page.getByRole("tablist", { name: "Termín" }).first()
+const termTabs = (page: Page) => page.getByRole("tablist", { name: "Termín", exact: true })
 
 const card = (page: Page, title: string | RegExp) =>
   board(page)

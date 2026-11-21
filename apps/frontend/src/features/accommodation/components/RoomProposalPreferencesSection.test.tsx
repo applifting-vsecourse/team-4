@@ -73,9 +73,9 @@ describe("RoomProposalPreferencesSection", () => {
     await waitFor(() =>
       expect(client.getQueryData(roomProposalKeys.preferences("org", "event"))).toEqual(saved),
     )
-    expect(invalidate).toHaveBeenCalledWith(
-      expect.objectContaining({ predicate: expect.any(Function) as unknown }),
-    )
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: roomProposalKeys.terms("org", "event"),
+    })
     expect(items()[0]).toMatch(/^1\.Přání/)
   })
 
