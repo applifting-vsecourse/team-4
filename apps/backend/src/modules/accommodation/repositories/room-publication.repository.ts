@@ -1,4 +1,5 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
+import { Prisma } from '@/generated/prisma/client';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import { Injectable } from '@nestjs/common';
 
@@ -64,7 +65,10 @@ export class RoomPublicationRepository {
     );
   }
 
-  private termOf(scope: EventScope, termId: string) {
+  private termOf(
+    scope: EventScope,
+    termId: string,
+  ): Prisma.EventTermWhereInput {
     return {
       id: termId,
       eventId: scope.eventId,

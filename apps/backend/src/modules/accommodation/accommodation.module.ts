@@ -1,8 +1,10 @@
 import { PrismaModule } from '@/core/prisma/prisma.module';
+import { ParticipantAccessModule } from '@/modules/participant-access/participant-access.module';
 import { AuthModule } from '@/shared/auth/auth.module';
 import { Module } from '@nestjs/common';
 import { AccommodationRulesController } from './controllers/accommodation-rules.controller';
 import { OrderMovesController } from './controllers/order-moves.controller';
+import { ParticipantPlacementsController } from './controllers/participant-placements.controller';
 import { RegistrationAccommodationController } from './controllers/registration-accommodation.controller';
 import { RoomPlacementsController } from './controllers/room-placements.controller';
 import { RoomProposalController } from './controllers/room-proposal.controller';
@@ -13,6 +15,7 @@ import { AccommodationEvaluationRepository } from './repositories/accommodation-
 import { AccommodationRulesRepository } from './repositories/accommodation-rules.repository';
 import { EvaluationQueueRepository } from './repositories/evaluation-queue.repository';
 import { OrderMovesRepository } from './repositories/order-moves.repository';
+import { ParticipantPlacementsRepository } from './repositories/participant-placements.repository';
 import { ProposalQueueRepository } from './repositories/proposal-queue.repository';
 import { RegistrationAccommodationRepository } from './repositories/registration-accommodation.repository';
 import { RoomPlacementsRepository } from './repositories/room-placements.repository';
@@ -28,6 +31,7 @@ import {
   RegistrationHardAttributeAnswers,
 } from './services/hard-attribute-answers';
 import { OrderMovesService } from './services/order-moves.service';
+import { ParticipantPlacementsService } from './services/participant-placements.service';
 import { ProposalWorker } from './services/proposal-worker.service';
 import { RegistrationAccommodationService } from './services/registration-accommodation.service';
 import { RoomPlacementsService } from './services/room-placements.service';
@@ -46,12 +50,14 @@ import { TermRoomProposalService } from './services/term-room-proposal.service';
 // Accommodation evaluation (S3-T4, S3-01, S3-03, #365, #384, #389): the
 // rules and the term evaluation of the organizer, the manual order of a
 // term, and the workers that run the due evaluations and room proposals.
-// Manual room placement (F14-2, #337).
+// Manual room placement (F14-2, #337). Publication of the rooms of a term
+// and the participant's own published room (S4-02, #341).
 @Module({
-  imports: [AuthModule, PrismaModule],
+  imports: [AuthModule, PrismaModule, ParticipantAccessModule],
   controllers: [
     AccommodationRulesController,
     OrderMovesController,
+    ParticipantPlacementsController,
     RegistrationAccommodationController,
     RoomProposalController,
     RoomPlacementsController,
@@ -68,6 +74,8 @@ import { TermRoomProposalService } from './services/term-room-proposal.service';
     EvaluationWorker,
     OrderMovesRepository,
     OrderMovesService,
+    ParticipantPlacementsRepository,
+    ParticipantPlacementsService,
     ProposalQueueRepository,
     ProposalWorker,
     RegistrationAccommodationRepository,
