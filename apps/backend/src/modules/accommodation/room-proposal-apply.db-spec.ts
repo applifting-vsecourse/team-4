@@ -420,6 +420,41 @@ describe('Použít návrh', () => {
     expect((await f.apply(proposalId)).status).toBe(409);
   });
 
+  it('makes the other confirmed terms of everyone moved stale', async () => {
+    const f = await setup();
+    const jana = await f.person('Jana Svobodová', ['confirmed', 'confirmed']);
+    const anna = await f.person('Anna Malá', ['confirmed', 'waitlisted']);
+    const proposalId = await f.storeProposal([jana, anna], {
+      [jana.id]: 0,
+      [anna.id]: 0,
+    });
+    const t2 = await f.layoutVersion(1);
+
+    expect((await f.apply(proposalId)).status).toBe(200);
+    expect(await f.layoutVersion(1)).toBe(t2 + 1);
+  });
+
+  it('refuses a proposal that has no layout', async () => {
+    const f = await setup();
+    const failed = await prisma.accommodationRoomProposal.create({
+      data: {
+        eventId: f.event.id,
+        termId: f.terms[0].id,
+        status: 'failed',
+        error: 'Worker crashed',
+        solverVersion: 'test',
+        input: {},
+        layoutVersion: await f.layoutVersion(),
+        startedAt: new Date(),
+        finishedAt: new Date(),
+      },
+    });
+
+    const refused = await f.apply(failed.id);
+    expect(refused.status).toBe(409);
+    expect(refused.body.code).toBe('proposal_stale');
+  });
+
   it('is only for the organizer of the event and a proposal of the term', async () => {
     const f = await setup();
     const jana = await f.person('Jana Svobodová', ['confirmed']);
@@ -469,11 +504,16 @@ describe('what makes a proposal stale', () => {
       t1 + 1,
       t2,
     ]);
-    // Saving the same wishes again changes nothing.
+    // Saving the same wishes again changes nothing; removing one does.
     await wishes.replaceForParticipant(eva.participantAccountId, eva.id, [
       petra.id,
     ]);
     expect(await f.layoutVersion(0)).toBe(t1 + 1);
+    await wishes.replaceForParticipant(eva.participantAccountId, eva.id, []);
+    expect([await f.layoutVersion(0), await f.layoutVersion(1)]).toEqual([
+      t1 + 2,
+      t2,
+    ]);
   });
 });
 
@@ -529,5 +569,31 @@ describe('the wishes of a term', () => {
         )
       ).status,
     ).toBe(404);
+  });
+});
+
+describe('locking', () => {
+  it('waits for a writer holding terms FOR UPDATE in id order instead of deadlocking', async () => {
+    const f = await setup();
+    const jana = await f.person('Jana Svobodová', ['confirmed', 'confirmed']);
+    const [first, second] = [...f.terms]
+      .map((term) => term.id)
+      .sort((a, b) => (a < b ? -1 : 1));
+    const later = f.terms.findIndex((term) => term.id === second);
+
+    let placing: Promise<Call> | undefined;
+    // Like a room change or a new registration: terms FOR UPDATE, by id.
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT "id" FROM "event_term" WHERE "id" = ${first}::uuid FOR UPDATE`;
+        // A placement in the later term of someone confirmed in both.
+        placing = f.place(jana, 0, {}, later);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        await tx.$queryRaw`SELECT "id" FROM "event_term" WHERE "id" = ${second}::uuid FOR UPDATE`;
+      },
+      { timeout: 10_000 },
+    );
+
+    expect((await placing!).status).toBe(200);
   });
 });

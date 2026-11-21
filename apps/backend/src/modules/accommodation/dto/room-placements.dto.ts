@@ -196,7 +196,7 @@ export class ApplyProposalDto {
     format: 'uuid',
     description:
       'The proposal the organizer reviewed; 409 `proposal_stale` unless it ' +
-      'is the term’s current solved proposal.',
+      'is a solved proposal of the term’s current layout version.',
   })
   @IsUUID('all', { message: 'Načtěte návrh pokojů znovu.' })
   proposalId!: string;

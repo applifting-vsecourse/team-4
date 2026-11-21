@@ -309,7 +309,7 @@ export class RoomPlacementsRepository {
     actorId: string,
   ): Promise<ApplyOutcome> {
     return this.prisma.$transaction(async (tx) => {
-      if (!(await this.lockTerm(tx, scope, termId))) {
+      if (!(await this.lockEventTerms(tx, scope, termId))) {
         return { kind: 'not_found' };
       }
       const replay = await tx.roomProposalApplication.findUnique({
@@ -438,8 +438,10 @@ export class RoomPlacementsRepository {
    * is after it. The term is locked `NO KEY UPDATE` first, so changes of one
    * term run one after another and a room's count is never checked against a
    * stale one; the `KEY SHARE` of other writers (`termInputsChanged`) and the
-   * placements' own foreign keys still go through. A room change, which holds
-   * the terms `FOR UPDATE`, waits for it, or it for the room change.
+   * placements' own foreign keys still go through. The event's other terms
+   * are key-share locked in the same pass (`lockEventTerms`), so a writer
+   * holding terms `FOR UPDATE` (a room change, a registration) waits for it,
+   * or it for that writer, never both.
    *
    * A saved change makes the room proposals of the term stale, and of the
    * person's other confirmed terms, whose proposals keep them in the same
@@ -452,7 +454,7 @@ export class RoomPlacementsRepository {
     work: (tx: Db, loaded: Loaded) => Promise<ChangeResult>,
   ): Promise<PlacementOutcome> {
     return this.prisma.$transaction(async (tx) => {
-      if (!(await this.lockTerm(tx, scope, termId))) {
+      if (!(await this.lockEventTerms(tx, scope, termId))) {
         return { kind: 'not_found' };
       }
       const loaded = await this.load(tx, scope, termId);
@@ -471,51 +473,63 @@ export class RoomPlacementsRepository {
   }
 
   /**
-   * Locks the state rows of every term of the event `FOR UPDATE`, in term id
-   * order, as `termLayoutChanged` takes them, after creating the missing ones
-   * (a missing row is version 0). No layout change of the event commits
-   * until the caller does. Returns the layout version of `termId`.
+   * Locks the state rows of every term of the event, creating the missing
+   * ones (a missing row is version 0), in one statement in term id order, as
+   * `termLayoutChanged` takes them. No layout change of the event commits
+   * until the caller does. Returns the layout version of `termId`. Call it
+   * after `lockEventTerms`.
    */
   private async lockLayoutVersions(
     tx: Db,
     eventId: string,
     termId: string,
   ): Promise<number> {
-    await tx.$queryRaw`
-      SELECT "id" FROM "event_term"
-      WHERE "eventId" = ${eventId}::uuid
-      ORDER BY "id" FOR KEY SHARE`;
-    await tx.$executeRaw`
+    const states = await tx.$queryRaw<
+      { termId: string; layoutVersion: number }[]
+    >`
       INSERT INTO "accommodation_term_state" ("termId", "eventId")
       SELECT "id", "eventId" FROM "event_term"
       WHERE "eventId" = ${eventId}::uuid
       ORDER BY "id"
-      ON CONFLICT ("termId") DO NOTHING`;
-    const states = await tx.$queryRaw<
-      { termId: string; layoutVersion: number }[]
-    >`
-      SELECT "termId", "layoutVersion" FROM "accommodation_term_state"
-      WHERE "eventId" = ${eventId}::uuid
-      ORDER BY "termId" FOR UPDATE`;
+      ON CONFLICT ("termId") DO UPDATE
+        SET "layoutVersion" = "accommodation_term_state"."layoutVersion"
+      RETURNING "termId", "layoutVersion"`;
     return states.find((state) => state.termId === termId)?.layoutVersion ?? 0;
   }
 
-  /** Locks the organizer's term `NO KEY UPDATE`; false for any other term. */
-  private async lockTerm(
+  /**
+   * Locks the organizer's term `NO KEY UPDATE` and the event's other terms
+   * `KEY SHARE`, one row at a time in term id order, the order of every
+   * writer that locks terms (`FOR UPDATE` of rooms and registrations, the
+   * `KEY SHARE` of `termLayoutChanged`). False for a term outside the
+   * organizer's events; nothing is locked then.
+   */
+  private async lockEventTerms(
     tx: Db,
     scope: EventScope,
     termId: string,
   ): Promise<boolean> {
-    const term = await tx.$queryRaw<{ id: string }[]>`
+    const owned = await tx.$queryRaw<{ id: string }[]>`
       SELECT t."id" FROM "event_term" t
       JOIN "event" e ON e."id" = t."eventId"
       JOIN "organization" o ON o."id" = e."organizationId"
-      WHERE t."id" = ${termId}::uuid
-        AND e."id" = ${scope.eventId}::uuid
+      WHERE e."id" = ${scope.eventId}::uuid
         AND e."organizationId" = ${scope.organizationId}::uuid
         AND o."ownerId" = ${scope.ownerId}
-      FOR NO KEY UPDATE OF t`;
-    return term.length > 0;
+      ORDER BY t."id"`;
+    if (!owned.some((term) => term.id === termId)) return false;
+    for (const { id } of owned) {
+      if (id === termId) {
+        await tx.$queryRaw`
+          SELECT "id" FROM "event_term" WHERE "id" = ${id}::uuid
+          FOR NO KEY UPDATE`;
+      } else {
+        await tx.$queryRaw`
+          SELECT "id" FROM "event_term" WHERE "id" = ${id}::uuid
+          FOR KEY SHARE`;
+      }
+    }
+    return true;
   }
 
   private async setLock(

@@ -453,6 +453,8 @@ describe('changes without approval', () => {
     });
     // Only the cancelled term's room goes, even a locked one.
     expect(placements).toEqual([{ termId: fixture.terms[2].id }]);
+    // Turnus 3's proposal read that room as the person's other term (§7.1).
+    expect(await layoutVersion(fixture, 2)).toBe(1);
   });
 
   it('shows a registration with every term cancelled as cancelled, history kept', async () => {
