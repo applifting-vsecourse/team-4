@@ -302,7 +302,9 @@ function StatusNotice({
           tone="success"
           title="Návrh je použitý"
         >
-          Uložené rozdělení odpovídá tomuto návrhu. Po další změně podkladů bude neaktuální.
+          {mode === "automatic"
+            ? "Uložené rozdělení odpovídá tomuto návrhu. Automatický návrh se za chvíli spustí znovu a může navrhnout další úpravy."
+            : "Uložené rozdělení odpovídá tomuto návrhu. Po další změně podkladů bude neaktuální."}
         </Notice>
       )
     case "stale":

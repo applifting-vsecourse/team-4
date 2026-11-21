@@ -111,7 +111,9 @@ export function RoomProposalSection({
       isShownStale={shown ? !shown.isCurrent && !shown.appliedAt : false}
       onPropose={() => propose.mutate()}
       applyAction={
-        shown && layout && term ? (
+        // The dialog reviews the proposal's own changes, also while the
+        // refetch after applying turns the shown layout into the applied one.
+        shown && proposed && term ? (
           <ApplyProposalAction
             // A new term closes the dialog: it reviewed this term's proposal.
             key={termId}
@@ -120,7 +122,7 @@ export function RoomProposalSection({
             termId={termId}
             term={`${term.label}, ${term.dates}`}
             proposalId={shown.id}
-            layout={layout}
+            layout={proposed}
             canApply={shown.isCurrent}
             onPropose={() => propose.mutate()}
           />

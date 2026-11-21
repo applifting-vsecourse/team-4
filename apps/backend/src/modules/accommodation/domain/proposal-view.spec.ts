@@ -133,6 +133,18 @@ describe('the status of a term’s room proposal', () => {
     expect(view(applied, 5).proposal?.appliedAt).toBeNull();
   });
 
+  it('keeps the applied proposal as the one shown when a later run failed', () => {
+    const at = new Date('2027-03-01T10:05:00Z');
+    const applied = { ...proposal, lastApplied: { layoutVersion: 4, at } };
+    const failed = stored([person('A', 0)], null, {
+      id: 'failed',
+      layoutVersion: 4,
+    });
+    const shown = view(failed, 4, false, applied);
+    expect(shown.status).toBe('failed');
+    expect(shown.lastSolved).toMatchObject({ id: 'proposal', appliedAt: at });
+  });
+
   it('is running while a proposal runs or was asked for, and keeps the last one', () => {
     const running = view(proposal, 4, true);
     expect(running.status).toBe('running');

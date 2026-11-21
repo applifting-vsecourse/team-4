@@ -5,6 +5,7 @@ import {
   makeTermWishes,
 } from "@/features/accommodation/fixtures/roomProposal"
 import {
+  asApplied,
   hasApplyChanges,
   toApplyChanges,
   toProposalLayout,
@@ -59,6 +60,19 @@ describe("toProposalLayout", () => {
 
   it("marks a proposal without confirmed people as empty", () => {
     expect(layoutOf("empty").isEmpty).toBe(true)
+  })
+})
+
+describe("asApplied", () => {
+  it("leaves no difference against the saved rooms, and keeps the lock conflicts", () => {
+    const layout = asApplied(layoutOf("withSaved"))
+    const people = [...layout.rooms.flatMap((room) => room.people), ...layout.unplaced]
+
+    expect(people.every((p) => p.change === null && p.savedRoom === undefined)).toBe(true)
+    expect(layout.summary).toMatchObject({ added: 0, moved: 0, removed: 0, placed: 6 })
+    expect(layout.unplaced).toMatchObject([{ name: "Tomáš Král", reason: "K" }])
+    expect(layout.lockConflicts).toMatchObject([{ name: "Eliška Malá", room: "Chata Lípa" }])
+    expect(hasApplyChanges(toApplyChanges(layout))).toBe(false)
   })
 })
 
