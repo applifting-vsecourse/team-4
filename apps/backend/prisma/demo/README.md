@@ -1,35 +1,80 @@
-# Demo data pro Sprint Review 3
+# Demo data pro Sprint Review 4
 
 Dva SQL skripty pro produkční databázi akc.io. Spouštějí se ručně v Admineru
 (`https://db.vsepractical.applifting.dev` → SQL příkaz): vložte celý obsah souboru a spusťte.
 
-| Soubor            | Co dělá                                                                                                                                      |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `demo-create.sql` | Smaže předchozí demo sadu a vytvoří ji znovu. Celé proběhne v jedné transakci, takže ho jde pustit kdykoli, třeba před každou zkouškou dema. |
-| `demo-delete.sql` | Smaže organizátora `team4vse@seznam.cz`, jeho organizaci, všechny akce, přihlášky, platby, změny i výsledky vyhodnocení a demo účastníky.    |
+| Soubor            | Co dělá                                                                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `demo-create.sql` | Smaže předchozí demo sadu a vytvoří ji znovu. Celé proběhne v jedné transakci, takže ho jde pustit kdykoli, třeba před každou zkouškou dema nebo po ní. |
+| `demo-delete.sql` | Smaže organizátora Marka, jeho organizaci, všechny její akce a všechno, co k nim na demu přibylo, a demo účastníky, kteří nemají jiné přihlášky.        |
 
-Data mimo organizace demo organizátora skripty nemění. Demo organizátora poznají podle pevného id
-`akcio-demo-organizer`, ne podle e-mailu. Pokud `team4vse@seznam.cz` patří jinému účtu, `demo-create.sql`
-skončí chybou a nic nezmění. Termíny se počítají od data spuštění.
+Obnovení výchozího stavu: spusťte `demo-create.sql` a potom `demo-photos.mjs upload` (viz níže).
+Skripty pouštějte, když nikdo nepracuje s ubytováním akcí: po dobu běhu krátce zamknou jeho
+tabulky. Pokud skript přesto skončí chybou zablokování, nic nezměnil a jde ho pustit znovu.
+
+Reset projde i po běžném použití dema, například po nové přihlášce, importu výpisu, návrhu
+pokojů, jeho použití a zveřejnění, přání na spolubydlící, změnové žádosti nebo nové akci.
+Data mimo organizace demo organizátora skripty nemění. Demo organizátora poznají podle pevného
+id `akcio-demo-s4-organizer`, ne podle e-mailu. Pokud `team4vse@seznam.cz` patří jinému účtu,
+`demo-create.sql` skončí chybou a nic nezmění.
+
+`demo-create.sql` zároveň odstraní demo sadu ze Sprint Review 3 (organizátorka s id
+`akcio-demo-organizer`, Spolek Jasan). Tento jednorázový krok jde ze skriptu odebrat, až ta sada
+z produkce zmizí.
+
+## Termíny
+
+**D** je místní datum v časové zóně Europe/Prague při spuštění `demo-create.sql`. Všechny termíny
+se při každém obnovení odvodí znovu od D.
+
+| Akce                                   | Místo         | Termín                                       | Výchozí stav                                                            |
+| -------------------------------------- | ------------- | -------------------------------------------- | ----------------------------------------------------------------------- |
+| Výstup na Sněžku                       | Krkonoše      | D − 14, 450 Kč                               | Proběhlá akce, Adamova přihláška je uhrazená.                           |
+| Dobrovolnický týden v Kunratickém lese | Praha         | D − 3 až D + 3, zdarma                       | Probíhající zveřejněná akce, přihlašování uzavřené, Adam je potvrzený.  |
+| Kurz první pomoci                      | Liberec       | D + 4 za 650 Kč, D + 17 za 850 Kč            | Zveřejněná, přihlašování otevřené, volná místa, Adam nemá přihlášku.    |
+| Tábor v Jizerkách                      | Jizerské hory | D + 7 až D + 13 a D + 21 až D + 27, 4 500 Kč | Zveřejněná budoucí akce s přihláškami, platbou a ubytováním (viz níže). |
 
 ## Účty
 
-- **Organizátor:** Alena Pořadatelová, `team4vse@seznam.cz`, heslo `akcio-demo-2026`.
-- **Účastnice:** Jana Nováková, `team4vse@seznam.cz`. Do účastnického portálu se přihlásí magic linkem: „Moje přihlášky“ → e-mail přijde do schránky.
-- Ostatní účastníci jsou fiktivní (`@example.com`) a přihlásit se nemohou.
+- **Organizátor:** Marek Pořadatel, `team4vse@seznam.cz`, heslo `akcio-demo-2026`. Je vlastníkem
+  organizace Spolek Lípa.
+- **Účastník:** Adam Král, `team4vse@seznam.cz`. Do účastnického portálu se přihlásí magic linkem:
+  „Moje přihlášky“ → e-mail přijde do schránky. Má uložené jméno, příjmení a telefon, které se
+  spolu s e-mailem předvyplní v nové přihlášce.
+- Ostatní účastníci jsou fiktivní (`@example.com`). Přihlásit se nemohou a aplikace jim e-maily
+  neposílá.
 
-## Obsah (organizace Spolek Jasan)
+## Tábor v Jizerkách
 
-- **Tábor v Jizerkách:** placený, publikovaný, se dvěma turnusy. Pokoje jsou rozdělené podle pohlaví.
-  - 1. turnus: 6 potvrzených a 12 čekajících, z toho jeden náhradník a Alex s pohlavím „Neuvedeno“, u kterého musí organizátor určit pokoj ručně.
-  - 2. turnus: chatka Javor je nedostupná.
-  - Mezi přihláškami jsou uhrazené, částečně uhrazené i neuhrazené. Jana je potvrzená a vidí program.
-  - Dvě změnové žádosti čekají na schválení: Petr se chce přesunout do 2. turnusu a Tomáš mění telefon.
-- **Víkendový kurz první pomoci:** placený, publikovaný, bez rozdělení podle pohlaví (jedna fronta). První víkend ještě nebyl vyhodnocený, druhý je skoro plný.
-- **Výstup na Sněžku:** placený, publikovaný, jednodenní. Přihlášky jsou vyřízené, Janina je uhrazená.
-- **Úklid Kunratického lesa:** bezplatný koncept bez bankovního účtu, připravený k živému otevření přihlašování.
+- Tvrdé pravidlo: pokoje rozdělené podle pohlaví. Měkká preference: přání na spolubydlící.
+- U obou turnusů je rozdělení nezveřejněné a návrh pokojů se spouští ručně.
+- Všichni účastníci jsou potvrzení.
 
-Nic není vyhodnocené. Vyhodnocení termínu se na demu spouští poprvé.
+| Pokoj                  | 1. turnus  | 2. turnus |
+| ---------------------- | ---------- | --------- |
+| Chatka Buk             | 2 lůžka    | 2 lůžka   |
+| Chatka Javor           | 2 lůžka    | 3 lůžka   |
+| Podkroví hlavní budovy | Nedostupné | 1 lůžko   |
+
+| Turnus | Účastníci                                                           | Umístění              |
+| ------ | ------------------------------------------------------------------- | --------------------- |
+| 1.     | Adam Král, Filip Veselý                                             | Chatka Buk            |
+| 1.     | Eliška Novotná, Tereza Malá                                         | Chatka Javor          |
+| 2.     | Petr Svoboda                                                        | Chatka Buk, bez zámku |
+| 2.     | Lukáš Černý, Viktor Král, Nina Dvořáková, Barbora Malá, Zuzana Nová | Bez pokoje            |
+
+Lukáš a Viktor si přejí bydlet spolu. Návrh pokojů 2. turnusu proto přesune Petra do podkroví a
+dá je spolu do Chatky Buk. Adam zatím žádné přání nemá.
+
+## Platba z Fio výpisu
+
+Adamova cena za 1. turnus je 4 500 Kč, zaevidováno je 2 000 Kč a zbývá 2 500 Kč. Jeho přihláška
+na tábor má vždy variabilní symbol `9000000001`. `fio-vypis-tabor.csv` obsahuje jednu příchozí
+platbu 2 500 Kč s tímto VS. Po importu ve správě tábora (Platby → Import výpisu) se platba
+spáruje s Adamovou přihláškou. Po každém obnovení jde výpis importovat znovu.
+
+Na rozdíl od termínů je datum platby ve výpisu pevné (21. 11. 2026). Pokud demo proběhne po 21. 12. 2026, platba by byla starší než Adamova přihláška (D − 30). V tom případě předem upravte
+ve výpisu sloupec `Datum` a období v hlavičce na dny po D − 30.
 
 ## Fotky akcí
 
