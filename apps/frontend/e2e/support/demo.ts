@@ -7,6 +7,7 @@ import {
   type Request,
 } from "@playwright/test"
 
+import { installDemoCursor, moveDemoCursor } from "./demo-cursor"
 import { DemoHistory } from "./demo-history"
 import { EXTRA_VIDEO_DIR, isRecording, RECORDING_SIZE } from "./recording"
 import {
@@ -369,6 +370,10 @@ function revealBeforeActions(page: Page) {
       await holdAfterNavigation(this.page())
       await waitForPlayback()
       await reveal(this)
+      await moveDemoCursor(
+        this,
+        ["click", "dblclick", "check", "uncheck", "selectOption"].includes(name),
+      )
       await waitForPlayback()
       const submittedAt = (await isFormSubmission(this, name, args)) ? Date.now() : 0
       const result = await action.apply(this, args)
@@ -451,10 +456,15 @@ const captions = new WeakMap<Page, string>()
 // caption, so each page restores its current caption after every load.
 async function showCaption(page: Page, text: string) {
   await installPlaybackControls(page)
+  await installDemoCursor(page)
   if (!captions.has(page)) {
     page.on("load", () => {
       const current = captions.get(page)
-      if (current) void renderCaption(page, current).catch(() => undefined)
+      if (current) {
+        void installDemoCursor(page)
+          .then(() => renderCaption(page, current))
+          .catch(() => undefined)
+      }
     })
   }
   captions.set(page, text)

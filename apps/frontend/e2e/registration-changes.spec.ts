@@ -69,7 +69,7 @@ test("replacing a term outside the approval threshold is made at once", async ({
 }) => {
   const { event, participant, context } = await setUp(browser, page)
 
-  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  await participant.getByRole("link", { name: "Spravovat přihlášku" }).click()
   await participant.getByRole("checkbox", { name: /^Turnus 2/ }).uncheck()
   await participant.getByRole("checkbox", { name: /^Turnus 3/ }).check()
   await participant.getByRole("button", { name: "Zkontrolovat změny" }).click()
@@ -101,7 +101,7 @@ test("a term is added next to the held ones without losing them (F35-2c)", async
 }) => {
   const { event, participant, context } = await setUp(browser, page)
 
-  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  await participant.getByRole("link", { name: "Spravovat přihlášku" }).click()
   await expect(participant.getByRole("checkbox", { name: /^Turnus 1/ })).toBeChecked()
   await expect(participant.getByRole("checkbox", { name: /^Turnus 2/ })).toBeChecked()
   await participant.getByRole("checkbox", { name: /^Turnus 3/ }).check()
@@ -128,7 +128,7 @@ test("a term is added next to the held ones without losing them (F35-2c)", async
   await expect(termRow(participant, "Turnus 3")).toBeVisible()
 
   // Every term of the event is held now: nothing more can be added.
-  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  await participant.getByRole("link", { name: "Spravovat přihlášku" }).click()
   await expect(participant.getByText(/Další termín není k dispozici/)).toBeVisible()
   await context.close()
 })
@@ -136,7 +136,7 @@ test("a term is added next to the held ones without losing them (F35-2c)", async
 test("unticking a held term cancels only that term (F35-2c)", async ({ page, browser }) => {
   const { event, participant, context } = await setUp(browser, page)
 
-  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  await participant.getByRole("link", { name: "Spravovat přihlášku" }).click()
   await participant.getByRole("checkbox", { name: /^Turnus 2/ }).uncheck()
   await expect(
     participant.getByRole("status").filter({ hasText: "Odhlášení z termínu Turnus 2" }),
@@ -160,7 +160,7 @@ test("a change inside the threshold waits for the organizer, who approves it", a
 }) => {
   const { event, registration, participant, context } = await setUp(browser, page)
 
-  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  await participant.getByRole("link", { name: "Spravovat přihlášku" }).click()
   await participant.getByLabel("Telefon").fill("+420 731 987 654")
   await participant.getByRole("button", { name: "Zkontrolovat změny" }).click()
   const review = participant.getByRole("dialog", { name: "Kontrola změn přihlášky" })
@@ -168,8 +168,8 @@ test("a change inside the threshold waits for the organizer, who approves it", a
   await review.getByRole("button", { name: "Odeslat žádost o schválení" }).click()
 
   await expect(participant.getByText("Čeká na schválení")).toBeVisible()
-  // Nothing changes before the decision, and no further change is offered.
-  await expect(participant.getByRole("link", { name: "Upravit přihlášku" })).toBeHidden()
+  // Form changes stay blocked, while management remains available for wishes.
+  await expect(participant.getByRole("link", { name: "Spravovat přihlášku" })).toBeVisible()
 
   await openOrganizerRequest(page, event, registration.id)
   await expect(page.getByText("+420731987654")).toBeVisible()
@@ -181,7 +181,7 @@ test("a change inside the threshold waits for the organizer, who approves it", a
 
   await participant.reload()
   await expect(participant.getByText("Schváleno").first()).toBeVisible()
-  await expect(participant.getByRole("link", { name: "Upravit přihlášku" })).toBeVisible()
+  await expect(participant.getByRole("link", { name: "Spravovat přihlášku" })).toBeVisible()
   await context.close()
 })
 

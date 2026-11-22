@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { splitConditions } from "@/lib/conditions"
 
 import { type RegistrationFormValues } from "@/features/registrations/components/RegistrationForm"
 
@@ -23,6 +24,7 @@ export function ParticipationConditionsField({
   conditions,
 }: ParticipationConditionsFieldProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const conditionLines = splitConditions(conditions)
 
   return (
     <section
@@ -54,9 +56,16 @@ export function ParticipationConditionsField({
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <p className="mt-3 rounded-md bg-muted p-3 text-sm break-words whitespace-pre-line">
-            {conditions}
-          </p>
+          <ul className="mt-3 max-w-prose list-disc space-y-1 rounded-md bg-muted p-3 pl-8 text-sm">
+            {conditionLines.map((condition, index) => (
+              <li
+                key={index}
+                className="wrap-break-word"
+              >
+                {condition}
+              </li>
+            ))}
+          </ul>
         </CollapsibleContent>
       </Collapsible>
 

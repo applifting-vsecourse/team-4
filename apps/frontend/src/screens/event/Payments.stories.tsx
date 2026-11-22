@@ -96,6 +96,62 @@ export const PaymentsAndBalances: Story = {
         name: `Přihláška ${registration.firstName} ${registration.lastName}`,
       }),
     ).toHaveAttribute("href", expect.stringContaining(`/registrations/${registration.id}`))
+
+    const coordinates = () => {
+      const row = payments.querySelector("tbody tr")
+      if (!row) throw new Error("The payments table has no data row")
+      const cells = row.querySelectorAll("td")
+      const bounds = (element: Element) => {
+        const range = element.ownerDocument.createRange()
+        range.selectNodeContents(element)
+        const rect = range.getBoundingClientRect()
+        return { left: rect.left, right: rect.right }
+      }
+      const text = (cellIndex: number) => {
+        const content = cells[cellIndex]?.firstElementChild
+        if (!content) throw new Error(`The payments table has no cell ${cellIndex}`)
+        return bounds(content)
+      }
+      const header = (label: string) => bounds(within(payments).getByText(label, { exact: true }))
+      return [
+        { label: "Datum", header: header("Datum").left, cell: text(0).left },
+        {
+          label: "Účastník",
+          header: header("Účastník").left,
+          cell: text(1).left,
+        },
+        {
+          label: "Variabilní symbol",
+          header: header("Variabilní symbol").left,
+          cell: text(2).left,
+        },
+        { label: "Částka", header: header("Částka").right, cell: text(3).right },
+      ]
+    }
+    const expectAligned = async (before: ReturnType<typeof coordinates>) => {
+      for (const point of coordinates()) {
+        const expected = before.find(({ label }) => label === point.label)
+        if (!expected) throw new Error(`No initial measurement for ${point.label}`)
+        const difference = Math.abs(point.header - point.cell)
+        if (difference >= 1) {
+          throw new Error(`${point.label} header and cell differ by ${difference}px`)
+        }
+        await expect(Math.abs(point.header - expected.header)).toBeLessThan(1)
+        await expect(Math.abs(point.cell - expected.cell)).toBeLessThan(1)
+      }
+    }
+    const initialCoordinates = coordinates()
+    await expectAligned(initialCoordinates)
+    const dateHeader = within(payments).getByRole("columnheader", { name: /Datum/ })
+    const dateButton = within(dateHeader).getByRole("button")
+    await expect(dateHeader).toHaveAttribute("aria-sort", "descending")
+    dateButton.focus()
+    await userEvent.keyboard("{Enter}")
+    await expect(dateHeader).toHaveAttribute("aria-sort", "ascending")
+    await expectAligned(initialCoordinates)
+    await userEvent.click(dateButton)
+    await expect(dateHeader).toHaveAttribute("aria-sort", "descending")
+    await expectAligned(initialCoordinates)
   },
 }
 

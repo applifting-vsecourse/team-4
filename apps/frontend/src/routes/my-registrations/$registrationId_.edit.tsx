@@ -36,7 +36,7 @@ function EditRegistrationPage() {
 
   return (
     <>
-      <Seo title="Úprava přihlášky" />
+      <Seo title="Správa přihlášky" />
       <ParticipantLayout participant={participant}>
         <ParticipantRegistrationEdit
           registrationId={registrationId}

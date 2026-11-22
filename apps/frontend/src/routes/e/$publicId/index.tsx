@@ -26,9 +26,9 @@ export const Route = createFileRoute("/e/$publicId/")({
 const BackToCatalog = () => (
   <BackLink
     to={ROUTES.catalog}
-    className="mb-6"
+    className="mb-4"
   >
-    Katalog akcí
+    Zpět do katalogu akcí
   </BackLink>
 )
 

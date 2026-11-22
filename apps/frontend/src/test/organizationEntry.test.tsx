@@ -17,10 +17,8 @@ async function enter(organizations: { id: string; name: string }[]) {
 }
 
 describe("organization entry", () => {
-  it("opens the only organization", async () => {
-    await expect(enter([alfa])).rejects.toMatchObject({
-      options: { to: "/organizations/$organizationId", params: { organizationId: alfa.id } },
-    })
+  it("returns the only organization for the chooser", async () => {
+    await expect(enter([alfa])).resolves.toEqual([alfa])
   })
 
   it("returns every organization for the chooser even with a remembered choice", async () => {

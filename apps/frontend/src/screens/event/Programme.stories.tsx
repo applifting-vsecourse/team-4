@@ -23,6 +23,24 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
+const checkCalendarBehavior: NonNullable<Story["play"]> = async ({ canvas }) => {
+  await showsText(FIRST)
+  await expect(await canvas.findByText("Neděle 4. 7. 2027")).toBeVisible()
+  await expect(canvas.getByText("Společná večeře")).toBeVisible()
+
+  const firstDay = canvas.getByRole("button", { name: /Neděle 4\. 7\. 2027/ })
+  await expect(firstDay).toHaveAttribute("aria-expanded", "true")
+  await userEvent.click(firstDay)
+  await expect(firstDay).toHaveAttribute("aria-expanded", "false")
+  await expect(canvas.queryByText(FIRST)).not.toBeInTheDocument()
+  await userEvent.click(firstDay)
+  await expect(canvas.getByText("Společná večeře")).toBeVisible()
+
+  await userEvent.click(canvas.getByRole("button", { name: /Společná večeře/ }))
+  const dialog = await screen.findByRole("dialog", { name: "Upravit položku programu" }, TIMEOUT)
+  await expect(within(dialog).getByLabelText("Název")).toHaveValue("Společná večeře")
+}
+
 const TIMEOUT = { timeout: 5000 }
 
 /** Opens the dialog of the add button of the day `index` (0 is the first day). */
@@ -39,23 +57,16 @@ async function openAddDialog(
 
 /** Days with items start open; days remain collapsible and open the selected item. */
 export const Programme: Story = {
-  play: async ({ canvas }) => {
-    await showsText(FIRST)
-    await expect(await canvas.findByText("Neděle 4. 7. 2027")).toBeVisible()
-    await expect(canvas.getByText("Společná večeře")).toBeVisible()
+  play: checkCalendarBehavior,
+}
 
-    const firstDay = canvas.getByRole("button", { name: /Neděle 4\. 7\. 2027/ })
-    await expect(firstDay).toHaveAttribute("aria-expanded", "true")
-    await userEvent.click(firstDay)
-    await expect(firstDay).toHaveAttribute("aria-expanded", "false")
-    await expect(canvas.queryByText(FIRST)).not.toBeInTheDocument()
-    await userEvent.click(firstDay)
-    await expect(canvas.getByText("Společná večeře")).toBeVisible()
-
-    await userEvent.click(canvas.getByRole("button", { name: /Společná večeře/ }))
-    const dialog = await screen.findByRole("dialog", { name: "Upravit položku programu" }, TIMEOUT)
-    await expect(within(dialog).getByLabelText("Název")).toHaveValue("Společná večeře")
+/** Organizer calendar at its minimum desktop width in the dark palette. */
+export const Programme1024Dark: Story = {
+  globals: {
+    viewport: { value: "organizer1024", isRotated: false },
+    theme: "dark",
   },
+  play: checkCalendarBehavior,
 }
 
 /** The term is chosen in the tabs and stays in the URL. */

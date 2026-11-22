@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { CalendarX, Eye, Settings, Sparkles } from "lucide-react"
 
@@ -49,6 +49,8 @@ export type RoomProposalSectionProps = {
   /** The summary belongs above saved placements; the full view is opened separately. */
   presentation?: "summary" | "full"
   onViewProposal?: () => void
+  onProposalReady?: (termId: string) => void
+  canAutoOpen?: boolean
   onApplied?: () => void
 }
 
@@ -67,6 +69,8 @@ export function RoomProposalSection({
   termId,
   presentation = "full",
   onViewProposal,
+  onProposalReady,
+  canAutoOpen = true,
   onApplied,
 }: RoomProposalSectionProps) {
   const hasTerm = termId !== ""
@@ -76,9 +80,37 @@ export function RoomProposalSection({
     placeholderData: keepPreviousData,
   })
   const propose = useProposeRooms(organizationId, eventId, termId)
+  const waitingForProposal = useRef<{ termId: string; previousId: string | null } | null>(null)
   // A request on its way belongs to the term it was made for, also after Back/Forward.
   const { reset } = propose
-  useEffect(() => reset(), [reset, termId])
+  useEffect(() => {
+    reset()
+    waitingForProposal.current = null
+  }, [reset, termId])
+
+  useEffect(() => {
+    const waiting = waitingForProposal.current
+    const finished = proposal.data?.lastSolved
+    if (waiting && !canAutoOpen) {
+      waitingForProposal.current = null
+      return
+    }
+    if (
+      waiting?.termId !== termId ||
+      proposal.isPlaceholderData ||
+      proposal.data?.status === "running" ||
+      (proposal.data?.status !== "current" && proposal.data?.status !== "stale") ||
+      !finished ||
+      finished.id === waiting.previousId ||
+      finished.status !== "solved" ||
+      !finished.layout
+    ) {
+      return
+    }
+
+    waitingForProposal.current = null
+    onProposalReady?.(waiting.termId)
+  }, [canAutoOpen, onProposalReady, proposal.data, proposal.isPlaceholderData, termId])
 
   if (terms.length === 0) {
     return (
@@ -163,7 +195,10 @@ export function RoomProposalSection({
         isSwitching={proposal.isPlaceholderData}
         isRunning={status === "running"}
         proposeError={proposeError}
-        onPropose={() => propose.mutate()}
+        onPropose={() => {
+          waitingForProposal.current = { termId, previousId: data.lastSolved?.id ?? null }
+          propose.mutate()
+        }}
         onViewProposal={onViewProposal}
         organizationId={organizationId}
         eventId={eventId}

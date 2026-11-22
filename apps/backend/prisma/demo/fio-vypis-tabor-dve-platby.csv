@@ -1,0 +1,6 @@
+"Výpis z účtu ""2001234567/2010"""
+"Období: 01.11.2026 - 21.11.2026"
+""
+"ID operace";"Datum";"Objem";"Měna";"Protiúčet";"Název protiúčtu";"Kód banky";"Název banky";"KS";"VS";"SS";"Poznámka";"Zpráva pro příjemce";"Typ"
+"26110001";"21.11.2026";"2 500,00";"CZK";"1234567890";"Adam Král";"0800";"Česká spořitelna, a.s.";"";"9000000001";"";"";"Doplatek tábor Jizerky";"Bezhotovostní příjem"
+"26110002";"21.11.2026";"1 250,00";"CZK";"9876543210";"Eliška Novotná";"0800";"Česká spořitelna, a.s.";"";"";"";"";"Záloha na tábor v Jizerkách";"Bezhotovostní příjem"

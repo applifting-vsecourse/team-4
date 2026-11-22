@@ -1,19 +1,34 @@
 import { type BrowserContext, type Frame, type Page } from "@playwright/test"
 
 import { isDemo } from "./demo"
-import { isRecording } from "./recording"
+import { installDemoCursor } from "./demo-cursor"
 
 export const MOBILE_VIEWPORT = { width: 360, height: 800 }
+
+export function participantApiURL(path: string, baseURL: string) {
+  const configured = process.env.E2E_API_URL
+  const isLocal = new URL(baseURL).hostname === "localhost"
+  const apiBase = configured
+    ? `${configured.replace(/\/+$/, "")}/`
+    : isLocal
+      ? "http://localhost:4050/api/"
+      : new URL("/api/", baseURL).href
+  return new URL(path.replace(/^\/+/, ""), apiBase).href
+}
 
 /** A full-window presentation surface containing the real narrow app viewport. */
 export async function createMobileStage(
   context: BrowserContext,
   baseURL: string,
+  initialPath = "/my-registrations",
 ): Promise<{ window: Page; content: Page | Frame }> {
   const window = await context.newPage()
-  if (!isDemo || isRecording) return { window, content: window }
+  if (!isDemo) return { window, content: window }
 
   const stageURL = new URL("/__demo/mobile-stage", baseURL).href
+  const initialURL = new URL(initialPath, baseURL).href
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
   await window.route(stageURL, (route) =>
     route.fulfill({
       contentType: "text/html",
@@ -27,13 +42,15 @@ export async function createMobileStage(
         iframe { display: block; border: 0; width: ${MOBILE_VIEWPORT.width}px;
           height: min(${MOBILE_VIEWPORT.height}px, calc(100dvh - 128px)); background: Canvas; }
       </style></head><body>
-      <iframe name="demo-participant" title="Mobilní ukázka účastníka"></iframe>
+      <iframe name="demo-participant" title="Mobilní ukázka účastníka" src="${initialURL}"></iframe>
       </body></html>`,
     }),
   )
   await window.goto(stageURL)
+  await installDemoCursor(window)
   const content = window.frame({ name: "demo-participant" })
   if (!content) throw new Error("Mobilní náhled dema se nepodařilo vytvořit.")
+  await content.waitForLoadState("domcontentloaded")
 
   // Keep the real participant URL visible in the browser address bar while
   // the app itself stays inside the centered mobile viewport. SPA navigation
@@ -53,8 +70,24 @@ export async function createMobileStage(
         // Closing the window can interrupt its last address update.
       })
   })
+  await window.evaluate((url) => globalThis.history.replaceState(null, "", url), content.url())
 
   return { window, content }
+}
+
+/** Exchange a participant magic-link token without showing the verification page. */
+export async function openParticipantSession(
+  context: BrowserContext,
+  token: string,
+  baseURL: string,
+) {
+  const response = await context.request.post(participantApiURL("participant/session", baseURL), {
+    data: { token },
+  })
+  if (!response.ok()) throw new Error("Účastnické přihlášení se nepodařilo připravit.")
+
+  const session = await context.request.get(participantApiURL("participant/me", baseURL))
+  if (!session.ok()) throw new Error("Účastnická relace se nepodařilo ověřit.")
 }
 
 /** Keep sign-in inside the centered frame instead of navigating its host window. */
@@ -80,5 +113,5 @@ export async function openMobileSignInLink(stage: Page, content: Page | Frame, b
   ) {
     throw new Error("Odkaz nevede na účastnické přihlášení do této aplikace.")
   }
-  await content.goto(url.href)
+  await openParticipantSession(stage.context(), url.searchParams.get("token")!, baseURL)
 }

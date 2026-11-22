@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
+import { toast } from "sonner"
 import { z } from "zod"
 
 import { HorizontalOverflowViewport } from "@/components/HorizontalOverflowViewport"
@@ -185,6 +186,17 @@ function RoomsPage() {
                     termId={termId}
                     presentation="summary"
                     onViewProposal={() => selectSplitView("proposal")}
+                    canAutoOpen={selectedTab === "split" && selectedSplitView === "assignment"}
+                    onProposalReady={(readyTermId) => {
+                      if (
+                        readyTermId === termId &&
+                        selectedTab === "split" &&
+                        selectedSplitView === "assignment"
+                      ) {
+                        toast.success("Nový návrh byl vypočítán")
+                        selectSplitView("proposal")
+                      }
+                    }}
                   />
                   <RoomAssignmentSection
                     organizationId={organizationId}

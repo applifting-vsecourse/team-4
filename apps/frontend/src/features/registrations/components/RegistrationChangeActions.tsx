@@ -10,38 +10,40 @@ type RegistrationChangeActionsProps = {
   onCancelRegistration?: () => void
 }
 
-// Moje přihlášky → Detail přihlášky (F35-2a): the entry to editing, moving and
-// cancelling an own registration. Not offered for a cancelled registration or
-// while a request waits for the organizer.
+// Moje přihlášky → Detail přihlášky: manage an own registration. A pending
+// change still allows access to management for independently saved wishes.
 export function RegistrationChangeActions({
   registrationId,
   onCancelRegistration,
 }: RegistrationChangeActionsProps) {
   return (
-    <div className="flex flex-col items-start gap-2 sm:flex-row">
+    <div className="flex items-start gap-2">
       {registrationId ? (
-        <Button asChild>
+        <Button className="min-w-0 max-w-full shrink whitespace-normal" asChild>
           <Link
             to={ROUTES.myRegistrationEdit}
             params={{ registrationId }}
           >
             <Pencil />
-            Upravit přihlášku
+            Spravovat přihlášku
           </Link>
         </Button>
       ) : (
-        <Button>
+        <Button className="min-w-0 max-w-full shrink whitespace-normal">
           <Pencil />
-          Upravit přihlášku
+          Spravovat přihlášku
         </Button>
       )}
-      <Button
-        variant="outline"
-        onClick={onCancelRegistration}
-      >
-        <CalendarX />
-        Zrušit účast
-      </Button>
+      {onCancelRegistration ? (
+        <Button
+          className="min-w-0 max-w-full shrink whitespace-normal"
+          variant="outline"
+          onClick={onCancelRegistration}
+        >
+          <CalendarX />
+          Zrušit účast
+        </Button>
+      ) : null}
     </div>
   )
 }

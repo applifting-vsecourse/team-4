@@ -1,3 +1,4 @@
+import { splitConditions } from "@/lib/conditions"
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 import { formatPhone } from "@/lib/phone"
@@ -37,10 +38,7 @@ export function toPublicEventDetail(publicId: string, event: CatalogEvent): Publ
       dates: formatCalendarRange(term.startDate, term.endDate),
       price: formatCzk(term.priceMinor),
     })),
-    conditions: event.conditions
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean),
+    conditions: splitConditions(event.conditions),
     contact: event.contact
       ? {
           name: event.contact.name ?? null,

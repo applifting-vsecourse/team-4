@@ -54,7 +54,7 @@ test("the answer from the form is shown to both sides, changed and corrected", a
   await expect(definition(participant, ANSWER)).toHaveText("Nechci uvést")
 
   // The participant changes it; no approval threshold, so it is made at once.
-  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  await participant.getByRole("link", { name: "Spravovat přihlášku" }).click()
   await participant.getByRole("radio", { name: "Žena" }).check()
   await participant.getByRole("button", { name: "Zkontrolovat změny" }).click()
   const review = participant.getByRole("dialog", { name: "Kontrola změn přihlášky" })
@@ -118,7 +118,7 @@ test("the own words of Jiná odpověď are sent from the form and changed in the
     .click()
   await expect(definition(participant, OWN_WORDS)).toHaveText("nebinární")
 
-  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  await participant.getByRole("link", { name: "Spravovat přihlášku" }).click()
   const words = participant.getByRole("textbox", { name: OWN_WORDS_FIELD })
   await expect(words).toHaveValue("nebinární")
   await words.fill("agender")

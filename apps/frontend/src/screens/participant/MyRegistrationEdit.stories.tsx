@@ -76,7 +76,16 @@ const review = async (name: string | RegExp = REVIEW) => {
 }
 
 /** Contact, gender, terms and needs prefilled for change (F35-2a). */
-export const EditForm: Story = { play: showsHeading("Úprava přihlášky") }
+export const EditForm: Story = {
+  play: async (context) => {
+    await showsHeading("Správa přihlášky")(context)
+    await expect(context.canvas.getByText("Ubytování", { exact: true })).toBeVisible()
+    await expect(context.canvas.getByText("Pohlaví pro ubytování")).toBeVisible()
+    await expect(
+      await context.canvas.findByRole("button", { name: /Upravit výběr|Vybrat spolubydlící/ }),
+    ).toBeVisible()
+  },
+}
 
 export const Loading: Story = {
   beforeEach: ({ msw }) => {
@@ -439,12 +448,25 @@ export const ChangeApplied: Story = {
   },
 }
 
-/** A request waits for the organizer: nothing more can be changed. */
+/** A pending request locks form fields while independent roommate wishes stay editable. */
 export const LockedByPendingRequest: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...registrationHandlers.ownRegistration({ ...OWN_REGISTRATION, canChange: false }))
   },
-  play: () => showsText(/Žádost o změnu čeká na schválení organizátora/),
+  play: async ({ canvas }) => {
+    await showsText(/Žádost o změnu čeká na schválení organizátora/)
+    await expect(canvas.queryByLabelText("Telefon")).not.toBeInTheDocument()
+    await expect(canvas.queryByRole("checkbox", { name: /^Turnus 1/ })).not.toBeInTheDocument()
+    await userEvent.click(await canvas.findByRole("button", { name: "Upravit výběr" }))
+    const dialog = within(await screen.findByRole("dialog", { name: "Výběr spolubydlících" }))
+    await userEvent.type(dialog.getByPlaceholderText("Hledat účastníka…"), "Nov")
+    await userEvent.click(dialog.getByRole("option", { name: "Eliška Novotná" }))
+    await userEvent.click(dialog.getByRole("button", { name: "Uložit výběr" }))
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+    await expect(canvas.getByRole("list", { name: "Vybraní spolubydlící" })).toHaveTextContent(
+      "Eliška Novotná",
+    )
+  },
 }
 
 export const RegistrationCancelled: Story = {
