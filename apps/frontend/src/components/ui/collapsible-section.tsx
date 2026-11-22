@@ -79,7 +79,7 @@ export function CollapsibleSection({
         <div className="flex min-h-9 flex-wrap items-center justify-between gap-4">
           <h2
             id={headingId}
-            className="-ms-2.5 min-w-0 flex-1 text-h4"
+            className="min-w-0 flex-1 text-h4"
           >
             <CollapsibleTrigger asChild>
               <Button

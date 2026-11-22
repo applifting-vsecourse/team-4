@@ -136,8 +136,8 @@ export class EventsService {
   }
 
   /**
-   * Conditions and the public contact stay editable after the first opening;
-   * the description follows the lock of the other basics (F55, S2-06).
+   * The public description, conditions and contact stay editable after the
+   * first opening (F55, S2-06).
    */
   async updatePresentation(
     scope: EventScope,
@@ -145,20 +145,7 @@ export class EventsService {
   ): Promise<EventDetailModel> {
     const outcome = await this.repository.withLockedEvent(
       scope,
-      async (event) => {
-        if (
-          event.isLocked &&
-          (await event.description()) !== input.description
-        ) {
-          throw new ConflictException({
-            statusCode: 409,
-            code: 'event_locked',
-            field: 'description',
-            message: 'Od prvního otevření přihlašování nelze měnit popis akce.',
-          });
-        }
-        await event.updatePresentation(input);
-      },
+      async (event) => event.updatePresentation(input),
     );
     if (!outcome.found) throw notAvailable();
     return this.get(scope);

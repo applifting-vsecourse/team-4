@@ -26,24 +26,15 @@ const PHONE_MESSAGE =
   'Zadejte telefon s mezinárodní předvolbou, např. +420 777 123 456.';
 
 type ContactFields = {
-  contactName?: unknown;
   contactEmail?: unknown;
   contactPhone?: unknown;
 };
-
-/** The public contact is either left empty as a whole or has a name and an e-mail. */
-const hasContact = (input: ContactFields): boolean =>
-  [input.contactName, input.contactEmail, input.contactPhone].some(
-    (value) => typeof value !== 'string' || value !== '',
-  );
 
 /** Description, conditions and public contact of the catalog detail (F55). */
 export class PresentationInputDto {
   @ApiProperty({
     maxLength: 5000,
-    description:
-      'Same rules as the event form. Cannot change after the first opening ' +
-      '(409 `event_locked`); sending the saved value again is allowed.',
+    description: 'Same validation rules as the event form.',
   })
   @Transform(trim)
   @IsString()
@@ -62,26 +53,28 @@ export class PresentationInputDto {
 
   @ApiProperty({
     maxLength: 200,
-    description: 'Empty together with the e-mail and phone: no public contact.',
+    description: 'Optional; shown when provided.',
   })
   @Transform(trim)
   @IsString()
-  @ValidateIf(hasContact)
-  @IsNotEmpty({ message: 'Vyplňte jméno nebo název kontaktu.' })
   @MaxLength(200, { message: 'Jméno může mít nejvýše 200 znaků.' })
   contactName!: string;
 
-  @ApiProperty({ maxLength: 320 })
+  @ApiProperty({
+    maxLength: 320,
+    description: 'Optional; validated when provided.',
+  })
   @Transform(trim)
   @IsString()
-  @ValidateIf(hasContact)
+  @ValidateIf((input: ContactFields) => input.contactEmail !== '')
   @IsEmail({}, { message: 'Zadejte platný e-mail.' })
   @MaxLength(320, { message: 'E-mail může mít nejvýše 320 znaků.' })
   contactEmail!: string;
 
   @ApiProperty({
     example: '+420 604 123 456',
-    description: 'Optional; with the international prefix. Stored in E.164.',
+    description:
+      'Optional; validated when provided, with an international prefix. Stored in E.164.',
   })
   @Transform(toE164)
   @IsString()

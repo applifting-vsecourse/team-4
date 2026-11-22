@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -10,6 +11,9 @@ import { RoomsSection } from "@/features/rooms/components/RoomsSection"
 
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }))
 vi.mock("sonner", () => ({ toast }))
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children, ...props }: ComponentProps<"a">) => <a {...props}>{children}</a>,
+}))
 
 const requests = vi.hoisted(() => ({ put: vi.fn(), post: vi.fn(), delete: vi.fn() }))
 
@@ -68,13 +72,14 @@ const rejection = (status: number, data: unknown) => {
   return { json: () => Promise.reject(error) }
 }
 
-function renderSection(value: RoomsOverview = overview) {
+function renderSection(value: RoomsOverview = overview, selectedTermId?: string) {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <RoomsSection
         organizationId="org"
         eventId="event"
         overview={value}
+        selectedTermId={selectedTermId}
         onChanged={vi.fn()}
       />
     </QueryClientProvider>,
@@ -94,30 +99,24 @@ describe("RoomsSection", () => {
     ).toEqual(expect.arrayContaining(["Dostupný", "4", "1", "5"]))
   })
 
-  it("shows the base beds, extra beds and availability of the term picked in the tabs", async () => {
-    renderSection()
-    const row = () => screen.getByRole("row", { name: /Chatka/ })
-    expect(within(row()).getByText("Dostupný")).toBeInTheDocument()
-
-    await userEvent.click(screen.getByRole("tab", { name: "Turnus 2" }))
-
-    expect(screen.getByRole("tab", { name: "Turnus 2" })).toHaveAttribute("aria-selected", "true")
-    expect(within(row()).getByText("Nedostupný")).toBeInTheDocument()
-    expect(within(row()).getAllByText("–")).toHaveLength(3)
+  it("shows the base beds, extra beds and availability of the selected term", () => {
+    renderSection(overview, T2)
+    const row = screen.getByRole("row", { name: /Chatka/ })
+    expect(within(row).getByText("Nedostupný")).toBeInTheDocument()
+    expect(within(row).getAllByText("–")).toHaveLength(3)
   })
 
   it("keeps the picked term after a room is saved", async () => {
     requests.put.mockReturnValue({
       json: () => Promise.resolve(roomsOverviewSchema.parse(overview)),
     })
-    renderSection()
-    await userEvent.click(screen.getByRole("tab", { name: "Turnus 2" }))
+    renderSection(overview, T2)
     await userEvent.click(screen.getByRole("button", { name: "Upravit pokoj Chatka" }))
     await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
 
     await waitFor(() => expect(requests.put).toHaveBeenCalled())
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
-    expect(screen.getByRole("tab", { name: "Turnus 2" })).toHaveAttribute("aria-selected", "true")
+    expect(screen.getByRole("heading", { name: "Pokoje" })).toBeInTheDocument()
   })
 
   it("shows an empty state with the add action and zero capacity", () => {
@@ -129,6 +128,10 @@ describe("RoomsSection", () => {
   it("explains that an event without terms has nothing to set", () => {
     renderSection({ rooms: [], terms: [] })
     expect(screen.getByText("Akce zatím nemá žádné termíny")).toBeInTheDocument()
+    const addTerm = screen.getByText("Přidat termín").closest("a")
+    expect(addTerm).toHaveAttribute("to", "/organizations/$organizationId/events/$eventId/settings")
+    expect(addTerm).toHaveAttribute("hash", "terms-heading")
+    expect(addTerm).toHaveAttribute("params", "[object Object]")
   })
 
   it("fills the default base beds into every term until a term is edited itself", async () => {

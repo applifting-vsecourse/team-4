@@ -22,6 +22,7 @@ import {
 
 import type { RoomProposalStatus } from "@/features/accommodation/api/roomProposalSchemas"
 import type { EvaluationTerm } from "@/features/accommodation/components/TermEvaluation"
+import { attributeLabel, valueLabel } from "@/features/accommodation/lib/evaluationView"
 import {
   PROPOSAL_STATUS_BADGE,
   unplacedReasonText,
@@ -40,8 +41,11 @@ export type RoomProposalProps = {
   proposedAt?: string
   /** The shown layout no longer matches the term (a later run failed after a change). */
   isShownStale?: boolean
+  hasApplyAction?: boolean
   /** The hard attribute, e.g. "Pohlaví"; for the reason H. */
   attribute?: string | null
+  /** The rule stored with the shown calculation, independent of current settings. */
+  proposalHardAttribute?: string | null
   /** The term could not be loaded; nothing else is shown as valid. */
   isLoadFailed?: boolean
   /** The term is loading: the term tabs stay, the content is a placeholder. */
@@ -146,7 +150,22 @@ const WARNING_TEXT = {
   overCapacity: "Zamčených osob je víc než lůžek. Návrh pokoj ponechá a nikoho nepřidá.",
 }
 
-function RoomsTable({ layout }: { layout: RoomProposalLayout }) {
+function ValueBadge({ attribute, value }: { attribute: string | null; value: string | null }) {
+  if (!attribute) return null
+  return (
+    <Badge variant="outline">
+      {value === null ? "Bez určující hodnoty" : valueLabel(attribute, value)}
+    </Badge>
+  )
+}
+
+function RoomsTable({
+  layout,
+  hardAttribute,
+}: {
+  layout: RoomProposalLayout
+  hardAttribute: string | null
+}) {
   return (
     <Card padding="none">
       <Table>
@@ -171,14 +190,19 @@ function RoomsTable({ layout }: { layout: RoomProposalLayout }) {
                 {room.people.length === 0 ? (
                   <span className="text-muted-foreground">Volný</span>
                 ) : (
-                  <ul className="space-y-1">
-                    {room.people.map((person) => (
+                  <ul className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    {room.people.map((person, index) => (
                       <li
                         key={person.id}
-                        className="flex flex-wrap items-center gap-2"
+                        className="inline-flex max-w-full items-center gap-1 whitespace-nowrap"
                       >
                         <PersonName person={person} />
+                        <ValueBadge
+                          attribute={hardAttribute}
+                          value={person.value}
+                        />
                         <ChangeBadge person={person} />
+                        {index < room.people.length - 1 ? <span aria-hidden="true">,</span> : null}
                       </li>
                     ))}
                   </ul>
@@ -198,9 +222,11 @@ function RoomsTable({ layout }: { layout: RoomProposalLayout }) {
 function UnplacedTable({
   layout,
   attribute,
+  hardAttribute,
 }: {
   layout: RoomProposalLayout
   attribute?: string | null
+  hardAttribute: string | null
 }) {
   return (
     <section
@@ -227,6 +253,10 @@ function UnplacedTable({
                 <TableCell className="whitespace-normal">
                   <div className="flex flex-wrap items-center gap-2">
                     <PersonName person={person} />
+                    <ValueBadge
+                      attribute={hardAttribute}
+                      value={person.value}
+                    />
                     {person.change === "removed" ? (
                       <Badge variant="destructive-subtle">Přijde o pokoj {person.savedRoom}</Badge>
                     ) : null}
@@ -245,7 +275,13 @@ function UnplacedTable({
 }
 
 // Spec §6: listed apart from the unplaced; applying a proposal never changes the lock.
-function LockConflicts({ layout }: { layout: RoomProposalLayout }) {
+function LockConflicts({
+  layout,
+  hardAttribute,
+}: {
+  layout: RoomProposalLayout
+  hardAttribute: string | null
+}) {
   return (
     <section
       aria-labelledby="room-proposal-conflicts-heading"
@@ -275,6 +311,10 @@ function LockConflicts({ layout }: { layout: RoomProposalLayout }) {
                       aria-label="Zamčené umístění"
                     />
                     {conflict.name}
+                    <ValueBadge
+                      attribute={hardAttribute}
+                      value={conflict.value}
+                    />
                   </span>
                 </TableCell>
                 <TableCell className="whitespace-normal">
@@ -366,7 +406,9 @@ export function RoomProposal({
   layout,
   proposedAt,
   isShownStale = false,
+  hasApplyAction = false,
   attribute,
+  proposalHardAttribute = null,
   isLoadFailed = false,
   isLoading = false,
   isSwitching = false,
@@ -378,6 +420,12 @@ export function RoomProposal({
   const selectedTerm = terms.find((term) => term.id === selectedTermId)
   const isRunning = status === "running"
   const badge = PROPOSAL_STATUS_BADGE[status]
+  const shownHardAttribute = layout ? proposalHardAttribute : null
+  const shownAttributeLabel = layout
+    ? shownHardAttribute
+      ? attributeLabel(shownHardAttribute)
+      : null
+    : attribute
 
   const content = (
     <>
@@ -417,10 +465,17 @@ export function RoomProposal({
                       ? "Automatický návrh zapnutý"
                       : "Automatický návrh vypnutý"}
                   </p>
+                  {layout ? (
+                    <p className="text-sm text-muted-foreground">
+                      {shownHardAttribute
+                        ? `Rozdělení podle ${attributeLabel(shownHardAttribute).toLocaleLowerCase("cs")}`
+                        : "Bez tvrdého pravidla"}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <PendingButton
-                    variant="outline"
+                    variant={hasApplyAction && !isRunning ? "outline" : "default"}
                     isPending={isRunning}
                     icon={<Sparkles />}
                     onClick={onPropose}
@@ -460,7 +515,12 @@ export function RoomProposal({
                   icon={BedDouble}
                   title="Termín nemá dostupný pokoj"
                 />
-                {layout.lockConflicts.length > 0 ? <LockConflicts layout={layout} /> : null}
+                {layout.lockConflicts.length > 0 ? (
+                  <LockConflicts
+                    layout={layout}
+                    hardAttribute={shownHardAttribute}
+                  />
+                ) : null}
               </>
             ) : (
               <>
@@ -474,14 +534,23 @@ export function RoomProposal({
                   </Notice>
                 ) : null}
                 <Summary layout={layout} />
-                <RoomsTable layout={layout} />
+                <RoomsTable
+                  layout={layout}
+                  hardAttribute={shownHardAttribute}
+                />
                 {layout.unplaced.length > 0 ? (
                   <UnplacedTable
                     layout={layout}
-                    attribute={attribute}
+                    attribute={shownAttributeLabel}
+                    hardAttribute={shownHardAttribute}
                   />
                 ) : null}
-                {layout.lockConflicts.length > 0 ? <LockConflicts layout={layout} /> : null}
+                {layout.lockConflicts.length > 0 ? (
+                  <LockConflicts
+                    layout={layout}
+                    hardAttribute={shownHardAttribute}
+                  />
+                ) : null}
               </>
             )
           ) : null}

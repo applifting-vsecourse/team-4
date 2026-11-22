@@ -157,6 +157,14 @@ export const NOT_SPLIT_STORE: PlacementStore = {
   people: PEOPLE.map((entry) => ({ ...entry, value: null, confirmedWarnings: [] })),
 }
 
+/** Active gender rule with an unplaced participant lacking a usable value. */
+export const WITHOUT_VALUE_STORE: PlacementStore = {
+  ...PLACEMENTS_STORE,
+  people: PEOPLE.map((entry) =>
+    entry.name === "Matěj Procházka" ? { ...entry, value: null } : entry,
+  ),
+}
+
 export const WITHOUT_PEOPLE_STORE: PlacementStore = { ...PLACEMENTS_STORE, people: [] }
 
 export const WITHOUT_ROOMS_STORE: PlacementStore = {

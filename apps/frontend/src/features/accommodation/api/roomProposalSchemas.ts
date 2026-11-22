@@ -94,6 +94,7 @@ export type ProposalLayoutData = z.infer<typeof proposalLayoutSchema>
 const storedProposalSchema = z.object({
   id: z.string().uuid(),
   status: z.enum(["solved", "timeout", "failed"]),
+  hardAttribute: z.string().nullable(),
   triggeredBy: z.object({ id: z.string(), name: z.string() }).nullable(),
   startedAt: z.string(),
   finishedAt: z.string(),

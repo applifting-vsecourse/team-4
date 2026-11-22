@@ -14,6 +14,7 @@ import type {
 export type ProposalPerson = {
   id: string
   name: string
+  value: string | null
   /** Against the saved placement; null when nothing changes or nothing is saved. */
   change: Exclude<PlacementChange, "unchanged"> | null
   /** The saved room a person moves out of, or loses. */
@@ -33,7 +34,7 @@ export type ProposalRoom = {
 
 export type UnplacedPerson = ProposalPerson & { reason: UnplacedReason }
 
-export type LockConflict = { id: string; name: string; room: string }
+export type LockConflict = { id: string; name: string; value: string | null; room: string }
 
 export type RoomProposalLayout = {
   /** False: a later level ran out of time; the layout is valid but may not be the best. */
@@ -84,6 +85,7 @@ export function toProposalLayout(layout: ProposalLayoutData): RoomProposalLayout
       {
         id: person.id,
         name: `${person.firstName} ${person.lastName}`.trim() || "Neznámý účastník",
+        value: person.value,
         change: person.change === "unchanged" ? null : person.change,
         savedRoom: person.change === "unchanged" ? undefined : label(person.savedRoomId),
         isLocked: person.isLocked,
@@ -112,6 +114,7 @@ export function toProposalLayout(layout: ProposalLayoutData): RoomProposalLayout
             {
               id: person.id,
               name: people.get(person.id)!.name,
+              value: people.get(person.id)!.value,
               room: label(person.savedRoomId) ?? "",
             },
           ]

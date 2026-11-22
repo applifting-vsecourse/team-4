@@ -6,6 +6,7 @@ import { failOn, neverAnswer } from "@/screens/msw"
 import { screenMeta, showsHeading } from "@/screens/screenMeta"
 import { showsText } from "@/screens/steps"
 
+import { participantPlacementHandlers } from "@/features/accommodation/fixtures/participantPlacements"
 import { participantHandlers } from "@/features/participant-access/fixtures/handlers"
 import {
   NOTIFICATIONS,
@@ -14,6 +15,7 @@ import {
 import { programmeHandlers } from "@/features/programme/fixtures/handlers"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
 import { OWN_REGISTRATION } from "@/features/registrations/fixtures/participantRegistrations"
+import { makeOwnChange } from "@/features/registrations/fixtures/registrationChanges"
 
 const LIST_PATH = "/participant/notifications"
 const TIMEOUT = { timeout: 5000 }
@@ -29,7 +31,21 @@ const meta = {
       // Before signedIn(), whose empty list the first match would serve.
       ...participantHandlers.notifications(),
       ...participantHandlers.signedIn(),
+      ...registrationHandlers.ownChanges(
+        NOTIFICATIONS.filter(
+          (notification) =>
+            notification.kind === "changeApproved" || notification.kind === "changeRejected",
+        ).map((notification) =>
+          makeOwnChange({
+            id: notification.id,
+            registrationId: notification.registrationId,
+            status: notification.kind === "changeApproved" ? "approved" : "rejected",
+            decidedAt: notification.at,
+          }),
+        ),
+      ),
       ...registrationHandlers.own(),
+      ...participantPlacementHandlers(),
       ...programmeHandlers.participant(),
     )
   },
@@ -122,16 +138,53 @@ export const OpenPayment: Story = {
   },
 }
 
-/** Every other notification opens the registration itself. */
+/** Decision notifications open the registration at term states. */
 export const OpenDecision: Story = {
   play: async (context) => {
     await titles(context)
     await expect(
-      main(context).getByRole("link", { name: "Nepřečteno: Rozhodnutí o účasti" }),
-    ).toHaveAttribute("href", `/my-registrations/${OWN_REGISTRATION.id}`)
-    await expect(
       main(context).getByRole("link", { name: "Nepřečteno: Přijatá platba" }),
     ).toHaveAttribute("href", `/my-registrations/${OWN_REGISTRATION.id}#prijate-platby`)
+    await userEvent.click(
+      main(context).getByRole("link", { name: "Nepřečteno: Rozhodnutí o účasti" }),
+    )
+    await showsHeading(CAMP)(context)
+    await expect(context.canvasElement.querySelector("#terminy")).toBeInTheDocument()
+  },
+}
+
+/** A decided request opens the expanded section at its matching request. */
+export const OpenChangeRequest: Story = {
+  play: async (context) => {
+    await titles(context)
+    const notification = NOTIFICATIONS.find(({ kind }) => kind === "changeApproved")!
+    for (const changeNotification of NOTIFICATIONS.filter(
+      ({ kind }) => kind === "changeApproved" || kind === "changeRejected",
+    )) {
+      await expect(
+        main(context).getByRole("link", {
+          name:
+            changeNotification.kind === "changeApproved"
+              ? "Žádost o změnu schválena"
+              : "Žádost o změnu zamítnuta",
+        }),
+      ).toHaveAttribute(
+        "href",
+        `/my-registrations/${changeNotification.registrationId}#${changeNotification.id}`,
+      )
+    }
+    await userEvent.click(main(context).getByRole("link", { name: "Žádost o změnu schválena" }))
+    await showsHeading("Jarní výlet na Sněžku")(context)
+    await waitFor(
+      () =>
+        expect(
+          context.canvasElement.ownerDocument.getElementById(notification.id),
+        ).toBeInTheDocument(),
+      TIMEOUT,
+    )
+    const request = context.canvasElement.ownerDocument.getElementById(notification.id)
+    await expect(request).toBeInTheDocument()
+    await expect(request).toBeVisible()
   },
 }
 

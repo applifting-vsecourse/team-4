@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { ArrowDown, ArrowUp, Plus, X } from "lucide-react"
+import { GripVertical, Plus, X } from "lucide-react"
 
 import { FormError } from "@/components/FormError"
 import { PendingButton } from "@/components/PendingButton"
@@ -42,7 +42,7 @@ export type RoomProposalPreferencesProps = {
 export const preferenceLabel = (id: string, wishes: string) =>
   id === wishes ? "Přání" : attributeLabel(id)
 
-const arrowId = (id: string, direction: "up" | "down") => `preference-${id}-${direction}`
+const handleId = (id: string) => `preference-${id}-handle`
 
 /** The same ranking and the same neutral answers of each item (in any order). */
 export const samePreferences = (a: SoftPreferenceItem[], b: SoftPreferenceItem[]) =>
@@ -79,21 +79,61 @@ export function RoomProposalPreferences({
 }: RoomProposalPreferencesProps) {
   const [items, setItems] = useState(preferences)
   const [toAdd, setToAdd] = useState("")
-  // A move to the top or bottom disables the pressed arrow; keyboard focus
-  // goes to the other arrow of the moved item instead of the page.
-  const focusAfterMove = useRef<string | null>(null)
+  const [isAdding, setIsAdding] = useState(false)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [insertionIndex, setInsertionIndex] = useState<number | null>(null)
+  const [keyboardItemId, setKeyboardItemId] = useState<string | null>(null)
+  const [announcement, setAnnouncement] = useState("")
+  const keyboardOriginal = useRef<SoftPreferenceItem[] | null>(null)
 
   useEffect(() => {
-    if (focusAfterMove.current === null) return
-    document.getElementById(focusAfterMove.current)?.focus()
-    focusAfterMove.current = null
-  })
+    if (keyboardItemId) document.getElementById(handleId(keyboardItemId))?.focus()
+  }, [keyboardItemId, items])
 
-  const moveItem = (index: number, to: number) => {
-    const id = items[index]!.id
-    setItems(move(items, index, to))
-    if (to === 0) focusAfterMove.current = arrowId(id, "down")
-    else if (to === items.length - 1) focusAfterMove.current = arrowId(id, "up")
+  const announcePosition = (id: string, list: SoftPreferenceItem[]) => {
+    const label = preferenceLabel(id, wishes)
+    const index = list.findIndex((item) => item.id === id)
+    setAnnouncement(`${label}, pozice ${index + 1} z ${list.length}.`)
+  }
+
+  const moveItem = (from: number, to: number) => {
+    if (to < 0 || to >= items.length || from === to) return
+    const next = move(items, from, to)
+    setItems(next)
+    announcePosition(next[to]!.id, next)
+    return next
+  }
+
+  const startKeyboardMove = (id: string) => {
+    keyboardOriginal.current = items
+    setKeyboardItemId(id)
+    setAnnouncement(
+      `${preferenceLabel(id, wishes)} je na pozici ${items.findIndex((item) => item.id === id) + 1} z ${items.length}. Přesuňte šipkami, položte mezerníkem nebo zrušte klávesou Escape.`,
+    )
+  }
+
+  const finishKeyboardMove = () => {
+    if (!keyboardItemId) return
+    announcePosition(keyboardItemId, items)
+    keyboardOriginal.current = null
+    setKeyboardItemId(null)
+  }
+
+  const cancelKeyboardMove = () => {
+    if (!keyboardItemId) return
+    const original = keyboardOriginal.current ?? items
+    setItems(original)
+    setAnnouncement(`Přesun ${preferenceLabel(keyboardItemId, wishes)} zrušen.`)
+    keyboardOriginal.current = null
+    setKeyboardItemId(null)
+  }
+
+  const dropAt = (fromId: string, to: number) => {
+    const from = items.findIndex((item) => item.id === fromId)
+    const next = moveItem(from, Math.max(0, Math.min(to, items.length - 1)))
+    if (!next) announcePosition(fromId, items)
+    setDraggedId(null)
+    setInsertionIndex(null)
   }
 
   const available = [
@@ -112,6 +152,7 @@ export function RoomProposalPreferences({
       option ? { id: toAdd, neutralValues: [...option.defaultNeutralValues] } : { id: toAdd },
     ])
     setToAdd("")
+    setIsAdding(false)
   }
 
   const setNeutral = (index: number, value: string, isNeutral: boolean) =>
@@ -129,44 +170,84 @@ export function RoomProposalPreferences({
         <div className="space-y-6">
           <FieldSet>
             <FieldLegend>Pořadí preferencí</FieldLegend>
-            <FieldDescription>
-              Návrh pokojů splní co nejlépe první preferenci, pak druhou a tak dál. Výš uvedená má
-              vždy přednost.
-            </FieldDescription>
+            <FieldDescription>První položka má nejvyšší prioritu.</FieldDescription>
             {items.length ? (
-              <ol className="divide-y divide-border">
+              <ol className="space-y-2">
                 {items.map((item, index) => {
                   const label = preferenceLabel(item.id, wishes)
                   const option = optionOf(item.id)
                   return (
                     <li
                       key={item.id}
-                      className="space-y-3 py-3"
+                      onDragOver={(event) => {
+                        if (!draggedId) return
+                        event.preventDefault()
+                        const rect = event.currentTarget.getBoundingClientRect()
+                        const isAfter = event.clientY >= rect.top + rect.height / 2
+                        const boundary = index + (isAfter ? 1 : 0)
+                        setInsertionIndex(
+                          boundary > items.findIndex((candidate) => candidate.id === draggedId)
+                            ? boundary - 1
+                            : boundary,
+                        )
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault()
+                        if (draggedId) dropAt(draggedId, insertionIndex ?? index)
+                      }}
+                      className={`space-y-3 rounded-md border border-border bg-muted/40 p-3 ${
+                        draggedId === item.id ? "opacity-50" : ""
+                      } ${insertionIndex === index ? "border-t-2 border-t-ring" : ""} ${
+                        insertionIndex === items.length && index === items.length - 1
+                          ? "border-b-2 border-b-ring"
+                          : ""
+                      }`}
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-6 text-muted-foreground">{index + 1}.</span>
+                        {items.length > 1 ? (
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            id={handleId(item.id)}
+                            aria-label={`Přesunout ${label}`}
+                            aria-pressed={keyboardItemId === item.id}
+                            draggable
+                            onDragStart={(event) => {
+                              event.dataTransfer.effectAllowed = "move"
+                              event.dataTransfer.setData("text/plain", item.id)
+                              setDraggedId(item.id)
+                            }}
+                            onDragEnd={() => {
+                              setDraggedId(null)
+                              setInsertionIndex(null)
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === " " || event.key === "Spacebar") {
+                                event.preventDefault()
+                                if (keyboardItemId === item.id) finishKeyboardMove()
+                                else if (!keyboardItemId) startKeyboardMove(item.id)
+                              } else if (keyboardItemId === item.id && event.key === "Escape") {
+                                event.preventDefault()
+                                cancelKeyboardMove()
+                              } else if (keyboardItemId === item.id && event.key === "ArrowUp") {
+                                event.preventDefault()
+                                moveItem(index, index - 1)
+                              } else if (keyboardItemId === item.id && event.key === "ArrowDown") {
+                                event.preventDefault()
+                                moveItem(index, index + 1)
+                              }
+                            }}
+                            className="cursor-grab active:cursor-grabbing"
+                          >
+                            <GripVertical
+                              aria-hidden
+                              className="size-4 text-muted-foreground"
+                            />
+                          </Button>
+                        ) : null}
+                        <span className="w-6 text-muted-foreground tabular-nums">{index + 1}.</span>
                         <span className="min-w-0 flex-1 font-medium">{label}</span>
                         <div className="flex shrink-0 gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            id={arrowId(item.id, "up")}
-                            aria-label={`Posunout ${label} výš`}
-                            disabled={index === 0}
-                            onClick={() => moveItem(index, index - 1)}
-                          >
-                            <ArrowUp />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            id={arrowId(item.id, "down")}
-                            aria-label={`Posunout ${label} níž`}
-                            disabled={index === items.length - 1}
-                            onClick={() => moveItem(index, index + 1)}
-                          >
-                            <ArrowDown />
-                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -181,7 +262,7 @@ export function RoomProposalPreferences({
                         <FieldSet className="ml-9">
                           <FieldLegend variant="label">Neutrální hodnoty: {label}</FieldLegend>
                           <FieldDescription>
-                            Tyto odpovědi se nepočítají, stejně jako nevyplněná odpověď.
+                            Neutrální i prázdné odpovědi se nehodnotí.
                           </FieldDescription>
                           <div className="flex flex-wrap gap-x-6 gap-y-2">
                             {option.values.map((value) => {
@@ -210,15 +291,32 @@ export function RoomProposalPreferences({
                 })}
               </ol>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                Bez měkkých preferencí. Návrh pokojů zohlední jen lůžka, tvrdé pravidlo a uložená
-                umístění.
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">Žádné preference nejsou přidané.</p>
+                {available.length ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsAdding(true)}
+                  >
+                    <Plus />
+                    Přidat preferenci
+                  </Button>
+                ) : null}
+              </div>
             )}
           </FieldSet>
-          {available.length ? (
+          {items.length > 0 && available.length && !isAdding ? (
+            <Button
+              variant="outline"
+              onClick={() => setIsAdding(true)}
+            >
+              <Plus />
+              Přidat preferenci
+            </Button>
+          ) : null}
+          {available.length && isAdding ? (
             <Field>
-              <FieldLabel htmlFor="room-proposal-preference-add">Přidat preferenci</FieldLabel>
+              <FieldLabel htmlFor="room-proposal-preference-add">Nová preference</FieldLabel>
               <div className="flex flex-wrap gap-2">
                 <Select
                   value={toAdd}
@@ -242,16 +340,32 @@ export function RoomProposalPreferences({
                   </SelectContent>
                 </Select>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   disabled={!toAdd}
                   onClick={add}
                 >
                   <Plus />
                   Přidat
                 </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setToAdd("")
+                    setIsAdding(false)
+                  }}
+                >
+                  Zrušit
+                </Button>
               </div>
             </Field>
           ) : null}
+          <span
+            className="sr-only"
+            role="status"
+            aria-live="polite"
+          >
+            {announcement}
+          </span>
           {saveError ? (
             <FormError
               title="Preference se nepodařilo uložit"

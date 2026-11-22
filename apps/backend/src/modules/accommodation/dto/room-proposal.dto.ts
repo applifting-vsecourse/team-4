@@ -238,6 +238,9 @@ export class StoredProposalDto {
   })
   status!: (typeof PROPOSAL_STATUSES)[number];
 
+  @ApiProperty({ type: String, nullable: true })
+  hardAttribute!: string | null;
+
   @ApiProperty({
     type: RunActorDto,
     nullable: true,

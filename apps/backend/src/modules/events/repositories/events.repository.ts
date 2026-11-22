@@ -236,7 +236,9 @@ const toContact = (event: {
   contactEmail: string | null;
   contactPhone: string | null;
 }): PublicContact | null =>
-  event.contactName !== null && event.contactEmail !== null
+  event.contactName !== null ||
+  event.contactEmail !== null ||
+  event.contactPhone !== null
     ? {
         name: event.contactName,
         email: event.contactEmail,

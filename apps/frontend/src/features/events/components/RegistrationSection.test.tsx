@@ -99,7 +99,9 @@ describe("RegistrationSection", () => {
       `/organizations/${ORGANIZATION_ID}/events/${EVENT_ID}/settings#payments-heading`,
     )
     expect(
-      screen.getByText("Otevřením přihlašování zamknete název, popis, místo, termíny a ceny."),
+      screen.getByText(
+        "Otevřením přihlašování zamknete název, místo, termíny a ceny. Popis akce zůstane upravitelný ve Veřejné prezentaci.",
+      ),
     ).toBeInTheDocument()
   })
 

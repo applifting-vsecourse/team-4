@@ -35,7 +35,11 @@ export const catalogEventSchema = z.object({
   location: z.string(),
   conditions: z.string(),
   contact: z
-    .object({ name: z.string(), email: z.string(), phone: z.string().nullable() })
+    .object({
+      name: z.string().nullable(),
+      email: z.string().nullable(),
+      phone: z.string().nullable(),
+    })
     .nullable(),
   photos: z.array(z.object({ id: z.string().uuid() })),
   registrationStatus: registrationStatusSchema,

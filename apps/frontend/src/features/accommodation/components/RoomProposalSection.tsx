@@ -1,21 +1,39 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
-import { CalendarX } from "lucide-react"
+import { CalendarX, Eye, Settings, Sparkles } from "lucide-react"
 
 import { EmptyState } from "@/components/EmptyState"
+import { FormError } from "@/components/FormError"
+import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
+import { PageSection } from "@/components/PageSection"
+import { PendingButton } from "@/components/PendingButton"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { readApiError } from "@/lib/apiError"
 import { formatPragueDateTime } from "@/lib/date"
 
 import { termRoomProposalQueryOptions } from "@/features/accommodation/api/roomProposalQueryOptions"
+import type { RoomProposalStatus } from "@/features/accommodation/api/roomProposalSchemas"
 import { ApplyProposalAction } from "@/features/accommodation/components/ApplyProposalAction"
 import {
   RoomProposal,
   RoomProposalFrame,
   type RoomProposalProps,
 } from "@/features/accommodation/components/RoomProposal"
+import { RoomSplitRulesDialog } from "@/features/accommodation/components/RoomSplitRulesDialog"
 import { useProposeRooms } from "@/features/accommodation/hooks/useProposeRooms"
 import { toEvaluationTerm } from "@/features/accommodation/lib/evaluationView"
-import { asApplied, toProposalLayout } from "@/features/accommodation/lib/roomProposalView"
+import {
+  asApplied,
+  hasApplyChanges,
+  PROPOSAL_STATUS_BADGE,
+  toApplyChanges,
+  toProposalLayout,
+  type RoomProposalLayout,
+} from "@/features/accommodation/lib/roomProposalView"
 
 type Term = { id: string; label: string; startDate: string; endDate: string }
 
@@ -28,6 +46,10 @@ export type RoomProposalSectionProps = {
   terms: Term[]
   /** The term the page's tabs selected; "" when the event has none. */
   termId: string
+  /** The summary belongs above saved placements; the full view is opened separately. */
+  presentation?: "summary" | "full"
+  onViewProposal?: () => void
+  onApplied?: () => void
 }
 
 const PROPOSE_FAILED = "Zkuste to prosím znovu."
@@ -43,6 +65,9 @@ export function RoomProposalSection({
   eventId,
   terms,
   termId,
+  presentation = "full",
+  onViewProposal,
+  onApplied,
 }: RoomProposalSectionProps) {
   const hasTerm = termId !== ""
   const proposal = useQuery({
@@ -73,6 +98,15 @@ export function RoomProposalSection({
   const unknownTerm = { ...common, mode: "manual", status: "none" } satisfies RoomProposalProps
 
   if (proposal.isPending) {
+    if (presentation === "summary") {
+      return (
+        <ProposalSummary
+          isLoading
+          organizationId={organizationId}
+          eventId={eventId}
+        />
+      )
+    }
     return (
       <RoomProposal
         {...unknownTerm}
@@ -82,6 +116,16 @@ export function RoomProposalSection({
   }
   // A failed poll keeps what was shown; only a term never loaded is an error.
   if (proposal.isError && !proposal.data) {
+    if (presentation === "summary") {
+      return (
+        <ProposalSummary
+          isLoadFailed
+          onRetryLoad={() => void proposal.refetch()}
+          organizationId={organizationId}
+          eventId={eventId}
+        />
+      )
+    }
     return (
       <RoomProposal
         {...unknownTerm}
@@ -97,18 +141,51 @@ export function RoomProposalSection({
   // Applied and nothing changed since: the saved placements are its rooms.
   const layout = proposed && shown?.appliedAt ? asApplied(proposed) : proposed
   const term = common.terms.find((t) => t.id === termId)
+  const status = propose.isPending ? "running" : data.status
+  const proposeError = propose.isError
+    ? (readApiError(propose.error).message ?? PROPOSE_FAILED)
+    : undefined
+
+  if (presentation === "summary") {
+    return (
+      <ProposalSummary
+        term={term ? `${term.label}, ${term.dates}` : undefined}
+        mode={data.mode}
+        hardRule={
+          attribute
+            ? `Rozdělení podle ${attribute.toLocaleLowerCase("cs")}`
+            : "Bez tvrdého pravidla"
+        }
+        status={status}
+        layout={layout}
+        proposedAt={shown ? formatPragueDateTime(shown.finishedAt) : undefined}
+        scheduledAt={data.scheduledAt ? formatPragueDateTime(data.scheduledAt) : undefined}
+        isSwitching={proposal.isPlaceholderData}
+        isRunning={status === "running"}
+        proposeError={proposeError}
+        onPropose={() => propose.mutate()}
+        onViewProposal={onViewProposal}
+        organizationId={organizationId}
+        eventId={eventId}
+      />
+    )
+  }
 
   return (
     <RoomProposal
       {...common}
       attribute={attribute}
+      proposalHardAttribute={shown?.hardAttribute ?? null}
       isSwitching={proposal.isPlaceholderData}
       mode={data.mode}
       // While the request is on its way the term already reads as running.
-      status={propose.isPending ? "running" : data.status}
+      status={status}
       layout={layout}
       proposedAt={shown ? formatPragueDateTime(shown.finishedAt) : undefined}
       isShownStale={shown ? !shown.isCurrent && !shown.appliedAt : false}
+      hasApplyAction={Boolean(
+        shown?.isCurrent && proposed && hasApplyChanges(toApplyChanges(proposed)),
+      )}
       onPropose={() => propose.mutate()}
       applyAction={
         // The dialog reviews the proposal's own changes, also while the
@@ -123,14 +200,141 @@ export function RoomProposalSection({
             term={`${term.label}, ${term.dates}`}
             proposalId={shown.id}
             layout={proposed}
-            canApply={shown.isCurrent}
+            canApply={shown.isCurrent && status !== "running"}
             onPropose={() => propose.mutate()}
+            onApplied={onApplied}
           />
         ) : null
       }
-      proposeError={
-        propose.isError ? (readApiError(propose.error).message ?? PROPOSE_FAILED) : undefined
-      }
+      proposeError={proposeError}
     />
+  )
+}
+
+function ProposalSummary({
+  term,
+  mode,
+  hardRule,
+  status = "none",
+  layout,
+  proposedAt,
+  scheduledAt,
+  isLoading = false,
+  isLoadFailed = false,
+  isSwitching = false,
+  isRunning = false,
+  proposeError,
+  onPropose,
+  onViewProposal,
+  onRetryLoad,
+  organizationId,
+  eventId,
+}: {
+  term?: string
+  mode?: "automatic" | "manual"
+  hardRule?: string
+  status?: RoomProposalStatus
+  layout?: RoomProposalLayout
+  proposedAt?: string
+  scheduledAt?: string
+  isLoading?: boolean
+  isLoadFailed?: boolean
+  isSwitching?: boolean
+  isRunning?: boolean
+  proposeError?: string
+  onPropose?: () => void
+  onViewProposal?: () => void
+  onRetryLoad?: () => void
+  organizationId: string
+  eventId: string
+}) {
+  const [isRulesOpen, setIsRulesOpen] = useState(false)
+  const badge = PROPOSAL_STATUS_BADGE[status]
+  const canRetry = status === "stale" || status === "failed" || status === "timeout"
+
+  return (
+    <PageSection title="Návrh pokojů">
+      {isLoadFailed ? (
+        <LoadError
+          title="Návrh pokojů se nepodařilo načíst"
+          onRetry={onRetryLoad}
+        />
+      ) : isLoading ? (
+        <LoadingBlock label="Načítání stavu návrhu pokojů">
+          <Skeleton className="h-20 w-full" />
+        </LoadingBlock>
+      ) : (
+        <Card
+          inert={isSwitching}
+          aria-busy={isSwitching}
+        >
+          <CardContent>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                {term ? <p className="font-medium">{term}</p> : null}
+                <Badge variant={badge.variant}>{badge.label}</Badge>
+                <span className="text-sm text-muted-foreground">{hardRule}</span>
+                {layout ? (
+                  <span className="text-sm text-muted-foreground">
+                    {layout.summary.placed} umístění · {layout.summary.moved} přesunů
+                    {proposedAt ? ` · návrh z ${proposedAt}` : ""}
+                  </span>
+                ) : (
+                  <span className="text-sm text-muted-foreground">
+                    {scheduledAt
+                      ? `Návrh se spustí ${scheduledAt}.`
+                      : mode === "automatic"
+                        ? "Návrh vznikne automaticky po změně podkladů."
+                        : "Návrh zatím nevznikl."}
+                  </span>
+                )}
+              </div>
+              <div className="ml-auto flex flex-wrap justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsRulesOpen(true)}
+                >
+                  <Settings aria-hidden="true" />
+                  Upravit pravidla
+                </Button>
+                {layout ? (
+                  <Button
+                    variant="outline"
+                    onClick={onViewProposal}
+                  >
+                    <Eye aria-hidden="true" />
+                    Zobrazit návrh
+                  </Button>
+                ) : null}
+                {!layout || canRetry || isRunning ? (
+                  <PendingButton
+                    variant="default"
+                    isPending={isRunning}
+                    icon={<Sparkles aria-hidden="true" />}
+                    onClick={onPropose}
+                  >
+                    {isRunning ? "Navrhuje se…" : "Navrhnout pokoje"}
+                  </PendingButton>
+                ) : null}
+              </div>
+            </div>
+            {proposeError ? (
+              <div className="mt-3">
+                <FormError
+                  title="Návrh pokojů se nepodařilo spustit"
+                  message={proposeError}
+                />
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      )}
+      <RoomSplitRulesDialog
+        organizationId={organizationId}
+        eventId={eventId}
+        isOpen={isRulesOpen}
+        onOpenChange={setIsRulesOpen}
+      />
+    </PageSection>
   )
 }

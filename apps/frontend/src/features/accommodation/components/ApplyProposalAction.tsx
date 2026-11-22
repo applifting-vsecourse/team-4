@@ -32,6 +32,8 @@ export type ApplyProposalActionProps = {
   canApply: boolean
   /** Starts a new proposal after a refusal as stale. */
   onPropose: () => void
+  /** Leaves the proposal view after the saved placements have been refreshed. */
+  onApplied?: () => void
 }
 
 // "Použít návrh" of a current room proposal (#390): the button, the review of
@@ -48,6 +50,7 @@ export function ApplyProposalAction({
   layout,
   canApply,
   onPropose,
+  onApplied,
 }: ApplyProposalActionProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [submissionKey, setSubmissionKey] = useState("")
@@ -89,6 +92,7 @@ export function ApplyProposalAction({
               onSuccess: () => {
                 setIsOpen(false)
                 toast.success("Návrh pokojů byl použit.")
+                onApplied?.()
               },
             },
           )

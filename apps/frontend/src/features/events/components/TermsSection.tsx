@@ -89,7 +89,7 @@ export function TermsSection({ organizationId, event }: TermsSectionProps) {
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         aria-label={`Program termínu ${term.label}`}
                         asChild

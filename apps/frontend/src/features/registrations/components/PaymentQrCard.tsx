@@ -49,7 +49,7 @@ export function PaymentQrCard({ link }: PaymentQrCardProps) {
                 {isCopied ? "Odkaz zkopírován" : "Zkopírovat odkaz"}
               </Button>
               <Button
-                variant="outline"
+                variant="secondary"
                 size="sm"
                 asChild
               >

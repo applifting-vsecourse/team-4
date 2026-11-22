@@ -345,25 +345,11 @@ describe('EventsService', () => {
       expect(event.updatePresentation).toHaveBeenCalledWith(input);
     });
 
-    it('keeps conditions and contact editable on a locked event', async () => {
+    it('keeps description, conditions and contact editable on a locked event', async () => {
       event.isLocked = true;
-      event.description.mockResolvedValue('Týden v lesích.');
-      await service.updatePresentation(scope, { ...input, contact: null });
-      expect(event.updatePresentation).toHaveBeenCalledWith({
-        ...input,
-        contact: null,
-      });
-    });
-
-    it('refuses a new description on a locked event at its field', async () => {
-      event.isLocked = true;
-      event.description.mockResolvedValue('Původní popis.');
-      await expect(
-        service.updatePresentation(scope, input),
-      ).rejects.toMatchObject({
-        response: { code: 'event_locked', field: 'description' },
-      });
-      expect(event.updatePresentation).not.toHaveBeenCalled();
+      const changedInput = { ...input, description: 'Nový popis.' };
+      await service.updatePresentation(scope, changedInput);
+      expect(event.updatePresentation).toHaveBeenCalledWith(changedInput);
     });
 
     it('hides a foreign or missing event behind the same 404', async () => {

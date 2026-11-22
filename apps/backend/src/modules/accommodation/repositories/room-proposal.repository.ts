@@ -321,9 +321,11 @@ export class RoomProposalRepository {
     });
     if (!row) return null;
     const { applications, ...stored } = row;
+    const snapshot = row.input as unknown as ProposalSnapshot;
     return {
       ...stored,
-      input: (row.input as unknown as ProposalSnapshot).input,
+      hardAttribute: snapshot.rules.hardAttribute?.attribute ?? null,
+      input: snapshot.input,
       result: row.result as RoomProposalResult | null,
       lastApplied: applications[0]
         ? {

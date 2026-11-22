@@ -32,6 +32,7 @@ export type BoardRoom = {
 }
 
 export type PlacementBoard = {
+  hardAttribute: string | null
   rooms: BoardRoom[]
   unplaced: BoardPerson[]
   people: BoardPerson[]
@@ -45,12 +46,16 @@ export function toPlacementBoard(data: TermPlacements): PlacementBoard {
   const people = [...data.people].sort(byName).map((person): BoardPerson => ({
     id: person.registrationId,
     name: person.name,
-    value: data.hardAttribute ? valueLabel(data.hardAttribute, person.value) : null,
+    value:
+      data.hardAttribute && person.value !== null
+        ? valueLabel(data.hardAttribute, person.value)
+        : null,
     roomId: person.roomId,
     isLocked: person.isLocked,
   }))
   const roomIds = new Set(data.rooms.map((room) => room.id))
   return {
+    hardAttribute: data.hardAttribute,
     people,
     rooms: data.rooms.map((room) => {
       const inRoom = people.filter((person) => person.roomId === room.id)

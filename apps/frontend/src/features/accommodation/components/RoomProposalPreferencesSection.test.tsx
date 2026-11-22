@@ -57,10 +57,18 @@ describe("RoomProposalPreferencesSection", () => {
     get.mockReturnValue(answer(RANKED))
     renderSection()
 
-    await userEvent.click(await screen.findByRole("button", { name: "Posunout Přání výš" }))
+    const handle = await screen.findByRole("button", { name: "Přesunout Přání" })
+    await userEvent.click(handle)
+    await userEvent.keyboard(" {ArrowUp} ")
+    expect(items()[0]).toMatch(/^1\.Přání/)
     const save = screen.getByRole("button", { name: "Uložit" })
     expect(save).toBeEnabled()
-    await userEvent.click(screen.getByRole("button", { name: "Posunout Přání níž" }))
+    expect(handle).toHaveFocus()
+    await userEvent.keyboard(" {ArrowDown} ")
+    expect(items()[0]).toMatch(/^1\.Pohlaví/)
+    expect(save).toBeDisabled()
+    await userEvent.keyboard(" {ArrowUp}{Escape}")
+    expect(items()[0]).toMatch(/^1\.Pohlaví/)
     expect(save).toBeDisabled()
     const other = screen.getByRole("checkbox", { name: "Jiná odpověď" })
     await userEvent.click(other)
@@ -79,7 +87,9 @@ describe("RoomProposalPreferencesSection", () => {
     const client = renderSection()
     const invalidate = vi.spyOn(client, "invalidateQueries")
 
-    await userEvent.click(await screen.findByRole("button", { name: "Posunout Přání výš" }))
+    const handle = await screen.findByRole("button", { name: "Přesunout Přání" })
+    await userEvent.click(handle)
+    await userEvent.keyboard(" {ArrowUp} ")
     await userEvent.click(screen.getByRole("checkbox", { name: "Jiná odpověď" }))
     await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
 
@@ -105,7 +115,11 @@ describe("RoomProposalPreferencesSection", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Odebrat Pohlaví" }))
     expect(screen.queryByRole("checkbox", { name: "Jiná odpověď" })).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Odebrat Přání" }))
-    expect(screen.getByText(/^Bez měkkých preferencí/)).toBeInTheDocument()
+    expect(screen.getByText("Žádné preference nejsou přidané.")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Přidat preferenci" })).toBeInTheDocument()
+    expect(screen.queryByRole("combobox", { name: "Nová preference" })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Přidat preferenci" }))
+    expect(await screen.findByRole("combobox", { name: "Nová preference" })).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
 
     await waitFor(() => expect(put).toHaveBeenCalledWith(PATH, { json: { preferences: [] } }))
@@ -135,7 +149,9 @@ describe("RoomProposalPreferencesSection", () => {
     renderSection()
 
     // Any change of the list is refused while it holds the hard attribute.
-    await userEvent.click(await screen.findByRole("button", { name: "Posunout Přání výš" }))
+    const handle = await screen.findByRole("button", { name: "Přesunout Přání" })
+    await userEvent.click(handle)
+    await userEvent.keyboard(" {ArrowUp} ")
     await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
 
     expect(

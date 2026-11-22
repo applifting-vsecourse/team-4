@@ -69,7 +69,7 @@ export function RoommateWishesCard({ registrationId }: RoommateWishesCardProps) 
     !isUnavailable &&
     (data.wishes.length > 0 || data.candidates.length > 0) ? (
       <Button
-        variant="outline"
+        variant="secondary"
         size="sm"
         onClick={() => setDraft(data.wishes.map((wish) => wish.registrationId))}
       >

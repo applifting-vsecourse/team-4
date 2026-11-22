@@ -2,8 +2,8 @@
 
 /** Shown under "Kontakt na organizátora"; never the account's own contact. */
 export type PublicContact = {
-  name: string;
-  email: string;
+  name: string | null;
+  email: string | null;
   phone: string | null;
 };
 

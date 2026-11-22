@@ -1237,14 +1237,18 @@ describe('public presentation and catalog detail (F55)', () => {
       '+420604123456',
     );
 
-    const locked = await call(ownerId, 'PUT', `${path}/presentation`, {
-      ...PRESENTATION,
+    const updatedDescription = await call(
+      ownerId,
+      'PUT',
+      `${path}/presentation`,
+      {
+        ...PRESENTATION,
+        description: 'Jiný popis',
+      },
+    );
+    expect(updatedDescription.status).toBe(200);
+    expect(updatedDescription.body).toMatchObject({
       description: 'Jiný popis',
-    });
-    expect(locked.status).toBe(409);
-    expect(locked.body).toMatchObject({
-      code: 'event_locked',
-      field: 'description',
     });
   });
 
@@ -1260,31 +1264,78 @@ describe('public presentation and catalog detail (F55)', () => {
     expect(cleared.body.contact).toBeNull();
   });
 
-  it('rejects an incomplete contact at its field', async () => {
+  it('saves public contact fields independently and validates supplied values', async () => {
     const { ownerId, path } = await draftEvent();
-    const missingEmail = await call(ownerId, 'PUT', `${path}/presentation`, {
+    const publicId = (await call(ownerId, 'GET', path)).body.publicId as string;
+    const phoneOnly = await call(ownerId, 'PUT', `${path}/presentation`, {
       ...PRESENTATION,
+      contactName: '',
       contactEmail: '',
+      contactPhone: '+420 604 123 456',
     });
-    expect(missingEmail.status).toBe(400);
-    expect(missingEmail.body.field).toBe('contactEmail');
+    expect(phoneOnly.status).toBe(200);
+    expect(phoneOnly.body.contact).toEqual({
+      name: null,
+      email: null,
+      phone: '+420604123456',
+    });
+    await call(ownerId, 'PUT', `${path}/publication`, { isPublished: true });
+    expect((await catalogCall(publicId)).body.contact).toEqual(
+      phoneOnly.body.contact,
+    );
+
+    const nameOnly = await call(ownerId, 'PUT', `${path}/presentation`, {
+      ...PRESENTATION,
+      contactName: 'Jana Nováková',
+      contactEmail: '',
+      contactPhone: '',
+    });
+    expect(nameOnly.status).toBe(200);
+    expect(nameOnly.body.contact).toEqual({
+      name: 'Jana Nováková',
+      email: null,
+      phone: null,
+    });
+    expect((await catalogCall(publicId)).body.contact).toEqual(
+      nameOnly.body.contact,
+    );
+
+    const badEmail = await call(ownerId, 'PUT', `${path}/presentation`, {
+      ...PRESENTATION,
+      contactName: '',
+      contactEmail: 'neplatny-e-mail',
+      contactPhone: '',
+    });
+    expect(badEmail.status).toBe(400);
+    expect(badEmail.body.field).toBe('contactEmail');
 
     const badPhone = await call(ownerId, 'PUT', `${path}/presentation`, {
       ...PRESENTATION,
+      contactName: '',
+      contactEmail: '',
       contactPhone: '604123456',
     });
+    expect(badPhone.status).toBe(400);
     expect(badPhone.body.field).toBe('contactPhone');
   });
 
-  it('keeps a contact without a name and an e-mail out of the database', async () => {
+  it('stores a public phone without requiring a name or e-mail in the database', async () => {
     const { path } = await draftEvent();
     const eventId = path.split('/').pop() as string;
+    await prisma.event.update({
+      where: { id: eventId },
+      data: { contactPhone: '+420604123456' },
+    });
     await expect(
-      prisma.event.update({
+      prisma.event.findUnique({
         where: { id: eventId },
-        data: { contactPhone: '+420604123456' },
+        select: { contactName: true, contactEmail: true, contactPhone: true },
       }),
-    ).rejects.toThrow(/event_contact_chk/);
+    ).resolves.toEqual({
+      contactName: null,
+      contactEmail: null,
+      contactPhone: '+420604123456',
+    });
   });
 
   it('shows a published event of any registration status with its presentation', async () => {

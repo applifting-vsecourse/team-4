@@ -48,9 +48,10 @@ export class EventPresentationController {
     summary:
       'Set the description, conditions and public contact of the catalog detail',
     description:
-      'Conditions and contact are editable at any time; the description only ' +
-      'until the first opening (409 `event_locked`). Empty name, e-mail and ' +
-      'phone remove the public contact. 400 with `field` for an invalid value. ' +
+      'Description, conditions and contact are editable at any time, including ' +
+      'after registration has opened or closed. Each contact field is optional ' +
+      'and validated when provided; leave all three empty to remove the contact. ' +
+      '400 with `field` for an invalid value. ' +
       'Returns the event.',
   })
   async update(
@@ -66,11 +67,13 @@ export class EventPresentationController {
           description: dto.description,
           conditions: dto.conditions,
           contact:
-            dto.contactName === ''
+            dto.contactName === '' &&
+            dto.contactEmail === '' &&
+            dto.contactPhone === ''
               ? null
               : {
-                  name: dto.contactName,
-                  email: dto.contactEmail,
+                  name: dto.contactName === '' ? null : dto.contactName,
+                  email: dto.contactEmail === '' ? null : dto.contactEmail,
                   phone: dto.contactPhone === '' ? null : dto.contactPhone,
                 },
         },

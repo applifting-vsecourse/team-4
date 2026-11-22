@@ -38,8 +38,8 @@ export const eventSummariesSchema = z.array(eventSummarySchema)
 
 // Public contact on the catalog detail (F55); never the account's own contact.
 export const publicContactSchema = z.object({
-  name: z.string(),
-  email: z.string(),
+  name: z.string().nullable(),
+  email: z.string().nullable(),
   phone: z.string().nullable(),
 })
 

@@ -46,7 +46,13 @@ export function NotificationCard({ notification, onOpen, onDismiss }: Notificati
                 <Link
                   to={ROUTES.myRegistration}
                   params={{ registrationId: notification.registrationId }}
-                  hash={notification.kind === "payment" ? SECTIONS.receivedPayments : undefined}
+                  hash={
+                    notification.kind === "payment"
+                      ? SECTIONS.receivedPayments
+                      : notification.kind === "decision"
+                        ? SECTIONS.registrationTerms
+                        : notification.id
+                  }
                   onClick={onOpen}
                   // A middle click opens it in a new tab: opened, too.
                   onAuxClick={onOpen}

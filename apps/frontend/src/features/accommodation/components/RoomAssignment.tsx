@@ -1,5 +1,5 @@
 import { useState, type DragEvent, type ReactNode } from "react"
-import { BedDouble, EllipsisVertical, GripVertical, Lock, Users } from "lucide-react"
+import { BedDouble, ChevronDown, EllipsisVertical, GripVertical, Lock, Users } from "lucide-react"
 
 import { EmptyState } from "@/components/EmptyState"
 import { LoadError } from "@/components/LoadError"
@@ -7,7 +7,7 @@ import { LoadingBlock } from "@/components/LoadingBlock"
 import { PageSection } from "@/components/PageSection"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +20,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
+import { attributeLabel } from "@/features/accommodation/lib/evaluationView"
 import type {
   BoardPerson,
   BoardRoom,
@@ -44,7 +45,7 @@ export type RoomAssignmentProps = {
   notice?: ReactNode
 }
 
-const SECTION_TITLE = "Rozdělení do pokojů"
+const SECTION_TITLE = "Uložené rozdělení"
 const DRAG_TYPE = "text/plain"
 
 // Správa akce → Ubytování → Rozdělení do pokojů (F14-2): the confirmed
@@ -79,23 +80,24 @@ export function RoomAssignment({
           <Skeleton className="h-64 lg:col-span-2" />
         </LoadingBlock>
       ) : board.people.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="V termínu nejsou potvrzení účastníci"
-        />
-      ) : board.rooms.length === 0 ? (
-        <EmptyState
-          icon={BedDouble}
-          title="V termínu nejsou dostupné pokoje"
-        />
+        <>
+          <RuleLabel hardAttribute={board.hardAttribute} />
+          <EmptyState
+            icon={Users}
+            title="V termínu nejsou potvrzení účastníci"
+          />
+        </>
       ) : (
-        <Board
-          board={board}
-          isInert={isSwitching}
-          isSaving={isSaving}
-          onMove={onMove}
-          onLock={onLock}
-        />
+        <>
+          <RuleLabel hardAttribute={board.hardAttribute} />
+          <Board
+            board={board}
+            isInert={isSwitching}
+            isSaving={isSaving}
+            onMove={onMove}
+            onLock={onLock}
+          />
+        </>
       )}
     </>
   )
@@ -108,6 +110,16 @@ export function RoomAssignment({
     >
       {content}
     </PageSection>
+  )
+}
+
+function RuleLabel({ hardAttribute }: { hardAttribute: string | null }) {
+  return (
+    <p className="mb-3 text-sm text-muted-foreground">
+      {hardAttribute
+        ? `Rozdělení podle ${attributeLabel(hardAttribute).toLocaleLowerCase("cs")}`
+        : "Bez tvrdého pravidla"}
+    </p>
   )
 }
 
@@ -134,6 +146,7 @@ function Board({ board, isInert, isSaving, onMove, onLock }: BoardProps) {
     <PersonItem
       key={entry.id}
       person={entry}
+      shouldShowValue={Boolean(board.hardAttribute)}
       rooms={board.rooms}
       isDisabled={isSaving}
       onDragStart={(event) => {
@@ -148,54 +161,159 @@ function Board({ board, isInert, isSaving, onMove, onLock }: BoardProps) {
   return (
     <div
       inert={isInert}
-      className="grid items-start gap-4 lg:grid-cols-3"
+      className="space-y-4"
     >
       <DropZone
-        title={`Bez pokoje (${board.unplaced.length})`}
+        title="Bez pokoje"
+        count={board.unplaced.length}
+        description={
+          board.unplaced.length === 0
+            ? "Přetáhněte sem účastníka pro odebrání z pokoje."
+            : undefined
+        }
         onDrop={drop(null)}
       >
-        {board.unplaced.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Všichni potvrzení účastníci mají pokoj.</p>
-        ) : (
+        {board.unplaced.length > 0 ? (
           <ul className="space-y-1">{board.unplaced.map(person)}</ul>
-        )}
+        ) : null}
       </DropZone>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
-        {board.rooms.map((room) => (
-          <DropZone
-            key={room.id}
-            title={room.label}
-            occupancy={<Occupancy room={room} />}
-            // An unavailable room takes nobody new: not a drop target.
-            onDrop={room.isAvailable ? drop(room.id) : undefined}
-          >
-            {room.people.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Volný</p>
-            ) : (
-              <ul className="space-y-1">{room.people.map(person)}</ul>
-            )}
-          </DropZone>
-        ))}
-      </div>
+      {board.rooms.length === 0 ? (
+        <EmptyState
+          icon={BedDouble}
+          title="V termínu nejsou dostupné pokoje"
+        />
+      ) : (
+        <ul className="space-y-2">
+          {board.rooms.map((room) => (
+            <RoomRow
+              key={room.id}
+              room={room}
+              onDrop={room.isAvailable ? drop(room.id) : undefined}
+            >
+              {room.people.length > 0 ? (
+                <ul className="space-y-1">{room.people.map(person)}</ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">Volný</p>
+              )}
+            </RoomRow>
+          ))}
+        </ul>
+      )}
     </div>
+  )
+}
+
+function RoomRow({
+  room,
+  onDrop,
+  children,
+}: {
+  room: BoardRoom
+  onDrop?: (event: DragEvent) => void
+  children: ReactNode
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [isOver, setIsOver] = useState(false)
+  const isOverCapacity = room.people.length > room.baseBeds + room.extraBeds
+
+  return (
+    <li>
+      <Collapsible
+        open={isOpen}
+        onOpenChange={setIsOpen}
+      >
+        <section
+          aria-label={`Pokoj ${room.label}`}
+          className={cn(
+            "overflow-hidden rounded-lg border border-border bg-card",
+            isOver && "outline-2 outline-offset-2 outline-ring",
+          )}
+          onDragOver={
+            onDrop
+              ? (event) => {
+                  event.preventDefault()
+                  event.dataTransfer.dropEffect = "move"
+                  setIsOver(true)
+                }
+              : undefined
+          }
+          onDragLeave={() => setIsOver(false)}
+          onDrop={
+            onDrop
+              ? (event) => {
+                  setIsOver(false)
+                  onDrop(event)
+                }
+              : undefined
+          }
+        >
+          <div className="flex min-w-0 items-center gap-2 bg-muted p-2 sm:gap-3 sm:px-4">
+            <CollapsibleTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                className="group h-auto min-h-10 min-w-0 flex-1 justify-start text-left whitespace-normal"
+                aria-label={`${room.label}, ${room.people.length} obsazeno, ${room.isAvailable ? (isOverCapacity ? "překročena kapacita" : `${room.free} volných míst`) : "nedostupný pokoj"}`}
+              >
+                <ChevronDown
+                  aria-hidden
+                  className="shrink-0 text-muted-foreground transition-transform group-data-[state=closed]:-rotate-90 motion-reduce:transition-none"
+                />
+                <span className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <span className="min-w-0 font-semibold">{room.label}</span>
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1 font-normal">
+                    {room.isAvailable ? (
+                      <span
+                        className={cn(
+                          "text-sm",
+                          isOverCapacity ? "text-destructive" : "text-muted-foreground",
+                        )}
+                      >
+                        <span className="font-mono text-foreground tabular-nums">
+                          {room.people.length} / {room.baseBeds}
+                          {room.extraBeds > 0 ? ` + ${room.extraBeds}` : ""}
+                        </span>{" "}
+                        · {isOverCapacity ? "Překročena kapacita" : `volná místa ${room.free}`}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-destructive">Nedostupný pokoj</span>
+                    )}
+                    <RoomFlags room={room} />
+                  </span>
+                </span>
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent>
+            <div className="border-t border-border bg-card px-3 py-3 sm:px-4">{children}</div>
+          </CollapsibleContent>
+        </section>
+      </Collapsible>
+    </li>
   )
 }
 
 type DropZoneProps = {
   title: string
-  occupancy?: ReactNode
+  count: number
+  description?: string
   /** Without it the zone accepts no drop. */
   onDrop?: (event: DragEvent) => void
   children: ReactNode
 }
 
-function DropZone({ title, occupancy, onDrop, children }: DropZoneProps) {
+function DropZone({ title, count, description, onDrop, children }: DropZoneProps) {
   const [isOver, setIsOver] = useState(false)
   // The outline marks where a dragged participant lands; the card keeps its own look.
   return (
     <div
-      className={cn("rounded-xl", isOver && "outline-2 outline-offset-2 outline-ring")}
+      role="region"
+      aria-label={`${title} (${count})`}
+      className={cn(
+        "rounded-lg border border-dashed bg-card px-3",
+        isOver && "outline-2 outline-offset-2 outline-ring",
+      )}
       onDragOver={
         onDrop
           ? (event) => {
@@ -215,45 +333,15 @@ function DropZone({ title, occupancy, onDrop, children }: DropZoneProps) {
           : undefined
       }
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <h3>{title}</h3>
-          </CardTitle>
-          {occupancy ? <CardAction>{occupancy}</CardAction> : null}
-        </CardHeader>
-        <CardContent>{children}</CardContent>
-      </Card>
+      <div className="flex flex-wrap items-center justify-between gap-3 py-2">
+        <h3 className="font-medium">
+          {title} ({count})
+        </h3>
+        {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+        {count > 0 ? <p className="text-sm text-muted-foreground">Účastníci</p> : null}
+      </div>
+      {count > 0 ? <div className="pb-2">{children}</div> : null}
     </div>
-  )
-}
-
-function Occupancy({ room }: { room: BoardRoom }) {
-  return (
-    <div className="flex flex-col items-end gap-1 text-right text-sm">
-      {room.isAvailable ? (
-        <Beds room={room} />
-      ) : (
-        // Shown only while someone is still in it; nobody new can be placed.
-        <p className="font-medium text-destructive">Není v termínu k dispozici</p>
-      )}
-      <RoomFlags room={room} />
-    </div>
-  )
-}
-
-function Beds({ room }: { room: BoardRoom }) {
-  const isOver = room.people.length > room.baseBeds + room.extraBeds
-  return (
-    <>
-      <p className="font-mono tabular-nums">
-        {room.people.length} / {room.baseBeds}
-        {room.extraBeds > 0 ? ` + ${room.extraBeds}` : ""}
-      </p>
-      <p className={cn("font-medium", isOver ? "text-destructive" : "text-muted-foreground")}>
-        {isOver ? "Překročena kapacita" : `Volná místa: ${room.free}`}
-      </p>
-    </>
   )
 }
 
@@ -267,7 +355,7 @@ function RoomFlags({ room }: { room: BoardRoom }) {
   const hasExtraBed = room.warnings.includes("extra_bed")
   if (!isMixed && !hasExtraBed) return null
   return (
-    <div className="flex justify-end gap-1">
+    <span className="flex flex-wrap items-center justify-end gap-1">
       {isMixed ? (
         room.confirmedWarnings.includes("mixed") ? (
           <Badge variant="secondary">Smíšený, výjimka</Badge>
@@ -276,12 +364,13 @@ function RoomFlags({ room }: { room: BoardRoom }) {
         )
       ) : null}
       {hasExtraBed ? <Badge variant="secondary">Přistýlka</Badge> : null}
-    </div>
+    </span>
   )
 }
 
 type PersonItemProps = {
   person: BoardPerson
+  shouldShowValue: boolean
   rooms: BoardRoom[]
   isDisabled: boolean
   onDragStart: (event: DragEvent) => void
@@ -289,7 +378,15 @@ type PersonItemProps = {
   onLock: (isLocked: boolean) => unknown
 }
 
-function PersonItem({ person, rooms, isDisabled, onDragStart, onMove, onLock }: PersonItemProps) {
+function PersonItem({
+  person,
+  rooms,
+  shouldShowValue,
+  isDisabled,
+  onDragStart,
+  onMove,
+  onLock,
+}: PersonItemProps) {
   const isPlaced = person.roomId !== null
   // A locked placement is neither moved nor removed until it is unlocked.
   const isMovable = !person.isLocked
@@ -312,7 +409,9 @@ function PersonItem({ person, rooms, isDisabled, onDragStart, onMove, onLock }: 
           aria-label="Zamčené umístění"
         />
       ) : null}
-      {person.value ? <Badge variant="outline">{person.value}</Badge> : null}
+      {shouldShowValue ? (
+        <Badge variant="outline">{person.value ?? "Bez určující hodnoty"}</Badge>
+      ) : null}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button

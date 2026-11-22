@@ -98,7 +98,7 @@ describe("PresentationSection", () => {
     await user.type(screen.getByLabelText("Podmínky účasti"), "Věk 11 až 15 let.")
     await user.type(screen.getByLabelText("Jméno nebo název"), "Jana")
     await user.type(screen.getByLabelText("E-mail"), "jana@example.test")
-    await user.type(screen.getByLabelText("Telefon (nepovinné)"), "+420 604 123 456")
+    await user.type(screen.getByLabelText("Telefon"), "+420 604 123 456")
     await user.click(save())
 
     expect(put).toHaveBeenCalledWith(expect.stringContaining(`/events/${EVENT_ID}/presentation`), {
@@ -110,32 +110,58 @@ describe("PresentationSection", () => {
         contactPhone: "+420 604 123 456",
       },
     })
-    expect(await screen.findByLabelText("Telefon (nepovinné)")).toHaveValue("+420604123456")
+    expect(await screen.findByLabelText("Telefon")).toHaveValue("+420604123456")
   })
 
-  it("asks for a name and an e-mail once any contact field is filled", async () => {
+  it("allows the public contact fields to be saved independently", async () => {
+    put.mockReturnValue({
+      json: () =>
+        Promise.resolve({
+          ...EVENT,
+          contact: { name: null, email: null, phone: "+420604123456" },
+        }),
+    })
     renderPage(EVENT)
 
-    await user.type(screen.getByLabelText("Telefon (nepovinné)"), "+420 604 123 456")
-    await user.click(save())
+    expect(screen.getByLabelText("Popis akce")).toHaveAttribute("aria-required", "true")
+    expect(screen.getByLabelText("Podmínky účasti")).toHaveAttribute("aria-required", "false")
+    const name = screen.getByLabelText("Jméno nebo název")
+    const email = screen.getByLabelText("E-mail")
+    const phone = screen.getByLabelText("Telefon")
+    expect(name).toHaveAttribute("aria-required", "false")
+    expect(email).toHaveAttribute("aria-required", "false")
+    expect(phone).toHaveAttribute("aria-required", "false")
 
-    expect(await screen.findByText("Vyplňte jméno nebo název kontaktu.")).toBeVisible()
-    expect(screen.getByText("Zadejte platný e-mail.")).toBeVisible()
-    expect(put).not.toHaveBeenCalled()
-  })
-
-  it("keeps a locked description and sends it unchanged", async () => {
-    put.mockReturnValue({ json: () => Promise.resolve({ ...EVENT, isLocked: true }) })
-    renderPage({ ...EVENT, isLocked: true })
-
-    expect(screen.getByLabelText("Popis akce")).toBeDisabled()
-    expect(screen.getByText("Od prvního otevření přihlašování popis nelze měnit.")).toBeVisible()
-    await user.type(screen.getByLabelText("Podmínky účasti"), "Plavky")
+    await user.type(phone, "+420 604 123 456")
+    expect(name).toHaveAttribute("aria-required", "false")
+    expect(email).toHaveAttribute("aria-required", "false")
+    expect(phone).toHaveAttribute("aria-required", "false")
     await user.click(save())
 
     expect(put).toHaveBeenCalledWith(expect.any(String), {
-      json: expect.objectContaining({ description: "Týden v lesích." }) as unknown,
+      json: expect.objectContaining({
+        contactName: "",
+        contactEmail: "",
+        contactPhone: "+420 604 123 456",
+      }) as unknown,
     })
+    expect(await screen.findByLabelText("Telefon")).toHaveValue("+420604123456")
+  })
+
+  it("saves a changed description after registration has opened", async () => {
+    put.mockReturnValue({
+      json: () => Promise.resolve({ ...EVENT, description: "Nový popis", isLocked: true }),
+    })
+    renderPage({ ...EVENT, isLocked: true })
+
+    await user.clear(screen.getByLabelText("Popis akce"))
+    await user.type(screen.getByLabelText("Popis akce"), "Nový popis")
+    await user.click(save())
+
+    expect(put).toHaveBeenCalledWith(expect.any(String), {
+      json: expect.objectContaining({ description: "Nový popis" }) as unknown,
+    })
+    expect(await screen.findByLabelText("Popis akce")).toHaveValue("Nový popis")
   })
 
   it("keeps save disabled until a form value changes", async () => {
@@ -164,13 +190,14 @@ describe("PresentationSection", () => {
     })
     renderPage(EVENT)
 
-    await user.type(screen.getByLabelText("Podmínky účasti"), "Věk 11 až 15 let.")
+    await user.clear(screen.getByLabelText("Popis akce"))
+    await user.type(screen.getByLabelText("Popis akce"), "Rozepsaný nový popis")
     await user.click(save())
 
     expect(
       await screen.findByText("Veřejnou prezentaci se nepodařilo uložit. Zkuste to prosím znovu."),
     ).toBeVisible()
-    expect(screen.getByLabelText("Podmínky účasti")).toHaveValue("Věk 11 až 15 let.")
+    expect(screen.getByLabelText("Popis akce")).toHaveValue("Rozepsaný nový popis")
   })
 
   it("refuses a file that is not a photo before uploading it", async () => {

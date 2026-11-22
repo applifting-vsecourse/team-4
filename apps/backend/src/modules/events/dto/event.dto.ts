@@ -132,11 +132,11 @@ export class PaymentSettingsDto {
 }
 
 export class PublicContactDto {
-  @ApiProperty()
-  name!: string;
+  @ApiProperty({ type: String, nullable: true })
+  name!: string | null;
 
-  @ApiProperty()
-  email!: string;
+  @ApiProperty({ type: String, nullable: true })
+  email!: string | null;
 
   @ApiProperty({ type: String, nullable: true, example: '+420604123456' })
   phone!: string | null;
@@ -172,7 +172,8 @@ export class EventDetailDto {
   @ApiProperty({
     description:
       'True from the first opening of registration on, even after closing. ' +
-      'Name, description, location and terms cannot change then.',
+      'Name, location and terms cannot change through the event basics endpoint then; ' +
+      'the public presentation description remains editable.',
   })
   isLocked!: boolean;
 

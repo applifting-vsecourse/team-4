@@ -169,6 +169,8 @@ function Occupancy({ terms, rooms, isLoadFailed = false }: OccupancyProps) {
       <TermCapacityOverview
         terms={rooms}
         selectedTermId="turnus-1"
+        organizationId=""
+        eventId=""
       />
     </OrganizerEventPage>
   )

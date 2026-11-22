@@ -15,6 +15,8 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
+const MOBILE = { viewport: { value: "mobile", isRotated: false } }
+
 /** Published events of all organizations; each card leads to its detail (F54-2a). */
 export const Catalog: Story = {
   beforeEach: ({ msw }) => {
@@ -23,10 +25,41 @@ export const Catalog: Story = {
   play: async (context) => {
     await showsHeading("Katalog akcí")(context)
     const canvas = within(context.canvasElement)
+    const filters = canvas.getByRole("button", { name: "Filtry (0)" })
+    await expect(filters).toHaveAttribute("aria-expanded", "false")
+    await expect(canvas.queryByLabelText("Místo")).not.toBeInTheDocument()
     const link = await canvas.findByRole("link", { name: "Letní tábor Modrá Hora 2027" })
     await expect(link).toHaveAttribute("href", "/e/letni-tabor-2027")
     await expect(canvas.getByText("Spolek Modrá Hora")).toBeInTheDocument()
     await expect(canvas.getByText(/Turnus 1: 4\. 7\. – 17\. 7\. 2027/)).toBeInTheDocument()
+    filters.focus()
+    await expect(context.canvasElement.ownerDocument.activeElement).toBe(filters)
+    await userEvent.keyboard("{Enter}")
+    await expect(filters).toHaveAttribute("aria-expanded", "true")
+    await expect(canvas.getByLabelText("Termín od")).toBeInTheDocument()
+    await userEvent.keyboard("{Enter}")
+    await expect(filters).toHaveAttribute("aria-expanded", "false")
+  },
+}
+
+/** The compact controls stack cleanly at the public mobile viewport (360 px). */
+export const MobileLayout: Story = {
+  globals: MOBILE,
+  beforeEach: ({ msw }) => {
+    msw.use(...publicEventHandlers.catalogList())
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const search = await canvas.findByRole("searchbox", { name: "Hledat akci" })
+    const filters = canvas.getByRole("button", { name: "Filtry (0)" })
+    const searchField = search.closest<HTMLElement>("[data-slot='field']")
+    if (!searchField) throw new Error("Vyhledávání nemá kontejner pole.")
+
+    await expect(canvasElement.ownerDocument.defaultView?.innerWidth).toBe(360)
+    await expect(filters.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      searchField.getBoundingClientRect().bottom,
+    )
+    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(360)
   },
 }
 
@@ -42,7 +75,11 @@ export const FilterCombination: Story = {
   play: async (context) => {
     await showsHeading("Katalog akcí")(context)
     const canvas = within(context.canvasElement)
+    const filters = canvas.getByRole("button", { name: "Filtry (2)" })
+    await expect(filters).toHaveAttribute("aria-expanded", "false")
     await expect(canvas.getByRole("searchbox", { name: "Hledat akci" })).toHaveValue("")
+    await userEvent.click(filters)
+    await expect(filters).toHaveAttribute("aria-expanded", "true")
     await expect(canvas.getByLabelText("Místo")).toHaveValue("praha")
     await expect(
       canvas.getByRole("switch", { name: "Pouze akce s otevřeným přihlašováním" }),
@@ -53,6 +90,11 @@ export const FilterCombination: Story = {
     for (const name of ["Letní tábor Modrá Hora 2027", "Podzimní víkend pro mladé organizátory"]) {
       await expect(canvas.queryByRole("link", { name })).not.toBeInTheDocument()
     }
+    await userEvent.click(filters)
+    await expect(filters).toHaveAttribute("aria-expanded", "false")
+    await expect(
+      canvas.getByRole("link", { name: "Příměstský tábor Město hrou" }),
+    ).toBeInTheDocument()
   },
 }
 
@@ -70,8 +112,7 @@ export const OnlyOpenRegistration: Story = {
     const notOpen = "Podzimní víkend pro mladé organizátory"
     await expect(await canvas.findByRole("link", { name: notOpen })).toBeInTheDocument()
     await expect(canvas.queryByRole("button", { name: "Zrušit filtry" })).not.toBeInTheDocument()
-    const panel = canvas.getByRole("search", { name: "Hledání akcí" })
-    const height = panel.getBoundingClientRect().height
+    await userEvent.click(canvas.getByRole("button", { name: "Filtry (0)" }))
     const onlyOpen = canvas.getByRole("switch", { name: "Pouze akce s otevřeným přihlašováním" })
     await userEvent.click(onlyOpen)
     await waitFor(() =>
@@ -82,14 +123,14 @@ export const OnlyOpenRegistration: Story = {
     ).toBeInTheDocument()
     // The clear button appears and goes away without moving the results.
     await expect(await canvas.findByRole("button", { name: "Zrušit filtry" })).toBeVisible()
-    await expect(panel.getBoundingClientRect().height).toBe(height)
+    const filters = canvas.getByRole("button", { name: "Filtry (1)" })
 
     await userEvent.click(onlyOpen)
     await expect(await canvas.findByRole("link", { name: notOpen })).toBeInTheDocument()
     await waitFor(() =>
       expect(canvas.queryByRole("button", { name: "Zrušit filtry" })).not.toBeInTheDocument(),
     )
-    await expect(panel.getBoundingClientRect().height).toBe(height)
+    await expect(filters).toHaveAccessibleName("Filtry (0)")
   },
 }
 
@@ -105,6 +146,8 @@ export const PeriodFilter: Story = {
   play: async (context) => {
     await showsHeading("Katalog akcí")(context)
     const canvas = within(context.canvasElement)
+    const filters = canvas.getByRole("button", { name: "Filtry (1)" })
+    await expect(filters).toHaveAttribute("aria-expanded", "false")
     await expect(
       await canvas.findByRole("link", { name: "Letní tábor Modrá Hora 2027" }),
     ).toBeInTheDocument()
@@ -112,6 +155,7 @@ export const PeriodFilter: Story = {
       await expect(canvas.queryByRole("link", { name })).not.toBeInTheDocument()
     }
 
+    await userEvent.click(filters)
     await userEvent.click(canvas.getByRole("button", { name: "Termín do" }))
     const body = within(context.canvasElement.ownerDocument.body)
     await expect(await body.findByRole("grid")).toBeInTheDocument()
@@ -139,6 +183,10 @@ export const NoMatch: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const noMatch = await canvas.findByText("Hledání a filtrům neodpovídá žádná akce")
+    await expect(canvas.getByRole("button", { name: "Filtry (1)" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    )
     await expect(canvas.queryByText("Zatím žádné veřejné akce")).not.toBeInTheDocument()
     const emptyState = within(noMatch.closest("[data-slot=empty]") ?? canvasElement)
     await userEvent.click(emptyState.getByRole("button", { name: "Zrušit filtry" }))
@@ -149,6 +197,11 @@ export const NoMatch: Story = {
       await expect(canvas.getByRole("link", { name })).toBeInTheDocument()
     }
     await expect(canvas.getByRole("searchbox", { name: "Hledat akci" })).toHaveValue("")
+    await expect(canvas.getByRole("button", { name: "Filtry (0)" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Filtry (0)" }))
     await expect(
       canvas.getByRole("switch", { name: "Pouze akce s otevřeným přihlašováním" }),
     ).not.toBeChecked()
@@ -165,6 +218,7 @@ export const RetryKeepsFilters: Story = {
     const canvas = within(canvasElement)
     await expect(await canvas.findByText("Katalog se nepodařilo načíst")).toBeInTheDocument()
     await userEvent.click(canvas.getByRole("button", { name: "Zkusit znovu" }))
+    await userEvent.click(await canvas.findByRole("button", { name: "Filtry (1)" }))
     await expect(
       await canvas.findByRole("textbox", { name: "Místo" }, { timeout: 5000 }),
     ).toHaveValue("hlinsko")

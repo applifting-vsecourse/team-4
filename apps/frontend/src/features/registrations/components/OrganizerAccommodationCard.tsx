@@ -78,7 +78,7 @@ export function OrganizerAccommodationCard({
       action={
         isEditing ? null : (
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={startEditing}
           >

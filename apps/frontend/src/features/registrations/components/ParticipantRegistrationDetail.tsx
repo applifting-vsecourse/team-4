@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link, useRouterState } from "@tanstack/react-router"
 import { ChevronDown, MapPin } from "lucide-react"
@@ -69,19 +69,55 @@ export function ParticipantRegistrationDetail({
   const query = useQuery(participantRegistrationQueryOptions(registrationId))
   const changesQuery = useQuery(participantChangesQueryOptions(registrationId))
   const [cancelProposal, setCancelProposal] = useState<ChangeProposal | null>(null)
+  const [changeRequestsOpenOverride, setChangeRequestsOpenOverride] = useState<{
+    hash: string
+    open: boolean
+  } | null>(null)
   const { data } = query
   const hash = useRouterState({ select: (state) => state.location.hash })
   const isLoaded = data !== undefined
-  // A link to a section (an Oznámení of a payment, S4-06) lands on it once the
-  // detail has loaded; the router scrolled before the section existed.
-  useEffect(() => {
-    if (isLoaded && hash) document.getElementById(hash)?.scrollIntoView()
-  }, [isLoaded, hash])
+  const lastScrolledHash = useRef<string | null>(null)
   const changes = changesQuery.data ?? []
   const pendingRequest = changes.find((change) => change.status === "pending")
   const resolvedRequests = changes.filter(
     (change) => change.status === "approved" || change.status === "rejected",
   )
+  const isChangeRequestTarget =
+    hash !== SECTIONS.registrationTerms &&
+    hash !== SECTIONS.receivedPayments &&
+    hash !== SECTIONS.changeRequests &&
+    hash.length > 0
+  const isTargetRequestLoaded = resolvedRequests.some((request) => request.id === hash)
+  const isChangeRequestsOpen =
+    changeRequestsOpenOverride?.hash === hash
+      ? changeRequestsOpenOverride.open
+      : isChangeRequestTarget && isTargetRequestLoaded
+
+  // Hash navigation can run before async content exists. Keep the hash in the
+  // URL, expand a matching request, then scroll once the rendered target is visible.
+  useEffect(() => {
+    if (lastScrolledHash.current !== hash) lastScrolledHash.current = null
+    if (!isLoaded || !hash || lastScrolledHash.current === hash) return
+    if (isChangeRequestTarget && changesQuery.isPending) return
+
+    const target =
+      document.getElementById(hash) ??
+      (isChangeRequestTarget ? document.getElementById(SECTIONS.changeRequests) : null)
+    if (!target?.isConnected || target.getClientRects().length === 0) return
+
+    target.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "start",
+    })
+    lastScrolledHash.current = hash
+  }, [
+    changesQuery.isPending,
+    hash,
+    isChangeRequestTarget,
+    isChangeRequestsOpen,
+    isLoaded,
+    isTargetRequestLoaded,
+  ])
 
   if (query.isError && isSessionRefused(query.error)) return sessionEnded
   if (query.isError && isRegistrationUnavailable(query.error)) {
@@ -178,8 +214,15 @@ export function ParticipantRegistrationDetail({
           ) : null}
 
           {resolvedRequests.length > 0 ? (
-            <Collapsible>
-              <section aria-labelledby="change-requests-heading">
+            <Collapsible
+              open={isChangeRequestsOpen}
+              onOpenChange={(isOpen) => setChangeRequestsOpenOverride({ hash, open: isOpen })}
+            >
+              <section
+                id={SECTIONS.changeRequests}
+                aria-labelledby="change-requests-heading"
+                className="scroll-mt-20"
+              >
                 <h2 id="change-requests-heading">
                   <CollapsibleTrigger asChild>
                     <Button
@@ -198,7 +241,11 @@ export function ParticipantRegistrationDetail({
                 <CollapsibleContent>
                   <ul className="space-y-4 pt-4">
                     {resolvedRequests.map((request) => (
-                      <li key={request.id}>
+                      <li
+                        key={request.id}
+                        id={request.id}
+                        className="scroll-mt-20"
+                      >
                         <ChangeRequestCard
                           status={request.status === "approved" ? "approved" : "rejected"}
                           kind={describeKinds(request.kinds)}
@@ -216,7 +263,10 @@ export function ParticipantRegistrationDetail({
             </Collapsible>
           ) : null}
 
-          <Card>
+          <Card
+            id={SECTIONS.registrationTerms}
+            className="scroll-mt-20"
+          >
             <CardHeader>
               <CardTitle>Termíny</CardTitle>
             </CardHeader>

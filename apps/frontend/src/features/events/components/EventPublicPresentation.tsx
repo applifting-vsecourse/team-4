@@ -7,10 +7,11 @@ import { z } from "zod"
 import { ROUTES } from "@/app/routes"
 import { FormError } from "@/components/FormError"
 import { PendingButton } from "@/components/PendingButton"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
-import { FieldLegend, FieldSet } from "@/components/ui/field"
+import { FieldDescription, FieldLegend, FieldSet } from "@/components/ui/field"
 import {
   Form,
   FormControl,
@@ -35,40 +36,27 @@ export const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"]
 
 const PHONE_MESSAGE = "Zadejte telefon s mezinárodní předvolbou, např. +420 777 123 456."
 
-const schema = z
-  .object({
-    description: z
-      .string()
-      .trim()
-      .min(1, "Vyplňte popis.")
-      .max(5000, "Popis může mít nejvýše 5000 znaků."),
-    conditions: z.string().trim().max(2000, "Podmínky mohou mít nejvýše 2000 znaků."),
-    contactName: z.string().trim().max(200, "Jméno může mít nejvýše 200 znaků."),
-    contactEmail: z.string().trim().max(320, "E-mail může mít nejvýše 320 znaků."),
-    contactPhone: z
-      .string()
-      .trim()
-      .refine((value) => value === "" || toE164(value) !== null, PHONE_MESSAGE),
-  })
-  // The public contact is left empty as a whole, or has a name and an e-mail.
-  .superRefine((values, context) => {
-    const hasContact = Boolean(values.contactName || values.contactEmail || values.contactPhone)
-    if (!hasContact) return
-    if (!values.contactName) {
-      context.addIssue({
-        code: "custom",
-        path: ["contactName"],
-        message: "Vyplňte jméno nebo název kontaktu.",
-      })
-    }
-    if (!z.string().email().safeParse(values.contactEmail).success) {
-      context.addIssue({
-        code: "custom",
-        path: ["contactEmail"],
-        message: "Zadejte platný e-mail.",
-      })
-    }
-  })
+const schema = z.object({
+  description: z
+    .string()
+    .trim()
+    .min(1, "Vyplňte popis.")
+    .max(5000, "Popis může mít nejvýše 5000 znaků."),
+  conditions: z.string().trim().max(2000, "Podmínky mohou mít nejvýše 2000 znaků."),
+  contactName: z.string().trim().max(200, "Jméno může mít nejvýše 200 znaků."),
+  contactEmail: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === "" || z.string().email().safeParse(value).success,
+      "Zadejte platný e-mail.",
+    )
+    .max(320, "E-mail může mít nejvýše 320 znaků."),
+  contactPhone: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || toE164(value) !== null, PHONE_MESSAGE),
+})
 
 export type PresentationFormValues = z.infer<typeof schema>
 export type PresentationField = keyof PresentationFormValues
@@ -96,8 +84,6 @@ export type EventPublicPresentationProps = {
   publicId: string
   isPublished: boolean
   initialValues: PresentationFormValues
-  /** After the first opening the description is locked like the other basics. */
-  isDescriptionLocked?: boolean
   photos: PresentationPhoto[]
   /** Server-side rejections shown at their fields. */
   fieldErrors?: Partial<Record<PresentationField, string>>
@@ -116,7 +102,6 @@ export function EventPublicPresentation({
   publicId,
   isPublished,
   initialValues,
-  isDescriptionLocked = false,
   photos,
   fieldErrors,
   isSaving = false,
@@ -147,12 +132,7 @@ export function EventPublicPresentation({
     }
   }, [fieldErrors, setError])
 
-  const submit = (values: PresentationFormValues) =>
-    onSubmit({
-      ...values,
-      // Sent as saved, so a locked description is never changed by accident.
-      description: isDescriptionLocked ? initialValues.description : values.description,
-    })
+  const submit = (values: PresentationFormValues) => onSubmit(values)
 
   const canAddPhoto = photos.length < MAX_PHOTOS && !isUploading
 
@@ -183,7 +163,7 @@ export function EventPublicPresentation({
                 {isPublished ? (
                   <Button
                     asChild
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                   >
                     <a
@@ -269,21 +249,19 @@ export function EventPublicPresentation({
                         name="description"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Popis akce</FormLabel>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <FormLabel>Popis akce</FormLabel>
+                              <FieldRequirement required />
+                            </div>
                             <FormControl>
                               <Textarea
                                 rows={5}
                                 placeholder="Popište program a průběh akce."
                                 maxLength={5000}
-                                disabled={isDescriptionLocked}
+                                aria-required="true"
                                 {...field}
                               />
                             </FormControl>
-                            {isDescriptionLocked ? (
-                              <FormDescription>
-                                Od prvního otevření přihlašování popis nelze měnit.
-                              </FormDescription>
-                            ) : null}
                             <FormMessage className="min-h-0" />
                           </FormItem>
                         )}
@@ -291,7 +269,9 @@ export function EventPublicPresentation({
                     </FieldSet>
 
                     <FieldSet>
-                      <FieldLegend>Podmínky účasti</FieldLegend>
+                      <FieldLegend>
+                        Podmínky účasti <FieldRequirement required={false} />
+                      </FieldLegend>
                       <FormField
                         control={form.control}
                         name="conditions"
@@ -303,6 +283,7 @@ export function EventPublicPresentation({
                                 rows={3}
                                 placeholder="Každou podmínku napište na samostatný řádek."
                                 maxLength={2000}
+                                aria-required="false"
                                 {...field}
                               />
                             </FormControl>
@@ -316,18 +297,33 @@ export function EventPublicPresentation({
                     </FieldSet>
                   </div>
 
-                  <FieldSet>
-                    <FieldLegend>Veřejný kontakt</FieldLegend>
+                  <FieldSet aria-describedby="public-contact-description">
+                    <FieldLegend>
+                      Veřejný kontakt{" "}
+                      <Badge
+                        aria-hidden="true"
+                        variant="secondary"
+                      >
+                        Nepovinný
+                      </Badge>
+                    </FieldLegend>
+                    <FieldDescription id="public-contact-description">
+                      Každé pole je nepovinné. Vyplňte jen údaje, které chcete zveřejnit.
+                    </FieldDescription>
                     <FormField
                       control={form.control}
                       name="contactName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Jméno nebo název</FormLabel>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <FormLabel>Jméno nebo název</FormLabel>
+                            <FieldRequirement required={false} />
+                          </div>
                           <FormControl>
                             <Input
                               placeholder="Jan Novák"
                               autoComplete="off"
+                              aria-required="false"
                               {...field}
                             />
                           </FormControl>
@@ -340,12 +336,16 @@ export function EventPublicPresentation({
                       name="contactEmail"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>E-mail</FormLabel>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <FormLabel>E-mail</FormLabel>
+                            <FieldRequirement required={false} />
+                          </div>
                           <FormControl>
                             <Input
                               type="email"
                               autoComplete="off"
                               placeholder="jan.novak@example.cz"
+                              aria-required="false"
                               {...field}
                             />
                           </FormControl>
@@ -358,13 +358,17 @@ export function EventPublicPresentation({
                       name="contactPhone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Telefon (nepovinné)</FormLabel>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <FormLabel>Telefon</FormLabel>
+                            <FieldRequirement required={false} />
+                          </div>
                           <FormControl>
                             <Input
                               type="tel"
                               inputMode="tel"
                               autoComplete="off"
                               placeholder="+420 777 123 456"
+                              aria-required="false"
                               {...field}
                             />
                           </FormControl>
@@ -391,6 +395,17 @@ export function EventPublicPresentation({
         </CardContent>
       </Card>
     </CollapsibleSection>
+  )
+}
+
+function FieldRequirement({ required }: { required: boolean }) {
+  return (
+    <Badge
+      aria-hidden="true"
+      variant={required ? "outline" : "secondary"}
+    >
+      {required ? "Povinné" : "Nepovinné"}
+    </Badge>
   )
 }
 

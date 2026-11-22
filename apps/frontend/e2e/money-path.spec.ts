@@ -79,6 +79,7 @@ test("an organizer opens an event, participants register and payments settle the
 
   await step(page, "5 · Přidá chatku s jedním lůžkem", async () => {
     await page.getByRole("link", { name: "Ubytování" }).first().click()
+    await page.getByRole("tab", { name: "Pokoje a kapacity" }).click()
     await page.getByRole("button", { name: "Přidat pokoj" }).click()
     const dialog = page.getByRole("dialog", { name: "Nový pokoj" })
     await type(dialog.getByLabel("Označení"), "Chatka Sova")
@@ -86,6 +87,7 @@ test("an organizer opens an event, participants register and payments settle the
     await type(term.getByLabel("Základní lůžka"), "1")
     await type(term.getByLabel("Přistýlky"), "0")
     await dialog.getByRole("button", { name: "Uložit" }).click()
+    await page.getByRole("tab", { name: "Obsazenost" }).click()
     await expect(page.getByRole("row", { name: /1\. turnus .* 1 0 1 0$/ })).toBeVisible()
   })
 
