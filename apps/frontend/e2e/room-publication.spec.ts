@@ -15,12 +15,11 @@ const rooms = [{ label: "Chatka A", baseBeds: 2, terms: [0] }]
 
 test.afterAll(closeDb)
 
-const board = (page: Page) => page.getByRole("region", { name: "Rozdělení do pokojů" })
+const board = (page: Page) => page.getByRole("region", { name: "Uložené rozdělení" })
 
 async function placeWithMenu(page: Page, person: string, room: string) {
-  await board(page)
-    .getByRole("button", { name: `Akce: ${person}` })
-    .click()
+  const unplaced = board(page).getByRole("region", { name: /^Bez pokoje/ })
+  await unplaced.getByRole("button", { name: `Akce: ${person}` }).click()
   await page.getByRole("menuitem", { name: /^(Umístit|Přesunout) do pokoje$/ }).click()
   await page.getByRole("menuitem", { name: new RegExp(`^${room}`) }).click()
   await expect(page.getByText("Umístění bylo uloženo.").first()).toBeVisible()
@@ -40,6 +39,7 @@ test("participants see their rooms only while the organizer publishes them", asy
   await addRoommateWish(janaId, evaId)
 
   await page.goto(`/organizations/${event.organizationId}/events/${event.eventId}/rooms`)
+  await page.getByRole("tab", { name: "Rozdělení" }).click()
   await placeWithMenu(page, "Jana Nováková", "Chatka A")
   await placeWithMenu(page, "Eva Nováková", "Chatka A")
   const toggle = board(page).getByRole("switch", { name: "Zveřejnit rozdělení" })

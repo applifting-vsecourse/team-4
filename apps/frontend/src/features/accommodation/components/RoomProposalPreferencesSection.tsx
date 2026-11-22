@@ -39,9 +39,11 @@ const isHardAttributeConflict = (error: unknown) =>
 export function RoomProposalPreferencesSection({
   organizationId,
   eventId,
+  presentation = "section",
 }: {
   organizationId: string
   eventId: string
+  presentation?: "section" | "dialog"
 }) {
   const setting = useQuery(roomProposalPreferencesQueryOptions(organizationId, eventId))
   const save = useSaveRoomProposalPreferences(organizationId, eventId)
@@ -83,6 +85,8 @@ export function RoomProposalPreferencesSection({
       }
     />
   )
+
+  if (presentation === "dialog") return content
 
   return (
     <CollapsibleSection

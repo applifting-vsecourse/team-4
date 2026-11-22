@@ -67,7 +67,7 @@ export function RegistrationDeterminationPanel({
       ) : null}
       <div className="flex justify-end">
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           onClick={() => setIsOpen(true)}
         >

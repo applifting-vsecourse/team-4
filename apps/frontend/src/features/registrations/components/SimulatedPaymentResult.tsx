@@ -63,7 +63,7 @@ export function SimulatedPaymentResult({
           </DefinitionList>
           {isSettled ? null : (
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={onPayMore}
             >
               Zaplatit další část

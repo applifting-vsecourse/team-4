@@ -26,11 +26,13 @@ export function HardAttributeSection({
   organizationId,
   eventId,
   invalidate,
+  presentation = "section",
 }: {
   organizationId: string
   eventId: string
   /** Reloaded after a save: the registrations show who needs a determination. */
   invalidate?: readonly unknown[]
+  presentation?: "section" | "dialog"
 }) {
   const setting = useQuery(hardAttributeQueryOptions(organizationId, eventId))
   const save = useSaveHardAttribute(organizationId, eventId, invalidate)
@@ -60,6 +62,8 @@ export function HardAttributeSection({
       }
     />
   )
+
+  if (presentation === "dialog") return content
 
   return (
     <CollapsibleSection

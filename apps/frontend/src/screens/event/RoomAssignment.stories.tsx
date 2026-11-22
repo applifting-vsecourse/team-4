@@ -14,6 +14,7 @@ import {
   WITHOUT_PEOPLE_STORE,
   WITHOUT_PLACEMENTS_STORE,
   WITHOUT_ROOMS_STORE,
+  WITHOUT_VALUE_STORE,
   type PlacementStore,
 } from "@/features/accommodation/fixtures/placements"
 import {
@@ -31,7 +32,7 @@ import { OPEN_EVENT } from "@/features/events/fixtures/events"
 const meta = {
   title: "Screens/Event/Room Assignment",
   ...screenMeta,
-  args: { url: eventUrl("/rooms") },
+  args: { url: eventUrl("/rooms?tab=split&view=assignment") },
   beforeEach: ({ msw, parameters }) => {
     msw.use(
       ...placementHandlers(parameters.placements as PlacementStore | undefined),
@@ -51,26 +52,45 @@ type Canvas = StoryContext["canvas"]
 const section = async (canvas: Canvas) => {
   const heading = await canvas.findByRole(
     "heading",
-    { name: "Rozdělení do pokojů" },
+    { name: "Uložené rozdělení" },
     { timeout: 5000 },
   )
   const element = heading.closest<HTMLElement>("section")
-  if (!element) throw new Error("No section Rozdělení do pokojů")
+  if (!element) throw new Error("No section Uložené rozdělení")
   return within(element)
 }
 
-/** The card of a room, or of "Bez pokoje". */
+/** A room row, or the drop target for "Bez pokoje". */
 const zone = async (canvas: Canvas, name: string | RegExp) => {
-  const heading = await (await section(canvas)).findByRole("heading", { name })
-  const card = heading.closest<HTMLElement>('[data-slot="card"]')
-  if (!card) throw new Error(`No card for ${String(name)}`)
-  return card
+  const board = await section(canvas)
+  const regionName =
+    typeof name === "string" && !name.startsWith("Bez pokoje") ? `Pokoj ${name}` : name
+  return board.findByRole("region", { name: regionName })
 }
 
-const zoneOf = async (canvas: Canvas, name: string | RegExp) => within(await zone(canvas, name))
+const zoneOf = async (canvas: Canvas, name: string | RegExp) => {
+  const element = await zone(canvas, name)
+  const region = within(element)
+  const trigger = element.querySelector<HTMLButtonElement>('[data-slot="collapsible-trigger"]')
+  if (trigger?.getAttribute("aria-expanded") === "false") await userEvent.click(trigger)
+  return region
+}
+
+const revealPerson = async (canvas: Canvas, person: string) => {
+  const board = await section(canvas)
+  if (board.queryByText(person)?.checkVisibility()) return
+  for (const roomName of ["Chatka 1", "Chatka 2", "Chatka 3", "Srub u lesa"]) {
+    const element = await zone(canvas, roomName)
+    const room = within(element)
+    const trigger = element.querySelector<HTMLButtonElement>('[data-slot="collapsible-trigger"]')
+    if (trigger?.getAttribute("aria-expanded") === "false") await userEvent.click(trigger)
+    if (room.queryByText(person)?.checkVisibility()) return
+  }
+}
 
 /** Drags the participant onto the room's card, as the browser does. */
 const drag = async (canvas: Canvas, person: string, target: string | RegExp) => {
+  await revealPerson(canvas, person)
   const item = (await (await section(canvas)).findByText(person)).closest("li")
   if (!item) throw new Error(`No item for ${person}`)
   const card = await zone(canvas, target)
@@ -87,11 +107,17 @@ const drag = async (canvas: Canvas, person: string, target: string | RegExp) => 
 
 /** Opens the participant's menu and picks the items in order (a submenu, then its item). */
 const pick = async (canvas: Canvas, person: string, ...items: (string | RegExp)[]) => {
+  await revealPerson(canvas, person)
   await openRowMenu(canvas, person)
   const body = within(document.body)
   for (const item of items) {
     await userEvent.click(await body.findByRole("menuitem", { name: item }))
   }
+}
+
+const openPersonMenu = async (canvas: Canvas, person: string) => {
+  await revealPerson(canvas, person)
+  return openRowMenu(canvas, person)
 }
 
 const findDialog = async (room: string) => {
@@ -104,10 +130,14 @@ const findDialog = async (room: string) => {
 
 /** Rooms with their occupancy and free places, the people without a room, a locked mixed room. */
 export const Placements: Story = {
+  globals: { viewport: { value: "organizer1024", isRotated: false } },
   play: async ({ canvas }) => {
+    await expect(window.innerWidth).toBe(1024)
+    const board = await section(canvas)
+    await expect(await board.findByText("Rozdělení podle pohlaví")).toBeVisible()
     const chatka1 = await zoneOf(canvas, "Chatka 1")
     await expect(await chatka1.findByText("4 / 4 + 1")).toBeVisible()
-    await expect(chatka1.getByText("Volná místa: 1")).toBeVisible()
+    await expect(chatka1.getByText(/volná místa 1/i)).toBeVisible()
     await expect((await zoneOf(canvas, "Chatka 3")).getByText("Volný")).toBeVisible()
     const srub = await zoneOf(canvas, "Srub u lesa")
     await expect(srub.getAllByLabelText("Zamčené umístění")).toHaveLength(2)
@@ -120,13 +150,28 @@ export const Placements: Story = {
   },
 }
 
+/** The hard rule includes attendees with no usable value at organizer width. */
+export const MissingValueAt1024: Story = {
+  globals: { viewport: { value: "organizer1024", isRotated: false } },
+  parameters: { placements: WITHOUT_VALUE_STORE },
+  play: async ({ canvas }) => {
+    await expect(window.innerWidth).toBe(1024)
+    const board = await section(canvas)
+    await expect(await board.findByText("Bez určující hodnoty")).toBeVisible()
+    const width = await zone(canvas, "Chatka 1")
+    await expect(width?.scrollWidth ?? 0).toBeLessThanOrEqual(width?.clientWidth ?? 0)
+  },
+}
+
 /** Nobody has a room yet: placing is optional, everyone is under "Bez pokoje". */
 export const WithoutPlacements: Story = {
   parameters: { placements: WITHOUT_PLACEMENTS_STORE },
   play: async ({ canvas }) => {
     const board = await section(canvas)
     await expect(await board.findByRole("heading", { name: "Bez pokoje (10)" })).toBeVisible()
-    await expect(board.getAllByText("Volný")).toHaveLength(4)
+    for (const roomName of ["Chatka 1", "Chatka 2", "Chatka 3", "Srub u lesa"]) {
+      await expect((await zoneOf(canvas, roomName)).getByText("Volný")).toBeVisible()
+    }
   },
 }
 
@@ -150,7 +195,7 @@ export const MoveWithMenu: Story = {
     await expect(await (await zoneOf(canvas, "Chatka 3")).findByText("Jakub Novák")).toBeVisible()
     const chatka2 = await zoneOf(canvas, "Chatka 2")
     await expect(await chatka2.findByText("1 / 4")).toBeVisible()
-    await expect(chatka2.getByText("Volná místa: 3")).toBeVisible()
+    await expect(chatka2.getByText(/volná místa 3/i)).toBeVisible()
   },
 }
 
@@ -216,7 +261,9 @@ export const OverCapacityWarning: Story = {
     await userEvent.click(dialog.getByRole("button", { name: "Umístit i přesto" }))
     await waitFor(() => expect(within(document.body).queryByRole("dialog")).not.toBeInTheDocument())
     await expect(
-      await (await zoneOf(canvas, "Srub u lesa")).findByText("Překročena kapacita"),
+      (await zoneOf(canvas, "Srub u lesa")).getByRole("button", {
+        name: /Překročena kapacita/i,
+      }),
     ).toBeVisible()
   },
 }
@@ -346,7 +393,7 @@ export const LockAndUnlock: Story = {
 /** A locked placement offers only unlocking: no move, no removal, no drag. */
 export const LockedStays: Story = {
   play: async ({ canvas }) => {
-    const menu = within(await openRowMenu(canvas, "Petr Kučera"))
+    const menu = within(await openPersonMenu(canvas, "Petr Kučera"))
     const unlock = menu.getByRole("menuitem", { name: "Odemknout umístění" })
     await waitFor(() => expect(unlock).toBeVisible())
     await expect(menu.queryByRole("menuitem", { name: "Odebrat z pokoje" })).not.toBeInTheDocument()
@@ -365,9 +412,9 @@ export const UnavailableRoom: Story = {
   parameters: { placements: UNAVAILABLE_ROOM_STORE },
   play: async ({ canvas }) => {
     await expect(
-      await (await zoneOf(canvas, "Srub u lesa")).findByText("Není v termínu k dispozici"),
+      await (await zoneOf(canvas, "Srub u lesa")).findByText("Nedostupný pokoj"),
     ).toBeVisible()
-    await openRowMenu(canvas, "Matěj Procházka")
+    await openPersonMenu(canvas, "Matěj Procházka")
     const body = within(document.body)
     await userEvent.click(await body.findByRole("menuitem", { name: "Umístit do pokoje" }))
     await expect(await body.findByRole("menuitem", { name: /^Chatka 3/ })).toBeInTheDocument()
@@ -396,6 +443,7 @@ export const NotSplit: Story = {
   parameters: { placements: NOT_SPLIT_STORE },
   play: async ({ canvas }) => {
     const board = await section(canvas)
+    await expect(await board.findByText("Bez tvrdého pravidla")).toBeVisible()
     await expect(await board.findByText("Matěj Procházka")).toBeVisible()
     await expect(board.queryByText("Muž")).not.toBeInTheDocument()
     await drag(canvas, "Matěj Procházka", "Chatka 3")

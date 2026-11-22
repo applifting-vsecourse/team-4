@@ -27,7 +27,7 @@ export type PublicEventDetailTerm = {
   isWaitlist?: boolean
 }
 
-export type PublicEventContact = { name: string; email: string; phone?: string }
+export type PublicEventContact = { name: string | null; email: string | null; phone?: string }
 
 export type PublicEventRegistrationStatus = "open" | "not-open" | "closed" | "no-terms"
 
@@ -151,22 +151,26 @@ function RegistrationCard({
 }
 
 function ContactBlock({ contact }: { contact: PublicEventContact | null }) {
-  if (!contact) return <p className="text-sm">Organizátor veřejný kontakt neuvedl.</p>
+  if (!contact || (!contact.name && !contact.email && !contact.phone)) {
+    return <p className="text-sm">Organizátor veřejný kontakt neuvedl.</p>
+  }
   return (
     <div className="space-y-1 text-sm">
-      <p className="font-medium">{contact.name}</p>
-      <p className="flex items-center gap-2">
-        <Mail
-          aria-hidden
-          className="size-4 shrink-0"
-        />
-        <a
-          href={`mailto:${contact.email}`}
-          className="break-all underline"
-        >
-          {contact.email}
-        </a>
-      </p>
+      {contact.name ? <p className="font-medium">{contact.name}</p> : null}
+      {contact.email ? (
+        <p className="flex items-center gap-2">
+          <Mail
+            aria-hidden
+            className="size-4 shrink-0"
+          />
+          <a
+            href={`mailto:${contact.email}`}
+            className="break-all underline"
+          >
+            {contact.email}
+          </a>
+        </p>
+      ) : null}
       {contact.phone ? (
         <p className="flex items-center gap-2">
           <Phone

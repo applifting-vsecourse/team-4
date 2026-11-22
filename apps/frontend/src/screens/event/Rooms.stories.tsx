@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw"
 import { expect, userEvent, within } from "storybook/test"
 
 import { apiUrl, failOn, failsOnRefresh, neverAnswer } from "@/screens/msw"
-import { eventUrl, organizerBackend, screenMeta, showsHeading } from "@/screens/screenMeta"
+import { eventUrl, organizerBackend, screenMeta } from "@/screens/screenMeta"
 import { openDialog, refresh, showsText } from "@/screens/steps"
 
 import type { TermRoomProposalData } from "@/features/accommodation/api/roomProposalSchemas"
@@ -18,11 +18,14 @@ import { ROOMS_OVERVIEW } from "@/features/rooms/fixtures/rooms"
 
 const ROOMS = "/organizations/:organizationId/events/:eventId/rooms"
 const [JULY] = ROOMS_OVERVIEW.terms
+const roomsUrl = eventUrl("/rooms?tab=rooms")
+const splitUrl = eventUrl("/rooms?tab=split&view=proposal")
+const assignmentUrl = eventUrl("/rooms?tab=split&view=assignment")
 
 const meta = {
   title: "Screens/Event/Rooms",
   ...screenMeta,
-  args: { url: eventUrl("/rooms") },
+  args: { url: eventUrl("/rooms?tab=occupancy") },
   beforeEach: ({ msw }) => {
     msw.use(...organizerBackend())
   },
@@ -38,19 +41,21 @@ const overview = (rooms: typeof ROOMS_OVERVIEW.rooms) => [
 
 /** Rooms, beds and occupancy per term (S2-05, S2-10). */
 export const Rooms: Story = {
+  globals: { viewport: { value: "organizer1024", isRotated: false } },
   play: async (context) => {
-    await showsHeading("Pokoje")(context)
-    // The context "Nastavení" opens the event settings at Návrh pokojů (#384, #389).
-    const settings = context.canvas.getAllByRole("link", { name: "Nastavení" })
+    await expect(window.innerWidth).toBe(1024)
+    await expect(await context.canvas.findByRole("tab", { name: "Obsazenost" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
     await expect(
-      settings
-        .map((link) => link.getAttribute("href"))
-        .filter((href) => href?.endsWith("/settings#room-proposal-settings-heading")),
-    ).toHaveLength(1)
+      await context.canvas.findByRole("region", { name: "Obsazenost po termínech" }),
+    ).toBeVisible()
   },
 }
 
 export const NoRooms: Story = {
+  args: { url: roomsUrl },
   beforeEach: ({ msw }) => {
     msw.use(...overview([]))
   },
@@ -58,13 +63,29 @@ export const NoRooms: Story = {
 }
 
 export const AddRoomDialog: Story = {
+  args: { url: roomsUrl },
   play: async ({ canvas }) => {
     const dialog = await openDialog(canvas, "Přidat pokoj", "Nový pokoj")
     await expect(within(dialog).getByLabelText("Označení")).toBeVisible()
   },
 }
 
+/** The first room can be added from the always-visible page action. */
+export const FirstRoom: Story = {
+  args: { url: roomsUrl },
+  beforeEach: ({ msw }) => {
+    const empty = { ...ROOMS_OVERVIEW, rooms: [] }
+    msw.use(http.get(apiUrl(ROOMS), () => HttpResponse.json(empty)))
+  },
+  play: async ({ canvas }) => {
+    const add = await canvas.findByRole("button", { name: "Přidat pokoj" })
+    await expect(add).toBeVisible()
+    await openDialog(canvas, "Přidat pokoj", "Nový pokoj")
+  },
+}
+
 export const RoomSaveFailed: Story = {
+  args: { url: roomsUrl },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("put", `${ROOMS}/:roomId`))
   },
@@ -77,6 +98,7 @@ export const RoomSaveFailed: Story = {
 
 /** Fewer beds than confirmed participants: refused, with the terms affected. */
 export const BelowConfirmed: Story = {
+  args: { url: roomsUrl },
   beforeEach: ({ msw }) => {
     msw.use(
       ...failOn("put", `${ROOMS}/:roomId`, 409, {
@@ -100,6 +122,7 @@ export const BelowConfirmed: Story = {
 }
 
 export const DeleteRoomDialog: Story = {
+  args: { url: roomsUrl },
   play: async ({ canvas }) => {
     const dialog = await openDialog(canvas, "Odstranit pokoj Chatka 1")
     await expect(within(dialog).getByRole("button", { name: "Odstranit" })).toBeVisible()
@@ -107,6 +130,7 @@ export const DeleteRoomDialog: Story = {
 }
 
 export const DeleteRoomFailed: Story = {
+  args: { url: roomsUrl },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("delete", `${ROOMS}/:roomId`))
   },
@@ -119,6 +143,7 @@ export const DeleteRoomFailed: Story = {
 
 /** A refresh failed: the last occupancy stays, with its time. */
 export const RefreshFailed: Story = {
+  args: { url: eventUrl("/rooms?tab=occupancy") },
   beforeEach: ({ msw }) => {
     msw.use(...failsOnRefresh("get", ROOMS, ROOMS_OVERVIEW))
   },
@@ -130,15 +155,16 @@ export const RefreshFailed: Story = {
 
 /** No term yet: rooms have nowhere to be available, occupancy has nothing to show. */
 export const NoTerms: Story = {
+  args: { url: roomsUrl },
   beforeEach: ({ msw }) => {
     msw.use(
       ...eventHandlers.detail({ ...OPEN_EVENT, terms: [] }),
       http.get(apiUrl(ROOMS), () => HttpResponse.json({ rooms: [], terms: [] })),
     )
   },
-  play: async () => {
+  play: async ({ canvas }) => {
     await showsText("Akce zatím nemá žádné termíny")
-    await showsText(/pokoje tedy nemají kde být dostupné/)
+    await expect(await canvas.findByRole("link", { name: "Přidat termín" })).toBeVisible()
   },
 }
 
@@ -153,6 +179,7 @@ const proposalStory = (
   text: string | RegExp,
   overrides: Partial<TermRoomProposalData> = {},
 ): Story => ({
+  args: { url: splitUrl },
   beforeEach: ({ msw }) => {
     msw.use(...accommodationHandlers.termRoomProposal(makeTermRoomProposal(preset, overrides)))
   },
@@ -162,11 +189,47 @@ const proposalStory = (
   },
 })
 
+/** The saved-placements view keeps only a summary; the full proposal opens and returns. */
+export const ProposalSummary: Story = {
+  args: { url: assignmentUrl },
+  beforeEach: ({ msw }) => {
+    msw.use(...accommodationHandlers.termRoomProposal(makeTermRoomProposal("withSaved")))
+  },
+  play: async ({ canvas, userEvent: user }) => {
+    const summary = within(await canvas.findByRole("region", { name: "Návrh pokojů" }))
+    await expect(await summary.findByText("Aktuální návrh")).toBeVisible()
+    await expect(await summary.findByRole("button", { name: "Zobrazit návrh" })).toBeVisible()
+    await expect(await canvas.findByRole("region", { name: "Uložené rozdělení" })).toBeVisible()
+    await user.click(summary.getByRole("button", { name: "Zobrazit návrh" }))
+    await expect(
+      await canvas.findByRole("button", { name: "Zpět na uložené rozdělení" }),
+    ).toBeVisible()
+    await expect(
+      canvas.queryByRole("region", { name: "Uložené rozdělení" }),
+    ).not.toBeInTheDocument()
+    await expect(await canvas.findByRole("button", { name: "Použít návrh" })).toBeVisible()
+    await user.click(canvas.getByRole("button", { name: "Zpět na uložené rozdělení" }))
+    await expect(
+      canvas.queryByRole("button", { name: "Zpět na uložené rozdělení" }),
+    ).not.toBeInTheDocument()
+    await expect(await canvas.findByRole("region", { name: "Uložené rozdělení" })).toBeVisible()
+  },
+}
+
 /** A current proposal: rooms with their people, one person without a room (H). */
 export const Proposal: Story = {
+  args: { url: splitUrl },
   play: async ({ canvas, userEvent: user }) => {
     const section = within(await canvas.findByRole("region", { name: "Návrh pokojů" }))
     await expect(await section.findByText("Aktuální návrh")).toBeVisible()
+    await expect(section.getByRole("button", { name: "Použít návrh" })).toHaveAttribute(
+      "data-variant",
+      "default",
+    )
+    await expect(section.getByRole("button", { name: "Navrhnout pokoje" })).toHaveAttribute(
+      "data-variant",
+      "outline",
+    )
     // Reason H names the event's hard attribute.
     await expect(await section.findByText(/hodnotou „Pohlaví“/)).toBeVisible()
     // One set of term tabs for the proposal, the placements and the wishes;
@@ -182,6 +245,7 @@ export const Proposal: Story = {
 
 /** Applied, nothing changed since: the saved rooms are the proposal's; nothing left to apply. */
 export const ProposalApplied: Story = {
+  args: { url: splitUrl },
   beforeEach: ({ msw }) => {
     msw.use(...accommodationHandlers.termRoomProposal(makeTermRoomProposal("applied")))
   },
@@ -202,7 +266,21 @@ export const ProposalWithSavedPlacements = proposalStory("withSaved", "Přesun z
 export const ProposalPartial = proposalStory("incomplete", "Rozdělení nemusí být nejlepší možné")
 
 /** A layout change after the proposal. */
-export const ProposalStale = proposalStory("stale", "Podklady se od návrhu změnily")
+export const ProposalStale: Story = {
+  args: { url: splitUrl },
+  beforeEach: ({ msw }) => {
+    msw.use(...accommodationHandlers.termRoomProposal(makeTermRoomProposal("stale")))
+  },
+  play: async ({ canvas }) => {
+    const section = within(await canvas.findByRole("region", { name: "Návrh pokojů" }))
+    await expect(await section.findByText("Podklady se od návrhu změnily")).toBeVisible()
+    await expect(section.getByRole("button", { name: "Navrhnout pokoje" })).toHaveAttribute(
+      "data-variant",
+      "default",
+    )
+    await expect(section.queryByRole("button", { name: "Použít návrh" })).not.toBeInTheDocument()
+  },
+}
 
 /** Automatic mode: a stale proposal is replaced on its own. */
 export const ProposalStaleAutomatic = proposalStory("stale", /Nový návrh vznikne automaticky/, {
@@ -211,6 +289,7 @@ export const ProposalStaleAutomatic = proposalStory("stale", /Nový návrh vznik
 
 /** A proposal runs; the last one stays shown. */
 export const ProposalRunning: Story = {
+  args: { url: splitUrl },
   beforeEach: ({ msw }) => {
     msw.use(...accommodationHandlers.termRoomProposal(makeTermRoomProposal("running")))
   },
@@ -223,6 +302,7 @@ export const ProposalRunning: Story = {
 
 /** The first proposal of the term runs: nothing below yet. */
 export const ProposalRunningFirst: Story = {
+  args: { url: splitUrl },
   beforeEach: ({ msw }) => {
     msw.use(...accommodationHandlers.termRoomProposal(makeTermRoomProposal("runningFirst")))
   },
@@ -239,6 +319,7 @@ export const ProposalRunningAutomatic = proposalStory("running", /Automatický n
 
 /** The term was never proposed; "Navrhnout pokoje" starts one. */
 export const NoProposal: Story = {
+  args: { url: splitUrl },
   beforeEach: ({ msw }) => {
     msw.use(...accommodationHandlers.termRoomProposal(makeTermRoomProposal("none")))
   },
@@ -247,7 +328,9 @@ export const NoProposal: Story = {
     await expect(
       await section.findByText("Vytvořte návrh tlačítkem Navrhnout pokoje."),
     ).toBeVisible()
-    await user.click(section.getByRole("button", { name: "Navrhnout pokoje" }))
+    const propose = section.getByRole("button", { name: "Navrhnout pokoje" })
+    await expect(propose).toHaveAttribute("data-variant", "default")
+    await user.click(propose)
     await expect(await section.findByRole("button", { name: "Navrhuje se…" })).toBeDisabled()
   },
 }
@@ -300,6 +383,7 @@ export const ProposalLockedRoomWarning: Story = (() => {
 
 /** "Navrhnout pokoje" could not start; the shown proposal stays. */
 export const ProposeFailed: Story = {
+  args: { url: splitUrl },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("post", PROPOSAL))
   },
@@ -312,6 +396,7 @@ export const ProposeFailed: Story = {
 }
 
 export const ProposalLoading: Story = {
+  args: { url: splitUrl },
   beforeEach: ({ msw }) => {
     msw.use(...neverAnswer("get", PROPOSAL))
   },
@@ -324,6 +409,7 @@ export const ProposalLoading: Story = {
 }
 
 export const ProposalLoadFailed: Story = {
+  args: { url: splitUrl },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", PROPOSAL))
   },

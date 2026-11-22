@@ -5,6 +5,7 @@ import { ROUTES } from "@/app/routes"
 import { PageHeader } from "@/components/PageHeader"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
+import { WorkspacePage } from "@/components/WorkspacePage"
 
 import { organizationsQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { NoOrganizations } from "@/features/organizations/components/NoOrganizations"
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/_ProtectedPages/organizations/")({
 function OrganizationsPage() {
   const organizations = Route.useLoaderData()
   return (
-    <section className="mx-auto w-full max-w-4xl px-4 py-12">
+    <WorkspacePage>
       <Seo title="Organizace" />
       {organizations.length === 0 ? (
         <NoOrganizations />
@@ -70,7 +71,7 @@ function OrganizationsPage() {
                   >
                     <span className="flex min-h-28 w-full flex-col justify-between gap-6">
                       <span className="flex w-full items-start justify-between gap-4">
-                        <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted">
+                        <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted transition-colors group-hover:bg-card group-focus-visible:bg-card">
                           <Building2
                             aria-hidden="true"
                             className="size-6 text-muted-foreground"
@@ -97,6 +98,6 @@ function OrganizationsPage() {
           </ul>
         </>
       )}
-    </section>
+    </WorkspacePage>
   )
 }

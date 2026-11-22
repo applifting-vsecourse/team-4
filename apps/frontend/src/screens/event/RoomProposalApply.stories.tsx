@@ -27,7 +27,7 @@ const withProposal = (preset: ProposalPreset): Pick<Story, "beforeEach"> => ({
 const meta = {
   title: "Screens/Event/Room Proposal Apply",
   ...screenMeta,
-  args: { url: eventUrl("/rooms") },
+  args: { url: eventUrl("/rooms?tab=split&view=proposal") },
   beforeEach: ({ msw }) => {
     msw.use(...organizerBackend())
     msw.use(...accommodationHandlers.termRoomProposal(makeTermRoomProposal("withSaved")))
@@ -74,6 +74,11 @@ export const Applied: Story = {
     await userEvent.click(dialog.getByRole("button", { name: "Použít návrh" }))
     await showsText("Návrh pokojů byl použit.")
     await waitFor(() => expect(within(document.body).queryByRole("dialog")).not.toBeInTheDocument())
+    await expect(await canvas.findByRole("region", { name: "Uložené rozdělení" })).toBeVisible()
+    await expect(
+      canvas.queryByRole("button", { name: "Zpět na uložené rozdělení" }),
+    ).not.toBeInTheDocument()
+    await expect(await canvas.findByRole("switch", { name: "Zveřejnit rozdělení" })).toBeVisible()
   },
 }
 

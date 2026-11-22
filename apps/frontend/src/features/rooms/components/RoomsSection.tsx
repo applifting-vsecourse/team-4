@@ -22,6 +22,7 @@ type RoomsSectionProps = {
   overview: RoomsOverview
   /** Called after a saved change, e.g. to reload the capacity shown elsewhere. */
   onChanged: () => unknown
+  selectedTermId?: string
 }
 
 type Target = { kind: "add" } | { kind: "edit"; room: Room } | { kind: "delete"; room: Room }
@@ -32,9 +33,14 @@ const toConflicts = (error: RoomSaveError | null): CapacityConflict[] => error?.
 // Rooms stay editable after registration opens; the server protects the
 // confirmed participants and names the terms a change would drop below them.
 // A closed dialog discards its values; after a refused save it stays open.
-export function RoomsSection({ organizationId, eventId, overview, onChanged }: RoomsSectionProps) {
+export function RoomsSection({
+  organizationId,
+  eventId,
+  overview,
+  onChanged,
+  selectedTermId: requestedTermId,
+}: RoomsSectionProps) {
   const [target, setTarget] = useState<Target | null>(null)
-  const [pickedTermId, setPickedTermId] = useState<string>()
   const [failure, setFailure] = useState<RoomSaveError | null>(null)
   const saveRoom = useSaveRoom(organizationId, eventId, onChanged)
   const deleteRoom = useDeleteRoom(organizationId, eventId, onChanged)
@@ -81,9 +87,9 @@ export function RoomsSection({ organizationId, eventId, overview, onChanged }: R
     }
   }
 
-  // The picked term, or the first one when none is picked or it is gone.
+  // Keep the requested term when it still belongs to this event.
   const selectedTermId =
-    overview.terms.find((term) => term.id === pickedTermId)?.id ?? overview.terms[0]?.id ?? ""
+    overview.terms.find((term) => term.id === requestedTermId)?.id ?? overview.terms[0]?.id ?? ""
   const form = target?.kind === "edit" || target?.kind === "add" ? target : null
   const editedRoom = target?.kind === "edit" ? target.room : undefined
 
@@ -92,7 +98,8 @@ export function RoomsSection({ organizationId, eventId, overview, onChanged }: R
       <TermCapacityOverview
         terms={toTermCapacities(overview)}
         selectedTermId={selectedTermId}
-        onSelectedTermChange={setPickedTermId}
+        organizationId={organizationId}
+        eventId={eventId}
         onAddRoom={() => open({ kind: "add" })}
         onEditRoom={(roomId) => {
           const room = findRoom(roomId)

@@ -144,6 +144,7 @@ const OWNER = { id: "organizer-1", name: "Marie Králová" }
 const stored = (overrides: Partial<StoredProposalData> = {}): StoredProposalData => ({
   id: uuid(801),
   status: "solved",
+  hardAttribute: "gender",
   triggeredBy: OWNER,
   startedAt: "2027-03-12T13:31:58Z",
   finishedAt: "2027-03-12T13:32:04Z",

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Link, useParams } from "@tanstack/react-router"
-import { BarChart3, CalendarCog } from "lucide-react"
+import { BarChart3, Building2, CalendarCog } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { BrandMark } from "@/components/BrandMark"
@@ -21,7 +21,7 @@ import { OrganizationSwitcher } from "@/features/organizations/components/Organi
 
 type OrganizationSidebarProps = {
   eventNavigation: ReactNode
-  organizationId: string
+  organizationId?: string
   /** Signed-in organizer and sign-out, from the auth feature. */
   footer: ReactNode
 }
@@ -51,32 +51,48 @@ export function OrganizationSidebar({
           <SidebarGroup>
             <SidebarGroupLabel>Organizace</SidebarGroupLabel>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isEventsActive}
-                >
-                  <Link
-                    to={ROUTES.organization}
-                    params={{ organizationId }}
+              {organizationId ? (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isEventsActive}
+                    >
+                      <Link
+                        to={ROUTES.organization}
+                        params={{ organizationId }}
+                      >
+                        <CalendarCog />
+                        <span>Akce a turnusy</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton disabled>
+                      <BarChart3 aria-hidden />
+                      <span>Reporty</span>
+                      <Badge
+                        variant="secondary"
+                        className="ml-auto"
+                      >
+                        Připravujeme
+                      </Badge>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
+              ) : (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive
                   >
-                    <CalendarCog />
-                    <span>Akce a turnusy</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton disabled>
-                  <BarChart3 aria-hidden />
-                  <span>Reporty</span>
-                  <Badge
-                    variant="secondary"
-                    className="ml-auto"
-                  >
-                    Připravujeme
-                  </Badge>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+                    <Link to={ROUTES.organizations}>
+                      <Building2 />
+                      <span>Přehled organizací</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroup>
           {eventId ? (

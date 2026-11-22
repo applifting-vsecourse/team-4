@@ -43,11 +43,10 @@ test("the organizer's presentation is shown on the public detail, which leads to
     buffer: PHOTO,
   })
   await expect(presentation.getByRole("button", { name: /^Odebrat/ })).toHaveCount(1)
-  await expect(presentation.getByLabel("Popis akce")).toBeDisabled()
+  const updatedDescription = "Společný týden v lesích, u vody a s novými kamarády."
+  await presentation.getByLabel("Popis akce").fill(updatedDescription)
   await presentation.getByLabel("Podmínky účasti").fill("Věk 11 až 15 let.\nVlastní spacák.")
   await presentation.getByLabel("Jméno nebo název").fill("Jana Nováková")
-  await presentation.getByLabel("E-mail").fill("tabor@example.test")
-  await presentation.getByLabel("Telefon (nepovinné)").fill("+420 604 123 456")
   await presentation.getByRole("button", { name: "Uložit" }).click()
   await expect(page.getByText("Veřejná prezentace byla uložena.")).toBeVisible()
   await page.reload()
@@ -59,6 +58,7 @@ test("the organizer's presentation is shown on the public detail, which leads to
   const visitor = await visitorContext.newPage()
   await visitor.goto(`/e/${event.publicId}`)
   await expect(visitor.getByRole("heading", { level: 1, name: event.name })).toBeVisible()
+  await expect(visitor.getByText(updatedDescription)).toBeVisible()
   await expect(visitor.getByText(event.location)).toBeVisible()
   await expect(visitor.getByRole("img", { name: `Fotka 1 akce ${event.name}` })).toBeVisible()
   const termsCard = visitor.getByRole("complementary")
@@ -69,8 +69,7 @@ test("the organizer's presentation is shown on the public detail, which leads to
     "2 500 Kč",
   )
   await expect(visitor.getByText("Vlastní spacák.")).toBeVisible()
-  await expect(visitor.getByRole("link", { name: "tabor@example.test" })).toBeVisible()
-  await expect(visitor.getByRole("link", { name: "+420 604 123 456" })).toBeVisible()
+  await expect(visitor.getByText("Jana Nováková")).toBeVisible()
 
   await visitor.getByRole("link", { name: "Vyplnit přihlášku" }).click()
   await expect(visitor).toHaveURL(new RegExp(`/e/${event.publicId}/registration$`))

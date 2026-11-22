@@ -130,7 +130,7 @@ export function PublicEventShare({ publicId }: PublicEventShareProps) {
         </Dialog>
         <Button
           asChild
-          variant="outline"
+          variant="secondary"
         >
           <a
             href={link}

@@ -7,6 +7,8 @@ import {
   evaluationKeys,
 } from "@/features/accommodation/api/evaluationQueryOptions"
 import { hardAttributeSettingSchema } from "@/features/accommodation/api/evaluationSchemas"
+import { placementKeys } from "@/features/accommodation/api/placementQueryOptions"
+import { roomProposalKeys } from "@/features/accommodation/api/roomProposalQueryOptions"
 
 /**
  * Nastavení → Pravidla ubytování (#384): a new hard attribute makes every
@@ -42,6 +44,13 @@ export function useSaveHardAttribute(
         queryClient.invalidateQueries({
           queryKey: evaluationKeys.event(organizationId, eventId),
           predicate: (query) => query.queryKey[saved.length - 1] !== saved[saved.length - 1],
+        }),
+        queryClient.invalidateQueries({ queryKey: placementKeys.all() }),
+        queryClient.invalidateQueries({
+          queryKey: roomProposalKeys.preferences(organizationId, eventId),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: roomProposalKeys.terms(organizationId, eventId),
         }),
         ...(invalidate.length ? [queryClient.invalidateQueries({ queryKey: invalidate })] : []),
       ])

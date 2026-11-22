@@ -50,6 +50,7 @@ const stored = (
 ): StoredProposal => ({
   id: 'proposal',
   status: result?.status ?? 'failed',
+  hardAttribute: 'gender',
   triggeredBy: null,
   startedAt: new Date('2027-03-01T10:00:00Z'),
   finishedAt: new Date('2027-03-01T10:00:01Z'),

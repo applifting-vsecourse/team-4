@@ -95,6 +95,8 @@ export type ProposalLayoutView = {
 export type StoredProposalView = {
   id: string;
   status: ProposalStatus;
+  /** The hard attribute used when this proposal was calculated, if any. */
+  hardAttribute: string | null;
   triggeredBy: { id: string; name: string } | null;
   startedAt: Date;
   finishedAt: Date;
@@ -122,6 +124,8 @@ export type ProposalTermView = {
 export type StoredProposal = {
   id: string;
   status: ProposalStatus;
+  /** Read from the immutable input snapshot, not current event settings. */
+  hardAttribute: string | null;
   triggeredBy: { id: string; name: string } | null;
   startedAt: Date;
   finishedAt: Date;
@@ -220,6 +224,7 @@ function storedView(
   return {
     id: stored.id,
     status: stored.status,
+    hardAttribute: stored.hardAttribute,
     triggeredBy: stored.triggeredBy,
     startedAt: stored.startedAt,
     finishedAt: stored.finishedAt,

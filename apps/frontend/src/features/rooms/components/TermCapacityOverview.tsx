@@ -1,5 +1,7 @@
+import { Link } from "@tanstack/react-router"
 import { BedDouble, Pencil, Plus, Trash2 } from "lucide-react"
 
+import { ROUTES } from "@/app/routes"
 import { EmptyState } from "@/components/EmptyState"
 import { PageSection } from "@/components/PageSection"
 import { Badge } from "@/components/ui/badge"
@@ -14,7 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 /** One room in one term. Unavailable rooms add no places to the term. */
 export type RoomTermCapacity = {
@@ -41,10 +42,10 @@ export type TermCapacity = {
 
 type TermCapacityOverviewProps = {
   terms: TermCapacity[]
+  organizationId: string
+  eventId: string
   /** The term whose rooms are shown. */
   selectedTermId: string
-  /** Without it the tabs keep the selection themselves, starting at `selectedTermId`. */
-  onSelectedTermChange?: (termId: string) => void
   onAddRoom?: () => void
   onEditRoom?: (roomId: string) => void
   onDeleteRoom?: (roomId: string) => void
@@ -55,13 +56,14 @@ type TermCapacityOverviewProps = {
 // only report what was asked for.
 export function TermCapacityOverview({
   terms,
+  organizationId,
+  eventId,
   selectedTermId,
-  onSelectedTermChange,
   onAddRoom,
   onEditRoom,
   onDeleteRoom,
 }: TermCapacityOverviewProps) {
-  const hasRooms = terms.some((term) => term.rooms.length > 0)
+  const term = terms.find((item) => item.id === selectedTermId)
 
   if (terms.length === 0) {
     return (
@@ -70,164 +72,143 @@ export function TermCapacityOverview({
           icon={BedDouble}
           title="Akce zatím nemá žádné termíny"
           description="Kapacita pokojů se nastavuje pro každý termín. Nejdřív přidejte termín v nastavení akce."
+          action={
+            <Button asChild>
+              <Link
+                to={ROUTES.eventSettings}
+                params={{ organizationId, eventId }}
+                hash="terms-heading"
+              >
+                Přidat termín
+              </Link>
+            </Button>
+          }
         />
       </PageSection>
     )
   }
 
+  if (!term) return null
+
   return (
     <PageSection
       title="Pokoje"
       actions={
-        hasRooms ? (
-          <Button
-            variant="outline"
-            onClick={onAddRoom}
-          >
-            <Plus />
-            Přidat pokoj
-          </Button>
-        ) : null
+        <Button
+          variant="outline"
+          onClick={onAddRoom}
+        >
+          <Plus />
+          Přidat pokoj
+        </Button>
       }
     >
-      <Tabs
-        {...(onSelectedTermChange
-          ? { value: selectedTermId, onValueChange: onSelectedTermChange }
-          : { defaultValue: selectedTermId })}
-      >
-        <TabsList aria-label="Kapacita podle termínu">
-          {terms.map((term) => (
-            <TabsTrigger
-              key={term.id}
-              value={term.id}
-            >
-              {term.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      <div className="space-y-4">
+        <Card>
+          <CardContent>
+            <p className="mb-4 text-sm text-muted-foreground">
+              {term.label}, {term.dates}
+            </p>
+            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <Stat
+                label="Základní lůžka"
+                value={term.beds}
+              />
+              <Stat
+                label="Přistýlky"
+                value={term.extraBeds}
+              />
+              <Stat
+                label="Kapacita termínu"
+                value={term.capacity}
+              />
+              <Stat
+                label="Potvrzení účastníci"
+                value={term.confirmed}
+              />
+            </dl>
+          </CardContent>
+        </Card>
 
-        {terms.map((term) => (
-          <TabsContent
-            key={term.id}
-            value={term.id}
-          >
-            <div className="mt-2 space-y-4">
-              <Card>
-                <CardContent>
-                  <p className="mb-4 text-sm text-muted-foreground">
-                    {term.label}, {term.dates}
-                  </p>
-                  <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    <Stat
-                      label="Základní lůžka"
-                      value={term.beds}
-                    />
-                    <Stat
-                      label="Přistýlky"
-                      value={term.extraBeds}
-                    />
-                    <Stat
-                      label="Kapacita termínu"
-                      value={term.capacity}
-                    />
-                    <Stat
-                      label="Potvrzení účastníci"
-                      value={term.confirmed}
-                    />
-                  </dl>
-                </CardContent>
-              </Card>
-
-              {term.rooms.length === 0 ? (
-                <EmptyState
-                  icon={BedDouble}
-                  title="Zatím žádné pokoje"
-                  action={
-                    <Button onClick={onAddRoom}>
-                      <Plus />
-                      Přidat pokoj
-                    </Button>
-                  }
-                />
-              ) : (
-                <Card padding="none">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Pokoj</TableHead>
-                        <TableHead>Dostupnost</TableHead>
-                        <TableHead className="text-right">Základní lůžka</TableHead>
-                        <TableHead className="text-right">Přistýlky</TableHead>
-                        <TableHead className="text-right">Celkem</TableHead>
-                        <TableHead>
-                          <span className="sr-only">Akce</span>
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {term.rooms.map((room) => (
-                        <TableRow key={room.id}>
-                          <TableCell>
-                            <span className="font-medium">{room.label}</span>
-                          </TableCell>
-                          <TableCell>
-                            {room.isAvailable ? (
-                              <Badge variant="success">Dostupný</Badge>
-                            ) : (
-                              <Badge variant="outline">Nedostupný</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {room.isAvailable ? room.beds : "–"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {room.isAvailable ? room.extraBeds : "–"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <span className="font-medium">
-                              {room.isAvailable ? room.total : "–"}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                aria-label={`Upravit pokoj ${room.label}`}
-                                onClick={() => onEditRoom?.(room.id)}
-                              >
-                                <Pencil />
-                                Upravit
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`Odstranit pokoj ${room.label}`}
-                                onClick={() => onDeleteRoom?.(room.id)}
-                              >
-                                <Trash2 />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                    <TableFooter>
-                      <TableRow>
-                        <TableCell colSpan={2}>Dostupná místa v termínu</TableCell>
-                        <TableCell className="text-right">{term.beds}</TableCell>
-                        <TableCell className="text-right">{term.extraBeds}</TableCell>
-                        <TableCell className="text-right">{term.capacity}</TableCell>
-                        <TableCell />
-                      </TableRow>
-                    </TableFooter>
-                  </Table>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
-        ))}
-      </Tabs>
+        {term.rooms.length === 0 ? (
+          <EmptyState
+            icon={BedDouble}
+            title="Zatím žádné pokoje"
+          />
+        ) : (
+          <Card padding="none">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Pokoj</TableHead>
+                  <TableHead>Dostupnost</TableHead>
+                  <TableHead className="text-right">Základní lůžka</TableHead>
+                  <TableHead className="text-right">Přistýlky</TableHead>
+                  <TableHead className="text-right">Celkem</TableHead>
+                  <TableHead>
+                    <span className="sr-only">Akce</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {term.rooms.map((room) => (
+                  <TableRow key={room.id}>
+                    <TableCell>
+                      <span className="font-medium">{room.label}</span>
+                    </TableCell>
+                    <TableCell>
+                      {room.isAvailable ? (
+                        <Badge variant="success">Dostupný</Badge>
+                      ) : (
+                        <Badge variant="outline">Nedostupný</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {room.isAvailable ? room.beds : "–"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {room.isAvailable ? room.extraBeds : "–"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="font-medium">{room.isAvailable ? room.total : "–"}</span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          aria-label={`Upravit pokoj ${room.label}`}
+                          onClick={() => onEditRoom?.(room.id)}
+                        >
+                          <Pencil />
+                          Upravit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Odstranit pokoj ${room.label}`}
+                          onClick={() => onDeleteRoom?.(room.id)}
+                        >
+                          <Trash2 />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TableCell colSpan={2}>Dostupná místa v termínu</TableCell>
+                  <TableCell className="text-right">{term.beds}</TableCell>
+                  <TableCell className="text-right">{term.extraBeds}</TableCell>
+                  <TableCell className="text-right">{term.capacity}</TableCell>
+                  <TableCell />
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </Card>
+        )}
+      </div>
     </PageSection>
   )
 }

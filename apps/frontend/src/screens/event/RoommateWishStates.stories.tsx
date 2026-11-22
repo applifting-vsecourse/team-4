@@ -22,7 +22,7 @@ const WISHES =
 const meta = {
   title: "Screens/Event/Roommate Wish States",
   ...screenMeta,
-  args: { url: eventUrl("/rooms") },
+  args: { url: eventUrl("/rooms?tab=split") },
   beforeEach: ({ msw }) => {
     msw.use(...organizerBackend())
   },

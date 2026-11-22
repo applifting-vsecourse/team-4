@@ -208,6 +208,28 @@ const stateOf = (
   });
 
 describe('the room proposal of a term', () => {
+  it('returns the hard rule from the proposal snapshot after current settings change', async () => {
+    const f = await setup([{ label: 'A', baseBeds: 2, termIndexes: [0] }]);
+    await person(f, 'female');
+    await propose(f);
+
+    await prisma.accommodationRules.update({
+      where: { eventId: f.event.id },
+      data: { hardAttribute: null, nonDeterminingValues: [] },
+    });
+
+    const response = await organizer.term(
+      {
+        organizationId: f.event.organizationId,
+        ownerId: f.ownerId,
+        eventId: f.event.id,
+      },
+      f.terms[0].id,
+    );
+    expect(response.lastSolved?.hardAttribute).toBe('gender');
+    expect(response.lastSolved?.layout?.people[0]?.value).toBe('female');
+  });
+
   it('lays out only the confirmed people, never mixing genders, and stores what it read', async () => {
     const f = await setup([
       { label: 'A', baseBeds: 2, termIndexes: [0, 1] },

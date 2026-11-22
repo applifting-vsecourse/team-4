@@ -59,7 +59,24 @@ export const NoPhotosNoContact: Story = {
   },
   play: async (context) => {
     await showsHeading(CATALOG_EVENT.name)(context)
-    await expect(context.canvas.queryByText(CATALOG_EVENT.contact!.email)).not.toBeInTheDocument()
+    const email = CATALOG_EVENT.contact?.email
+    if (email) await expect(context.canvas.queryByText(email)).not.toBeInTheDocument()
+  },
+}
+
+/** A public name can be shared without publishing an e-mail or phone number. */
+export const PartialPublicContact: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...publicEventHandlers.catalogDetail({
+        ...CATALOG_EVENT,
+        contact: { name: "Jana Nováková", email: null, phone: null },
+      }),
+    )
+  },
+  play: async ({ canvas }) => {
+    await showsText("Jana Nováková")
+    await expect(canvas.queryByRole("link", { name: /@/ })).not.toBeInTheDocument()
   },
 }
 

@@ -161,7 +161,7 @@ function RegistrationCard({ registration }: { registration: ParticipantRegistrat
             <h2 className="text-h4 wrap-break-word">{registration.event.name}</h2>
           </CardTitle>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             asChild
           >

@@ -43,8 +43,8 @@ export function toPublicEventDetail(publicId: string, event: CatalogEvent): Publ
       .filter(Boolean),
     contact: event.contact
       ? {
-          name: event.contact.name,
-          email: event.contact.email,
+          name: event.contact.name ?? null,
+          email: event.contact.email ?? null,
           phone: event.contact.phone ? formatPhone(event.contact.phone) : undefined,
         }
       : null,

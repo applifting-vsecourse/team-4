@@ -37,12 +37,24 @@ async function openAddDialog(
   return dialog
 }
 
-/** Every day of the selected term as a row, the ones with items opened (F65-1). */
+/** Days with items start open; days remain collapsible and open the selected item. */
 export const Programme: Story = {
   play: async ({ canvas }) => {
     await showsText(FIRST)
     await expect(await canvas.findByText("Neděle 4. 7. 2027")).toBeVisible()
-    await expect(canvas.getByText("Sobota 17. 7. 2027")).toBeVisible()
+    await expect(canvas.getByText("Společná večeře")).toBeVisible()
+
+    const firstDay = canvas.getByRole("button", { name: /Neděle 4\. 7\. 2027/ })
+    await expect(firstDay).toHaveAttribute("aria-expanded", "true")
+    await userEvent.click(firstDay)
+    await expect(firstDay).toHaveAttribute("aria-expanded", "false")
+    await expect(canvas.queryByText(FIRST)).not.toBeInTheDocument()
+    await userEvent.click(firstDay)
+    await expect(canvas.getByText("Společná večeře")).toBeVisible()
+
+    await userEvent.click(canvas.getByRole("button", { name: /Společná večeře/ }))
+    const dialog = await screen.findByRole("dialog", { name: "Upravit položku programu" }, TIMEOUT)
+    await expect(within(dialog).getByLabelText("Název")).toHaveValue("Společná večeře")
   },
 }
 
@@ -77,6 +89,10 @@ export const Empty: Story = {
   play: async ({ canvas }) => {
     await expect(await canvas.findByText("Neděle 4. 7. 2027")).toBeVisible()
     await expect(canvas.getAllByRole("button", { name: "Přidat položku" })).toHaveLength(14)
+    const emptyDay = canvas.getByRole("button", { name: /Neděle 4\. 7\. 2027/ })
+    await expect(emptyDay).toHaveAttribute("aria-expanded", "false")
+    await userEvent.click(emptyDay)
+    await expect(canvas.getByText("Bez položek")).toBeVisible()
   },
 }
 

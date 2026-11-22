@@ -109,7 +109,7 @@ function EntryBody({
           </div>
           {onOpenRun ? (
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={() => onOpenRun(entry.id)}
             >

@@ -78,7 +78,7 @@ export function EventOverviewSummary({
           <CardFooter className="mt-auto">
             <Button
               asChild
-              variant="outline"
+              variant="secondary"
               size="sm"
             >
               <Link
@@ -125,7 +125,7 @@ export function EventOverviewSummary({
           <CardFooter className="mt-auto">
             <Button
               asChild
-              variant="outline"
+              variant="secondary"
               size="sm"
             >
               <Link
@@ -167,7 +167,7 @@ export function EventOverviewSummary({
           <CardFooter className="mt-auto">
             <Button
               asChild
-              variant="outline"
+              variant="secondary"
               size="sm"
             >
               <Link

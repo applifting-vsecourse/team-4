@@ -107,7 +107,7 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
             {event.status === "open" ? (
               <Button
                 asChild
-                variant="outline"
+                variant="secondary"
               >
                 <a
                   href={link}
@@ -143,7 +143,7 @@ export function RegistrationSection({ organizationId, event }: RegistrationSecti
             <Notice
               tone="warning"
               icon={Lock}
-              title="Otevřením přihlašování zamknete název, popis, místo, termíny a ceny."
+              title="Otevřením přihlašování zamknete název, místo, termíny a ceny. Popis akce zůstane upravitelný ve Veřejné prezentaci."
             />
 
             {openError ? <FormError message={openError} /> : null}

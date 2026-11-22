@@ -214,7 +214,7 @@ export const PublicationSaveFailed: Story = {
   },
 }
 
-/** The public description is required for the catalog (F55); editable until registration opens. */
+/** The public description is required for the catalog (F55); it remains editable after registration opens. */
 export const PresentationInvalid: Story = {
   args: { url: draftUrl },
   play: async ({ canvas }) => {
@@ -407,6 +407,7 @@ export const RoomProposalPreferences: Story = {
     const section = await region(canvas, "Návrh pokojů")
     await expect(await section.findByText("Přání")).toBeVisible()
     await expect(rankedItems(section)).toHaveLength(1)
+    await expect(section.queryByRole("button", { name: "Přesunout Přání" })).not.toBeInTheDocument()
     await expect(section.queryByLabelText("Přidat preferenci")).not.toBeInTheDocument()
   },
 }
@@ -425,11 +426,11 @@ export const RankedPreferences: Story = {
     await expect(section.getByRole("checkbox", { name: "Jiná odpověď" })).toBeChecked()
     await expect(section.getByRole("checkbox", { name: "Nechci uvést" })).toBeChecked()
     await expect(section.getByRole("checkbox", { name: "Žena" })).not.toBeChecked()
-    await expect(section.getByRole("button", { name: "Posunout Pohlaví výš" })).toBeDisabled()
-
-    await userEvent.click(section.getByRole("button", { name: "Posunout Přání výš" }))
-    // The pressed arrow is disabled at the top; focus stays on the item.
-    await expect(section.getByRole("button", { name: "Posunout Přání níž" })).toHaveFocus()
+    const handle = section.getByRole("button", { name: "Přesunout Přání" })
+    await userEvent.click(handle)
+    await userEvent.keyboard(" {ArrowUp} ")
+    await expect(handle).toHaveFocus()
+    await expect(section.getByRole("status")).toHaveTextContent("Přání, pozice 1 z 2.")
     await userEvent.click(section.getByRole("checkbox", { name: "Jiná odpověď" }))
     await userEvent.click(section.getByRole("button", { name: "Uložit" }))
     await showsText("Preference návrhu pokojů byly uloženy.")
@@ -448,8 +449,12 @@ export const NoPreferences: Story = {
   },
   play: async ({ canvas }) => {
     const section = await region(canvas, "Návrh pokojů")
-    await expect(await section.findByText(/^Bez měkkých preferencí/)).toBeVisible()
-    await userEvent.click(section.getByRole("combobox", { name: "Přidat preferenci" }))
+    await expect(await section.findByText("Žádné preference nejsou přidané.")).toBeVisible()
+    await expect(
+      section.queryByRole("combobox", { name: "Nová preference" }),
+    ).not.toBeInTheDocument()
+    await userEvent.click(section.getByRole("button", { name: "Přidat preferenci" }))
+    await userEvent.click(section.getByRole("combobox", { name: "Nová preference" }))
     await userEvent.click(await within(document.body).findByRole("option", { name: "Pohlaví" }))
     await userEvent.click(await section.findByRole("button", { name: "Přidat" }))
     await expect(rankedItems(section)[0]).toMatch(/^1\.Pohlaví/)
@@ -469,7 +474,7 @@ export const PreferencesSaveFailed: Story = {
     await userEvent.click(section.getByRole("button", { name: "Uložit" }))
     await showsText("Preference se nepodařilo uložit")
     await showsText("Platí dál: 1. Přání.")
-    await expect(section.getByText(/^Bez měkkých preferencí/)).toBeVisible()
+    await expect(section.getByText("Žádné preference nejsou přidané.")).toBeVisible()
   },
 }
 
@@ -503,7 +508,9 @@ export const RoomProposalMode: Story = {
       await automation.findByRole("radio", { name: "Navrhovat pokoje jen ručně" }),
     ).toBeChecked()
     await expect(
-      automation.getByRole("radio", { name: "Přepočítat návrh automaticky po každé změně" }),
+      await automation.findByRole("radio", {
+        name: "Přepočítat návrh automaticky po každé změně",
+      }),
     ).toBeChecked()
     const automatic = automation.getByRole("radio", {
       name: "Navrhovat pokoje automaticky po každé změně",

@@ -30,6 +30,10 @@ export const ROUTES = {
 
 /** Sections a link can land on with the router's `hash`; the page gives the section this `id`. */
 export const SECTIONS = {
+  /** Participant's term states in their registration detail (S4-06). */
+  registrationTerms: "terminy",
+  /** Resolved change requests heading in the participant registration detail. */
+  changeRequests: "zadosti-o-zmenu",
   /** Přijaté platby of the participant's registration detail (S4-06). */
   receivedPayments: "prijate-platby",
 } as const

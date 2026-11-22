@@ -78,7 +78,8 @@ export class EventsController {
     summary: 'Open registration for the whole event',
     description:
       'Draft → open, once and without a confirmation step. From then on name, ' +
-      'description, location and terms are locked. 409 ' +
+      'location, terms and prices are locked through the event basics endpoint. ' +
+      'The public presentation description stays editable there. 409 ' +
       '`opening_conditions_not_met` with `blockers` when something is missing; ' +
       'nothing is saved then. Opening an open event again changes nothing. ' +
       'Returns the event.',
@@ -122,7 +123,9 @@ export class EventsController {
   @Put(':eventId')
   @ApiOperation({
     summary: 'Edit name, description and location',
-    description: '409 `event_locked` once registration has been opened.',
+    description:
+      '409 `event_locked` once registration has been opened. The public ' +
+      'description can still be changed through the public presentation endpoint.',
   })
   async update(
     @User() user: Identity,

@@ -4,6 +4,7 @@ import { ROUTES } from "@/app/routes"
 import { Header } from "@/components/Header/Header"
 import { Main } from "@/components/MainLandmark"
 import { Seo } from "@/components/Seo"
+import { OrganizationWorkspaceLayout } from "@/routes/_ProtectedPages/-OrganizationWorkspaceLayout"
 
 import { authSessionQueryOptions } from "@/features/auth/api/authSessionQueryOptions"
 import { HeaderMenu } from "@/features/auth/components/HeaderMenu"
@@ -28,12 +29,31 @@ function Layout() {
     from: "/_ProtectedPages/organizations/$organizationId",
     shouldThrow: false,
   })
+  const organizationCreationShell = useMatch({
+    from: "/_ProtectedPages/organizations/new",
+    shouldThrow: false,
+  })
+  const organizationsOverviewShell = useMatch({
+    from: "/_ProtectedPages/organizations/",
+    shouldThrow: false,
+  })
 
   if (organizationShell) {
     return (
       <>
         <Seo />
         <Outlet />
+      </>
+    )
+  }
+
+  if (organizationCreationShell || organizationsOverviewShell) {
+    return (
+      <>
+        <Seo />
+        <OrganizationWorkspaceLayout>
+          <Outlet />
+        </OrganizationWorkspaceLayout>
       </>
     )
   }

@@ -48,7 +48,7 @@ export function OrganizerNeedsSection({
         values={registration.needs}
         action={
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => setEditing({ version: registration.version })}
           >

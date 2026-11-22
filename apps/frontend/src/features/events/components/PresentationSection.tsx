@@ -36,7 +36,7 @@ type PresentationSectionProps = {
 }
 
 // Card "Veřejná prezentace" of the event settings (F55): what the catalog
-// detail shows. Stays editable after opening, except the description.
+// detail shows. Its description, conditions and contact stay editable after opening.
 export function PresentationSection({ organizationId, event }: PresentationSectionProps) {
   const update = useUpdatePresentation(organizationId, event.id)
   const addPhoto = useAddPhoto(organizationId, event.id)
@@ -59,7 +59,6 @@ export function PresentationSection({ organizationId, event }: PresentationSecti
       const field = FIELDS.find((name) => name === apiError.field)
       if (field && apiError.message && (apiError.status === 400 || apiError.status === 409)) {
         setFieldErrors({ [field]: apiError.message })
-        if (apiError.code === "event_locked") await refreshEvent()
       } else if (apiError.status === 404) {
         await refreshEvent()
         setErrorMessage("Záznam není dostupný.")
@@ -105,7 +104,6 @@ export function PresentationSection({ organizationId, event }: PresentationSecti
       initialValues={toPresentationValues(event)}
       publicId={event.publicId}
       isPublished={event.isPublished}
-      isDescriptionLocked={event.isLocked}
       photos={photoIds.map((id, index) => ({
         id,
         alt: `Fotka ${index + 1} akce ${event.name}`,

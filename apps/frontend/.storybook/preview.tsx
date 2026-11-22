@@ -55,6 +55,7 @@ const preview: Preview = {
     viewport: {
       options: {
         desktop: { name: "Desktop", styles: { width: "1280px", height: "800px" } },
+        organizer1024: { name: "Organizer 1024", styles: { width: "1024px", height: "800px" } },
         // Public and participant screens are designed at 360 px first (DESIGN.md).
         mobile: { name: "Mobile 360", styles: { width: "360px", height: "740px" } },
       },
