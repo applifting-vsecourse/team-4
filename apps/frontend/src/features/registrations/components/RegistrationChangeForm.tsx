@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 
 import { FormError } from "@/components/FormError"
 import { Notice } from "@/components/Notice"
@@ -61,6 +61,7 @@ export type RegistrationChangeFormProps = {
   onSelectedTermsChange?: (termIds: string[]) => void
   onReview?: () => void
   onCancel?: () => void
+  accommodationContent?: ReactNode
   errors?: ContactErrors
   needsErrors?: RegistrationNeedsErrors
   /** Shown above the buttons, e.g. "Nic jste nezměnili". */
@@ -82,6 +83,7 @@ export function RegistrationChangeForm({
   onSelectedTermsChange,
   onReview,
   onCancel,
+  accommodationContent,
   errors = {},
   needsErrors,
   errorMessage,
@@ -184,11 +186,6 @@ export function RegistrationChangeForm({
                 <FieldError>{errors.phone}</FieldError>
               </Field>
             </div>
-            <GenderField
-              id="change-gender"
-              value={gender}
-              onChange={chooseGender}
-            />
           </FieldGroup>
         </CardContent>
       </Card>
@@ -266,6 +263,22 @@ export function RegistrationChangeForm({
               Další termín není k dispozici, na přihlášce už máte všechny termíny akce.
             </p>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Ubytování</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FieldGroup>
+            <GenderField
+              id="change-gender"
+              value={gender}
+              onChange={chooseGender}
+            />
+            {accommodationContent}
+          </FieldGroup>
         </CardContent>
       </Card>
 

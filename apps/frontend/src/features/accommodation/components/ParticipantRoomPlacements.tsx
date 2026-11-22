@@ -6,7 +6,6 @@ import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { Notice } from "@/components/Notice"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCalendarRange } from "@/lib/date"
 
@@ -20,7 +19,7 @@ type ParticipantRoomPlacementsProps = {
   confirmedTermIds: readonly string[]
 }
 
-// Moje přihlášky → Detail přihlášky → Rozdělení pokojů (S4-02): the own room
+// Moje přihlášky → Detail přihlášky → Ubytování (S4-02): the own room
 // and the state of the own roommate wishes of each confirmed term. A term
 // whose rooms the organizer has not published shows neither; a failed load
 // is an error, never "not published" or "no room".
@@ -31,33 +30,37 @@ export function ParticipantRoomPlacements({
   const query = useQuery(participantPlacementsQueryOptions(registrationId, confirmedTermIds))
 
   return (
-    <Card>
-      <CardHeader>
-        <h2 className="text-h4">Rozdělení pokojů</h2>
-      </CardHeader>
-      <CardContent>
-        {query.isError ? (
-          <LoadError
-            title="Rozdělení pokojů se nepodařilo načíst"
-            onRetry={query.refetch}
-            isRetrying={query.isFetching}
-          />
-        ) : !query.data ? (
-          <LoadingBlock label="Načítání rozdělení pokojů">
-            <Skeleton className="h-20 w-full" />
-          </LoadingBlock>
-        ) : (
-          <div className="space-y-6">
-            {query.data.terms.map((term) => (
-              <TermPlacement
-                key={term.termId}
-                term={term}
-              />
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <section
+      aria-labelledby="room-placements-heading"
+      className="space-y-3 border-t border-border pt-4"
+    >
+      <h3
+        id="room-placements-heading"
+        className="text-sm font-semibold"
+      >
+        Rozdělení pokojů
+      </h3>
+      {query.isError ? (
+        <LoadError
+          title="Rozdělení pokojů se nepodařilo načíst"
+          onRetry={query.refetch}
+          isRetrying={query.isFetching}
+        />
+      ) : !query.data ? (
+        <LoadingBlock label="Načítání rozdělení pokojů">
+          <Skeleton className="h-20 w-full" />
+        </LoadingBlock>
+      ) : (
+        <div className="space-y-6">
+          {query.data.terms.map((term) => (
+            <TermPlacement
+              key={term.termId}
+              term={term}
+            />
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 

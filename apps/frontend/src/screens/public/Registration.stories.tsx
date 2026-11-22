@@ -114,7 +114,14 @@ export const ConditionsExpanded: Story = {
     await userEvent.click(
       await canvas.findByRole("button", { name: "Zobrazit podmínky" }, { timeout: 5000 }),
     )
-    await expect(canvas.getByText(/Záloha 2 000 Kč/)).toBeVisible()
+    const conditions = within(canvas.getByRole("region", { name: "Podmínky účasti" }))
+    await expect(conditions.getAllByRole("listitem")).toHaveLength(4)
+    await expect(conditions.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
+      "Věk účastníka 11 až 15 let.",
+      "Zdravotní způsobilost potvrzená rodičem při přihlášce.",
+      "Záloha 2 000 Kč je splatná do 7 dnů od přihlášení.",
+      "Při odhlášení do 30 dnů před začátkem turnusu vracíme celou zálohu, později 50 %.",
+    ])
     await expect(canvas.getByRole("checkbox", CONFIRMATION)).not.toBeChecked()
   },
 }

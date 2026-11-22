@@ -33,6 +33,7 @@ import { RegistrationChangeActions } from "@/features/registrations/components/R
 import { RegistrationHistory } from "@/features/registrations/components/RegistrationHistory"
 import { RegistrationNeedsSummary } from "@/features/registrations/components/RegistrationNeedsSummary"
 import { RegistrationTermStates } from "@/features/registrations/components/RegistrationTermStates"
+import { RoommateWishesCard } from "@/features/registrations/components/RoommateWishesCard"
 import { SimulatedPaymentHistory } from "@/features/registrations/components/SimulatedPaymentHistory"
 import {
   describeHistoryEntry,
@@ -79,6 +80,7 @@ export function ParticipantRegistrationDetail({
   const lastScrolledHash = useRef<string | null>(null)
   const changes = changesQuery.data ?? []
   const pendingRequest = changes.find((change) => change.status === "pending")
+  const hasConfirmedTerm = data?.terms.some((term) => term.status === "confirmed") ?? false
   const resolvedRequests = changes.filter(
     (change) => change.status === "approved" || change.status === "rejected",
   )
@@ -177,21 +179,24 @@ export function ParticipantRegistrationDetail({
             }
           />
 
-          {data.canChange ? (
+          {!data.isCancelled && (data.canChange || hasConfirmedTerm) ? (
             <section
               aria-label="Akce s přihláškou"
               className="-mt-2"
             >
               <RegistrationChangeActions
                 registrationId={registrationId}
-                onCancelRegistration={() =>
-                  setCancelProposal({
-                    moves: [],
-                    cancelledTermIds: data.terms
-                      .filter((term) => term.status !== "cancelled")
-                      .map((term) => term.termId),
-                  })
-                }
+                {...(data.canChange
+                  ? {
+                      onCancelRegistration: () =>
+                        setCancelProposal({
+                        moves: [],
+                        cancelledTermIds: data.terms
+                          .filter((term) => term.status !== "cancelled")
+                          .map((term) => term.termId),
+                        }),
+                    }
+                  : {})}
               />
             </section>
           ) : null}
@@ -282,9 +287,32 @@ export function ParticipantRegistrationDetail({
             </CardContent>
           </Card>
 
+          <AccommodationCard
+            answer={data.contact}
+            extra={
+              <>
+                {!data.isCancelled ? (
+                  <section
+                    aria-label="Přání na spolubydlící"
+                    className="space-y-3 border-t border-border pt-4"
+                  >
+                    {hasConfirmedTerm ? (
+                      <RoommateWishesCard registrationId={registrationId} isReadOnly />
+                    ) : (
+                      <>
+                        <h2 className="text-sm font-semibold">Přání na spolubydlící</h2>
+                        <p className="text-sm text-muted-foreground">
+                          Spolubydlící si můžete vybrat po potvrzení účasti.
+                        </p>
+                      </>
+                    )}
+                  </section>
+                ) : null}
+                {renderRooms?.(data)}
+              </>
+            }
+          />
           <RegistrationNeedsSummary values={data.needs} />
-          <AccommodationCard answer={data.contact} />
-          {renderRooms?.(data)}
 
           {renderProgramme?.(data)}
 

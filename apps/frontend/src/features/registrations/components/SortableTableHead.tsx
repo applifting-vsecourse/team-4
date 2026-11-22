@@ -28,15 +28,20 @@ export function SortableTableHead({
       className={isNumeric ? "text-right whitespace-nowrap" : "whitespace-nowrap"}
       aria-sort={direction === null ? "none" : direction === "asc" ? "ascending" : "descending"}
     >
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={onSort}
-      >
-        {label}
-        <Icon aria-hidden="true" />
-      </Button>
+      <div className="-mx-2.5 flex">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={
+            isNumeric ? "flex w-full flex-row-reverse justify-start" : "flex w-full justify-start"
+          }
+          onClick={onSort}
+        >
+          <span>{label}</span>
+          <Icon aria-hidden="true" />
+        </Button>
+      </div>
     </TableHead>
   )
 }

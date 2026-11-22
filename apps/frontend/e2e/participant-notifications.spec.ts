@@ -103,7 +103,7 @@ test("an approved change notification waits for its request before scrolling", a
   await expect(participant.getByRole("heading", { name: "Moje přihlášky", level: 1 })).toBeVisible()
   await participant.goto(`/my-registrations/${registrationId}`)
   await expect(participant.getByRole("heading", { name: event.name, level: 1 })).toBeVisible()
-  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  await participant.getByRole("link", { name: "Spravovat přihlášku" }).click()
   await participant.getByLabel("Telefon").fill("+420 731 987 654")
   await participant.getByRole("button", { name: "Zkontrolovat změny" }).click()
   await participant

@@ -36,6 +36,7 @@ const meta = {
     msw.use(
       ...participantHandlers.signedIn(),
       ...registrationHandlers.own(),
+      ...registrationHandlers.roommateWishes(),
       ...programmeHandlers.participant(),
       ...participantPlacementHandlers(),
     )
@@ -170,6 +171,8 @@ export const Mobile: Story = {
   globals: MOBILE,
   play: async ({ canvas }) => {
     const rooms = await card(canvas)
+    await expect(rooms.getByText("Ubytování", { exact: true })).toBeVisible()
+    await expect(await rooms.findByText("Barbora Kučerová")).toBeVisible()
     await expect(await rooms.findByText("Anna Procházková")).toBeVisible()
     await waitFor(() =>
       expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth),

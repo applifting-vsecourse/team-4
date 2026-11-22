@@ -127,7 +127,7 @@ test("the participant changes the needs through the registration change", async 
   await visitorContext.close()
   const { participant, context } = await openOwnDetail(browser, jana.email, event.name)
 
-  await participant.getByRole("link", { name: "Upravit přihlášku" }).click()
+  await participant.getByRole("link", { name: "Spravovat přihlášku" }).click()
   await participant.getByRole("checkbox", { name: "Bez omezení" }).check()
   await expect(participant.getByRole("checkbox", { name: "Vegetariánská" })).not.toBeChecked()
   await participant.getByLabel("Vlastní text ke stravě").fill("")

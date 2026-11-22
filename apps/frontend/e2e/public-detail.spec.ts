@@ -91,7 +91,7 @@ test("the organizer's presentation is shown on the public detail, which leads to
   ).not.toBeChecked()
 
   await visitor.goto(`/e/${event.publicId}`)
-  await visitor.getByRole("main").getByRole("link", { name: "Katalog akcí" }).click()
+  await visitor.getByRole("main").getByRole("link", { name: "Zpět do katalogu akcí" }).click()
   await expect(visitor).toHaveURL(/\/events$/)
   await visitorContext.close()
 })
@@ -113,13 +113,13 @@ test("a published draft explains registration is not open; an unpublished event 
   await expect(visitor.getByRole("heading", { level: 1, name: draft.name })).toBeVisible()
   await expect(visitor.getByText("Registrace zatím není otevřená")).toBeVisible()
   await expect(visitor.getByRole("link", { name: "Vyplnit přihlášku" })).toBeHidden()
-  await expect(visitor.getByText("Organizátor veřejný kontakt neuvedl.")).toBeVisible()
+  await expect(visitor.getByRole("region", { name: "Kontakt na organizátora" })).toBeHidden()
   await expect(visitor.getByRole("main").getByRole("img")).toHaveCount(0)
 
   await visitor.goto(`/e/${open.publicId}`)
   await expect(visitor.getByText("Akce není dostupná")).toBeVisible()
   await expect(visitor.getByText(open.name)).toBeHidden()
-  await visitor.getByRole("link", { name: "Zpět do katalogu" }).click()
+  await visitor.getByRole("link", { name: "Zpět do katalogu", exact: true }).click()
   await expect(visitor).toHaveURL(/\/events$/)
 
   await visitor.goto(`/e/${open.publicId}/registration`)

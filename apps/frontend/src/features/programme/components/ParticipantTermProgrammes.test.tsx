@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import userEvent from "@testing-library/user-event"
 
 import { ParticipantTermProgrammes } from "@/features/programme/components/ParticipantTermProgrammes"
 
@@ -52,8 +53,10 @@ describe("ParticipantTermProgrammes", () => {
     })
     renderProgrammes(["confirmed", "waitlisted"])
 
+    await userEvent.click(await screen.findByRole("button", { name: /Program – Turnus 1/ }))
     expect(await screen.findByText("Společná večeře")).toBeInTheDocument()
     expect(screen.getByText("Pátek 6. 11. 2026")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: /Program – Turnus 2/ }))
     expect(
       screen.getByText("Program je dostupný až po potvrzení účasti v tomto termínu."),
     ).toBeInTheDocument()
@@ -64,12 +67,14 @@ describe("ParticipantTermProgrammes", () => {
   it("says that a confirmed term without items has no programme yet", async () => {
     requests.get.mockReturnValue({ json: () => Promise.resolve({ items: [] }) })
     renderProgrammes(["confirmed", "waitlisted"])
+    await userEvent.click(await screen.findByRole("button", { name: /Program – Turnus 1/ }))
     expect(await screen.findByText("Program zatím není připravený.")).toBeInTheDocument()
   })
 
   it("shows a failed load with a retry instead of an empty programme", async () => {
     requests.get.mockReturnValue({ json: () => Promise.reject(new Error("offline")) })
     renderProgrammes(["confirmed", "waitlisted"])
+    await userEvent.click(await screen.findByRole("button", { name: /Program – Turnus 1/ }))
     expect(await screen.findByText("Program se nepodařilo načíst")).toBeInTheDocument()
     expect(screen.queryByText("Program zatím není připravený.")).not.toBeInTheDocument()
   })

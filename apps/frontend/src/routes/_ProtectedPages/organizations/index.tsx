@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router"
+import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowUpRight, Building2, Plus } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
@@ -16,14 +16,6 @@ export const Route = createFileRoute("/_ProtectedPages/organizations/")({
       ...organizationsQueryOptions(),
       staleTime: 0,
     })
-    const organization = organizations.length === 1 ? organizations[0] : undefined
-    if (organization) {
-      throw redirect({
-        to: ROUTES.organization,
-        params: { organizationId: organization.id },
-        replace: true,
-      })
-    }
     return organizations
   },
   component: OrganizationsPage,

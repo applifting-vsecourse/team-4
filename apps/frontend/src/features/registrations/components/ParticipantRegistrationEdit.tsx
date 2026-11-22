@@ -10,13 +10,16 @@ import { Notice } from "@/components/Notice"
 import { PageHeader } from "@/components/PageHeader"
 import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 
+import { RegistrationTermStates } from "@/features/registrations/components/RegistrationTermStates"
 import { participantRegistrationQueryOptions } from "@/features/registrations/api/participantRegistrationQueryOptions"
 import { type ParticipantRegistrationDetail } from "@/features/registrations/api/participantRegistrationSchemas"
 import { type ChangeProposal } from "@/features/registrations/api/registrationChangeSchemas"
+import { AccommodationCard } from "@/features/registrations/components/AccommodationCard"
 import { ChangeReviewDialog } from "@/features/registrations/components/ChangeReviewDialog"
 import {
   RegistrationChangeForm,
@@ -96,7 +99,7 @@ export function ParticipantRegistrationEdit({
       {data ? (
         <>
           <PageHeader
-            title="Úprava přihlášky"
+            title="Správa přihlášky"
             description={data.event.name}
           />
           {data.canChange ? (
@@ -104,23 +107,50 @@ export function ParticipantRegistrationEdit({
             <EditForm
               key={data.version}
               registration={data}
+              hasConfirmedTerm={data.terms.some((term) => term.status === "confirmed")}
               onReload={() => void query.refetch()}
               onLeave={onLeave}
             />
-          ) : (
+          ) : data.isCancelled ? (
             <Notice
               tone="info"
-              title={
-                data.isCancelled
-                  ? "Přihláška je odhlášená, úpravy nejsou dostupné."
-                  : "Žádost o změnu čeká na schválení organizátora. Dokud není vyřízená, nelze přihlášku dál měnit."
-              }
+              title="Přihláška je odhlášená, úpravy nejsou dostupné."
             />
+          ) : (
+            <div className="space-y-6">
+              <Notice
+                tone="info"
+                title="Žádost o změnu čeká na schválení organizátora. Dokud není vyřízená, nelze přihlášku dál měnit."
+              />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Termíny</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RegistrationTermStates
+                    terms={data.terms.map((term) => ({
+                      id: term.termId,
+                      label: term.label,
+                      details: `${formatCalendarRange(term.startDate, term.endDate)} · ${formatCzk(term.priceMinor)}`,
+                      state: term.status,
+                    }))}
+                  />
+                </CardContent>
+              </Card>
+              <AccommodationCard
+                answer={data.contact}
+                extra={
+                  data.terms.some((term) => term.status === "confirmed") ? (
+                    <RoommateWishesSection registrationId={registrationId} />
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Spolubydlící si můžete vybrat po potvrzení účasti.
+                    </p>
+                  )
+                }
+              />
+            </div>
           )}
-          {/* Wishes are saved on their own, also while a change awaits approval (S4-05). */}
-          {!data.isCancelled && data.terms.some((term) => term.status === "confirmed") ? (
-            <RoommateWishesCard registrationId={registrationId} />
-          ) : null}
         </>
       ) : query.isPending ? (
         <LoadingBlock
@@ -137,11 +167,12 @@ export function ParticipantRegistrationEdit({
 
 type EditFormProps = {
   registration: ParticipantRegistrationDetail
+  hasConfirmedTerm: boolean
   onReload: () => void
   onLeave: () => void
 }
 
-function EditForm({ registration, onReload, onLeave }: EditFormProps) {
+function EditForm({ registration, hasConfirmedTerm, onReload, onLeave }: EditFormProps) {
   const { contact, needs, terms, availableTerms } = registration
   const active = useMemo(() => terms.filter((term) => term.status !== "cancelled"), [terms])
 
@@ -209,6 +240,15 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
         onContactChange={(field, value) => setState((current) => ({ ...current, [field]: value }))}
         onNeedsChange={(next) => setState((current) => ({ ...current, needs: next }))}
         onGenderChange={(answer) => setState((current) => ({ ...current, ...answer }))}
+        accommodationContent={
+          hasConfirmedTerm ? (
+            <RoommateWishesSection registrationId={registration.id} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Spolubydlící si můžete vybrat po potvrzení účasti.
+            </p>
+          )
+        }
         onSelectedTermsChange={(selectedTermIds) =>
           setState((current) => ({ ...current, selectedTermIds }))
         }
@@ -229,5 +269,13 @@ function EditForm({ registration, onReload, onLeave }: EditFormProps) {
         />
       ) : null}
     </>
+  )
+}
+
+function RoommateWishesSection({ registrationId }: { registrationId: string }) {
+  return (
+    <section aria-label="Přání na spolubydlící" className="space-y-3 border-t border-border pt-4">
+      <RoommateWishesCard registrationId={registrationId} />
+    </section>
   )
 }

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { http, HttpResponse } from "msw"
+import { toast } from "sonner"
 import { expect, userEvent, within } from "storybook/test"
 
 import { apiUrl, failOn, failsOnRefresh, neverAnswer } from "@/screens/msw"
@@ -332,6 +333,103 @@ export const NoProposal: Story = {
     await expect(propose).toHaveAttribute("data-variant", "default")
     await user.click(propose)
     await expect(await section.findByRole("button", { name: "Navrhuje se…" })).toBeDisabled()
+  },
+}
+
+/** A queued manual solve finishes, confirms once, and opens its new result. */
+export const ProposeRoomsOpensResult: Story = {
+  args: { url: assignmentUrl },
+  beforeEach: ({ msw }) => {
+    let isQueued = false
+    let polls = 0
+    msw.use(
+      http.get(apiUrl(PROPOSAL), () => {
+        if (!isQueued) return HttpResponse.json(makeTermRoomProposal("none"))
+        polls += 1
+        return HttpResponse.json(
+          polls < 2 ? makeTermRoomProposal("runningFirst") : makeTermRoomProposal("withSaved"),
+        )
+      }),
+      http.post(apiUrl(PROPOSAL), () => {
+        isQueued = true
+        return HttpResponse.json(makeTermRoomProposal("runningFirst"), { status: 202 })
+      }),
+    )
+  },
+  play: async ({ canvas }) => {
+    const section = within(await canvas.findByRole("region", { name: "Návrh pokojů" }))
+    await userEvent.click(await section.findByRole("button", { name: "Navrhnout pokoje" }))
+    await expect(await section.findByRole("button", { name: "Navrhuje se…" })).toBeDisabled()
+    await expect(
+      await canvas.findByRole("button", { name: "Zpět na uložené rozdělení" }, { timeout: 7000 }),
+    ).toBeVisible()
+    await expect(await canvas.findByRole("button", { name: "Použít návrh" })).toBeVisible()
+    await showsText("Nový návrh byl vypočítán")
+    await expect(
+      await within(document.body).findAllByText("Nový návrh byl vypočítán"),
+    ).toHaveLength(1)
+    toast.dismiss()
+  },
+}
+
+/** A queued solve that fails keeps the organizer on the summary with its failure state. */
+export const ProposeRoomsCalculationFailed: Story = {
+  args: { url: assignmentUrl },
+  beforeEach: ({ msw }) => {
+    let isQueued = false
+    msw.use(
+      http.get(apiUrl(PROPOSAL), () =>
+        HttpResponse.json(isQueued ? makeTermRoomProposal("failed") : makeTermRoomProposal("none")),
+      ),
+      http.post(apiUrl(PROPOSAL), () => {
+        isQueued = true
+        return HttpResponse.json(makeTermRoomProposal("runningFirst"), { status: 202 })
+      }),
+    )
+  },
+  play: async ({ canvas }) => {
+    const section = within(await canvas.findByRole("region", { name: "Návrh pokojů" }))
+    await userEvent.click(await section.findByRole("button", { name: "Navrhnout pokoje" }))
+    await expect(await section.findByText("Návrh selhal", {}, { timeout: 7000 })).toBeVisible()
+    await expect(
+      section.queryByRole("button", { name: "Zpět na uložené rozdělení" }),
+    ).not.toBeInTheDocument()
+    await expect(
+      within(document.body).queryByText("Nový návrh byl vypočítán"),
+    ).not.toBeInTheDocument()
+  },
+}
+
+/** Switching terms while the solve waits never opens the result over the new term. */
+export const ProposeRoomsTermChanged: Story = {
+  args: { url: assignmentUrl },
+  beforeEach: ({ msw }) => {
+    let isQueued = false
+    msw.use(
+      http.get(apiUrl(PROPOSAL), () =>
+        HttpResponse.json(
+          isQueued ? makeTermRoomProposal("runningFirst") : makeTermRoomProposal("none"),
+        ),
+      ),
+      http.post(apiUrl(PROPOSAL), () => {
+        isQueued = true
+        return HttpResponse.json(makeTermRoomProposal("runningFirst"), { status: 202 })
+      }),
+    )
+  },
+  play: async ({ canvas }) => {
+    const section = within(await canvas.findByRole("region", { name: "Návrh pokojů" }))
+    await userEvent.click(await section.findByRole("button", { name: "Navrhnout pokoje" }))
+    const tabs = within(await canvas.findByRole("tablist", { name: "Termín" }))
+    const [, second] = tabs.getAllByRole("tab")
+    await userEvent.click(second!)
+    await expect(second).toHaveAttribute("aria-selected", "true")
+    await expect(
+      section.queryByRole("button", { name: "Zpět na uložené rozdělení" }),
+    ).not.toBeInTheDocument()
+    await expect(
+      within(document.body).queryByText("Nový návrh byl vypočítán"),
+    ).not.toBeInTheDocument()
   },
 }
 

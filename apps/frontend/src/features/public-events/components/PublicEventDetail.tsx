@@ -1,13 +1,15 @@
 import { useState } from "react"
 import { Link } from "@tanstack/react-router"
-import { Info, Mail, MapPin, Phone } from "lucide-react"
+import { ArrowRight, Mail, MapPin, Phone } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { Notice } from "@/components/Notice"
 import { PageHeader } from "@/components/PageHeader"
 import { PageSection } from "@/components/PageSection"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 
 // Veřejný katalog akcí → Detail akce (F55). Every value is passed in already
 // formatted; see `toPublicEventDetail` for the API mapping.
@@ -51,60 +53,40 @@ const STATUS_MESSAGES: Record<Exclude<PublicEventRegistrationStatus, "open">, st
   "no-terms": "Zatím se nelze přihlásit",
 }
 
-function PhotoGallery({ photos }: { photos: PublicEventPhoto[] }) {
-  // A photo that fails to load is left out instead of showing a broken image.
-  const [failed, setFailed] = useState<string[]>([])
-  const [first, ...rest] = photos.filter((photo) => !failed.includes(photo.src))
-  if (!first) return null
-  const hide = (photo: PublicEventPhoto) => () => setFailed((sources) => [...sources, photo.src])
-  return (
-    <ul className="grid grid-cols-3 gap-2">
-      <li className="col-span-3">
-        <img
-          src={first.src}
-          alt={first.alt}
-          onError={hide(first)}
-          className="aspect-video w-full rounded-lg object-cover"
-        />
-      </li>
-      {rest.map((photo) => (
-        <li key={photo.src}>
-          <img
-            src={photo.src}
-            alt={photo.alt}
-            onError={hide(photo)}
-            className="aspect-video w-full rounded-md object-cover"
-          />
-        </li>
-      ))}
-    </ul>
-  )
-}
-
 function TermList({ terms }: { terms: PublicEventDetailTerm[] }) {
+  const isSingleTerm = terms.length === 1
   return (
-    <ul className="divide-y divide-border">
-      {terms.map((term) => (
-        <li
-          key={term.id}
-          className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
-        >
-          <div className="min-w-0">
-            <p className="font-medium break-words">{term.label}</p>
-            <p className="text-sm text-muted-foreground">{term.dates}</p>
-            <div className="mt-1 flex flex-wrap gap-1.5 empty:hidden">
-              {term.isWaitlist ? <Badge variant="warning">Náhradník</Badge> : null}
-              {term.freeSpots ? <Badge variant="outline">{term.freeSpots}</Badge> : null}
+    <PageSection
+      title={isSingleTerm ? "Termín a cena" : "Termíny a ceny"}
+      className="space-y-2 rounded-lg bg-secondary px-4 py-3 text-secondary-foreground"
+    >
+      <ul className="space-y-3">
+        {terms.map((term) => (
+          <li
+            key={term.id}
+            className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1"
+          >
+            <div className="min-w-0">
+              <p className="font-semibold wrap-break-word">
+                {isSingleTerm ? term.dates : term.label}
+              </p>
+              <p className="text-sm wrap-break-word text-muted-foreground">
+                {isSingleTerm ? term.label : term.dates}
+              </p>
+              <div className="mt-1 flex flex-wrap gap-1.5 empty:hidden">
+                {term.isWaitlist ? <Badge variant="warning">Náhradník</Badge> : null}
+                {term.freeSpots ? <Badge variant="outline">{term.freeSpots}</Badge> : null}
+              </div>
             </div>
-          </div>
-          <p className="shrink-0 font-medium">{term.price}</p>
-        </li>
-      ))}
-    </ul>
+            <span className="font-mono font-semibold tabular-nums">{term.price}</span>
+          </li>
+        ))}
+      </ul>
+    </PageSection>
   )
 }
 
-function RegistrationCard({
+function RegistrationSummary({
   publicId,
   terms,
   status,
@@ -114,78 +96,72 @@ function RegistrationCard({
   status: PublicEventRegistrationStatus
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <h2 className="text-h4">Termíny a ceny</h2>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {terms.length > 0 ? <TermList terms={terms} /> : null}
-          {status === "open" ? (
-            <Button
-              asChild
-              className="w-full max-w-sm"
-            >
-              <Link
-                to={ROUTES.publicRegistration}
-                params={{ publicId }}
-              >
-                Vyplnit přihlášku
-              </Link>
-            </Button>
-          ) : (
-            <p className="flex items-start gap-2 text-sm">
-              <Info
-                aria-hidden
-                className="mt-0.5 size-4 shrink-0"
-              />
-              <span className="min-w-0 break-words">{STATUS_MESSAGES[status]}</span>
-            </p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+    <aside
+      aria-label="Přihláška"
+      className="space-y-4"
+    >
+      {terms.length > 0 ? <TermList terms={terms} /> : null}
+      {status === "open" ? (
+        <Button
+          asChild
+          size="lg"
+          className="w-full max-w-sm md:w-auto"
+        >
+          <Link
+            to={ROUTES.publicRegistration}
+            params={{ publicId }}
+          >
+            Vyplnit přihlášku <ArrowRight aria-hidden />
+          </Link>
+        </Button>
+      ) : (
+        <Notice
+          tone="info"
+          title={STATUS_MESSAGES[status]}
+        />
+      )}
+    </aside>
   )
 }
 
-function ContactBlock({ contact }: { contact: PublicEventContact | null }) {
-  if (!contact || (!contact.name && !contact.email && !contact.phone)) {
-    return <p className="text-sm">Organizátor veřejný kontakt neuvedl.</p>
-  }
+function ContactBlock({ contact }: { contact: PublicEventContact }) {
   return (
-    <div className="space-y-1 text-sm">
-      {contact.name ? <p className="font-medium">{contact.name}</p> : null}
-      {contact.email ? (
-        <p className="flex items-center gap-2">
-          <Mail
-            aria-hidden
-            className="size-4 shrink-0"
-          />
-          <a
-            href={`mailto:${contact.email}`}
-            className="break-all underline"
-          >
-            {contact.email}
-          </a>
-        </p>
-      ) : null}
-      {contact.phone ? (
-        <p className="flex items-center gap-2">
-          <Phone
-            aria-hidden
-            className="size-4 shrink-0"
-          />
-          <a
-            href={`tel:${contact.phone.replaceAll(" ", "")}`}
-            className="underline"
-          >
-            {contact.phone}
-          </a>
-        </p>
-      ) : null}
-    </div>
+    <PageSection
+      title="Kontakt na organizátora"
+      className="self-start rounded-xl bg-muted p-5 text-foreground md:p-6 dark:bg-card dark:text-card-foreground"
+    >
+      <ul className="space-y-2 text-sm">
+        {contact.name ? <li className="font-medium wrap-break-word">{contact.name}</li> : null}
+        {contact.email ? (
+          <li className="flex items-start gap-2">
+            <Mail
+              aria-hidden
+              className="mt-0.5 size-4 shrink-0"
+            />
+            <a
+              href={`mailto:${contact.email}`}
+              className="wrap-anywhere underline underline-offset-4"
+            >
+              {contact.email}
+            </a>
+          </li>
+        ) : null}
+        {contact.phone ? (
+          <li className="flex items-start gap-2">
+            <Phone
+              aria-hidden
+              className="mt-0.5 size-4 shrink-0"
+            />
+            <a
+              href={`tel:${contact.phone.replaceAll(" ", "")}`}
+              className="underline underline-offset-4"
+            >
+              {contact.phone}
+            </a>
+          </li>
+        ) : null}
+      </ul>
+    </PageSection>
   )
 }
 
@@ -201,56 +177,100 @@ export function PublicEventDetail({
   contact,
   registrationStatus,
 }: PublicEventDetailProps) {
+  // Promote the next usable photo or collapse the gallery when none can load.
+  const [failedPhotos, setFailedPhotos] = useState<string[]>([])
+  const [cover, ...gallery] = photos.filter((photo) => !failedPhotos.includes(photo.src))
+  const hidePhoto = (src: string) => setFailedPhotos((failed) => [...failed, src])
+  const hasContact = contact && [contact.name, contact.email, contact.phone].some(Boolean)
+  const hasContactColumn = Boolean(cover && hasContact)
+
   return (
-    <article>
-      <PageHeader
-        title={name}
-        description={
-          <>
-            <p className="font-medium text-foreground">{organizationName}</p>
-            <p className="flex items-center gap-1.5">
-              <MapPin
-                aria-hidden
-                className="size-4 shrink-0"
+    <article className={cn("space-y-5 md:space-y-6", !cover && "max-w-xl")}>
+      <Card
+        padding="none"
+        className="overflow-hidden"
+      >
+        <div className={cn("grid", cover && "md:grid-cols-2 lg:grid-cols-9")}>
+          <div className={cn("min-w-0 p-5 sm:p-7 lg:p-8", cover && "lg:col-span-4")}>
+            <PageHeader
+              title={
+                <span className="block text-balance md:text-h1 md:font-extrabold">{name}</span>
+              }
+              description={
+                <div className="space-y-2 pt-1">
+                  <p className="font-medium text-foreground">{organizationName}</p>
+                  <p className="flex items-start gap-2">
+                    <MapPin
+                      aria-hidden
+                      className="mt-0.5 size-4 shrink-0"
+                    />
+                    <span className="wrap-break-word">{location}</span>
+                  </p>
+                </div>
+              }
+            />
+            <RegistrationSummary
+              publicId={publicId}
+              terms={terms}
+              status={registrationStatus}
+            />
+          </div>
+          {cover ? (
+            <div className="relative min-w-0 bg-muted md:min-h-80 lg:col-span-5">
+              <img
+                src={cover.src}
+                alt={cover.alt}
+                onError={() => hidePhoto(cover.src)}
+                className="block aspect-video w-full object-cover md:absolute md:inset-0 md:aspect-auto md:size-full"
               />
-              <span className="min-w-0 break-words">{location}</span>
-            </p>
-          </>
-        }
-      />
-      <div className="grid gap-8 md:grid-cols-3">
-        <div className="min-w-0 space-y-8 md:col-span-2">
-          <PhotoGallery photos={photos} />
+            </div>
+          ) : null}
+        </div>
+      </Card>
+
+      {gallery.length > 0 ? (
+        <ul className="grid grid-cols-3 gap-2">
+          {gallery.map((photo) => (
+            <li key={photo.src}>
+              <img
+                src={photo.src}
+                alt={photo.alt}
+                onError={() => hidePhoto(photo.src)}
+                className="aspect-video w-full rounded-md object-cover"
+              />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div className={cn("grid gap-5 md:gap-6", hasContactColumn && "md:grid-cols-3")}>
+        <div
+          className={cn(
+            "min-w-0 space-y-5 rounded-xl bg-card p-5 text-card-foreground md:p-6",
+            hasContactColumn && "md:col-span-2",
+          )}
+        >
           <PageSection title="O akci">
-            <p className="max-w-prose text-sm whitespace-pre-line">{description}</p>
+            <p className="max-w-prose leading-relaxed wrap-break-word whitespace-pre-line">
+              {description}
+            </p>
           </PageSection>
-          <PageSection title="Podmínky účasti">
-            {conditions.length > 0 ? (
+          {conditions.length > 0 ? (
+            <PageSection title="Podmínky účasti">
               <ul className="max-w-prose list-disc space-y-1 pl-5 text-sm">
                 {conditions.map((condition, index) => (
                   <li
                     key={index}
-                    className="break-words"
+                    className="wrap-break-word"
                   >
                     {condition}
                   </li>
                 ))}
               </ul>
-            ) : (
-              <p className="text-sm">Organizátor podmínky účasti neuvedl.</p>
-            )}
-          </PageSection>
-          <PageSection title="Kontakt na organizátora">
-            <ContactBlock contact={contact} />
-          </PageSection>
+            </PageSection>
+          ) : null}
         </div>
-        <aside className="md:sticky md:top-20 md:self-start">
-          <RegistrationCard
-            publicId={publicId}
-            terms={terms}
-            status={registrationStatus}
-          />
-        </aside>
+        {hasContact ? <ContactBlock contact={contact} /> : null}
       </div>
     </article>
   )

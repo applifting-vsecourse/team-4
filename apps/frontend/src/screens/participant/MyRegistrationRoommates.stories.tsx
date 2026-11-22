@@ -6,9 +6,14 @@ import { apiError, apiUrl, failOn, neverAnswer } from "@/screens/msw"
 import { screenMeta } from "@/screens/screenMeta"
 import { showsText } from "@/screens/steps"
 
+import { participantPlacementHandlers } from "@/features/accommodation/fixtures/participantPlacements"
 import { participantHandlers } from "@/features/participant-access/fixtures/handlers"
+import { programmeHandlers } from "@/features/programme/fixtures/handlers"
 import { participantRegistrationDetailSchema } from "@/features/registrations/api/participantRegistrationSchemas"
-import { roommateWishesSchema } from "@/features/registrations/api/roommateWishSchemas"
+import {
+  roommateWishesInputSchema,
+  roommateWishesSchema,
+} from "@/features/registrations/api/roommateWishSchemas"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
 import { OWN_REGISTRATION } from "@/features/registrations/fixtures/participantRegistrations"
 import {
@@ -17,10 +22,11 @@ import {
   STORED_WISHES,
 } from "@/features/registrations/fixtures/roommateWishes"
 
-// Moje přihlášky → Detail přihlášky → Úprava přihlášky (S4-05): the roommate
-// wishes of a confirmed participant, saved on their own without approval.
+// Moje přihlášky → Detail přihlášky → Spravovat přihlášku → Ubytování (S4-05).
+// Wishes are independently saved, including while another change is pending.
 
 const WISHES = `/participant/registrations/:registrationId/roommate-wishes`
+let wishRequests = 0
 
 const meta = {
   title: "Screens/Participant/MyRegistrationRoommates",
@@ -32,6 +38,8 @@ const meta = {
       ...registrationHandlers.own(),
       ...registrationHandlers.ownChange(),
       ...registrationHandlers.roommateWishes(),
+      ...programmeHandlers.participant(),
+      ...participantPlacementHandlers(),
     )
   },
 } satisfies Meta<typeof screenMeta.component>
@@ -47,31 +55,18 @@ const TIMEOUT = { timeout: 5000 }
 const storedList = (canvas: Canvas) =>
   canvas.findByRole("list", { name: "Vybraní spolubydlící" }, TIMEOUT)
 
-/** "Upravit" or "Vybrat spolubydlící", then the form. */
-async function startEditing(canvas: Canvas, name = "Upravit"): Promise<Canvas> {
+/** Opens the one dialog that contains the whole selection and save flow. */
+async function startEditing(canvas: Canvas, name = "Upravit výběr"): Promise<Canvas> {
   await userEvent.click(await canvas.findByRole("button", { name }, TIMEOUT))
-  return within(await canvas.findByRole("form", { name: "Výběr spolubydlících" }))
+  return within(await screen.findByRole("dialog", { name: "Výběr spolubydlících" }, TIMEOUT))
 }
 
-/** Opens the searchable list of candidates. */
-async function openPicker(form: Canvas) {
-  await userEvent.click(form.getByRole("button", { name: "Přidat spolubydlícího" }))
-  return within(await screen.findByRole("dialog", { name: "Přidat spolubydlícího" }, TIMEOUT))
-}
-
-/** Closes the list with Escape, once it is gone. */
-async function closePicker() {
-  await userEvent.keyboard("{Escape}")
-  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument(), TIMEOUT)
-}
-
-/** Picks people in the list; it stays open between picks. */
-async function pick(form: Canvas, ...names: string[]) {
-  const picker = await openPicker(form)
-  for (const name of names) {
-    await userEvent.click(picker.getByRole("option", { name }))
-  }
-  await closePicker()
+/** Searches for and picks a person; the dialog stays open between searches. */
+async function pick(dialog: Canvas, query: string, name: string) {
+  const search = dialog.getByPlaceholderText("Hledat účastníka…")
+  await userEvent.clear(search)
+  await userEvent.type(search, query)
+  await userEvent.click(dialog.getByRole("option", { name }))
 }
 
 /** The stored choice, read-only. */
@@ -109,8 +104,14 @@ export const StoredNotConfirmed: Story = {
     await expect(list.getAllByRole("listitem")[0]).toHaveTextContent(/^Barbora Kučerová$/)
     const form = await startEditing(canvas)
     const selected = within(form.getByRole("list", { name: "Vybraní spolubydlící" }))
-    await expect(selected.getByText("· už není potvrzený účastník")).toBeVisible()
-    await expect(form.getByRole("button", { name: "Odebrat Kristýna Dvořáková" })).toBeVisible()
+    await expect(
+      selected.getByRole("button", { name: "Odebrat Kristýna Dvořáková" }),
+    ).toHaveTextContent("už není potvrzený účastník")
+    await waitFor(
+      () =>
+        expect(form.getByRole("button", { name: "Odebrat Kristýna Dvořáková" })).toBeVisible(),
+      TIMEOUT,
+    )
   },
 }
 
@@ -119,14 +120,15 @@ export const NothingChosen: Story = {
     msw.use(...registrationHandlers.roommateWishes(NO_WISHES))
   },
   play: async ({ canvas }) => {
-    await showsText("Zatím jste nikoho nevybrali.")
+    await showsText("Zatím jste nikoho nevybrali")
     await expect(canvas.getByRole("button", { name: "Vybrat spolubydlící" })).toBeVisible()
   },
 }
 
-/** Not confirmed in any term: no wishes on the page (S4-05). */
+/** Before confirmation, show no names and do not request the candidate list. */
 export const NotConfirmed: Story = {
   beforeEach: ({ msw }) => {
+    wishRequests = 0
     msw.use(
       http.get(apiUrl("/participant/registrations/:registrationId"), () =>
         HttpResponse.json(
@@ -137,21 +139,42 @@ export const NotConfirmed: Story = {
           }),
         ),
       ),
+      http.get(apiUrl(WISHES), () => {
+        wishRequests += 1
+        return HttpResponse.json(STORED_WISHES)
+      }),
     )
   },
   play: async ({ canvas }) => {
+    await expect(await canvas.findByText("Ubytování", undefined, TIMEOUT)).toBeVisible()
     await expect(
-      await canvas.findByRole("heading", { name: "Úprava přihlášky" }, TIMEOUT),
+      await canvas.findByText(
+        "Spolubydlící si můžete vybrat po potvrzení účasti.",
+        undefined,
+        TIMEOUT,
+      ),
     ).toBeVisible()
-    await expect(canvas.queryByText("Spolubydlící", { exact: true })).not.toBeInTheDocument()
+    await expect(canvas.queryByText("Barbora Kučerová")).not.toBeInTheDocument()
+    await expect(canvas.queryByText("Kristýna Dvořáková")).not.toBeInTheDocument()
+    await expect(
+      canvas.queryByRole("button", { name: /Vybrat spolubydlící|Upravit výběr/ }),
+    ).not.toBeInTheDocument()
+    await expect(wishRequests).toBe(0)
   },
 }
 
-/** The form with the stored choice, ready to change. */
+/** The management page with accommodation and its edit action. */
 export const Editing: Story = {
   play: async ({ canvas }) => {
-    const form = await startEditing(canvas)
-    await expect(form.getByRole("button", { name: "Přidat spolubydlícího" })).toBeVisible()
+    await expect(await canvas.findByText("Správa přihlášky")).toBeVisible()
+    const dialog = await startEditing(canvas)
+    await waitFor(
+      () => expect(dialog.getByPlaceholderText("Hledat účastníka…")).toBeVisible(),
+      TIMEOUT,
+    )
+    await expect(dialog.getByRole("option", { name: "Adéla Horáková" })).toBeVisible()
+    await expect(dialog.getByRole("button", { name: "Zrušit" })).toBeVisible()
+    await expect(dialog.getByRole("button", { name: "Uložit výběr" })).toBeVisible()
   },
 }
 
@@ -166,16 +189,21 @@ export const ChooseSeveral: Story = {
     msw.use(...registrationHandlers.roommateWishes(NO_WISHES))
   },
   play: async ({ canvas }) => {
-    const form = await startEditing(canvas, "Vybrat spolubydlící")
-    const picker = await openPicker(form)
-    await userEvent.type(picker.getByPlaceholderText("Hledat účastníka…"), "Nov")
+    const dialog = await startEditing(canvas, "Vybrat spolubydlící")
+    const search = dialog.getByPlaceholderText("Hledat účastníka…")
+    await userEvent.type(search, "Nov")
     await waitFor(() =>
-      expect(picker.queryByRole("option", { name: "Adéla Horáková" })).not.toBeInTheDocument(),
+      expect(dialog.queryByRole("option", { name: "Adéla Horáková" })).not.toBeInTheDocument(),
     )
-    await userEvent.click(picker.getByRole("option", { name: "Eliška Novotná" }))
-    await closePicker()
-    await pick(form, "Adéla Horáková")
-    await userEvent.click(form.getByRole("button", { name: "Uložit" }))
+    await userEvent.click(dialog.getByRole("option", { name: "Eliška Novotná" }))
+    await expect(dialog.getByRole("list", { name: "Vybraní spolubydlící" })).toHaveTextContent(
+      "Eliška Novotná",
+    )
+    await pick(dialog, "Horák", "Adéla Horáková")
+    await expect(dialog.getByRole("list", { name: "Vybraní spolubydlící" })).toHaveTextContent(
+      "Adéla Horáková",
+    )
+    await userEvent.click(dialog.getByRole("button", { name: "Uložit výběr" }))
     const stored = within(await storedList(canvas))
     await expect(stored.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
       "Eliška Novotná",
@@ -189,10 +217,13 @@ export const ChooseSeveral: Story = {
 export const Change: Story = {
   tags: FLOW,
   play: async ({ canvas }) => {
-    const form = await startEditing(canvas)
-    await userEvent.click(form.getByRole("button", { name: "Odebrat Barbora Kučerová" }))
-    await pick(form, "Tereza Marešová")
-    await userEvent.click(form.getByRole("button", { name: "Uložit" }))
+    const dialog = await startEditing(canvas)
+    const search = dialog.getByPlaceholderText("Hledat účastníka…")
+    await userEvent.type(search, "Marešová")
+    await userEvent.click(dialog.getByRole("button", { name: "Odebrat Barbora Kučerová" }))
+    await expect(dialog.getByRole("option", { name: "Tereza Marešová" })).toBeVisible()
+    await userEvent.click(dialog.getByRole("option", { name: "Tereza Marešová" }))
+    await userEvent.click(dialog.getByRole("button", { name: "Uložit výběr" }))
     const stored = within(await storedList(canvas))
     await expect(stored.getAllByRole("listitem").map((item) => item.textContent)).toEqual([
       "Kristýna Dvořáková",
@@ -208,8 +239,8 @@ export const RemoveAll: Story = {
     const form = await startEditing(canvas)
     await userEvent.click(form.getByRole("button", { name: "Odebrat Barbora Kučerová" }))
     await userEvent.click(form.getByRole("button", { name: "Odebrat Kristýna Dvořáková" }))
-    await userEvent.click(form.getByRole("button", { name: "Uložit" }))
-    await showsText("Zatím jste nikoho nevybrali.")
+    await userEvent.click(form.getByRole("button", { name: "Uložit výběr" }))
+    await showsText("Zatím jste nikoho nevybrali")
   },
 }
 
@@ -219,7 +250,7 @@ export const NoCandidates: Story = {
     msw.use(...registrationHandlers.roommateWishes(NO_CANDIDATES))
   },
   play: async ({ canvas }) => {
-    await showsText("Na akci zatím nejsou další potvrzení účastníci.")
+    await showsText("Zatím jste nikoho nevybrali")
     await expect(canvas.queryByRole("button", { name: /Vybrat|Upravit/ })).not.toBeInTheDocument()
   },
 }
@@ -251,23 +282,57 @@ export const Saving: Story = {
   },
   play: async ({ canvas }) => {
     const form = await startEditing(canvas)
-    await userEvent.click(form.getByRole("button", { name: "Uložit" }))
+    await userEvent.click(form.getByRole("button", { name: "Uložit výběr" }))
     await expect(await form.findByRole("button", { name: "Ukládám…" })).toBeDisabled()
   },
 }
 
-/** A failed save keeps the selection in the form. */
+/** A failed save keeps the selection in the dialog for a successful retry. */
 export const SaveFailed: Story = {
+  tags: FLOW,
   beforeEach: ({ msw }) => {
-    msw.use(...failOn("put", WISHES))
+    let attempts = 0
+    msw.use(
+      http.put(apiUrl(WISHES), async ({ request }) => {
+        attempts += 1
+        if (attempts === 1) return apiError(500)
+        const { registrationIds } = roommateWishesInputSchema.parse(await request.json())
+        const byId = new Map(STORED_WISHES.candidates.map((person) => [person.registrationId, person]))
+        return HttpResponse.json(
+          roommateWishesSchema.parse({
+            ...STORED_WISHES,
+            wishes: registrationIds.map((id) => byId.get(id)).filter((person) => person !== undefined),
+          }),
+        )
+      }),
+    )
   },
   play: async ({ canvas }) => {
     const form = await startEditing(canvas)
-    await pick(form, "Veronika Pokorná")
-    await userEvent.click(form.getByRole("button", { name: "Uložit" }))
+    await pick(form, "Pokorná", "Veronika Pokorná")
+    await userEvent.click(form.getByRole("button", { name: "Uložit výběr" }))
     await showsText("Spolubydlící se nepodařilo uložit. Výběr zůstává, zkuste to prosím znovu.")
     const selected = within(form.getByRole("list", { name: "Vybraní spolubydlící" }))
     await expect(selected.getByText("Veronika Pokorná")).toBeVisible()
+    await expect(screen.getByRole("dialog", { name: "Výběr spolubydlících" })).toBeVisible()
+    await userEvent.click(form.getByRole("button", { name: "Uložit výběr" }))
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument(), TIMEOUT)
+    await expect(within(await storedList(canvas)).getByText("Veronika Pokorná")).toBeVisible()
+  },
+}
+
+/** Cancel discards the draft and keeps the stored selection unchanged. */
+export const CancelChanges: Story = {
+  tags: FLOW,
+  play: async ({ canvas }) => {
+    const dialog = await startEditing(canvas)
+    await userEvent.click(dialog.getByRole("button", { name: "Odebrat Barbora Kučerová" }))
+    await pick(dialog, "Tereza", "Tereza Marešová")
+    await userEvent.click(dialog.getByRole("button", { name: "Zrušit" }))
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument(), TIMEOUT)
+    const stored = within(await storedList(canvas))
+    await expect(stored.getByText("Barbora Kučerová")).toBeVisible()
+    await expect(stored.queryByText("Tereza Marešová")).not.toBeInTheDocument()
   },
 }
 
@@ -301,15 +366,20 @@ export const SaveRefused: Story = {
   },
   play: async ({ canvas }) => {
     const form = await startEditing(canvas)
-    await pick(form, "Veronika Pokorná")
-    await userEvent.click(form.getByRole("button", { name: "Uložit" }))
+    await pick(form, "Pokorná", "Veronika Pokorná")
+    await userEvent.click(form.getByRole("button", { name: "Uložit výběr" }))
     await showsText(
       "Vyberte potvrzené účastníky této akce. Seznam účastníků je aktualizovaný, upravte výběr.",
     )
     const selected = within(form.getByRole("list", { name: "Vybraní spolubydlící" }))
-    await expect(await selected.findByText("· už není potvrzený účastník")).toBeVisible()
+    await expect(
+      selected.getByRole("button", { name: "Odebrat Veronika Pokorná" }),
+    ).toHaveTextContent("už není potvrzený účastník")
     await expect(selected.getByText("Veronika Pokorná")).toBeVisible()
-    await expect(form.getByRole("button", { name: "Odebrat Veronika Pokorná" })).toBeVisible()
+    await waitFor(
+      () => expect(form.getByRole("button", { name: "Odebrat Veronika Pokorná" })).toBeVisible(),
+      TIMEOUT,
+    )
   },
 }
 
@@ -328,37 +398,13 @@ export const FullList: Story = {
   },
   play: async ({ canvas }) => {
     const form = await startEditing(canvas)
-    await expect(form.getByText("Vybrat lze nejvýš 20 spolubydlících.")).toBeVisible()
-    await expect(form.getByRole("button", { name: "Přidat spolubydlícího" })).toBeDisabled()
-  },
-}
-
-/** A failed save keeps the selection; the next try stores it. */
-export const SaveFailedThenRetried: Story = {
-  tags: FLOW,
-  beforeEach: ({ msw }) => {
-    // The first save fails; later ones reach the meta's handler.
-    let hasFailed = false
-    msw.use(
-      http.put(apiUrl(WISHES), () => {
-        if (hasFailed) return undefined
-        hasFailed = true
-        return apiError(500)
-      }),
+    await waitFor(
+      () => expect(form.getByText("Vybrat lze nejvýš 20 spolubydlících.")).toBeVisible(),
+      TIMEOUT,
     )
-  },
-  play: async ({ canvas }) => {
-    const form = await startEditing(canvas)
-    await pick(form, "Veronika Pokorná")
-    await userEvent.click(form.getByRole("button", { name: "Uložit" }))
-    await showsText("Spolubydlící se nepodařilo uložit. Výběr zůstává, zkuste to prosím znovu.")
-    const selected = within(form.getByRole("list", { name: "Vybraní spolubydlící" }))
-    await expect(selected.getByText("Veronika Pokorná")).toBeVisible()
-
-    await userEvent.click(form.getByRole("button", { name: "Uložit" }))
-    await waitFor(async () => {
-      const stored = within(await storedList(canvas))
-      await expect(stored.getByText("Veronika Pokorná")).toBeVisible()
-    }, TIMEOUT)
+    await expect(form.getByRole("option", { name: "Účastník 21" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    )
   },
 }
