@@ -315,6 +315,14 @@ describe('the proposal reads the saved placements and wishes', () => {
     });
     expect(kept.isLocked).toBe(true);
 
+    // The term shows the proposal as applied, not stale, until it changes.
+    const termView = () =>
+      f.call('GET', `${f.base}/terms/${f.terms[0].id}/room-proposal`);
+    let view = await termView();
+    expect(view.body.status).toBe('applied');
+    expect(view.body.lastSolved).toMatchObject({ isCurrent: false });
+    expect(view.body.lastSolved.appliedAt).toEqual(expect.any(String));
+
     const states = await f.call(
       'GET',
       `${f.base}/terms/${f.terms[0].id}/roommate-wishes`,
@@ -329,6 +337,12 @@ describe('the proposal reads the saved placements and wishes', () => {
         },
       ],
     });
+
+    // A manual move afterwards makes it stale like any other change.
+    await f.place(eva, 1);
+    view = await termView();
+    expect(view.body.status).toBe('stale');
+    expect(view.body.lastSolved.appliedAt).toBeNull();
   });
 });
 

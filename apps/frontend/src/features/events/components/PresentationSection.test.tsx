@@ -130,11 +130,32 @@ describe("PresentationSection", () => {
 
     expect(screen.getByLabelText("Popis akce")).toBeDisabled()
     expect(screen.getByText("Od prvního otevření přihlašování popis nelze měnit.")).toBeVisible()
+    await user.type(screen.getByLabelText("Podmínky účasti"), "Plavky")
     await user.click(save())
 
     expect(put).toHaveBeenCalledWith(expect.any(String), {
       json: expect.objectContaining({ description: "Týden v lesích." }) as unknown,
     })
+  })
+
+  it("keeps save disabled until a form value changes", async () => {
+    renderPage(EVENT)
+    expect(save()).toBeDisabled()
+    await user.type(screen.getByLabelText("Podmínky účasti"), "Plavky")
+    expect(save()).toBeEnabled()
+  })
+
+  it("opens the existing public detail from the published presentation", () => {
+    renderPage({ ...EVENT, isPublished: true })
+
+    expect(screen.getByRole("link", { name: "Náhled veřejné stránky" })).toHaveAttribute(
+      "href",
+      "/e/abcdefghijkl",
+    )
+    expect(screen.getByRole("link", { name: "Náhled veřejné stránky" })).toHaveAttribute(
+      "target",
+      "_blank",
+    )
   })
 
   it("keeps the typed values after a failed save", async () => {

@@ -39,6 +39,7 @@ export function EventPublication({ organizationId, event }: EventPublicationProp
 
   return (
     <PublicationSection
+      publicId={event.publicId}
       isPublished={event.isPublished}
       isPending={setPublication.isPending}
       errorMessage={errorMessage}

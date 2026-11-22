@@ -55,6 +55,7 @@ export const PROPOSAL_STATUS_BADGE: Record<
   }
 > = {
   current: { label: "Aktuální návrh", variant: "success" },
+  applied: { label: "Použitý návrh", variant: "success" },
   stale: { label: "Neaktuální návrh", variant: "warning" },
   running: { label: "Navrhuje se", variant: "secondary" },
   failed: { label: "Návrh selhal", variant: "destructive-subtle" },
@@ -118,6 +119,24 @@ export function toProposalLayout(layout: ProposalLayoutData): RoomProposalLayout
     ),
     summary: layout.summary,
     isEmpty: layout.people.length === 0,
+  }
+}
+
+/**
+ * An applied layout (#390): its differences were against the placements
+ * saved before the apply, which now hold its rooms; none of them is left.
+ */
+export function asApplied(layout: RoomProposalLayout): RoomProposalLayout {
+  const settled = <T extends ProposalPerson>(person: T): T => ({
+    ...person,
+    change: null,
+    savedRoom: undefined,
+  })
+  return {
+    ...layout,
+    rooms: layout.rooms.map((room) => ({ ...room, people: room.people.map(settled) })),
+    unplaced: layout.unplaced.map(settled),
+    summary: { ...layout.summary, added: 0, moved: 0, removed: 0 },
   }
 }
 

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type Page } from "@playwright/test"
 
 import {
   API_URL,
@@ -17,7 +17,12 @@ const terms = [
 ]
 
 const origin = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3050").origin
-const toggleName = "Zveřejnit ve veřejném katalogu"
+const toggleName = "Zveřejnit akci v katalogu"
+
+async function openPublicAccess(page: Page) {
+  const section = page.getByRole("button", { name: "Veřejný přístup" })
+  if ((await section.getAttribute("aria-expanded")) !== "true") await section.click()
+}
 
 // The first test publishes through the UI; withdraw it so the dev catalog stays as it was.
 let published: OpenEvent | undefined
@@ -36,6 +41,7 @@ test("a failed publication change shows an error, saves nothing and can be retri
     ((await (await page.request.get(eventUrl)).json()) as { isPublished: boolean }).isPublished
 
   await page.goto(`/organizations/${event.organizationId}/events/${event.eventId}/settings`)
+  await openPublicAccess(page)
   const toggle = page.getByRole("switch", { name: toggleName })
   await expect(toggle).not.toBeChecked()
 

@@ -39,6 +39,8 @@ const save = () =>
 describe("PaymentSettingsForm", () => {
   it("requires the account number, bank code and reminder days", async () => {
     const { onSubmit } = renderForm(EMPTY_PAYMENT_SETTINGS)
+    expect(screen.getByRole("button", { name: "Uložit platební nastavení" })).toBeDisabled()
+    await userEvent.type(screen.getByLabelText("Předčíslí (nepovinné)"), "19")
     await save()
     expect(await screen.findByText("Vyplňte číslo účtu.")).toBeInTheDocument()
     expect(screen.getByText("Vyplňte kód banky.")).toBeInTheDocument()
@@ -124,8 +126,10 @@ describe("PaymentSettingsForm", () => {
   describe("save button", () => {
     const saveButton = () => screen.getByRole("button", { name: "Uložit platební nastavení" })
 
-    it("is active on the first setup, even with an empty form", () => {
+    it("waits for a change before the first setup", async () => {
       renderForm(EMPTY_PAYMENT_SETTINGS)
+      expect(saveButton()).toBeDisabled()
+      await userEvent.type(screen.getByLabelText("Předčíslí (nepovinné)"), "19")
       expect(saveButton()).toBeEnabled()
     })
 

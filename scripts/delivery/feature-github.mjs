@@ -196,3 +196,55 @@ function agentPassForHead(comments, pr, scopes, since = 0) {
 export function headPassed(comments, pr, issue, since = 0) {
   return agentPassForHead(comments, pr, new Set([issue]), since);
 }
+
+/**
+ * The issues closed by the open PRs from an integration branch of this
+ * repository into main: its parent PR, whose opening made GitHub replace the
+ * parent issue's link to the branch (see `ownsIntegrationBranch`). Only the
+ * native closing references count; anything truncated fails closed.
+ */
+export async function closedByParentPrs({ get, graphql, repo, branch }) {
+  const [owner, name] = repo.split('/');
+  const parents = await get(
+    `/repos/${repo}/pulls?state=open&base=main&per_page=100&head=${encodeURIComponent(`${owner}:${branch}`)}`,
+  );
+  if (parents.length === 100)
+    throw new Error(`Too many open PRs from ${branch} into main`);
+  const closed = await Promise.all(
+    parents
+      // Only a branch of this repository: a fork may reuse the name.
+      .filter((parent) => parent.head?.repo?.full_name === repo)
+      .map(async (parent) => {
+        const response = await graphql(
+          `
+            query ($owner: String!, $repo: String!, $number: Int!) {
+              repository(owner: $owner, name: $repo) {
+                pullRequest(number: $number) {
+                  closingIssuesReferences(first: 100) {
+                    nodes {
+                      number
+                      repository {
+                        nameWithOwner
+                      }
+                    }
+                    pageInfo {
+                      hasNextPage
+                    }
+                  }
+                }
+              }
+            }
+          `,
+          { owner, repo: name, number: parent.number },
+        );
+        const references =
+          response.data?.repository?.pullRequest?.closingIssuesReferences;
+        if (response.errors || !references || references.pageInfo?.hasNextPage)
+          throw new Error(`Cannot read the issues closed by #${parent.number}`);
+        return references.nodes
+          .filter((issue) => issue.repository.nameWithOwner === repo)
+          .map((issue) => issue.number);
+      }),
+  );
+  return closed.flat();
+}

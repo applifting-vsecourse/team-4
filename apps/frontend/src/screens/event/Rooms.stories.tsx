@@ -180,6 +180,21 @@ export const Proposal: Story = {
   },
 }
 
+/** Applied, nothing changed since: the saved rooms are the proposal's; nothing left to apply. */
+export const ProposalApplied: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...accommodationHandlers.termRoomProposal(makeTermRoomProposal("applied")))
+  },
+  play: async ({ canvas }) => {
+    const section = within(await canvas.findByRole("region", { name: "Návrh pokojů" }))
+    await expect(await section.findByText("Použitý návrh")).toBeVisible()
+    await expect(section.getByText("Návrh je použitý")).toBeVisible()
+    await expect(section.getByText(/beze změn/)).toBeVisible()
+    await expect(section.queryByText("Nové umístění")).not.toBeInTheDocument()
+    await expect(section.queryByRole("button", { name: "Použít návrh" })).not.toBeInTheDocument()
+  },
+}
+
 /** Against saved placements: a move, a locked placement, a lost room and a lock conflict. */
 export const ProposalWithSavedPlacements = proposalStory("withSaved", "Přesun z Chata Dub")
 

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { execFileSync } from 'node:child_process';
-import { integratedReview } from './feature-github.mjs';
+import { closedByParentPrs, integratedReview } from './feature-github.mjs';
 
 const BRANCH = 'integration/400-rooms';
 const REPO = { full_name: 'owner/repo' };
@@ -245,9 +245,15 @@ async function closeScenario(mode) {
   );
   const calls = [];
   const conn = (nodes) => ({ nodes, pageInfo: { hasNextPage: false } });
-  const branch = conn([
-    { ref: { name: BRANCH, repository: { nameWithOwner: 'owner/repo' } } },
-  ]);
+  // While the parent PR is open, GitHub shows it instead of the branch link.
+  const branch =
+    mode === 'parent-pr-open' || mode === 'parent-pr-fork'
+      ? conn([])
+      : conn([
+          {
+            ref: { name: BRANCH, repository: { nameWithOwner: 'owner/repo' } },
+          },
+        ]);
   globalThis.fetch = async (url, options = {}) => {
     const path = new URL(url).pathname;
     const body = options.body ? JSON.parse(options.body) : {};
@@ -266,6 +272,45 @@ async function closeScenario(mode) {
           }[mode] ?? 'Closes #401',
         base: { ref: BRANCH },
         head: { ref: 'feat/401', sha: 'a'.repeat(40) },
+      };
+    else if (path === '/repos/owner/repo/pulls')
+      data =
+        mode === 'parent-pr-open' || mode === 'parent-pr-fork'
+          ? [
+              {
+                number: 50,
+                body: 'Closes #400',
+                head: {
+                  repo: {
+                    full_name:
+                      mode === 'parent-pr-fork' ? 'fork/repo' : 'owner/repo',
+                  },
+                },
+              },
+            ]
+          : [];
+    else if (
+      path === '/graphql' &&
+      body.query.includes('closingIssuesReferences')
+    )
+      data = {
+        data: {
+          repository: {
+            pullRequest: {
+              closingIssuesReferences: {
+                nodes:
+                  body.variables.number === 50
+                    ? [
+                        {
+                          number: 400,
+                          repository: { nameWithOwner: 'owner/repo' },
+                        },
+                      ]
+                    : [],
+              },
+            },
+          },
+        },
       };
     else if (path === '/graphql')
       data = {
@@ -370,6 +415,19 @@ test('a merged child PR closes its sub-issue as completed', () => {
   ]);
 });
 
+test('a merged child PR closes its sub-issue while the parent PR is open', () => {
+  // The parent issue's branch link was replaced by its open parent PR (#50).
+  assert.deepEqual(close('parent-pr-open'), [
+    'PATCH /repos/owner/repo/issues/401',
+    JSON.stringify({ state: 'closed', state_reason: 'completed' }),
+    'POST /repos/owner/repo/issues/401/comments',
+  ]);
+});
+
+test('a PR from a fork with the branch name stands in for nothing', () => {
+  assert.deepEqual(close('parent-pr-fork'), []);
+});
+
 test('a paused child PR closes its sub-issue without inventing review evidence', () => {
   assert.deepEqual(close('paused-unreviewed'), [
     'PATCH /repos/owner/repo/issues/401',
@@ -388,3 +446,54 @@ for (const mode of [
   test(`a merged PR closes nothing when it is ${mode}`, () => {
     assert.deepEqual(close(mode), []);
   });
+
+test('the issues closed by open parent PRs come from same-repository heads only', async () => {
+  const get = async () => [
+    { number: 50, head: { repo: { full_name: 'owner/repo' } } },
+    { number: 51, head: { repo: { full_name: 'fork/repo' } } },
+  ];
+  const asked = [];
+  const graphql = async (_query, { number }) => {
+    asked.push(number);
+    return {
+      data: {
+        repository: {
+          pullRequest: {
+            closingIssuesReferences: {
+              nodes: [
+                { number: 400, repository: { nameWithOwner: 'owner/repo' } },
+                { number: 7, repository: { nameWithOwner: 'other/repo' } },
+              ],
+              pageInfo: { hasNextPage: false },
+            },
+          },
+        },
+      },
+    };
+  };
+  assert.deepEqual(
+    await closedByParentPrs({
+      get,
+      graphql,
+      repo: 'owner/repo',
+      branch: 'integration/400-rooms',
+    }),
+    [400],
+  );
+  assert.deepEqual(asked, [50]);
+});
+
+test('reading the issues closed by a parent PR fails closed', async () => {
+  const get = async () => [
+    { number: 50, head: { repo: { full_name: 'owner/repo' } } },
+  ];
+  await assert.rejects(
+    closedByParentPrs({
+      get,
+      graphql: async () => ({ errors: [{ message: 'boom' }] }),
+      repo: 'owner/repo',
+      branch: 'integration/400-rooms',
+    }),
+    /Cannot read the issues closed by #50/,
+  );
+});

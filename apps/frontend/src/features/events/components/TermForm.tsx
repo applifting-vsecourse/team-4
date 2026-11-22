@@ -193,6 +193,7 @@ export function TermForm({
         <DialogActions
           submitLabel="Uložit termín"
           isPending={isLoading}
+          isDisabled={!form.formState.isDirty}
         />
       </form>
     </Form>

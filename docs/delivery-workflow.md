@@ -270,6 +270,14 @@ owns the end-to-end scope and links its branch `integration/<parent>-<slug>`
 prefix is reserved for these branches. The parent issue has native sub-issues
 labeled `area:frontend` and `area:backend`.
 
+Opening the parent PR from the branch into `main` makes GitHub replace the
+issue's branch link with that PR. While the parent PR is open, its closing link
+stands in: the issue the branch is named after, closed by an open PR from the
+branch into `main`, still owns the branch. PRs into the branch, the child-close
+automation and the parent PR itself keep working, and no other issue can
+claim the branch this way. If the parent PR is closed without merging and the
+issue's Development section no longer lists the branch, link it there again.
+
 To start a feature:
 
 1. On the parent issue, add a frontend and a backend sub-issue with their

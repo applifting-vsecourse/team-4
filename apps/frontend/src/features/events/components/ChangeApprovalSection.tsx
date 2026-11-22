@@ -52,6 +52,7 @@ export function ChangeApprovalSection({ organizationId, event }: ChangeApprovalS
 
   return (
     <ChangeApprovalSettings
+      key={event.changeApprovalDays ?? "none"}
       savedSetting={describeApprovalSetting(event.changeApprovalDays)}
       days={event.changeApprovalDays === null ? "" : String(event.changeApprovalDays)}
       daysError={daysError}

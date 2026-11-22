@@ -7,6 +7,7 @@ import { DialogClose, DialogFooter } from "@/components/ui/dialog"
 type DialogActionsProps = {
   submitLabel: ReactNode
   isPending: boolean
+  isDisabled?: boolean
   /** Without it the confirming button submits the dialog's form. */
   onSubmit?: () => unknown
   submitVariant?: "default" | "destructive"
@@ -19,6 +20,7 @@ type DialogActionsProps = {
 export function DialogActions({
   submitLabel,
   isPending,
+  isDisabled = false,
   onSubmit,
   submitVariant = "default",
   leading,
@@ -37,6 +39,7 @@ export function DialogActions({
       <PendingButton
         variant={submitVariant}
         isPending={isPending}
+        disabled={isDisabled}
         {...(onSubmit ? { type: "button", onClick: () => onSubmit() } : { type: "submit" })}
       >
         {submitLabel}
