@@ -449,11 +449,11 @@ export const LoadFailed: Story = {
 export const Publish: Story = {
   play: async ({ canvas }) => {
     const board = await section(canvas)
-    await expect(await board.findByText("Nezveřejněno")).toBeVisible()
-    await userEvent.click(board.getByRole("button", { name: "Zveřejnit rozdělení" }))
-    await expect(await board.findByText("Zveřejněno")).toBeVisible()
-    await expect(board.getByRole("button", { name: "Zrušit zveřejnění" })).toBeVisible()
+    const toggle = await board.findByRole("switch", { name: "Zveřejnit rozdělení" })
+    await expect(toggle).not.toBeChecked()
+    await userEvent.click(toggle)
     await showsText("Rozdělení je zveřejněné účastníkům.")
+    await waitFor(() => expect(toggle).toBeChecked())
   },
 }
 
@@ -462,11 +462,11 @@ export const Unpublish: Story = {
   parameters: { publication: { [OPEN_EVENT.terms[0]!.id]: PUBLISHED_AT } },
   play: async ({ canvas }) => {
     const board = await section(canvas)
-    await expect(await board.findByText("Zveřejněno")).toBeVisible()
-    await userEvent.click(board.getByRole("button", { name: "Zrušit zveřejnění" }))
-    await expect(await board.findByText("Nezveřejněno")).toBeVisible()
-    await expect(board.getByRole("button", { name: "Zveřejnit rozdělení" })).toBeVisible()
+    const toggle = await board.findByRole("switch", { name: "Zveřejnit rozdělení" })
+    await waitFor(() => expect(toggle).toBeChecked())
+    await userEvent.click(toggle)
     await showsText("Zveřejnění rozdělení je zrušené.")
+    await waitFor(() => expect(toggle).not.toBeChecked())
   },
 }
 
@@ -477,14 +477,15 @@ export const PublishFailed: Story = {
   },
   play: async ({ canvas }) => {
     const board = await section(canvas)
-    await userEvent.click(await board.findByRole("button", { name: "Zveřejnit rozdělení" }))
+    const toggle = await board.findByRole("switch", { name: "Zveřejnit rozdělení" })
+    await userEvent.click(toggle)
     await showsText("Zveřejnění se nepodařilo změnit. Zkuste to prosím znovu.")
-    await expect(board.getByText("Nezveřejněno")).toBeVisible()
-    await expect(board.getByRole("button", { name: "Zveřejnit rozdělení" })).toBeEnabled()
+    await expect(toggle).not.toBeChecked()
+    await waitFor(() => expect(toggle).toBeEnabled())
   },
 }
 
-/** The state failed to load: an error with a retry, never "Nezveřejněno". */
+/** The state failed to load: an error with a retry, never an unpublished switch. */
 export const PublicationLoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", PUBLICATION))
@@ -495,9 +496,8 @@ export const PublicationLoadFailed: Story = {
       await board.findByText("Stav zveřejnění se nepodařilo načíst", undefined, { timeout: 5000 }),
     ).toBeVisible()
     await expect(board.getByRole("button", { name: "Zkusit znovu" })).toBeVisible()
-    await expect(board.queryByText("Nezveřejněno")).not.toBeInTheDocument()
     await expect(
-      board.queryByRole("button", { name: "Zveřejnit rozdělení" }),
+      board.queryByRole("switch", { name: "Zveřejnit rozdělení" }),
     ).not.toBeInTheDocument()
   },
 }

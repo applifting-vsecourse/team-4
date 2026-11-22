@@ -42,7 +42,8 @@ test("participants see their rooms only while the organizer publishes them", asy
   await page.goto(`/organizations/${event.organizationId}/events/${event.eventId}/rooms`)
   await placeWithMenu(page, "Jana Nováková", "Chatka A")
   await placeWithMenu(page, "Eva Nováková", "Chatka A")
-  await expect(board(page).getByText("Nezveřejněno")).toBeVisible()
+  const toggle = board(page).getByRole("switch", { name: "Zveřejnit rozdělení" })
+  await expect(toggle).not.toBeChecked()
 
   const participant = await browser.newContext()
   const portal = await participant.newPage()
@@ -55,16 +56,16 @@ test("participants see their rooms only while the organizer publishes them", asy
   await expect(roomsCard.getByText("Rozdělení pokojů zatím není zveřejněné.")).toBeVisible()
   await expect(roomsCard.getByText("Chatka A")).toHaveCount(0)
 
-  await board(page).getByRole("button", { name: "Zveřejnit rozdělení" }).click()
+  await toggle.click()
   await expect(page.getByText("Rozdělení je zveřejněné účastníkům.")).toBeVisible()
-  await expect(board(page).getByText("Zveřejněno", { exact: true })).toBeVisible()
+  await expect(toggle).toBeChecked()
 
   await portal.reload()
   await expect(roomsCard.getByText("Chatka A")).toBeVisible()
   const wish = roomsCard.getByRole("listitem").filter({ hasText: "Eva Nováková" })
   await expect(wish.getByText("Splněno")).toBeVisible()
 
-  await board(page).getByRole("button", { name: "Zrušit zveřejnění" }).click()
+  await toggle.click()
   await expect(page.getByText("Zveřejnění rozdělení je zrušené.")).toBeVisible()
 
   await portal.reload()

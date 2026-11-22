@@ -1,7 +1,7 @@
 import { LoadingBlock } from "@/components/LoadingBlock"
-import { PendingButton } from "@/components/PendingButton"
-import { Badge } from "@/components/ui/badge"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Switch } from "@/components/ui/switch"
 
 import { type RoomPublication } from "@/features/accommodation/api/publicationSchemas"
 
@@ -14,10 +14,10 @@ type RoomPublicationControlProps = {
   onChange: (isPublished: boolean) => unknown
 }
 
-// Správa akce → Ubytování → Rozdělení do pokojů (S4-02): whether the
-// participants of the selected term see their rooms, and the action that
-// changes it. A failed load is reported by the section, never as
-// "Nezveřejněno".
+// Správa akce → Ubytování → Rozdělení do pokojů (S4-02): a switch for whether
+// the participants of the selected term see their rooms. It shows the saved
+// state only, so a failed change leaves it where it was and a second click
+// retries. A failed load is reported by the section, never as unpublished.
 export function RoomPublicationControl({
   publication,
   isSwitching = false,
@@ -27,26 +27,22 @@ export function RoomPublicationControl({
   if (!publication) {
     return (
       <LoadingBlock label="Načítání stavu zveřejnění">
-        <Skeleton className="h-8 w-56" />
+        <Skeleton className="h-6 w-48" />
       </LoadingBlock>
     )
   }
-  const { isPublished } = publication
   return (
-    <>
-      <Badge variant={isPublished ? "success" : "secondary"}>
-        {isPublished ? "Zveřejněno" : "Nezveřejněno"}
-      </Badge>
-      <PendingButton
-        type="button"
-        variant="outline"
-        size="sm"
-        isPending={isSaving}
-        disabled={isSwitching}
-        onClick={() => onChange(!isPublished)}
-      >
-        {isPublished ? "Zrušit zveřejnění" : "Zveřejnit rozdělení"}
-      </PendingButton>
-    </>
+    <Field
+      orientation="horizontal"
+      className="w-auto"
+    >
+      <Switch
+        id="room-publication"
+        checked={publication.isPublished}
+        disabled={isSwitching || isSaving}
+        onCheckedChange={onChange}
+      />
+      <FieldLabel htmlFor="room-publication">Zveřejnit rozdělení</FieldLabel>
+    </Field>
   )
 }
