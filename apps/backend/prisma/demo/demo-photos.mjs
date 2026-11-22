@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// akc.io demo photos (S3-T5): uploads or removes the photos of the demo events.
+// akc.io demo photos (S4-T08): uploads or removes the photos of the demo events.
 //
 //   node apps/backend/prisma/demo/demo-photos.mjs upload   # replace the photos with ./photos
 //   node apps/backend/prisma/demo/demo-photos.mjs delete   # remove every photo of the demo events
@@ -25,9 +25,9 @@ const PHOTOS_DIR = join(dirname(fileURLToPath(import.meta.url)), 'photos');
 // name order; the first one is the photo shown in the catalog.
 const EVENTS = {
   'Tábor v Jizerkách': 'tabor',
-  'Víkendový kurz první pomoci': 'kurz',
+  'Kurz první pomoci': 'kurz',
   'Výstup na Sněžku': 'snezka',
-  'Úklid Kunratického lesa': 'uklid',
+  'Dobrovolnický týden v Kunratickém lese': 'uklid',
 };
 
 const command = process.argv[2];
