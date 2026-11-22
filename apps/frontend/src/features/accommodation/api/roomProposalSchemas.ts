@@ -22,6 +22,7 @@ export const roomProposalStatusSchema = z.enum([
   "none",
   "running",
   "current",
+  "applied",
   "stale",
   "failed",
   "timeout",
@@ -98,6 +99,8 @@ const storedProposalSchema = z.object({
   finishedAt: z.string(),
   layoutVersion: z.number().int(),
   isCurrent: z.boolean(),
+  /** When it was applied, while the term has not changed since; null otherwise. */
+  appliedAt: z.string().nullable(),
   layout: proposalLayoutSchema.nullable(),
 })
 export type StoredProposalData = z.infer<typeof storedProposalSchema>

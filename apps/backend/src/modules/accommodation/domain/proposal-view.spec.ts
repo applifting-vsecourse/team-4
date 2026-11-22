@@ -84,6 +84,7 @@ const stored = (
     preferences: [{ kind: 'wishes' }],
   },
   result,
+  lastApplied: null,
   ...extra,
 });
 
@@ -117,6 +118,31 @@ describe('the status of a term’s room proposal', () => {
     expect(view(proposal).proposal?.isCurrent).toBe(true);
     expect(view(proposal, 4).status).toBe('stale');
     expect(view(proposal, 4).proposal?.isCurrent).toBe(false);
+  });
+
+  it('is applied after "Použít návrh" until the term changes again', () => {
+    const at = new Date('2027-03-01T10:05:00Z');
+    const applied = { ...proposal, lastApplied: { layoutVersion: 4, at } };
+    expect(view(applied, 4).status).toBe('applied');
+    expect(view(applied, 4).proposal).toMatchObject({
+      isCurrent: false,
+      appliedAt: at,
+    });
+    expect(view(applied, 4).lastSolved?.appliedAt).toEqual(at);
+    expect(view(applied, 5).status).toBe('stale');
+    expect(view(applied, 5).proposal?.appliedAt).toBeNull();
+  });
+
+  it('keeps the applied proposal as the one shown when a later run failed', () => {
+    const at = new Date('2027-03-01T10:05:00Z');
+    const applied = { ...proposal, lastApplied: { layoutVersion: 4, at } };
+    const failed = stored([person('A', 0)], null, {
+      id: 'failed',
+      layoutVersion: 4,
+    });
+    const shown = view(failed, 4, false, applied);
+    expect(shown.status).toBe('failed');
+    expect(shown.lastSolved).toMatchObject({ id: 'proposal', appliedAt: at });
   });
 
   it('is running while a proposal runs or was asked for, and keeps the last one', () => {

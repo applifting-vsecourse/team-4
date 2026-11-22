@@ -15,6 +15,7 @@ const STATUSES: ProposalViewStatus[] = [
   'none',
   'running',
   'current',
+  'applied',
   'stale',
   'failed',
   'timeout',
@@ -257,6 +258,15 @@ export class StoredProposalDto {
   isCurrent!: boolean;
 
   @ApiProperty({
+    format: 'date-time',
+    type: String,
+    nullable: true,
+    description:
+      'When it was applied, while the term has not changed since; null otherwise.',
+  })
+  appliedAt!: string | null;
+
+  @ApiProperty({
     type: ProposalLayoutDto,
     nullable: true,
     description: 'For a solved proposal.',
@@ -268,6 +278,7 @@ export class StoredProposalDto {
       ...proposal,
       startedAt: proposal.startedAt.toISOString(),
       finishedAt: proposal.finishedAt.toISOString(),
+      appliedAt: proposal.appliedAt?.toISOString() ?? null,
       layout: proposal.layout && ProposalLayoutDto.from(proposal.layout),
     };
   }
@@ -281,7 +292,8 @@ export class TermRoomProposalDto {
     enum: STATUSES,
     description:
       '`running`: a proposal runs or was asked for · `current` / `stale`: ' +
-      'the last proposal matches / no longer matches the term · `failed` / ' +
+      'the last proposal matches / no longer matches the term · `applied`: ' +
+      'the last proposal was applied and the term has not changed since · `failed` / ' +
       '`timeout`: the last one is not usable · `none`.',
   })
   status!: ProposalViewStatus;
