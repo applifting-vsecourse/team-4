@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   childVerify,
   integrationRole,
+  ownsIntegrationBranch,
   integrationStages,
   isVerifiedMainSync,
   isIntegrationBranch,
@@ -134,6 +135,96 @@ for (const [name, issues] of [
     assert.equal(role.kind, 'invalid');
     assert.ok(role.reason);
   });
+
+// GitHub drops an issue's link to its integration branch once the parent PR
+// from that branch is open; the parent PR's closing link stands in for it.
+test('work into the branch is still recognised while the parent PR is open', () => {
+  const unlinked = { number: 400, state: 'OPEN', branches: [] };
+  assert.deepEqual(
+    integrationRole({
+      pr: pr(),
+      issues: [parentIssue({ branches: [] })],
+      closedByParentPr: [400],
+    }),
+    {
+      kind: 'integration',
+      issue: 400,
+      parent: 400,
+      lanes: ['checks', 'database', 'stories'],
+    },
+  );
+  assert.deepEqual(
+    integrationRole({
+      pr: pr(),
+      issues: [sub({ parent: unlinked })],
+      closedByParentPr: [400],
+    }),
+    {
+      kind: 'child',
+      area: 'frontend',
+      issue: 401,
+      parent: 400,
+      lanes: ['checks', 'stories'],
+    },
+  );
+});
+
+test('a parent PR is blocked when one issue links its branch and another is named and closed', () => {
+  const parentPr = pr({
+    number: 50,
+    body: 'Closes #400',
+    base: { ref: 'main', repo: REPO },
+    head: { ref: BRANCH, sha, repo: REPO },
+  });
+  assert.match(
+    parentReasons({
+      pr: parentPr,
+      issues: [
+        parentIssue({ branches: [] }),
+        parentIssue({ number: 9, branches: [BRANCH] }),
+      ],
+      closingIssueNumbers: [400],
+      openInto: [],
+    }).join(' '),
+    /must link the one parent issue/,
+  );
+});
+
+test('a branch name with a leading zero names no issue', () => {
+  assert.equal(
+    ownsIntegrationBranch(
+      { number: 400, branches: [] },
+      'integration/0400-x',
+      [400],
+    ),
+    false,
+  );
+});
+
+test('a parent PR stands in only for the issue the branch is named after', () => {
+  // Not closed by an open parent PR: no link at all.
+  assert.equal(
+    integrationRole({ pr: pr(), issues: [parentIssue({ branches: [] })] }).kind,
+    'invalid',
+  );
+  // Closed by a parent PR, but the branch is named after another issue.
+  assert.equal(
+    integrationRole({
+      pr: pr(),
+      issues: [parentIssue({ number: 9, branches: [] })],
+      closedByParentPr: [9],
+    }).kind,
+    'invalid',
+  );
+  assert.equal(
+    ownsIntegrationBranch({ number: 400, branches: [] }, 'feat/400-x', [400]),
+    false,
+  );
+  assert.equal(
+    ownsIntegrationBranch({ number: 400, branches: [BRANCH] }, BRANCH),
+    true,
+  );
+});
 
 test('child-verify passes only when the lanes for the role passed', () => {
   const role = integrationRole({ pr: pr(), issues: [sub()] });

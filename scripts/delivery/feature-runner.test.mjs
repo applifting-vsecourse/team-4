@@ -57,20 +57,27 @@ async function scenario(mode) {
           : [parent]
         : [child];
   const subState = mode === 'parent-sub-open' ? 'OPEN' : 'CLOSED';
+  // GitHub replaced the parent issue's branch link with its open parent PR.
+  const unlinked = mode === 'child-parent-pr-open';
   const issue = (number) =>
     ({
       400: {
         number: 400,
         state: 'OPEN',
         labels: { nodes: [], pageInfo: { hasNextPage: false } },
-        linkedBranches: {
-          nodes: [
-            {
-              ref: { name: BRANCH, repository: { nameWithOwner: branchRepo } },
+        linkedBranches: unlinked
+          ? { nodes: [], pageInfo: { hasNextPage: false } }
+          : {
+              nodes: [
+                {
+                  ref: {
+                    name: BRANCH,
+                    repository: { nameWithOwner: branchRepo },
+                  },
+                },
+              ],
+              pageInfo: { hasNextPage: false },
             },
-          ],
-          pageInfo: { hasNextPage: false },
-        },
         parent: null,
         subIssues: {
           nodes: [
@@ -100,17 +107,19 @@ async function scenario(mode) {
           number: 400,
           state: 'OPEN',
           repository: { nameWithOwner: 'owner/repo' },
-          linkedBranches: {
-            nodes: [
-              {
-                ref: {
-                  name: BRANCH,
-                  repository: { nameWithOwner: branchRepo },
-                },
+          linkedBranches: unlinked
+            ? { nodes: [], pageInfo: { hasNextPage: false } }
+            : {
+                nodes: [
+                  {
+                    ref: {
+                      name: BRANCH,
+                      repository: { nameWithOwner: branchRepo },
+                    },
+                  },
+                ],
+                pageInfo: { hasNextPage: false },
               },
-            ],
-            pageInfo: { hasNextPage: false },
-          },
         },
         subIssues: { nodes: [], pageInfo: { hasNextPage: false } },
       },
@@ -172,7 +181,9 @@ async function scenario(mode) {
             ? mode === 'shared-branch' &&
               searchParams.get('head') === `owner:${child.head.ref}`
               ? [child, { ...child, number: 60, base: { ref: 'main' } }]
-              : []
+              : unlinked && searchParams.get('head') === `owner:${BRANCH}`
+                ? [parent]
+                : []
             : searchParams.get('base')
               ? []
               : open;
@@ -354,6 +365,17 @@ test('a frontend child passes child-verify and Delivery stages without QA or hum
   // Both start pending, so an API error cannot leave an older pass current.
   for (const context of ['child-verify', 'Delivery stages'])
     assert.equal(statuses.find((s) => s.context === context).state, 'pending');
+});
+
+test('a child still passes while the open parent PR replaced the branch link', () => {
+  const { statuses, exit } = run('child-parent-pr-open');
+  assert.equal(exit, 0);
+  assert.equal(latest(statuses, 'child-verify').state, 'success');
+  assert.equal(latest(statuses, 'Delivery stages').state, 'success');
+  assert.match(
+    latest(statuses, 'Delivery stages').description,
+    /Child of #400/,
+  );
 });
 
 test('a child passes both required statuses without review when Copilot is paused', () => {

@@ -13,7 +13,11 @@ import {
   isIntegrationBranch,
   retargetedAt,
 } from './feature.mjs';
-import { headPassed, readIssueDetails } from './feature-github.mjs';
+import {
+  closedByParentPrs,
+  headPassed,
+  readIssueDetails,
+} from './feature-github.mjs';
 
 async function list(path) {
   const all = [];
@@ -59,7 +63,20 @@ if (!pr.merged_at || !isIntegrationBranch(pr.base.ref)) {
       }),
     ),
   );
-  const role = integrationRole({ pr, issues });
+  let role = integrationRole({ pr, issues });
+  // Without the branch link, an open parent PR may stand in for it.
+  if (role.kind === 'invalid')
+    role = integrationRole({
+      pr,
+      issues,
+      closedByParentPr: await closedByParentPrs({
+        get: (path) => api(path),
+        graphql: (query, variables) =>
+          api('/graphql', 'POST', { query, variables }),
+        repo,
+        branch: pr.base.ref,
+      }),
+    });
   const reviewed =
     role.kind === 'child' &&
     headPassed(
