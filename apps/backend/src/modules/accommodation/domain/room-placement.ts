@@ -146,3 +146,24 @@ export const byName = <T extends { name: string; registrationId: string }>(
 ): number =>
   a.name.localeCompare(b.name, 'cs') ||
   (a.registrationId < b.registrationId ? -1 : 1);
+
+/** The state of a roommate wish in a layout (#317), as the solver names it. */
+export type SavedWishState =
+  'satisfied' | 'unsatisfied' | 'unplaced' | 'impossible';
+
+/**
+ * A wish's state in the saved placements (phase-2 spec §5.3), in the order
+ * the solver's `wishStates` decides it: the same room wins, even a manual
+ * mixed one; then different effective values of the hard attribute; then
+ * someone without a room; else different rooms.
+ */
+export function savedWishState(
+  hasHardAttribute: boolean,
+  from: { roomId: string | null; value: string | null },
+  to: { roomId: string | null; value: string | null },
+): SavedWishState {
+  if (from.roomId !== null && from.roomId === to.roomId) return 'satisfied';
+  if (hasHardAttribute && from.value !== to.value) return 'impossible';
+  if (from.roomId === null || to.roomId === null) return 'unplaced';
+  return 'unsatisfied';
+}

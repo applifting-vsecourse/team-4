@@ -84,6 +84,8 @@ model User {
   accommodationManualValues  AccommodationManualValue[]
   accommodationInterventions AccommodationIntervention[]
   accommodationRuns          AccommodationRun[]
+  roomProposals              AccommodationRoomProposal[]
+  proposalApplications       RoomProposalApplication[]
   accommodationDecisions     AccommodationDecision[]
   roomPlacements             RoomPlacement[]
 
@@ -177,6 +179,8 @@ model Event {
   changeApprovalDays          Int?
   // Whether a change of a term's inputs schedules its evaluation (S3-01, spec v4 §5).
   accommodationEvaluationMode AccommodationEvaluationMode @default(automatic)
+  // Whether a change of a term's layout inputs schedules its room proposal (F19, #385); off for a new event.
+  isRoomProposalAutomatic     Boolean                     @default(false)
 
   // Public presentation on the catalog detail (F55). Never the account's own contact.
   conditions   String  @default("") @db.Text
@@ -195,6 +199,8 @@ model Event {
   registrationTerms          RegistrationTerm[]
   accommodationRules         AccommodationRules?
   accommodationRuns          AccommodationRun[]
+  roomProposals              AccommodationRoomProposal[]
+  proposalApplications       RoomProposalApplication[]
   accommodationInterventions AccommodationIntervention[]
   accommodationDecisions     AccommodationDecision[]
   registrationResultEvents   RegistrationResultEvent[]
@@ -238,6 +244,8 @@ model EventTerm {
   accommodationOrder         AccommodationTermOrder?
   accommodationState         AccommodationTermState?
   accommodationRuns          AccommodationRun[]
+  roomProposals              AccommodationRoomProposal[]
+  proposalApplications       RoomProposalApplication[]
   accommodationInterventions AccommodationIntervention[]
   accommodationDecisions     AccommodationDecision[]
   roomPlacements             RoomPlacement[]
@@ -643,15 +651,21 @@ model EmailDelivery {
 
 // ─── Accommodation evaluation (S3-T3 spec v4 §9, S3-T4) ─────────────────────
 
-// Pravidla ubytování of an event (§2). No row: no hard attribute, no soft rules.
+// Pravidla ubytování of an event (§2). No row: no hard attribute, and the
+// room proposal ranks only "Přání" (phase 2 §5).
 model AccommodationRules {
   eventId              String   @id @db.Uuid
   // The categorical question that splits rooms; null when none does.
   hardAttribute        String?  @db.VarChar(64)
   // Answers of the hard attribute that do not determine a room.
   nonDeterminingValues String[] @default([]) @db.VarChar(100)
-  // Ranked soft attributes, most important first (phase 2).
-  softAttributes       String[] @default([]) @db.VarChar(64)
+  // Ranked soft preferences of the room proposal, most important first
+  // (phase 2 §5): `roommate-wishes` ("Přání") or a categorical question.
+  // Empty: the proposal skips U3.
+  softAttributes       String[] @default(["roommate-wishes"]) @db.VarChar(64)
+  // The neutral answers of each listed soft attribute (phase 2 §5.4), as
+  // { attribute: [answer, …] }; a missing answer is always neutral.
+  softNeutralValues    Json     @default("{}")
   updatedAt            DateTime @updatedAt @db.Timestamptz(3)
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Restrict)
@@ -781,10 +795,21 @@ model AccommodationTermState {
   // Who asked for the scheduled evaluation; null when the system scheduled it.
   requestedById  String?
 
+  // The room proposal of the term (phase 2, spec §7), queued the same way.
+  // Bumped by every change a proposal depends on (§7.1); current while equal.
+  layoutVersion          Int       @default(0)
+  proposalDueAt          DateTime? @db.Timestamptz(3)
+  proposalRunningId      String?   @db.Uuid
+  proposalRunningVersion Int?
+  proposalRunningById    String?
+  proposalRunningSince   DateTime? @db.Timestamptz(3)
+  proposalRequestedById  String?
+
   term EventTerm @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Cascade)
 
   @@unique([termId, eventId])
   @@index([dueAt])
+  @@index([proposalDueAt])
   @@map("accommodation_term_state")
 }
 
@@ -822,6 +847,74 @@ model AccommodationRun {
 
   @@index([termId, startedAt])
   @@map("accommodation_run")
+}
+
+enum AccommodationProposalStatus {
+  solved
+  // U1 did not finish in time; the proposal cannot be used (spec §7).
+  timeout
+  failed
+
+  @@map("accommodation_proposal_status")
+}
+
+// Immutable room proposal of one term (spec §7.3): the snapshot of its inputs
+// and rules, the layout and its scores. It never changes a stored placement.
+model AccommodationRoomProposal {
+  id            String                      @id @default(uuid(7)) @db.Uuid
+  eventId       String                      @db.Uuid
+  termId        String                      @db.Uuid
+  status        AccommodationProposalStatus
+  // Null when the system started it.
+  triggeredById String?
+  solverVersion String                      @db.VarChar(64)
+  input         Json
+  // The layout, reasons, wish states, warnings and scores; null when failed.
+  result        Json?
+  error         String?                     @db.Text
+  // The term's layout version the proposal read; it is current while equal.
+  layoutVersion Int
+  startedAt     DateTime                    @db.Timestamptz(3)
+  finishedAt    DateTime                    @db.Timestamptz(3)
+
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  term        EventTerm @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Restrict)
+  triggeredBy User?     @relation(fields: [triggeredById], references: [id], onDelete: Restrict)
+
+  applications RoomProposalApplication[]
+
+  // The target of an application's proposal of the same term.
+  @@unique([id, termId])
+  @@index([termId, startedAt])
+  @@map("accommodation_room_proposal")
+}
+
+// "Použít návrh" (#365, phase-2 spec §7.2): one apply of a term's room proposal
+// to the saved placements, all of it or nothing. Immutable; its key answers a
+// repeated request with the same result.
+model RoomProposalApplication {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  eventId       String   @db.Uuid
+  termId        String   @db.Uuid
+  proposalId    String   @db.Uuid
+  // One per attempt of the organizer (a double click, a retry).
+  submissionKey String   @db.Uuid
+  actorId       String
+  added         Int
+  moved         Int
+  removed       Int
+  // The term's layout version after the apply.
+  layoutVersion Int
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  event    Event                     @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  term     EventTerm                 @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Restrict)
+  proposal AccommodationRoomProposal @relation(fields: [proposalId, termId], references: [id, termId], onDelete: Restrict)
+  actor    User                      @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@unique([termId, submissionKey])
+  @@index([proposalId])
+  @@map("accommodation_proposal_application")
 }
 
 enum AccommodationDecisionKind {

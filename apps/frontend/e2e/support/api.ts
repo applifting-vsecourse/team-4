@@ -242,3 +242,18 @@ export async function setEvaluationMode(
     ),
   )
 }
+
+/** Confirms a registration in a term, as its organizer (S3-01). */
+export async function confirm(
+  request: APIRequestContext,
+  event: OpenEvent,
+  termId: string,
+  registrationId: string,
+): Promise<void> {
+  await json(
+    await request.post(
+      `${API_URL}/organizations/${event.organizationId}/events/${event.eventId}/accommodation/terms/${termId}/registrations/${registrationId}/decision`,
+      { data: { decision: "confirm", submissionKey: randomUUID() }, headers },
+    ),
+  )
+}

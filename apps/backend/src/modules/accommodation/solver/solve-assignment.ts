@@ -2,7 +2,6 @@ import {
   AssignmentModel,
   buildAssignmentModel,
   Constraint,
-  Expression,
   placement,
   toLp,
   x,
@@ -35,41 +34,31 @@ import {
 //   1. most candidates accommodated
 //   2. among those, the higher positions (exact, walked from the top)
 //   3. base beds before extra beds
-//   4. fewest rooms (phase 2)
-//   5. fewest soft-rule violations, weighted by rank (phase 2)
-// Levels 1–2 decide who is suitable and must finish in time. Levels 3–5 only
+//   4. fewest rooms (room-level model only)
+// Levels 1–2 decide who is suitable and must finish in time. Levels 3–4 only
 // shape the rooms: out of time, the best layout so far is kept.
 //
 // Phase 1 uses an aggregate model (phase-one.ts): without pinned rooms, rooms
-// of the same beds and candidates of the same value are interchangeable. Phase
-// 2 needs real rooms and uses the room-level model (assignment-model.ts).
+// of the same beds and candidates of the same value are interchangeable. The
+// room-level model (assignment-model.ts, `phase: 2`) models every room and
+// person; phase-equivalence.spec.ts checks phase 1 against it. Room proposals
+// are solve-room-proposal.ts.
 
 export type SolveOptions = {
   /** Wall-clock limit for the whole term (spec: 30 s). */
   timeLimitMs?: number;
   /**
-   * Phase 1 decides who is suitable (levels 1–3); its rooms are internal.
-   * Phase 2 proposes real rooms (levels 1–5).
+   * 1: the aggregate model (levels 1–3); its rooms are internal.
+   * 2: the room-level model (levels 1–4), the reference for phase 1.
    */
   phase?: 1 | 2;
-  /** Phase 2 only: fill rooms of the same beds in order. */
+  /** Room-level model only: fill rooms of the same beds in order. */
   breakSymmetry?: boolean;
-  /**
-   * Phase 2 only. `weighted` folds all levels into one objective with linear
-   * position weights; kept to compare with the specified `staged` solve in
-   * the benchmark. It does not guarantee the exact order of level 2.
-   */
-  strategy?: 'staged' | 'weighted';
 };
 
 export async function solveAssignment(
   input: SolverInput,
-  {
-    timeLimitMs = 30_000,
-    phase = 1,
-    breakSymmetry = false,
-    strategy = 'staged',
-  }: SolveOptions = {},
+  { timeLimitMs = 30_000, phase = 1, breakSymmetry = false }: SolveOptions = {},
 ): Promise<SolverResult> {
   const started = Date.now();
   const deadline = started + timeLimitMs;
@@ -128,10 +117,7 @@ export async function solveAssignment(
         model.constraints,
         deadline,
       );
-      const outcome =
-        strategy === 'staged'
-          ? solveRoomLevel(runner, model)
-          : solveWeighted(runner, model);
+      const outcome = solveRoomLevel(runner, model);
       placement = {
         ...describeRooms(model, outcome.solution),
         complete: outcome.complete,
@@ -202,7 +188,7 @@ function explainUnplaced(
     .map((c) => ({ id: c.id, reason: reasonFor(c) }));
 }
 
-/** Levels 1–5 on real rooms (phase 2). */
+/** Levels 1–4 on real rooms. */
 function solveRoomLevel(
   runner: HighsRunner,
   model: AssignmentModel,
@@ -221,11 +207,7 @@ function solveRoomLevel(
     count.value,
   );
 
-  for (const objective of [
-    objectives.extraBeds,
-    objectives.rooms,
-    objectives.soft,
-  ]) {
+  for (const objective of [objectives.extraBeds, objectives.rooms]) {
     if (objective.length === 0) continue;
     const stage = runner.solve('Minimize', objective, fixed, {
       acceptIncumbent: true,
@@ -269,41 +251,6 @@ function preferPositions(
     if (placed) accommodated += 1;
   }
   return solution;
-}
-
-/** Comparison only: every level in one objective (see `SolveOptions`). */
-function solveWeighted(
-  runner: HighsRunner,
-  model: AssignmentModel,
-): { solution: Solution; complete: boolean } {
-  const n = model.candidateIndexes.length;
-  const { objectives } = model;
-  const softMax =
-    objectives.soft.reduce((sum, [c]) => sum + Math.max(c, 0), 0) + 1;
-  const roomsMax = objectives.rooms.length + 1;
-  const extraMax =
-    model.rooms.reduce((sum, room) => sum + room.extraBeds, 0) + 1;
-  const priorityMax = (n * (n + 1)) / 2 + 1;
-  const wRooms = softMax;
-  const wExtra = wRooms * roomsMax;
-  const wPriority = wExtra * extraMax;
-  const wCount = wPriority * priorityMax;
-  const objective: Expression = [
-    ...objectives.count.map(([c, name]) => [c * wCount, name] as const),
-    ...model.candidateIndexes.flatMap((i, position) =>
-      placement(model, i).map(
-        ([c, name]) => [c * wPriority * (n - position), name] as const,
-      ),
-    ),
-    ...objectives.extraBeds.map(([c, name]) => [-c * wExtra, name] as const),
-    ...objectives.rooms.map(([c, name]) => [-c * wRooms, name] as const),
-    ...objectives.soft.map(([c, name]) => [-c, name] as const),
-  ];
-  const stage = runner.solve('Maximize', objective, [], {
-    acceptIncumbent: true,
-  });
-  if (!stage) throw new TimeLimit();
-  return { solution: stage.solution, complete: stage.optimal };
 }
 
 function describeRooms(

@@ -3,7 +3,7 @@ import { useState } from "react"
 import { FormError } from "@/components/FormError"
 import { PendingButton } from "@/components/PendingButton"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Field, FieldLabel } from "@/components/ui/field"
+import { Field, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 export type EvaluationMode = "automatic" | "manual"
@@ -32,11 +32,11 @@ export function EvaluationModeSettings({
   return (
     <Card>
       <CardContent>
-        <div className="space-y-4">
+        <FieldSet>
+          <FieldLegend variant="label">Vyhodnocení účasti</FieldLegend>
           <RadioGroup
             value={selected}
             onValueChange={(value) => setSelected(value as EvaluationMode)}
-            aria-label="Aktualizace návrhu vyhodnocení"
           >
             <Field orientation="horizontal">
               <RadioGroupItem
@@ -63,7 +63,7 @@ export function EvaluationModeSettings({
               message={saveError}
             />
           ) : null}
-        </div>
+        </FieldSet>
       </CardContent>
       <CardFooter className="justify-end">
         <PendingButton

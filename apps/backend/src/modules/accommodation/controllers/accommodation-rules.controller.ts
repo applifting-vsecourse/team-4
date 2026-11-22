@@ -1,6 +1,8 @@
 import {
   HardAttributeSettingDto,
+  RoomProposalPreferencesDto,
   SaveHardAttributeDto,
+  SaveRoomProposalPreferencesDto,
 } from '@/modules/accommodation/dto/accommodation-rules.dto';
 import { AccommodationRulesService } from '@/modules/accommodation/services/accommodation-rules.service';
 import { User } from '@/shared/auth/decorators/user.decorator';
@@ -19,7 +21,8 @@ import {
 } from '@nestjs/common';
 import { ApiCookieAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-// Pravidla ubytování (#384): the hard attribute of an event. Every route is
+// Pravidla ubytování (#384, #389): the hard attribute of an event and the
+// soft preferences of its room proposal. Every route is
 // 404 for a foreign or missing organization or event.
 @ApiTags('accommodation')
 @ApiCookieAuth('better-auth.session_token')
@@ -55,9 +58,10 @@ export class AccommodationRulesController {
   @ApiOperation({
     summary: 'Chooses the hard attribute, or none',
     description:
-      'A change makes the evaluation of every term stale; in the automatic ' +
-      'mode each term is evaluated again 10 s later. It confirms, cancels ' +
-      'and moves nobody. Saving the current choice changes nothing.',
+      'A change makes the evaluation and the room proposal of every term ' +
+      'stale; in the automatic modes each runs again 10 s later. It ' +
+      'confirms, cancels and moves nobody, and removes the attribute from ' +
+      'the soft preferences. Saving the current choice changes nothing.',
   })
   async saveHardAttribute(
     @User() user: Identity,
@@ -69,6 +73,48 @@ export class AccommodationRulesController {
       await this.rules.saveHardAttribute(
         { organizationId, ownerId: user.id, eventId },
         body.hardAttribute,
+      ),
+    );
+  }
+
+  @Get('room-proposal-preferences')
+  @ApiOperation({
+    summary: 'The ranked soft preferences of the room proposal',
+  })
+  async preferences(
+    @User() user: Identity,
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+  ): Promise<RoomProposalPreferencesDto> {
+    return RoomProposalPreferencesDto.from(
+      await this.rules.preferences({
+        organizationId,
+        ownerId: user.id,
+        eventId,
+      }),
+    );
+  }
+
+  @Put('room-proposal-preferences')
+  @ApiOperation({
+    summary: 'Ranks the soft preferences and sets their neutral answers',
+    description:
+      'A change makes the room proposal of every term stale; with ' +
+      'automatic proposals on each is proposed again 10 s later. The ' +
+      'evaluation of participation does not change. 400 for an unknown or ' +
+      'repeated item or answer; 409 when the list contains the hard ' +
+      'attribute. Saving the current list changes nothing.',
+  })
+  async savePreferences(
+    @User() user: Identity,
+    @Param('organizationId', ParseUUIDPipe) organizationId: string,
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+    @Body() body: SaveRoomProposalPreferencesDto,
+  ): Promise<RoomProposalPreferencesDto> {
+    return RoomProposalPreferencesDto.from(
+      await this.rules.savePreferences(
+        { organizationId, ownerId: user.id, eventId },
+        body.preferences,
       ),
     );
   }

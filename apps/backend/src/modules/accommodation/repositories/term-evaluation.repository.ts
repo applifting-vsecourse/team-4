@@ -228,7 +228,6 @@ export class TermEvaluationRepository {
               attribute: rules.hardAttribute,
               nonDeterminingValues: rules.nonDeterminingValues,
             },
-            softAttributes: [],
           }
         : NO_RULES,
       hasRooms: term.event._count.rooms > 0,

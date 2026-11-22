@@ -76,7 +76,9 @@ erDiagram
 | `AccommodationTermOrder`                        | `accommodation_term_order`                       | A manually changed order of a term's unconfirmed participants (§3.14).                            |
 | `AccommodationIntervention`                     | `accommodation_intervention`                     | Immutable record of a manual position change or determination, with its reason (§3.14).           |
 | `AccommodationRun`                              | `accommodation_run`                              | Immutable evaluation of one term: input snapshot, order used and proposal (§3.14).                |
-| `AccommodationTermState`                        | `accommodation_term_state`                       | Input version, scheduled and running evaluation of a term (§3.14).                                |
+| `AccommodationTermState`                        | `accommodation_term_state`                       | Input and layout versions, scheduled and running evaluation and room proposal of a term (§3.14).  |
+| `AccommodationRoomProposal`                     | `accommodation_room_proposal`                    | Immutable room proposal of one term: input snapshot, layout and scores (§3.14).                   |
+| `RoomProposalApplication`                       | `accommodation_proposal_application`             | Immutable record of one "Použít návrh" of a term's proposal, keyed per attempt (§3.14).           |
 | `Payment`                                       | `payment`                                        | Received payment recorded by an organizer.                                                        |
 | `BankTransaction`                               | `bank_transaction`                               | Incoming movement of an imported bank statement, not yet paired with a registration (F23).        |
 | `EmailDelivery`                                 | `email_delivery`                                 | Outbound e-mail log (status, provider id, sanitized error).                                       |
@@ -462,6 +464,30 @@ current data; a run only proposes and never changes a participation, a debt or a
   own record (one per version at most) and changes nothing.
 - **Writers.** Rules are written by the rules settings; until then they have no rows. Answers to the hard attribute come from the registration: the
   F64 gender answer when the hard attribute is `gender`.
+- **Room proposals (#365, phase-2 spec).** A room proposal lays out a term's confirmed
+  participants in rooms and only proposes: it never changes a stored placement or a
+  participation. `accommodation_room_proposal` stores the snapshot of its input and rules, the
+  solver version, the layout with reasons, wish states, warnings and scores (or the error of a
+  failed one), and the `layoutVersion` it read; a trigger keeps it immutable. The term state's
+  `layoutVersion` is bumped by the layout changes of spec §7.1: rooms (every term), a
+  confirmation, an answer, determination or change of a person confirmed in the term, a saved
+  placement or lock (in its term and the person's other confirmed terms), a roommate wish
+  (in the terms where both people are confirmed), and a change of the hard attribute or the soft
+  preference list (every term of the event). Choosing a hard attribute also removes it from
+  the soft preference list. Proposals are queued on the same row (`proposalDueAt`, `proposalRunning*`) and run by
+  their own worker, one at a time per process; with `event.isRoomProposalAutomatic` (off for a
+  new event) a layout change makes one due 10 s later. Turning it off drops the scheduled ones
+  but keeps a "Navrhnout pokoje" the organizer asked for. The organizer's view of a term shows
+  its latest proposal, current while its `layoutVersion` equals the term's, against the saved
+  placements it read. A proposal reads the saved placements and locks of `room_placement`
+  (here and in the people's other terms) and the wishes of `roommate_wish` between the term's
+  confirmed people. "Použít návrh" saves the rooms of every unlocked confirmed person of a
+  current proposal in one transaction, or nothing. Like a manual placement it locks the
+  event's terms in id order (its own `NO KEY UPDATE`, the others `KEY SHARE`); it then locks
+  or creates every state row of the event in one ordered upsert before the version check,
+  bumps the layout version and stores an immutable `accommodation_proposal_application` with
+  its counts. Its
+  `(termId, submissionKey)` answers a repeated request with the first result.
 
 ## 4. Field reference
 

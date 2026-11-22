@@ -298,7 +298,7 @@ BEGIN
   -- Rooms of the camp are separated by gender; other and undisclosed answers
   -- leave the room to the organizer (manual determination).
   INSERT INTO accommodation_rules ("eventId", "hardAttribute", "nonDeterminingValues", "softAttributes", "updatedAt")
-    VALUES (e_camp, 'gender', ARRAY['other', 'undisclosed'], '{}', now_ts);
+    VALUES (e_camp, 'gender', ARRAY['other', 'undisclosed'], ARRAY['roommate-wishes'], now_ts);
 
   -- ── Programme of the 1st camp term (visible to confirmed participants) ──
   INSERT INTO programme_item (id, "eventId", "termId", title, "startDate", "startTime", place, description, "updatedAt") VALUES

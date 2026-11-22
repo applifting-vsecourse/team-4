@@ -277,11 +277,16 @@ describe('placing, moving and removing', () => {
       select: { status: true },
     });
     expect(terms.map((t) => t.status)).toEqual(['confirmed', 'confirmed']);
-    expect(
-      await prisma.accommodationTermState.findUnique({
-        where: { termId: f.terms[0].id },
-      }),
-    ).toEqual(stateBefore);
+    // The evaluation stays as it was; each of the four saved changes makes the
+    // room proposal stale (phase-2 spec §7.1), the removal of nothing doesn't.
+    const stateAfter = await prisma.accommodationTermState.findUnique({
+      where: { termId: f.terms[0].id },
+    });
+    expect(stateAfter).toMatchObject({
+      inputVersion: stateBefore?.inputVersion ?? 0,
+      dueAt: stateBefore?.dueAt ?? null,
+      layoutVersion: (stateBefore?.layoutVersion ?? 0) + 4,
+    });
   });
 
   it('keeps each term on its own', async () => {

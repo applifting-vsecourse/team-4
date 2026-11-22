@@ -1,5 +1,9 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import {
+  confirmedTermsOf,
+  termLayoutChanged,
+} from '@/modules/accommodation/repositories/term-inputs';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import {
   byName,
@@ -50,6 +54,9 @@ export class RoommateWishesRepository {
    * run one after the other. NO KEY UPDATE leaves the key-share locks of the
    * wishes' foreign keys free, so two people saving wishes for each other at
    * once don't deadlock.
+   *
+   * A wish that came or went makes the room proposals stale of the terms
+   * where both people are confirmed (phase-2 spec §7.1).
    */
   async replaceForParticipant(
     accountId: string,
@@ -88,6 +95,29 @@ export class RoommateWishesRepository {
         })),
         skipDuplicates: true,
       });
+      const before = new Set(current.wishes.map((w) => w.registrationId));
+      const after = new Set(registrationIds);
+      const changed = [
+        ...[...before].filter((id) => !after.has(id)),
+        ...[...after].filter((id) => !before.has(id)),
+      ];
+      if (changed.length > 0) {
+        const own = await confirmedTermsOf(tx, registrationId);
+        const shared = await tx.registrationTerm.findMany({
+          where: {
+            registrationId: { in: changed },
+            status: 'confirmed',
+            termId: { in: own },
+          },
+          select: { termId: true },
+          distinct: ['termId'],
+        });
+        await termLayoutChanged(
+          tx,
+          eventId,
+          shared.map((row) => row.termId),
+        );
+      }
       return {
         result: 'saved',
         wishes: (await this.read(tx, accountId, registrationId))!,

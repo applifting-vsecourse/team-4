@@ -209,6 +209,19 @@ const versions = async (f: Fixture): Promise<number[]> =>
     ),
   );
 
+/** The layout versions of the room proposals (phase-2 spec §7.1). */
+const layoutVersions = async (f: Fixture): Promise<number[]> =>
+  Promise.all(
+    f.terms.map(
+      async (term) =>
+        (
+          await prisma.accommodationTermState.findUnique({
+            where: { termId: term.id },
+          })
+        )?.layoutVersion ?? 0,
+    ),
+  );
+
 describe('reading the accommodation of a registration', () => {
   it('offers the determining values to someone whose answer does not place them', async () => {
     const f = await setup();
@@ -301,6 +314,41 @@ describe('determining the effective value', () => {
       });
       expect(term.body.manualCount).toBe(0);
     }
+  });
+
+  it('makes the room proposal stale only in the terms where the person is confirmed', async () => {
+    const f = await setup();
+    const registration = await register(f, 'undisclosed');
+    await prisma.registrationTerm.update({
+      where: {
+        registrationId_termId: {
+          registrationId: registration.id,
+          termId: f.terms[0].id,
+        },
+      },
+      data: { status: 'confirmed' },
+    });
+
+    await determine(f, registration, {
+      value: 'female',
+      reason: 'Telefonicky',
+    });
+    expect(await layoutVersions(f)).toEqual([1, 0]);
+    await correctGender(f, registration, 'male');
+    expect(await layoutVersions(f)).toEqual([2, 0]);
+    // The own words of "Jiná odpověď" are no input of a room proposal.
+    await correctGender(f, registration, 'other');
+    expect(await layoutVersions(f)).toEqual([3, 0]);
+    await app.get(EventRegistrationsRepository).updateGender(
+      {
+        organizationId: f.event.organizationId,
+        ownerId: f.ownerId,
+        eventId: f.event.id,
+      },
+      registration.id,
+      { gender: 'other', genderOther: 'Nebinární' },
+    );
+    expect(await layoutVersions(f)).toEqual([3, 0]);
   });
 
   it('replaces a determination with a new record, and records nothing for the same value', async () => {

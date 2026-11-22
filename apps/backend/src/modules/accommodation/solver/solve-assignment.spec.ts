@@ -295,47 +295,6 @@ describe('solveAssignment', () => {
     },
   );
 
-  it('groups by the higher-ranked soft attribute first in the room proposal (phase 2)', async () => {
-    const result = await solveAssignment(
-      term({
-        hasHardAttribute: false,
-        softAttributes: ['age', 'town'],
-        rooms: [room('R1', 2), room('R2', 2)],
-        candidates: [
-          {
-            id: 'A',
-            value: null,
-            position: 0,
-            softValues: { age: 'young', town: 'X' },
-          },
-          {
-            id: 'B',
-            value: null,
-            position: 1,
-            softValues: { age: 'old', town: 'X' },
-          },
-          {
-            id: 'C',
-            value: null,
-            position: 2,
-            softValues: { age: 'young', town: 'Y' },
-          },
-          {
-            id: 'D',
-            value: null,
-            position: 3,
-            softValues: { age: 'old', town: 'Y' },
-          },
-        ],
-      }),
-      { phase: 2 },
-    );
-    if (result.status !== 'solved') throw new Error(result.status);
-    expect(result.stats.complete).toBe(true);
-    expect(result.rooms.A).toBe(result.rooms.C);
-    expect(result.rooms.B).toBe(result.rooms.D);
-  });
-
   it('gives up with a timeout instead of running past the limit', async () => {
     const result = await solveAssignment(
       term({ rooms: [room('R1', 2)], candidates: queue(['P1', 'Ž']) }),

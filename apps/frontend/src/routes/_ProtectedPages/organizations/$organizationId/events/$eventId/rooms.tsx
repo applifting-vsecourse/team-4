@@ -7,9 +7,15 @@ import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { WorkspacePage } from "@/components/WorkspacePage"
 
+import { hardAttributeQueryOptions } from "@/features/accommodation/api/evaluationQueryOptions"
 import { placementKeys } from "@/features/accommodation/api/placementQueryOptions"
-import { ACCOMMODATION_RULES_HEADING } from "@/features/accommodation/components/HardAttributeSection"
+import { roomProposalKeys } from "@/features/accommodation/api/roomProposalQueryOptions"
+import { AccommodationTermTabs } from "@/features/accommodation/components/AccommodationTermTabs"
 import { RoomAssignmentSection } from "@/features/accommodation/components/RoomAssignmentSection"
+import { RoommateWishStatesSection } from "@/features/accommodation/components/RoommateWishStatesSection"
+import { ROOM_PROPOSAL_SETTINGS_HEADING } from "@/features/accommodation/components/RoomProposalPreferencesSection"
+import { RoomProposalSection } from "@/features/accommodation/components/RoomProposalSection"
+import { attributeLabel } from "@/features/accommodation/lib/evaluationView"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
@@ -22,13 +28,14 @@ import { roomsQueryOptions } from "@/features/rooms/api/roomQueryOptions"
 import { OccupancySection } from "@/features/rooms/components/OccupancySection"
 import { RoomsSection } from "@/features/rooms/components/RoomsSection"
 
-// Správa akce → Ubytování: occupancy of the terms (S2-10), the room
-// placements of the selected term (F14-2) and rooms (S2-05). The term is in
-// the URL, so a refresh and the way back keep it.
+// Správa akce → Ubytování: occupancy of the terms (S2-10); for the selected
+// term, under one set of tabs, the room proposal (#385, #390), the room
+// placements (F14-2) and the state of the roommate wishes (#317); and rooms
+// (S2-05). The term is in the URL, so a refresh and the way back keep it.
 export const Route = createFileRoute(
   "/_ProtectedPages/organizations/$organizationId/events/$eventId/rooms",
 )({
-  // The term of the room placements; the first term otherwise.
+  // The term of the room proposal and placements; the first term otherwise.
   validateSearch: z.object({ term: z.string().uuid().optional().catch(undefined) }),
   loader: ({ context, params }) =>
     Promise.all([
@@ -47,13 +54,26 @@ function RoomsPage() {
   const rooms = useSuspenseQuery(roomsQueryOptions(organizationId, eventId))
   const { term } = Route.useSearch()
   const navigate = Route.useNavigate()
+  // The reason H names the hard attribute; while it loads or if it fails,
+  // the reason keeps its generic wording ("pravidla ubytování") on purpose.
+  const { data: rules } = useQuery(hardAttributeQueryOptions(organizationId, eventId))
+  const attribute = rules?.hardAttribute ? attributeLabel(rules.hardAttribute) : null
   const termId = event.terms.find((t) => t.id === term)?.id ?? event.terms[0]?.id
+  // Switching the term stays on the page; Back returns to the previous one.
+  const selectTerm = (next: string) => void navigate({ search: { term: next }, resetScroll: false })
   // The term capacities on the event page are derived from these rooms.
   const refreshEvent = useRefreshEvent(organizationId, eventId)
   const queryClient = useQueryClient()
-  // A room change also changes the rooms and beds of the placements.
+  // A room change also changes the rooms and beds of the placements, and
+  // makes the room proposals out of date.
   const roomsChanged = () =>
-    Promise.all([refreshEvent(), queryClient.invalidateQueries({ queryKey: placementKeys.all() })])
+    Promise.all([
+      refreshEvent(),
+      queryClient.invalidateQueries({ queryKey: placementKeys.all() }),
+      queryClient.invalidateQueries({
+        queryKey: roomProposalKeys.terms(organizationId, eventId),
+      }),
+    ])
 
   return (
     <WorkspacePage>
@@ -74,7 +94,7 @@ function RoomsPage() {
           <EventSettingsButton
             organizationId={organizationId}
             eventId={eventId}
-            section={ACCOMMODATION_RULES_HEADING}
+            section={ROOM_PROPOSAL_SETTINGS_HEADING}
           />
         }
       />
@@ -89,15 +109,41 @@ function RoomsPage() {
           onRefresh={rooms.refetch}
         />
         {termId ? (
-          <RoomAssignmentSection
+          <AccommodationTermTabs
+            terms={event.terms}
+            selectedTermId={termId}
+            onSelectTerm={selectTerm}
+          >
+            <div className="space-y-8">
+              <RoomProposalSection
+                attribute={attribute}
+                organizationId={organizationId}
+                eventId={eventId}
+                terms={event.terms}
+                termId={termId}
+              />
+              <RoomAssignmentSection
+                organizationId={organizationId}
+                eventId={eventId}
+                selectedTermId={termId}
+              />
+              <RoommateWishStatesSection
+                organizationId={organizationId}
+                eventId={eventId}
+                termId={termId}
+                attribute={attribute}
+              />
+            </div>
+          </AccommodationTermTabs>
+        ) : (
+          // No term yet: the proposal section says so.
+          <RoomProposalSection
             organizationId={organizationId}
             eventId={eventId}
             terms={event.terms}
-            selectedTermId={termId}
-            // Switching the term stays on the page; Back returns to the previous one.
-            onSelectTerm={(next) => void navigate({ search: { term: next }, resetScroll: false })}
+            termId=""
           />
-        ) : null}
+        )}
         <RoomsSection
           organizationId={organizationId}
           eventId={eventId}

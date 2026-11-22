@@ -6,16 +6,15 @@ import {
 import { termOrder } from '@/modules/accommodation/domain/term-order';
 import { SolverInput } from '@/modules/accommodation/solver/solver.types';
 
-/** Pravidla ubytování of the event (spec v4 §2). */
+/**
+ * Pravidla ubytování of the event (spec v4 §2) as the evaluation reads them:
+ * the soft preferences belong to the room proposal (phase 2 §5).
+ */
 export type AccommodationRules = {
   hardAttribute: HardAttribute | null;
-  softAttributes: string[];
 };
 
-export const NO_RULES: AccommodationRules = {
-  hardAttribute: null,
-  softAttributes: [],
-};
+export const NO_RULES: AccommodationRules = { hardAttribute: null };
 
 /** A room available in the term, with that term's beds (F11-1). */
 export type TermRoom = {
@@ -113,7 +112,6 @@ export function buildEvaluation(
         extraBeds: room.extraBeds,
       })),
       hasHardAttribute: rules.hardAttribute !== null,
-      softAttributes: rules.softAttributes,
       confirmed: confirmed.map((participant) => ({
         id: participant.registrationId,
         value: participant.effectiveValue,

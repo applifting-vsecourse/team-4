@@ -52,8 +52,16 @@ test("the manual mode evaluates a term only on request, with queues, reasons and
   // Nastavení → Automatizace: the manual mode is kept after a reload.
   await page.goto(`/organizations/${event.organizationId}/events/${event.eventId}/settings`)
   const automation = page.getByRole("region", { name: "Automatizace" })
-  await automation.getByRole("radio", { name: "Přepočítat návrh jen tlačítkem Přepočítat" }).check()
-  await automation.getByRole("button", { name: "Uložit" }).click()
+  const manual = automation.getByRole("radio", {
+    name: "Přepočítat návrh jen tlačítkem Přepočítat",
+  })
+  await manual.check()
+  // Automatizace has one card per mode, each with its own "Uložit".
+  await automation
+    .locator('[data-slot="card"]')
+    .filter({ has: page.getByRole("radio", { name: "Přepočítat návrh jen tlačítkem Přepočítat" }) })
+    .getByRole("button", { name: "Uložit" })
+    .click()
   await expect(page.getByText("Režim vyhodnocení byl uložen.")).toBeVisible()
   await page.reload()
   await expect(

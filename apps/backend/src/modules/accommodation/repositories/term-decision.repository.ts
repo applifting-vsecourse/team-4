@@ -9,7 +9,10 @@ import {
   DeterminationOutcome,
   RegistrationAccommodationRepository,
 } from '@/modules/accommodation/repositories/registration-accommodation.repository';
-import { termInputsChanged } from '@/modules/accommodation/repositories/term-inputs';
+import {
+  termInputsChanged,
+  termLayoutChanged,
+} from '@/modules/accommodation/repositories/term-inputs';
 import { SolverResult } from '@/modules/accommodation/solver/solver.types';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
@@ -488,6 +491,10 @@ export class TermDecisionRepository {
       }
     }
     await termInputsChanged(tx, batch.eventId, [batch.termId]);
+    // A confirmation changes who the room proposal lays out (spec §7.1).
+    if (batch.moves.some((move) => move.to === 'confirmed')) {
+      await termLayoutChanged(tx, batch.eventId, [batch.termId]);
+    }
 
     for (const move of batch.moves) {
       const registration = await tx.registration.findUniqueOrThrow({

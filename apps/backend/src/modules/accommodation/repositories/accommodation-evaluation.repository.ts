@@ -90,7 +90,6 @@ export class AccommodationEvaluationRepository {
               select: {
                 hardAttribute: true,
                 nonDeterminingValues: true,
-                softAttributes: true,
               },
             },
           },
@@ -133,7 +132,6 @@ export class AccommodationEvaluationRepository {
                   nonDeterminingValues: rules.nonDeterminingValues,
                 }
               : null,
-            softAttributes: rules.softAttributes,
           }
         : NO_RULES,
       rooms: term.roomAvailabilities.map((availability) => ({

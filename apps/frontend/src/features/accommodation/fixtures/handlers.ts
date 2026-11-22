@@ -3,6 +3,11 @@ import { http, HttpResponse } from "msw"
 import { env } from "@/config/env"
 
 import type { TermEvaluationData } from "@/features/accommodation/api/evaluationSchemas"
+import type {
+  RoomProposalPreferences,
+  TermRoomProposalData,
+  TermWishes,
+} from "@/features/accommodation/api/roomProposalSchemas"
 import {
   makeHardAttributeSetting,
   makeMoves,
@@ -11,6 +16,11 @@ import {
   makeRuns,
   makeTermEvaluation,
 } from "@/features/accommodation/fixtures/evaluation"
+import {
+  makeRoomProposalPreferences,
+  makeTermRoomProposal,
+  makeTermWishes,
+} from "@/features/accommodation/fixtures/roomProposal"
 
 // MSW handlers for the term evaluation of an event (S3-01, S3-03). Install with
 // `msw.use(...)` in a story's `beforeEach`.
@@ -30,7 +40,16 @@ export const accommodationHandlers = {
       HttpResponse.json(makeHardAttributeSetting(hardAttribute)),
     ),
   ],
+  /** The soft preferences of the room proposal (#389); a save keeps the sent list. */
+  roomProposalPreferences: (setting: RoomProposalPreferences = makeRoomProposalPreferences()) => [
+    http.get(`${BASE}/room-proposal-preferences`, () => HttpResponse.json(setting)),
+    http.put(`${BASE}/room-proposal-preferences`, async ({ request }) => {
+      const { preferences } = (await request.json()) as Pick<RoomProposalPreferences, "preferences">
+      return HttpResponse.json({ ...setting, preferences })
+    }),
+  ],
   evaluation: () => [
+    ...accommodationHandlers.roomProposalPreferences(),
     http.get(`${BASE}/evaluation-mode`, () => HttpResponse.json({ mode: "automatic" })),
     http.get(`${BASE}/hard-attribute`, () => HttpResponse.json(makeHardAttributeSetting())),
     http.put(`${BASE}/hard-attribute`, async ({ request }) => {
@@ -59,6 +78,33 @@ export const accommodationHandlers = {
     http.get(REGISTRATION, () => HttpResponse.json(makeRegistrationAccommodation())),
     http.put(`${REGISTRATION}/determination`, () =>
       HttpResponse.json(makeRegistrationAccommodation()),
+    ),
+  ],
+  /** The room proposal of the term, changed for one story (stale, failed…). */
+  termRoomProposal: (proposal: TermRoomProposalData) => [
+    http.get(`${BASE}/terms/:termId/room-proposal`, () => HttpResponse.json(proposal)),
+  ],
+  /** The usable roommate wishes of the term, changed for one story (#317). */
+  termWishes: (wishes: TermWishes) => [
+    http.get(`${BASE}/terms/:termId/roommate-wishes`, () => HttpResponse.json(wishes)),
+  ],
+  /** The room proposal mode and the proposal of a term (#365, #385). */
+  roomProposal: () => [
+    http.get(`${BASE}/room-proposal-mode`, () => HttpResponse.json({ mode: "manual" })),
+    http.put(`${BASE}/room-proposal-mode`, async ({ request }) =>
+      HttpResponse.json(await request.json()),
+    ),
+    http.get(`${BASE}/terms/:termId/room-proposal`, () =>
+      HttpResponse.json(makeTermRoomProposal()),
+    ),
+    http.post(`${BASE}/terms/:termId/room-proposal`, () =>
+      HttpResponse.json(makeTermRoomProposal("running"), { status: 202 }),
+    ),
+    // Přání na spolubydlící (#317) of a term, with their saved state (#365).
+    http.get(`${BASE}/terms/:termId/roommate-wishes`, () => HttpResponse.json(makeTermWishes())),
+    // "Použít návrh" (#390, #365).
+    http.post(`${BASE}/terms/:termId/room-proposal/apply`, () =>
+      HttpResponse.json({ added: 2, moved: 1, removed: 1, layoutVersion: 5 }),
     ),
   ],
 }

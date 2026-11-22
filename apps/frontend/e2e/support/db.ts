@@ -123,3 +123,19 @@ export async function termIdOf(registrationId: string, label: string): Promise<s
   if (rows.length !== 1) throw new Error(`No term ${label} in registration ${registrationId}`)
   return rows[0]!.id
 }
+
+/**
+ * Stores a roommate wish between two registrations of one event, as a
+ * confirmed participant's save does (S4-05); the participant's own form is
+ * covered by roommate-wishes.spec.ts.
+ */
+export async function addRoommateWish(
+  fromRegistrationId: string,
+  toRegistrationId: string,
+): Promise<void> {
+  await db().query(
+    `INSERT INTO roommate_wish ("eventId", "fromRegistrationId", "toRegistrationId")
+     SELECT "eventId", $1, $2 FROM registration WHERE id = $1`,
+    [fromRegistrationId, toRegistrationId],
+  )
+}
