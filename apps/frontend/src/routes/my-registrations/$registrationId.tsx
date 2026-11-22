@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router"
 
 import { Seo } from "@/components/Seo"
 
+import { ParticipantRoomPlacements } from "@/features/accommodation/components/ParticipantRoomPlacements"
 import { participantSessionQueryOptions } from "@/features/participant-access/api/participantQueryOptions"
 import { MagicLinkRequest } from "@/features/participant-access/components/MagicLinkRequest"
 import { ParticipantLayout } from "@/features/participant-access/components/ParticipantLayout"
@@ -50,6 +51,18 @@ function MyRegistrationPage() {
               )}
             />
           )}
+          // Rooms are only for confirmed terms (S4-02).
+          renderRooms={(registration) => {
+            const confirmedTermIds = registration.terms.flatMap((term) =>
+              term.status === "confirmed" ? [term.termId] : [],
+            )
+            return confirmedTermIds.length > 0 ? (
+              <ParticipantRoomPlacements
+                registrationId={registration.id}
+                confirmedTermIds={confirmedTermIds}
+              />
+            ) : null
+          }}
         />
       </ParticipantLayout>
     </>

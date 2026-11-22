@@ -571,6 +571,8 @@ current data; a run only proposes and never changes a participation, a debt or a
 | `accommodation_term_state.dueAt`, `.requestedById`   | timestamptz?, text?                     | Next evaluation; who asked (null: system).                                |
 | `accommodation_term_state.running*`                  | uuid?, int?, text?, timestamptz?        | The evaluation in progress; all null or set.                              |
 | `event.accommodationEvaluationMode`                  | enum `automatic/manual`                 | `automatic` (default) schedules after changes.                            |
+| `room_publication.(termId, eventId)`                 | PK `termId`, FK `event_term`            | Row: the term's rooms are published to its participants (S4-02).          |
+| `room_publication.publishedAt`, `.publishedById`     | timestamptz, text FK `user`             | Kept by a repeated publish; deleting the row takes it back.               |
 
 ### Payment
 

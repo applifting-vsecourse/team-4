@@ -5,6 +5,7 @@ import { failOn, failsOnRefresh, neverAnswer } from "@/screens/msw"
 import { screenMeta, showsHeading } from "@/screens/screenMeta"
 import { openDialog, refresh, showsText } from "@/screens/steps"
 
+import { participantPlacementHandlers } from "@/features/accommodation/fixtures/participantPlacements"
 import { participantHandlers } from "@/features/participant-access/fixtures/handlers"
 import { programmeHandlers } from "@/features/programme/fixtures/handlers"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
@@ -33,6 +34,8 @@ const meta = {
       ...participantHandlers.signedIn(),
       ...registrationHandlers.own(),
       ...programmeHandlers.participant(),
+      // The detail shows the rooms of its confirmed terms (S4-02).
+      ...participantPlacementHandlers(),
     )
   },
 } satisfies Meta<typeof screenMeta.component>

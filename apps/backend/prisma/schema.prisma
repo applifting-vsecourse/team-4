@@ -88,6 +88,7 @@ model User {
   proposalApplications       RoomProposalApplication[]
   accommodationDecisions     AccommodationDecision[]
   roomPlacements             RoomPlacement[]
+  roomPublications           RoomPublication[]
 
   username        String? @db.VarChar(50)
   displayUsername String? @db.VarChar(50)
@@ -249,6 +250,7 @@ model EventTerm {
   accommodationInterventions AccommodationIntervention[]
   accommodationDecisions     AccommodationDecision[]
   roomPlacements             RoomPlacement[]
+  roomPublication            RoomPublication?
   programmeItems             ProgrammeItem[]
 
   @@unique([id, eventId])
@@ -733,6 +735,23 @@ model RoomPlacement {
   @@index([roomId])
   @@index([placedById])
   @@map("room_placement")
+}
+
+// The room placements of a term are published to its participants (S4-02,
+// #341) while this row exists; deleting it takes the publication back.
+// Publishing places nobody: a participant sees the placement as it is now.
+model RoomPublication {
+  termId        String   @id @db.Uuid
+  eventId       String   @db.Uuid
+  publishedById String
+  publishedAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  term        EventTerm @relation(fields: [termId, eventId], references: [id, eventId], onDelete: Cascade)
+  publishedBy User      @relation(fields: [publishedById], references: [id], onDelete: Restrict)
+
+  @@unique([termId, eventId])
+  @@index([publishedById])
+  @@map("room_publication")
 }
 
 enum AccommodationInterventionKind {
