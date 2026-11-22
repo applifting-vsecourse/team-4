@@ -1,12 +1,11 @@
-import {
-  answerOf,
-  needsDetermination,
-} from '@/modules/accommodation/domain/determination';
+import { answerOf } from '@/modules/accommodation/domain/attributes';
+import { needsDetermination } from '@/modules/accommodation/domain/determination';
 import {
   HardAttribute,
   ManualValue,
 } from '@/modules/accommodation/domain/effective-value';
 import { Gender } from '@/modules/registrations/domain/gender';
+import { Answer, AnswerView } from '@/modules/registrations/domain/questions';
 import {
   amountDueMinor,
   ParticipationStatus,
@@ -71,6 +70,8 @@ export type RegistrationFilter = {
 export type AccommodationInputs = {
   hardAttribute: HardAttribute | null;
   manualValue: ManualValue | null;
+  /** The answers to the event's questions (#485). */
+  answers: readonly Answer[];
 };
 
 /** A registration as its organizer sees it (S2-11), with the derived amounts. */
@@ -104,7 +105,12 @@ export class ManagedRegistrationModel {
     const hard = this.accommodation.hardAttribute;
     return needsDetermination(
       hard,
-      hard ? answerOf(hard.attribute, this) : null,
+      hard
+        ? answerOf(hard.attribute, {
+            gender: this.gender,
+            answers: this.accommodation.answers,
+          })
+        : null,
       this.accommodation.manualValue,
     );
   }
@@ -145,6 +151,8 @@ export class ManagedRegistrationDetailModel extends ManagedRegistrationModel {
     public readonly needs: RegistrationNeeds,
     /** Bumped by every executed change (F35-2a) and organizer correction. */
     public readonly version: number,
+    /** Every question of the event with the answer given (#485). */
+    public readonly answers: AnswerView[],
   ) {
     super(...registration);
   }

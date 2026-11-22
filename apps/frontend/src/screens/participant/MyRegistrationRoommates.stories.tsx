@@ -16,6 +16,7 @@ import {
 } from "@/features/registrations/api/roommateWishSchemas"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
 import { OWN_REGISTRATION } from "@/features/registrations/fixtures/participantRegistrations"
+import { NO_QUESTIONS } from "@/features/registrations/fixtures/questions"
 import {
   NO_CANDIDATES,
   NO_WISHES,
@@ -108,8 +109,7 @@ export const StoredNotConfirmed: Story = {
       selected.getByRole("button", { name: "Odebrat Kristýna Dvořáková" }),
     ).toHaveTextContent("už není potvrzený účastník")
     await waitFor(
-      () =>
-        expect(form.getByRole("button", { name: "Odebrat Kristýna Dvořáková" })).toBeVisible(),
+      () => expect(form.getByRole("button", { name: "Odebrat Kristýna Dvořáková" })).toBeVisible(),
       TIMEOUT,
     )
   },
@@ -136,6 +136,7 @@ export const NotConfirmed: Story = {
             ...OWN_REGISTRATION,
             terms: OWN_REGISTRATION.terms.map((term) => ({ ...term, status: "waitlisted" })),
             availableTerms: [],
+            ...NO_QUESTIONS,
           }),
         ),
       ),
@@ -297,11 +298,15 @@ export const SaveFailed: Story = {
         attempts += 1
         if (attempts === 1) return apiError(500)
         const { registrationIds } = roommateWishesInputSchema.parse(await request.json())
-        const byId = new Map(STORED_WISHES.candidates.map((person) => [person.registrationId, person]))
+        const byId = new Map(
+          STORED_WISHES.candidates.map((person) => [person.registrationId, person]),
+        )
         return HttpResponse.json(
           roommateWishesSchema.parse({
             ...STORED_WISHES,
-            wishes: registrationIds.map((id) => byId.get(id)).filter((person) => person !== undefined),
+            wishes: registrationIds
+              .map((id) => byId.get(id))
+              .filter((person) => person !== undefined),
           }),
         )
       }),

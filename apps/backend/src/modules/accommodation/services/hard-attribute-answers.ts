@@ -2,7 +2,7 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import {
   answerOf,
   GENDER_ATTRIBUTE,
-} from '@/modules/accommodation/domain/determination';
+} from '@/modules/accommodation/domain/attributes';
 import { Injectable } from '@nestjs/common';
 
 /** Where participants' answers to the hard attribute come from. */
@@ -16,10 +16,9 @@ export abstract class HardAttributeAnswers {
 }
 
 /**
- * Answers stored on the registration. Only the gender question (F64) exists
- * yet, the first preset of a categorical question; any other attribute has no
- * answers until the categorical-questions story stores them, so nobody is
- * guessed.
+ * Answers stored with the registration: the gender answer (F64) or the
+ * chosen option of one of the event's questions (#485). An attribute that is
+ * neither has no answers, so nobody is guessed.
  */
 @Injectable()
 export class RegistrationHardAttributeAnswers extends HardAttributeAnswers {
@@ -32,11 +31,23 @@ export class RegistrationHardAttributeAnswers extends HardAttributeAnswers {
     attribute: string,
     registrationIds: string[],
   ): Promise<Map<string, string | null>> {
-    if (attribute !== GENDER_ATTRIBUTE) return new Map();
-    const rows = await this.prisma.registration.findMany({
-      where: { eventId, id: { in: registrationIds } },
-      select: { id: true, gender: true },
+    if (attribute === GENDER_ATTRIBUTE) {
+      const rows = await this.prisma.registration.findMany({
+        where: { eventId, id: { in: registrationIds } },
+        select: { id: true, gender: true },
+      });
+      return new Map(rows.map((row) => [row.id, answerOf(attribute, row)]));
+    }
+    const answers = await this.prisma.registrationAnswer.findMany({
+      where: {
+        eventId,
+        questionId: attribute,
+        registrationId: { in: registrationIds },
+      },
+      select: { registrationId: true, optionId: true },
     });
-    return new Map(rows.map((row) => [row.id, answerOf(attribute, row)]));
+    return new Map(
+      answers.map((answer) => [answer.registrationId, answer.optionId]),
+    );
   }
 }

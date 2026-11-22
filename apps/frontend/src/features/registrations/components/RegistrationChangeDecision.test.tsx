@@ -32,6 +32,7 @@ const change = (overrides: Record<string, unknown> = {}) => ({
   participant: { firstName: "Jana", lastName: "Nováková", email: "jana@example.com" },
   summary: {
     values: [],
+    answers: [],
     needs: null,
     terms: [
       {

@@ -1,5 +1,9 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import {
+  hardAttributeFrom,
+  questionAttributesSelect,
+} from '@/modules/accommodation/domain/attributes';
 import { effectiveValue } from '@/modules/accommodation/domain/effective-value';
 import {
   moveInOrder,
@@ -177,6 +181,7 @@ export class OrderMovesRepository {
           accommodationOrder: { select: { registrationIds: true } },
           event: {
             select: {
+              questions: questionAttributesSelect,
               accommodationRules: {
                 select: { hardAttribute: true, nonDeterminingValues: true },
               },
@@ -190,7 +195,11 @@ export class OrderMovesRepository {
                   id: true,
                   receivedAt: true,
                   accommodationManualValue: {
-                    select: { value: true, basedOnAnswer: true },
+                    select: {
+                      attribute: true,
+                      value: true,
+                      basedOnAnswer: true,
+                    },
                   },
                 },
               },
@@ -199,12 +208,7 @@ export class OrderMovesRepository {
         },
       });
       const rules = row.event.accommodationRules;
-      const hard = rules?.hardAttribute
-        ? {
-            attribute: rules.hardAttribute,
-            nonDeterminingValues: rules.nonDeterminingValues,
-          }
-        : null;
+      const hard = hardAttributeFrom(rules, row.event.questions);
       // The same answers the term view and the evaluation read.
       const answers = hard
         ? await this.answers.answers(

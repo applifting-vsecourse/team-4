@@ -44,6 +44,7 @@ const MIXED: Detail = {
   gender: null,
   genderOther: null,
   requiresManualAccommodation: true,
+  answers: [],
   // 28 June 2027, 10:00 in Prague.
   reminderAt: "2027-06-28T08:00:00.000Z",
   variableSymbol: "2027094",

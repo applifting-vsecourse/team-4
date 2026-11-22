@@ -4,9 +4,14 @@ import {
   PaymentState,
 } from '@/modules/registrations/domain/managed-registration';
 import { ParticipantRegistrationModel } from '@/modules/registrations/domain/participant-registration';
+import { questionsVersion } from '@/modules/registrations/domain/questions';
 import { EventTermInfo } from '@/modules/registrations/domain/registration-change';
 import { ReceivedPaymentDto } from '@/modules/registrations/dto/managed-registration.dto';
 import { RegistrationNeedsDto } from '@/modules/registrations/dto/registration-needs.dto';
+import {
+  AnswerInputDto,
+  FormQuestionDto,
+} from '@/modules/registrations/dto/registration-questions.dto';
 import {
   EventSummaryDto,
   PaymentInstructionsDto,
@@ -175,6 +180,34 @@ export class ParticipantRegistrationDetailDto extends ParticipantRegistrationDto
   })
   availableTerms!: AvailableTermDto[];
 
+  @ApiProperty({
+    type: [FormQuestionDto],
+    description:
+      'The categorical questions of the event’s form, in form order (#485).',
+  })
+  questions!: FormQuestionDto[];
+
+  @ApiProperty({
+    description:
+      'Version of the questions as shown; a change sends it back (#485).',
+  })
+  questionsVersion!: string;
+
+  @ApiProperty({
+    type: [AnswerInputDto],
+    description: 'The answers given; a question without one is not answered.',
+  })
+  answers!: AnswerInputDto[];
+
+  @ApiProperty({
+    type: [String],
+    format: 'uuid',
+    description:
+      'Required questions without an answer (added or made required after ' +
+      'the registration): a change must answer them first.',
+  })
+  missingAnswers!: string[];
+
   static fromDetail(
     model: ParticipantRegistrationModel,
     terms: EventTermInfo[],
@@ -188,6 +221,10 @@ export class ParticipantRegistrationDetailDto extends ParticipantRegistrationDto
         endDate: term.endDate,
         priceMinor: term.priceMinor,
       })),
+      questions: model.questions.map(FormQuestionDto.from),
+      questionsVersion: questionsVersion(model.questions),
+      answers: model.answers.map((answer) => ({ ...answer })),
+      missingAnswers: model.missingAnswers.map((question) => question.id),
     };
   }
 }

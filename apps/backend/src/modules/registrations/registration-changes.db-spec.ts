@@ -952,6 +952,7 @@ describe('the gender answer', () => {
       data: {
         registrationId: registration.id,
         eventId: fixture.event.id,
+        attribute: 'gender',
         value: 'female',
         basedOnAnswer: null,
         reason: 'Dohoda',

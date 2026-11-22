@@ -4,6 +4,7 @@ import {
   PaymentSettings,
 } from '@/modules/events/domain/payment-settings';
 import { PublicContact } from '@/modules/events/domain/presentation';
+import { Question } from '@/modules/registrations/domain/questions';
 
 export type EventStatus = 'draft' | 'open' | 'closed';
 
@@ -138,6 +139,8 @@ export class PublicEventModel {
     public readonly isPublished: boolean,
     /** Participation terms (F07); empty means nothing to confirm. */
     public readonly conditions: string,
+    /** The categorical questions of the form (#485), in form order. */
+    public readonly questions: Question[],
   ) {}
 }
 

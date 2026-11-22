@@ -22,6 +22,7 @@ const draftSchema = z.object({
   gender: genderSchema.nullable(),
   genderOther: genderOtherSchema,
   needs: registrationNeedsSchema,
+  answers: z.record(z.string(), z.string().nullable()).default({}),
 })
 
 export type RegistrationDraft = z.infer<typeof draftSchema>

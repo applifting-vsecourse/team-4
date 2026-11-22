@@ -36,6 +36,8 @@ export const PUBLIC_EVENT: PublicEvent = publicEventSchema.parse({
     },
   ],
   isPublished: true,
+  questions: [],
+  questionsVersion: "q-none",
   conditions:
     "Věk účastníka 11 až 15 let.\nZdravotní způsobilost potvrzená rodičem při přihlášce.\nZáloha 2 000 Kč je splatná do 7 dnů od přihlášení.\nPři odhlášení do 30 dnů před začátkem turnusu vracíme celou zálohu, později 50 %.",
 })

@@ -1,5 +1,9 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import {
+  hardAttributeFrom,
+  questionAttributesSelect,
+} from '@/modules/accommodation/domain/attributes';
 import { ManualValue } from '@/modules/accommodation/domain/effective-value';
 import {
   AccommodationRules,
@@ -86,6 +90,7 @@ export class AccommodationEvaluationRepository {
         accommodationState: { select: { inputVersion: true } },
         event: {
           select: {
+            questions: questionAttributesSelect,
             accommodationRules: {
               select: {
                 hardAttribute: true,
@@ -113,7 +118,7 @@ export class AccommodationEvaluationRepository {
                 id: true,
                 receivedAt: true,
                 accommodationManualValue: {
-                  select: { value: true, basedOnAnswer: true },
+                  select: { attribute: true, value: true, basedOnAnswer: true },
                 },
               },
             },
@@ -126,12 +131,7 @@ export class AccommodationEvaluationRepository {
     return {
       rules: rules
         ? {
-            hardAttribute: rules.hardAttribute
-              ? {
-                  attribute: rules.hardAttribute,
-                  nonDeterminingValues: rules.nonDeterminingValues,
-                }
-              : null,
+            hardAttribute: hardAttributeFrom(rules, term.event.questions),
           }
         : NO_RULES,
       rooms: term.roomAvailabilities.map((availability) => ({

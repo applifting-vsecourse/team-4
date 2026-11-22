@@ -137,4 +137,8 @@ export type RegistrationInput = {
   genderOther: string | null
   /** Ticked "I have read the participation terms" (F07); sent, never stored. */
   conditionsConfirmed: boolean
+  /** One option per answered question of the event (#485). */
+  answers: { questionId: string; optionId: string }[]
+  /** The questions version the form showed; another one is refused (#485). */
+  questionsVersion?: string
 }

@@ -21,6 +21,7 @@ import {
   PresentationInput,
   PublicContact,
 } from '@/modules/events/domain/presentation';
+import { questionSelect } from '@/modules/registrations/repositories/registration-questions.repository';
 import { Injectable } from '@nestjs/common';
 
 /** Every lookup carries the organization and its owner (data-model.md §3.2). */
@@ -480,6 +481,7 @@ export class EventsRepository {
         isPublished: true,
         conditions: true,
         terms: PUBLIC_TERM_SELECT,
+        questions: questionSelect,
       },
     });
     if (!event) return null;
@@ -490,6 +492,7 @@ export class EventsRepository {
       event.terms.map(toPublicTerm),
       event.isPublished,
       event.conditions,
+      event.questions,
     );
   }
 

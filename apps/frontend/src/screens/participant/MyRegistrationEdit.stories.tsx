@@ -13,6 +13,7 @@ import {
   AVAILABLE_TERMS,
   OWN_REGISTRATION,
 } from "@/features/registrations/fixtures/participantRegistrations"
+import { ANSWERED, MISSING_REQUIRED, SCHOOL } from "@/features/registrations/fixtures/questions"
 import {
   ADD_TERM_PREVIEW,
   CANCEL_TERM_SUMMARY,
@@ -420,6 +421,36 @@ export const StaleProposal: Story = {
   },
 }
 
+/** The organizer changed the questions since the form opened (#485): reload, nothing saved. */
+export const QuestionsChangedOnSubmit: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("post", CHANGES, 400, { code: "questions_changed" }))
+  },
+  play: async (context) => {
+    await changePhone(context)
+    const dialog = await review()
+    await userEvent.click(dialog.getByRole("button", { name: "Potvrdit změnu" }))
+    await showsText(
+      "Pořadatel mezitím změnil otázky přihlášky. Načtěte ji znovu a odpovědi zkontrolujte.",
+    )
+    await expect(dialog.getByRole("button", { name: "Načíst přihlášku znovu" })).toBeVisible()
+  },
+}
+
+/** The questions changed before the review: only reading them again helps. */
+export const QuestionsChangedOnReview: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...failOn("post", `${CHANGES}/preview`, 400, { code: "questions_changed" }))
+  },
+  play: async (context) => {
+    await changePhone(context)
+    await showsText(
+      "Pořadatel mezitím změnil otázky přihlášky. Načtěte ji znovu a odpovědi zkontrolujte.",
+    )
+    await expect(screen.getByRole("button", { name: "Načíst přihlášku znovu" })).toBeVisible()
+  },
+}
+
 /** The approval period started meanwhile: the change can only be requested now. */
 export const ApprovalNewlyRequired: Story = {
   beforeEach: ({ msw }) => {
@@ -501,4 +532,79 @@ export const SessionEnded: Story = {
     msw.use(...failOn("get", DETAIL, 401))
   },
   play: () => showsText("Přihlášení vypršelo. Pro zobrazení přihlášek si vyžádejte nový odkaz."),
+}
+
+// ─── The organizer's questions (#485) ──────────────────────────────────────
+
+const ANSWER_PREVIEW = makeChangePreview({
+  summary: {
+    ...makeChangePreview().summary,
+    values: [],
+    answers: [
+      {
+        questionId: SCHOOL.id,
+        question: SCHOOL.label,
+        original: null,
+        proposed: { optionId: SCHOOL.options[0]!.id, label: SCHOOL.options[0]!.label },
+      },
+    ],
+  },
+})
+
+/**
+ * A required question added after the registration: the page says so, and
+ * no other change goes through until it is answered.
+ */
+export const MissingRequiredAnswer: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...registrationHandlers.ownRegistration(OWN_REGISTRATION, AVAILABLE_TERMS, MISSING_REQUIRED),
+      ...registrationHandlers.ownChange(ANSWER_PREVIEW),
+    )
+  },
+  play: async ({ canvas }) => {
+    await expect(
+      await canvas.findByText("Pořadatel přidal povinnou otázku", {}, { timeout: 5000 }),
+    ).toBeVisible()
+    await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
+    await showsText("Vyberte odpověď.")
+    await userEvent.click(canvas.getByRole("radio", { name: "ZŠ Lipová" }))
+    await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
+    const dialog = await review()
+    await expect(dialog.getByText("Škola")).toBeVisible()
+    await expect(dialog.getByText("ZŠ Lipová")).toBeVisible()
+  },
+}
+
+/** Cancelling a term is possible while a required answer is missing (#485). */
+export const CancelWithMissingAnswer: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...registrationHandlers.ownRegistration(OWN_REGISTRATION, AVAILABLE_TERMS, MISSING_REQUIRED),
+      ...registrationHandlers.ownChange(
+        makeChangePreview({ kinds: ["cancel_terms"], summary: CANCEL_TERM_SUMMARY }),
+      ),
+    )
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(
+      await canvas.findByRole("checkbox", { name: /^Turnus 1/ }, { timeout: 5000 }),
+    )
+    await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
+    await review("Odhlášení")
+    await expect(canvas.queryByText("Vyberte odpověď.")).not.toBeInTheDocument()
+  },
+}
+
+/** Both questions answered: the answers start the form and can be changed. */
+export const AnsweredQuestions: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.ownRegistration(OWN_REGISTRATION, AVAILABLE_TERMS, ANSWERED))
+  },
+  play: async ({ canvas }) => {
+    await expect(
+      await canvas.findByRole("radio", { name: "ZŠ Dubová" }, { timeout: 5000 }),
+    ).toBeChecked()
+    await expect(canvas.getByRole("radio", { name: "Lišky" })).toBeChecked()
+  },
 }

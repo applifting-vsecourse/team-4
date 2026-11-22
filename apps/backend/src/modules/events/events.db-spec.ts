@@ -1017,6 +1017,8 @@ describe('public event page', () => {
       ],
       isPublished: false,
       conditions: '',
+      questions: [],
+      questionsVersion: expect.any(String),
     });
   });
 

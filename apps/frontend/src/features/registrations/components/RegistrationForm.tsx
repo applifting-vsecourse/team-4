@@ -28,6 +28,7 @@ import { formatCzk } from "@/lib/money"
 import { toE164 } from "@/lib/phone"
 import { PHONE_FIELD_MESSAGE } from "@/lib/phoneCountries"
 
+import type { FormQuestion } from "@/features/registrations/api/questionSchemas"
 import {
   genderOtherSchema,
   genderSchema,
@@ -36,6 +37,7 @@ import {
 } from "@/features/registrations/api/registrationSchemas"
 import { GenderField } from "@/features/registrations/components/GenderField"
 import { ParticipationConditionsField } from "@/features/registrations/components/ParticipationConditionsField"
+import { QuestionAnswersFields } from "@/features/registrations/components/QuestionAnswersFields"
 import { RegistrationNeedsFields } from "@/features/registrations/components/RegistrationNeedsFields"
 import {
   CONDITIONS_MESSAGE,
@@ -71,19 +73,35 @@ const baseSchema = z.object({
   /** Own words for "Jiná odpověď"; sent only beside it. */
   genderOther: genderOtherSchema,
   needs: registrationNeedsFormSchema,
+  /** The chosen option by question of the organizer (#485); null is no answer. */
+  answers: z.record(z.string(), z.string().nullable()),
   /** Read-confirmation of the participation terms (F07); never persisted. */
   conditionsConfirmed: z.boolean(),
 })
 
 export type RegistrationFormValues = z.infer<typeof baseSchema>
 
-// Confirmation is required only when the event has participation terms.
-const createSchema = (isRequired: boolean) =>
-  isRequired
+// Confirmation is required only when the event has participation terms; an
+// answer only to a required question (#485).
+const createSchema = (isRequired: boolean, questions: FormQuestion[]) =>
+  (isRequired
     ? baseSchema.extend({
         conditionsConfirmed: z.boolean().refine((isConfirmed) => isConfirmed, CONDITIONS_MESSAGE),
       })
     : baseSchema
+  ).superRefine((values, context) => {
+    for (const question of questions) {
+      // An option the organizer removed since (a stored draft) is no answer.
+      const optionId = values.answers[question.id]
+      if (question.isRequired && !question.options.some((option) => option.id === optionId)) {
+        context.addIssue({
+          code: "custom",
+          path: ["answers", question.id],
+          message: "Vyberte odpověď.",
+        })
+      }
+    }
+  })
 
 const EMPTY: RegistrationFormValues = {
   firstName: "",
@@ -94,6 +112,7 @@ const EMPTY: RegistrationFormValues = {
   gender: null,
   genderOther: null,
   needs: NO_NEEDS,
+  answers: {},
   conditionsConfirmed: false,
 }
 
@@ -101,6 +120,8 @@ type RegistrationFormProps = {
   terms: SelectableTerm[]
   /** Participation terms of the event (F07); blank means nothing to confirm. */
   conditions: string
+  /** The organizer's categorical questions (#485), in form order. */
+  questions?: FormQuestion[]
   /**
    * Values to start from, e.g. a draft kept for the browser tab or the contact
    * details of the signed-in participant's profile; never a confirmation.
@@ -120,6 +141,7 @@ type RegistrationFormProps = {
 export function RegistrationForm({
   terms,
   conditions,
+  questions = [],
   initialValues,
   onValuesChange,
   isSubmitting,
@@ -127,7 +149,7 @@ export function RegistrationForm({
   onSubmit,
 }: RegistrationFormProps) {
   const hasConditions = conditions.trim() !== ""
-  const schema = useMemo(() => createSchema(hasConditions), [hasConditions])
+  const schema = useMemo(() => createSchema(hasConditions, questions), [hasConditions, questions])
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(schema),
     shouldFocusError: false,
@@ -157,6 +179,7 @@ export function RegistrationForm({
         genderOther: typed.genderOther ?? null,
         // Complete, unlike the watched copy, which types every part as optional.
         needs: form.getValues("needs"),
+        answers: form.getValues("answers"),
       })
     })
     return () => subscription.unsubscribe()
@@ -389,6 +412,41 @@ export function RegistrationForm({
             </div>
           </FieldSet>
         </section>
+
+        {questions.length > 0 ? (
+          <section
+            aria-labelledby="registration-questions-heading"
+            className="space-y-6 rounded-lg border border-border bg-card p-4 sm:p-6"
+          >
+            <h2
+              id="registration-questions-heading"
+              className="text-h4"
+            >
+              Otázky pořadatele
+            </h2>
+            <FormField
+              control={form.control}
+              name="answers"
+              render={({ field }) => (
+                <QuestionAnswersFields
+                  idPrefix="registration-answer"
+                  questions={questions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  errors={Object.fromEntries(
+                    questions.map((question) => [
+                      question.id,
+                      (
+                        form.formState.errors.answers as
+                          Record<string, { message?: string }> | undefined
+                      )?.[question.id]?.message,
+                    ]),
+                  )}
+                />
+              )}
+            />
+          </section>
+        ) : null}
 
         <section
           aria-label="Doplňující údaje"

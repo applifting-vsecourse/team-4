@@ -59,7 +59,7 @@ beforeEach(() => answers.byRegistration.clear());
 
 const GENDER = {
   hardAttribute: 'gender',
-  nonDeterminingValues: ['Jiná odpověď', 'Nechci uvést'],
+  nonDeterminingValues: ['other', 'undisclosed'],
 };
 
 type Fixture = CreatedEvent & { ownerId: string };
@@ -142,10 +142,10 @@ describe('evaluating a term', () => {
   it('orders by receipt, the lower id first at the same moment (Př. 1)', async () => {
     const fixture = await setup([{ baseBeds: 2, termIndexes: [0] }]);
     const moment = new Date('2027-03-02T10:00:00.000Z');
-    const a = await person(fixture, 'Žena', { receivedAt: moment });
-    const b = await person(fixture, 'Žena', { receivedAt: moment });
+    const a = await person(fixture, 'female', { receivedAt: moment });
+    const b = await person(fixture, 'female', { receivedAt: moment });
     const [first, second] = [a, b].sort((x, y) => (x.id < y.id ? -1 : 1));
-    const p3 = await person(fixture, 'Žena', {
+    const p3 = await person(fixture, 'female', {
       receivedAt: new Date(moment.getTime() + 1),
     });
 
@@ -171,7 +171,7 @@ describe('evaluating a term', () => {
     );
     const people: Registration[] = [];
     for (let i = 0; i < 6; i += 1) {
-      people.push(await person(fixture, 'Žena', { terms: [0, 1] }));
+      people.push(await person(fixture, 'female', { terms: [0, 1] }));
     }
 
     const before = await evaluate(fixture);
@@ -197,21 +197,21 @@ describe('evaluating a term', () => {
       { baseBeds: 1, termIndexes: [0] },
     ]);
     const [w1, w2, m1, m2] = [
-      await person(homogeneity, 'Žena'),
-      await person(homogeneity, 'Žena'),
-      await person(homogeneity, 'Muž'),
-      await person(homogeneity, 'Muž'),
+      await person(homogeneity, 'female'),
+      await person(homogeneity, 'female'),
+      await person(homogeneity, 'male'),
+      await person(homogeneity, 'male'),
     ];
     const first = await evaluate(homogeneity);
     expect(proposal(first).suitable).toEqual([w1.id, w2.id, m1.id]);
     expect(reasons(first)).toEqual({ [m2.id]: 'B' });
 
     const count = await setup([{ baseBeds: 3, termIndexes: [0] }]);
-    const man = await person(count, 'Muž');
+    const man = await person(count, 'male');
     const women = [
-      await person(count, 'Žena'),
-      await person(count, 'Žena'),
-      await person(count, 'Žena'),
+      await person(count, 'female'),
+      await person(count, 'female'),
+      await person(count, 'female'),
     ];
     const second = await evaluate(count);
     expect(proposal(second).suitable).toEqual(women.map((w) => w.id));
@@ -223,9 +223,9 @@ describe('evaluating a term', () => {
       { baseBeds: 2, termIndexes: [0] },
       { baseBeds: 2, termIndexes: [0] },
     ]);
-    const p1 = await person(fixture, 'Žena');
-    const p2 = await person(fixture, 'Nechci uvést');
-    const p3 = await person(fixture, 'Muž');
+    const p1 = await person(fixture, 'female');
+    const p2 = await person(fixture, 'undisclosed');
+    const p3 = await person(fixture, 'male');
     const p4 = await person(fixture, null);
 
     const first = await evaluate(fixture);
@@ -236,8 +236,9 @@ describe('evaluating a term', () => {
       data: {
         registrationId: p2.id,
         eventId: fixture.event.id,
-        value: 'Žena',
-        basedOnAnswer: 'Nechci uvést',
+        attribute: 'gender',
+        value: 'female',
+        basedOnAnswer: 'undisclosed',
         reason: 'domluva s účastníkem',
         createdById: fixture.ownerId,
       },
@@ -248,13 +249,13 @@ describe('evaluating a term', () => {
     expect(
       second.input.order.find((p) => p.registrationId === p2.id),
     ).toMatchObject({
-      answer: 'Nechci uvést',
-      manualValue: 'Žena',
-      effectiveValue: 'Žena',
+      answer: 'undisclosed',
+      manualValue: 'female',
+      effectiveValue: 'female',
     });
 
     // A new non-determining answer cancels the determination.
-    answers.byRegistration.set(p2.id, 'Jiná odpověď');
+    answers.byRegistration.set(p2.id, 'other');
     const third = await evaluate(fixture);
     expect(reasons(third)[p2.id]).toBe('R');
   });
@@ -267,8 +268,8 @@ describe('evaluating a term', () => {
       ],
       { terms: 2 },
     );
-    await person(fixture, 'Žena', { terms: [1], status: 'confirmed' });
-    const p1 = await person(fixture, 'Žena', { terms: [0, 1] });
+    await person(fixture, 'female', { terms: [1], status: 'confirmed' });
+    const p1 = await person(fixture, 'female', { terms: [0, 1] });
 
     const t1 = await evaluate(fixture, 0);
     const t2 = await evaluate(fixture, 1);
@@ -279,14 +280,14 @@ describe('evaluating a term', () => {
 
   it('gives N without capacity and keeps a manual order (Př. 8, Př. 9)', async () => {
     const empty = await setup([]);
-    const alone = await person(empty, 'Žena');
+    const alone = await person(empty, 'female');
     expect(reasons(await evaluate(empty))).toEqual({ [alone.id]: 'N' });
 
     const fixture = await setup([{ baseBeds: 2, termIndexes: [0] }]);
     const [p1, p2, p3] = [
-      await person(fixture, 'Žena'),
-      await person(fixture, 'Žena'),
-      await person(fixture, 'Žena'),
+      await person(fixture, 'female'),
+      await person(fixture, 'female'),
+      await person(fixture, 'female'),
     ];
     await prisma.accommodationTermOrder.create({
       data: {
@@ -309,10 +310,10 @@ describe('evaluating a term', () => {
       { baseBeds: 2, termIndexes: [0], label: 'R2' },
     ]);
     const confirmed = [
-      await person(fixture, 'Žena', { status: 'confirmed' }),
-      await person(fixture, 'Žena', { status: 'confirmed' }),
-      await person(fixture, 'Žena', { status: 'confirmed' }),
-      await person(fixture, 'Muž', { status: 'confirmed' }),
+      await person(fixture, 'female', { status: 'confirmed' }),
+      await person(fixture, 'female', { status: 'confirmed' }),
+      await person(fixture, 'female', { status: 'confirmed' }),
+      await person(fixture, 'male', { status: 'confirmed' }),
     ];
 
     const conflict = await evaluate(fixture);
@@ -351,7 +352,7 @@ describe('evaluating a term', () => {
 describe('a run', () => {
   it('only proposes: no participation, debt or room changes', async () => {
     const fixture = await setup([{ baseBeds: 2, termIndexes: [0] }]);
-    const p1 = await person(fixture, 'Žena');
+    const p1 = await person(fixture, 'female');
     const before = await prisma.registrationTerm.findMany({
       where: { registrationId: p1.id },
     });
@@ -371,7 +372,7 @@ describe('a run', () => {
 
   it('is stored with its inputs and order and can never be changed', async () => {
     const fixture = await setup([{ baseBeds: 1, termIndexes: [0] }]);
-    const p1 = await person(fixture, 'Žena');
+    const p1 = await person(fixture, 'female');
 
     const run = await evaluate(fixture);
     const stored = await prisma.accommodationRun.findUniqueOrThrow({
@@ -387,7 +388,7 @@ describe('a run', () => {
     expect(run.input).toMatchObject({
       rules: { hardAttribute: { attribute: 'gender' } },
       rooms: [{ baseBeds: 1, extraBeds: 0 }],
-      order: [{ registrationId: p1.id, position: 0, effectiveValue: 'Žena' }],
+      order: [{ registrationId: p1.id, position: 0, effectiveValue: 'female' }],
       isOrderManual: false,
     });
     await expect(
@@ -416,15 +417,16 @@ describe('a run', () => {
 describe('the database', () => {
   it('refuses a determination or an intervention without a reason', async () => {
     const fixture = await setup([{ baseBeds: 1, termIndexes: [0] }]);
-    const p1 = await person(fixture, 'Nechci uvést');
+    const p1 = await person(fixture, 'undisclosed');
 
     await expect(
       prisma.accommodationManualValue.create({
         data: {
           registrationId: p1.id,
           eventId: fixture.event.id,
-          value: 'Žena',
-          basedOnAnswer: 'Nechci uvést',
+          attribute: 'gender',
+          value: 'female',
+          basedOnAnswer: 'undisclosed',
           reason: '  ',
           createdById: fixture.ownerId,
         },
@@ -449,7 +451,7 @@ describe('the database', () => {
   it('refuses a position change for a term of another event', async () => {
     const fixture = await setup([{ baseBeds: 1, termIndexes: [0] }]);
     const other = await setup([{ baseBeds: 1, termIndexes: [0] }]);
-    const p1 = await person(fixture, 'Žena');
+    const p1 = await person(fixture, 'female');
 
     await expect(
       prisma.accommodationIntervention.create({

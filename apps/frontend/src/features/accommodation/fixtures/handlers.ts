@@ -2,7 +2,10 @@ import { http, HttpResponse } from "msw"
 
 import { env } from "@/config/env"
 
-import type { TermEvaluationData } from "@/features/accommodation/api/evaluationSchemas"
+import type {
+  EventAttribute,
+  TermEvaluationData,
+} from "@/features/accommodation/api/evaluationSchemas"
 import type {
   RoomProposalPreferences,
   TermRoomProposalData,
@@ -40,6 +43,21 @@ export const accommodationHandlers = {
       HttpResponse.json(makeHardAttributeSetting(hardAttribute)),
     ),
   ],
+  /** Gender and the event's own questions (#485); a save keeps what was sent. */
+  attributeRules: (questions: EventAttribute[], hardAttribute: string | null = null) => {
+    let setting = makeHardAttributeSetting(hardAttribute, questions)
+    return [
+      http.get(`${BASE}/hard-attribute`, () => HttpResponse.json(setting)),
+      http.put(`${BASE}/hard-attribute`, async ({ request }) => {
+        const sent = (await request.json()) as {
+          hardAttribute: string | null
+          nonDeterminingValues: string[]
+        }
+        setting = { ...setting, ...sent }
+        return HttpResponse.json(setting)
+      }),
+    ]
+  },
   /** The soft preferences of the room proposal (#389); a save keeps the sent list. */
   roomProposalPreferences: (setting: RoomProposalPreferences = makeRoomProposalPreferences()) => [
     http.get(`${BASE}/room-proposal-preferences`, () => HttpResponse.json(setting)),

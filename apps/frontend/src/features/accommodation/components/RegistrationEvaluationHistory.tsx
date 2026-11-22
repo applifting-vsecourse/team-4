@@ -10,7 +10,8 @@ import {
   EvaluationHistory,
   type HistoryEntry,
 } from "@/features/accommodation/components/EvaluationHistory"
-import { toHistoryMove, valueLabel } from "@/features/accommodation/lib/evaluationView"
+import { useAttributeLabels } from "@/features/accommodation/hooks/useAttributeLabels"
+import { toHistoryMove } from "@/features/accommodation/lib/evaluationView"
 
 type RegistrationEvaluationHistoryProps = {
   organizationId: string
@@ -28,6 +29,7 @@ export function RegistrationEvaluationHistory({
   registrationId,
   person,
 }: RegistrationEvaluationHistoryProps) {
+  const labels = useAttributeLabels(organizationId, eventId)
   const accommodation = useQuery(
     registrationAccommodationQueryOptions(organizationId, eventId, registrationId),
   )
@@ -53,8 +55,8 @@ export function RegistrationEvaluationHistory({
           at: formatPragueDateTime(record.createdAt),
           author: record.actor.name,
           person,
-          answer: valueLabel(attribute, record.answer),
-          value: valueLabel(attribute, record.value),
+          answer: labels.value(attribute, record.answer),
+          value: labels.value(attribute, record.value),
           reason: record.reason,
         })),
         ...(accommodation.data?.decisions ?? []).map(
@@ -74,7 +76,7 @@ export function RegistrationEvaluationHistory({
           }),
         ),
         ...(accommodation.data?.moves ?? []).map((move): HistoryEntry & { sortAt: string } => ({
-          ...toHistoryMove(move, hard?.attribute ?? null),
+          ...toHistoryMove(move, hard?.attribute ?? null, labels),
           sortAt: move.createdAt,
         })),
         // The newest first, across every record.

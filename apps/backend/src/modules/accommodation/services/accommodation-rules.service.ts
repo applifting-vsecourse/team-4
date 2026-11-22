@@ -1,18 +1,14 @@
+import { EventAttribute } from '@/modules/accommodation/domain/attributes';
 import {
-  HARD_ATTRIBUTE_OPTIONS,
-  HardAttributeOption,
-} from '@/modules/accommodation/domain/determination';
-import {
-  invalidPreferences,
   preferenceItems,
-  SoftAttributeOption,
   softAttributeOptions,
   SoftPreferenceItem,
-  storedPreferences,
   WISHES_PREFERENCE,
 } from '@/modules/accommodation/domain/room-proposal-preferences';
 import {
   AccommodationRulesRepository,
+  HardAttributeChoice,
+  StoredHardAttribute,
   StoredPreferences,
 } from '@/modules/accommodation/repositories/accommodation-rules.repository';
 import { EventScope } from '@/modules/events/repositories/events.repository';
@@ -27,11 +23,8 @@ import {
 const notAvailable = (): NotFoundException =>
   new NotFoundException('Záznam není dostupný');
 
-export type HardAttributeSetting = {
-  /** The chosen attribute; null when rooms are not split by one. */
-  hardAttribute: string | null;
-  options: readonly HardAttributeOption[];
-};
+/** The hard attribute and every categorical question of the event (#384, #485). */
+export type HardAttributeSetting = StoredHardAttribute;
 
 /** The soft preferences of the room proposal (#389) and what can be ranked. */
 export type PreferencesSetting = {
@@ -39,13 +32,13 @@ export type PreferencesSetting = {
   preferences: SoftPreferenceItem[];
   /** "Přání" and the soft attributes the organizer can add; never the hard attribute. */
   wishes: typeof WISHES_PREFERENCE;
-  attributes: SoftAttributeOption[];
+  attributes: EventAttribute[];
 };
 
 const settingOf = (stored: StoredPreferences): PreferencesSetting => ({
   preferences: preferenceItems(stored.softAttributes, stored.softNeutralValues),
   wishes: WISHES_PREFERENCE,
-  attributes: softAttributeOptions(stored.hardAttribute),
+  attributes: softAttributeOptions(stored.attributes, stored.hardAttribute),
 });
 
 const HARD_ATTRIBUTE_IN_LIST =
@@ -61,27 +54,23 @@ export class AccommodationRulesService {
   constructor(private readonly repository: AccommodationRulesRepository) {}
 
   async hardAttribute(scope: EventScope): Promise<HardAttributeSetting> {
-    const hardAttribute = await this.repository.findHardAttribute(scope);
-    if (hardAttribute === undefined) throw notAvailable();
-    return { hardAttribute, options: HARD_ATTRIBUTE_OPTIONS };
+    const setting = await this.repository.findHardAttribute(scope);
+    if (setting === undefined) throw notAvailable();
+    return setting;
   }
 
-  /** `attribute` is one of the options (validated) or null. */
+  /** A question of the event and its answers that decide no room, or null for none. */
   async saveHardAttribute(
     scope: EventScope,
-    attribute: string | null,
+    choice: HardAttributeChoice | null,
   ): Promise<HardAttributeSetting> {
-    const option =
-      attribute === null
-        ? null
-        : (HARD_ATTRIBUTE_OPTIONS.find((o) => o.attribute === attribute) ??
-          null);
-    const saved = await this.repository.saveHardAttribute(scope, option);
+    const saved = await this.repository.saveHardAttribute(scope, choice);
     if (saved === null) throw notAvailable();
-    return {
-      hardAttribute: option?.attribute ?? null,
-      options: HARD_ATTRIBUTE_OPTIONS,
-    };
+    if (saved === 'invalid')
+      throw new BadRequestException(
+        'Vyberte tvrdý atribut a jeho odpovědi z nabídky, nebo žádný.',
+      );
+    return this.hardAttribute(scope);
   }
 
   async preferences(scope: EventScope): Promise<PreferencesSetting> {
@@ -98,13 +87,10 @@ export class AccommodationRulesService {
     scope: EventScope,
     items: readonly { id: string; neutralValues?: readonly string[] }[],
   ): Promise<PreferencesSetting> {
-    const invalid = invalidPreferences(items);
-    if (invalid) throw new BadRequestException(invalid);
-    const saved = await this.repository.savePreferences(
-      scope,
-      storedPreferences(items),
-    );
+    const saved = await this.repository.savePreferences(scope, items);
     if (saved === null) throw notAvailable();
+    if (saved.result === 'invalid')
+      throw new BadRequestException(saved.message);
     if (saved.result === 'hardAttribute')
       throw new ConflictException(HARD_ATTRIBUTE_IN_LIST);
     return settingOf(saved.preferences);

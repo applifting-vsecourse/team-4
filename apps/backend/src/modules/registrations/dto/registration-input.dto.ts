@@ -3,7 +3,9 @@ import {
   GENDER_OTHER_MAX_LENGTH,
   GENDERS,
 } from '@/modules/registrations/domain/gender';
+import { MAX_QUESTIONS } from '@/modules/registrations/domain/questions';
 import { RegistrationNeedsDto } from '@/modules/registrations/dto/registration-needs.dto';
+import { AnswerInputDto } from '@/modules/registrations/dto/registration-questions.dto';
 import { applyDecorators } from '@nestjs/common';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
@@ -184,6 +186,31 @@ export class RegistrationInputDto {
   })
   @GenderOther()
   genderOther?: string | null;
+
+  @ApiPropertyOptional({
+    type: [AnswerInputDto],
+    description:
+      'One option per categorical question of the event (#485). A required ' +
+      'question needs one (400 `answer_required`); a question or option the ' +
+      'form no longer has gives 409 `questions_changed`.',
+  })
+  @IsOptional()
+  @IsArray({ message: 'Odpovědi na otázky nejsou platné.' })
+  @ArrayMaxSize(MAX_QUESTIONS, { message: 'Odpovědi na otázky nejsou platné.' })
+  @ValidateNested({ each: true })
+  @Type(() => AnswerInputDto)
+  answers?: AnswerInputDto[];
+
+  @ApiPropertyOptional({
+    description:
+      'The `questionsVersion` of the public event the form showed (#485); ' +
+      'when the questions changed since, 409 `questions_changed`.',
+    maxLength: 64,
+  })
+  @IsOptional()
+  @IsString({ message: 'Verze otázek není platná.' })
+  @MaxLength(64, { message: 'Verze otázek není platná.' })
+  questionsVersion?: string;
 
   @ApiPropertyOptional({
     type: Boolean,

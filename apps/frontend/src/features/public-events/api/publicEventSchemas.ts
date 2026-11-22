@@ -20,6 +20,17 @@ export const publicEventSchema = z.object({
   // Participation terms (F07), possibly with cancellation information; empty
   // means there is nothing to read and confirm.
   conditions: z.string(),
+  // The organizer's categorical questions of the form (#485), in form order.
+  questions: z.array(
+    z.object({
+      id: z.string().uuid(),
+      label: z.string(),
+      isRequired: z.boolean(),
+      options: z.array(z.object({ id: z.string().uuid(), label: z.string() })),
+    }),
+  ),
+  // The version of the questions shown; sent back with the registration.
+  questionsVersion: z.string(),
 })
 
 export type PublicEvent = z.infer<typeof publicEventSchema>

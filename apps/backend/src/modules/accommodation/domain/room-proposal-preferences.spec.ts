@@ -1,3 +1,4 @@
+import { GENDER } from '@/modules/accommodation/domain/attributes';
 import {
   invalidPreferences,
   preferenceItems,
@@ -8,23 +9,28 @@ import {
   WISHES_PREFERENCE,
 } from '@/modules/accommodation/domain/room-proposal-preferences';
 
+const ATTRIBUTES = [GENDER];
+
 describe('the soft preferences of the room proposal (#389)', () => {
   it('offers gender unless it is the hard attribute', () => {
-    expect(softAttributeOptions(null).map((o) => o.attribute)).toEqual([
-      'gender',
-    ]);
-    expect(softAttributeOptions('gender')).toEqual([]);
+    expect(
+      softAttributeOptions(ATTRIBUTES, null).map((o) => o.attribute),
+    ).toEqual(['gender']);
+    expect(softAttributeOptions(ATTRIBUTES, 'gender')).toEqual([]);
   });
 
   it('accepts "Přání", gender with its answers and an empty list', () => {
-    expect(invalidPreferences([])).toBeNull();
+    expect(invalidPreferences([], ATTRIBUTES)).toBeNull();
     expect(
-      invalidPreferences([
-        { id: 'gender', neutralValues: ['other', 'undisclosed'] },
-        { id: WISHES_PREFERENCE },
-      ]),
+      invalidPreferences(
+        [
+          { id: 'gender', neutralValues: ['other', 'undisclosed'] },
+          { id: WISHES_PREFERENCE },
+        ],
+        ATTRIBUTES,
+      ),
     ).toBeNull();
-    expect(invalidPreferences([{ id: 'gender' }])).toBeNull();
+    expect(invalidPreferences([{ id: 'gender' }], ATTRIBUTES)).toBeNull();
   });
 
   it.each([
@@ -46,7 +52,7 @@ describe('the soft preferences of the room proposal (#389)', () => {
       'Přání nemají neutrální hodnoty.',
     ],
   ])('refuses %j', (items, message) => {
-    expect(invalidPreferences(items)).toBe(message);
+    expect(invalidPreferences(items, ATTRIBUTES)).toBe(message);
   });
 
   it('stores the order and the neutral answers of the attributes only', () => {

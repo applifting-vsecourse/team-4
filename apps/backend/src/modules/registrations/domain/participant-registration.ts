@@ -5,6 +5,11 @@ import {
   ReceivedPayment,
 } from '@/modules/registrations/domain/managed-registration';
 import {
+  Answer,
+  missingRequired,
+  Question,
+} from '@/modules/registrations/domain/questions';
+import {
   amountDueMinor,
   BankAccount,
   EventSummary,
@@ -51,7 +56,16 @@ export class ParticipantRegistrationModel {
     public readonly hasPendingChange: boolean,
     /** Transport, diet and health (F63). */
     public readonly needs: RegistrationNeeds,
+    /** The categorical questions of the event's form (#485). */
+    public readonly questions: Question[],
+    /** The answers given to them. */
+    public readonly answers: Answer[],
   ) {}
+
+  /** Required questions without an answer: Úprava přihlášky asks for them first (#485). */
+  get missingAnswers(): Question[] {
+    return missingRequired(this.questions, this.answers);
+  }
 
   /** Every term released. */
   get isCancelled(): boolean {

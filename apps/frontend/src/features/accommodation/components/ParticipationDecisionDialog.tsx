@@ -4,8 +4,8 @@ import { toast } from "sonner"
 import { readApiError, type ApiErrorCode } from "@/lib/apiError"
 
 import { TermDecisionDialog } from "@/features/accommodation/components/TermDecisionDialog"
+import { useAttributeLabels } from "@/features/accommodation/hooks/useAttributeLabels"
 import { useDecideParticipation } from "@/features/accommodation/hooks/useDecideParticipation"
-import { valueLabel } from "@/features/accommodation/lib/evaluationView"
 
 /** The refusals the server explains in its message; the decision was not saved. */
 const REFUSALS: ApiErrorCode[] = [
@@ -58,6 +58,7 @@ export function ParticipationDecisionDialog({
   onClose,
   invalidate,
 }: ParticipationDecisionDialogProps) {
+  const labels = useAttributeLabels(organizationId, eventId)
   const decide = useDecideParticipation(
     organizationId,
     eventId,
@@ -68,7 +69,7 @@ export function ParticipationDecisionDialog({
   const [submissionKey] = useState(() => crypto.randomUUID())
   const { determination } = target
   const label = (value: string) =>
-    determination ? valueLabel(determination.hardAttribute.attribute, value) : value
+    determination ? labels.value(determination.hardAttribute.attribute, value) : value
   const codeOf = new Map(
     (determination?.hardAttribute.determiningValues ?? []).map((value) => [label(value), value]),
   )
@@ -91,7 +92,7 @@ export function ParticipationDecisionDialog({
       determination={
         determination
           ? {
-              answer: valueLabel(determination.hardAttribute.attribute, determination.answer),
+              answer: labels.value(determination.hardAttribute.attribute, determination.answer),
               values: determination.hardAttribute.determiningValues.map(label),
             }
           : undefined

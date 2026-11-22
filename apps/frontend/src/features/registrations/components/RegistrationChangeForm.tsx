@@ -11,12 +11,17 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input"
 import { type TermParticipation } from "@/lib/participation"
 
+import type { FormQuestion } from "@/features/registrations/api/questionSchemas"
 import {
   type Gender,
   type GenderAnswer,
   type RegistrationNeeds,
 } from "@/features/registrations/api/registrationSchemas"
 import { GenderField } from "@/features/registrations/components/GenderField"
+import {
+  QuestionAnswersFields,
+  type AnswerValues,
+} from "@/features/registrations/components/QuestionAnswersFields"
 import { RegistrationNeedsFields } from "@/features/registrations/components/RegistrationNeedsFields"
 import { type RegistrationNeedsErrors } from "@/features/registrations/lib/registrationNeeds"
 
@@ -66,6 +71,13 @@ export type RegistrationChangeFormProps = {
   needsErrors?: RegistrationNeedsErrors
   /** Shown above the buttons, e.g. "Nic jste nezměnili". */
   errorMessage?: string
+  /** The organizer's categorical questions (#485), in form order. */
+  questions?: FormQuestion[]
+  /** The answers given now, by question; the form starts on them. */
+  answers?: AnswerValues
+  onAnswersChange?: (answers: AnswerValues) => void
+  /** A message by question id, e.g. a required one still unanswered. */
+  answerErrors?: Partial<Record<string, string>>
 }
 
 // Moje přihlášky → Detail přihlášky → Úprava přihlášky (F35-2a): personal and
@@ -87,7 +99,16 @@ export function RegistrationChangeForm({
   errors = {},
   needsErrors,
   errorMessage,
+  questions = [],
+  answers: initialAnswers = {},
+  onAnswersChange,
+  answerErrors,
 }: RegistrationChangeFormProps) {
+  const [answers, setAnswers] = useState<AnswerValues>(initialAnswers)
+  const chooseAnswers = (next: AnswerValues) => {
+    setAnswers(next)
+    onAnswersChange?.(next)
+  }
   const [gender, setGender] = useState<GenderAnswer>({
     gender: contact.gender,
     genderOther: contact.genderOther,
@@ -189,6 +210,23 @@ export function RegistrationChangeForm({
           </FieldGroup>
         </CardContent>
       </Card>
+
+      {questions.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Otázky pořadatele</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <QuestionAnswersFields
+              idPrefix="change-answer"
+              questions={questions}
+              value={answers}
+              onChange={chooseAnswers}
+              errors={answerErrors}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>

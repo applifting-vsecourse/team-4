@@ -91,6 +91,10 @@ const REGISTRATION: DetailData = {
   isCancelled: false,
   canChange: true,
   availableTerms: [],
+  questions: [],
+  questionsVersion: "q-none",
+  answers: [],
+  missingAnswers: [],
 }
 
 const respondWith = (body: unknown) => ({ json: () => Promise.resolve(body) })

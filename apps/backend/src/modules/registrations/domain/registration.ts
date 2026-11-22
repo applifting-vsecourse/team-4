@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Gender } from '@/modules/registrations/domain/gender';
+import { Answer } from '@/modules/registrations/domain/questions';
 import {
   NO_NEEDS,
   normalizeNeeds,
@@ -30,6 +31,13 @@ export type RegistrationInput = {
   gender?: Gender | null;
   /** The own words for `other` only; left out or null is none. */
   genderOther?: string | null;
+  /** One option per categorical question of the event (#485); left out is none. */
+  answers?: Answer[];
+  /**
+   * The questions version the form showed (#485); another one is refused.
+   * Only checked while saving, not part of the hash.
+   */
+  questionsVersion?: string;
   /**
    * The participant ticked "I have read the participation terms" (F07). Only
    * checked while saving; deliberately not stored and not part of the hash.
@@ -58,6 +66,14 @@ export const submissionHash = (input: RegistrationInput): string =>
         normalizeNeeds(input.needs ?? NO_NEEDS),
         ...(input.gender ? [input.gender] : []),
         ...(input.genderOther ? [input.genderOther] : []),
+        // Only when given, so the hash of a submission without answers stays.
+        ...(input.answers?.length
+          ? [
+              [...input.answers]
+                .sort((a, b) => (a.questionId < b.questionId ? -1 : 1))
+                .map((a) => [a.questionId, a.optionId]),
+            ]
+          : []),
       ]),
     )
     .digest('hex');

@@ -1,5 +1,11 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import {
+  answersSelect,
+  GENDER_ATTRIBUTE,
+  hardAttributeFrom,
+  questionAttributesSelect,
+} from '@/modules/accommodation/domain/attributes';
 import { answerChanged } from '@/modules/accommodation/repositories/determination-lapse';
 import {
   confirmedTermsOf,
@@ -14,6 +20,7 @@ import {
   ManagedRegistrationModel,
   RegistrationFilter,
 } from '@/modules/registrations/domain/managed-registration';
+import { answersView } from '@/modules/registrations/domain/questions';
 import {
   needsOf,
   needsSelect,
@@ -22,6 +29,7 @@ import {
   sameNeeds,
 } from '@/modules/registrations/domain/registration-needs';
 import { queueParticipantUpdate } from '@/modules/registrations/repositories/participant-update-queue';
+import { questionSelect } from '@/modules/registrations/repositories/registration-questions.repository';
 import { Injectable } from '@nestjs/common';
 
 const registrationSelect = {
@@ -33,6 +41,7 @@ const registrationSelect = {
   phone: true,
   gender: true,
   genderOther: true,
+  answers: answersSelect,
   variableSymbol: true,
   paymentReminderAt: true,
   // Whether the accommodation must be determined by hand (F64, S3-01).
@@ -41,9 +50,13 @@ const registrationSelect = {
       accommodationRules: {
         select: { hardAttribute: true, nonDeterminingValues: true },
       },
+      // A determination counts only with a value the question still has (#485).
+      questions: questionAttributesSelect,
     },
   },
-  accommodationManualValue: { select: { value: true, basedOnAnswer: true } },
+  accommodationManualValue: {
+    select: { attribute: true, value: true, basedOnAnswer: true },
+  },
   terms: {
     orderBy: [{ term: { startDate: 'asc' } }, { termId: 'asc' }],
     select: {
@@ -64,6 +77,12 @@ const detailSelect = {
   ...registrationSelect,
   version: true,
   ...needsSelect,
+  event: {
+    select: {
+      ...registrationSelect.event.select,
+      questions: questionSelect,
+    },
+  },
 } satisfies Prisma.RegistrationSelect;
 
 const registrationOf = (
@@ -94,14 +113,12 @@ const registrationOf = (
   row.gender,
   row.genderOther,
   {
-    hardAttribute: row.event.accommodationRules?.hardAttribute
-      ? {
-          attribute: row.event.accommodationRules.hardAttribute,
-          nonDeterminingValues:
-            row.event.accommodationRules.nonDeterminingValues,
-        }
-      : null,
+    hardAttribute: hardAttributeFrom(
+      row.event.accommodationRules ?? null,
+      row.event.questions,
+    ),
     manualValue: row.accommodationManualValue,
+    answers: row.answers,
   },
 ];
 
@@ -117,6 +134,7 @@ const toDetail = (
     registrationOf(row),
     needsOf(row),
     row.version,
+    answersView(row.event.questions, row.answers),
   );
 
 /** Registrations of the scope's event only, of an organization of the caller (§3.2). */
@@ -270,7 +288,7 @@ export class EventRegistrationsRepository {
           select: { version: true },
         });
         if (locked.gender !== answer.gender) {
-          await answerChanged(tx, registrationId);
+          await answerChanged(tx, registrationId, GENDER_ATTRIBUTE);
         }
         // The answer is an input of every term of the registration.
         const terms = await tx.registrationTerm.findMany({

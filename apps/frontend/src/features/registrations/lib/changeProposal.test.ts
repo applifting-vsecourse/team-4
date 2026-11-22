@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import { NO_NEEDS } from "@/features/registrations/api/registrationSchemas"
 import {
   buildProposal,
+  isCancellationOnly,
   validateContact,
   type EditState,
 } from "@/features/registrations/lib/changeProposal"
@@ -19,9 +20,10 @@ const CONTACT = {
   genderOther: null,
   needs: NO_NEEDS,
   heldTermIds: [T1, T2],
+  answers: { q1: "o1" } as Record<string, string | null>,
 } satisfies Pick<
   EditState,
-  "firstName" | "lastName" | "phone" | "gender" | "genderOther" | "needs"
+  "firstName" | "lastName" | "phone" | "gender" | "genderOther" | "needs" | "answers"
 > & {
   heldTermIds: string[]
 }
@@ -34,6 +36,7 @@ const state = (overrides: Partial<EditState> = {}): EditState => ({
   genderOther: CONTACT.genderOther,
   needs: CONTACT.needs,
   selectedTermIds: [T1, T2],
+  answers: CONTACT.answers,
   ...overrides,
 })
 
@@ -163,5 +166,21 @@ describe("validateContact", () => {
       phone: "Zadejte telefon s mezinárodní předvolbou, např. +420 777 123 456.",
     })
     expect(validateContact(state())).toEqual({})
+  })
+
+  it("proposes only the answers that changed (#485)", () => {
+    expect(buildProposal(CONTACT, state())).toBeNull()
+    expect(buildProposal(CONTACT, state({ answers: { q1: "o2", q2: null } }))).toEqual({
+      moves: [],
+      cancelledTermIds: [],
+      answers: [{ questionId: "q1", optionId: "o2" }],
+    })
+  })
+
+  it("tells a cancellation alone from other changes (#485)", () => {
+    const cancel = { moves: [], cancelledTermIds: [T2] }
+    expect(isCancellationOnly(cancel)).toBe(true)
+    expect(isCancellationOnly({ ...cancel, phone: "+420731987654" })).toBe(false)
+    expect(isCancellationOnly({ moves: [], cancelledTermIds: [] })).toBe(false)
   })
 })

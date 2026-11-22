@@ -32,10 +32,10 @@ import {
   type OrderPerson,
   type TermEvaluationProps,
 } from "@/features/accommodation/components/TermEvaluation"
+import { useAttributeLabels } from "@/features/accommodation/hooks/useAttributeLabels"
 import { useConfirmProposal } from "@/features/accommodation/hooks/useConfirmProposal"
 import { useRecalculate } from "@/features/accommodation/hooks/useRecalculate"
 import {
-  attributeLabel,
   toCapacity,
   toConflict,
   toEvaluationTerm,
@@ -88,6 +88,7 @@ export function TermEvaluationSection({
   onSelect,
   renderName,
 }: TermEvaluationSectionProps) {
+  const labels = useAttributeLabels(organizationId, eventId)
   const queryClient = useQueryClient()
   const hasTerm = termId !== ""
   // Another term keeps the previous one on screen until its own data arrive,
@@ -206,7 +207,7 @@ export function TermEvaluationSection({
     })),
     ...(moves.data ?? []).map((move) => ({
       time: Date.parse(move.createdAt),
-      entry: toHistoryMove(move, data.hardAttribute?.attribute ?? null),
+      entry: toHistoryMove(move, data.hardAttribute?.attribute ?? null, labels),
     })),
   ]
     .sort((a, b) => b.time - a.time)
@@ -268,11 +269,11 @@ export function TermEvaluationSection({
         evaluatedAt={
           data.proposalRun ? formatPragueDateTime(data.proposalRun.finishedAt) : undefined
         }
-        conflict={toConflict(data)}
-        attribute={data.hardAttribute ? attributeLabel(data.hardAttribute.attribute) : null}
+        conflict={toConflict(data, labels)}
+        attribute={data.hardAttribute ? labels.attribute(data.hardAttribute.attribute) : null}
         capacity={toCapacity(data)}
-        queues={toQueues(data)}
-        people={toOrderPeople(data)}
+        queues={toQueues(data, labels)}
+        people={toOrderPeople(data, labels)}
         onRecalculate={() => recalculate.mutate()}
         recalculateError={recalculateError}
         renderName={renderName}
@@ -388,7 +389,7 @@ export function TermEvaluationSection({
         <RunEvidenceSheet
           isOpen={openRunId !== null}
           onOpenChange={(isOpen) => (isOpen ? undefined : setOpenRunId(null))}
-          {...toEvidence(evidence.data)}
+          {...toEvidence(evidence.data, labels)}
         />
       ) : null}
     </>

@@ -19,7 +19,10 @@ export function RegistrationChangeActions({
   return (
     <div className="flex items-start gap-2">
       {registrationId ? (
-        <Button className="min-w-0 max-w-full shrink whitespace-normal" asChild>
+        <Button
+          className="max-w-full min-w-0 shrink whitespace-normal"
+          asChild
+        >
           <Link
             to={ROUTES.myRegistrationEdit}
             params={{ registrationId }}
@@ -29,14 +32,14 @@ export function RegistrationChangeActions({
           </Link>
         </Button>
       ) : (
-        <Button className="min-w-0 max-w-full shrink whitespace-normal">
+        <Button className="max-w-full min-w-0 shrink whitespace-normal">
           <Pencil />
           Spravovat přihlášku
         </Button>
       )}
       {onCancelRegistration ? (
         <Button
-          className="min-w-0 max-w-full shrink whitespace-normal"
+          className="max-w-full min-w-0 shrink whitespace-normal"
           variant="outline"
           onClick={onCancelRegistration}
         >

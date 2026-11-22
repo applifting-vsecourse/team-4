@@ -62,6 +62,15 @@ export const changeSummarySchema = z.object({
       }),
     ]),
   ),
+  /** Changed answers to the organizer's questions (#485). */
+  answers: z.array(
+    z.object({
+      questionId: z.string().uuid(),
+      question: z.string(),
+      original: z.object({ optionId: z.string().uuid(), label: z.string() }).nullable(),
+      proposed: z.object({ optionId: z.string().uuid(), label: z.string() }).nullable(),
+    }),
+  ),
   /** Transport, diet and health (F63); null when they stay. */
   needs: z
     .object({ original: registrationNeedsSchema, proposed: registrationNeedsSchema })
@@ -133,6 +142,10 @@ export type ChangeProposal = {
   cancelledTermIds: string[]
   /** Terms of the event added next to the current ones (F35-2c); left out is none. */
   addedTermIds?: string[]
+  /** Answers to the organizer's questions (#485); null removes one, left out keeps it. */
+  answers?: { questionId: string; optionId: string | null }[]
+  /** The questions version the form showed (#485); another one is refused. */
+  questionsVersion?: string
 }
 
 export type SubmitChangeInput = ChangeProposal & {

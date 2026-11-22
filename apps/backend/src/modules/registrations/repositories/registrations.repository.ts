@@ -3,11 +3,16 @@ import { Prisma } from '@/generated/prisma/client';
 import { termInputsChanged } from '@/modules/accommodation/repositories/term-inputs';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import {
+  AnswerError,
+  invalidAnswers,
+} from '@/modules/registrations/domain/questions';
+import {
   normalizeEmail,
   RegistrationInput,
   RegistrationResultModel,
 } from '@/modules/registrations/domain/registration';
 import { normalizeNeeds } from '@/modules/registrations/domain/registration-needs';
+import { questionsOf } from '@/modules/registrations/repositories/registration-questions.repository';
 import { Injectable } from '@nestjs/common';
 
 const resultSelect = {
@@ -79,7 +84,9 @@ export type SubmitOutcome =
   | { kind: 'event_unavailable' }
   | { kind: 'term_unknown' }
   /** The event has participation terms and the submit did not confirm them. */
-  | { kind: 'conditions_unconfirmed' };
+  | { kind: 'conditions_unconfirmed' }
+  /** The answers do not fit the event's questions now (#485). */
+  | { kind: 'answers_invalid'; error: AnswerError };
 
 type OpenEventRow = {
   id: string;
@@ -171,6 +178,17 @@ export class RegistrationsRepository {
         select: { id: true, priceMinor: true },
       });
 
+      // Against the questions as they are now: a form opened before a change
+      // is asked again (#485). An option removed meanwhile fails the answer's
+      // foreign key, which the service reports the same way.
+      const answers = input.answers ?? [];
+      const answerError = invalidAnswers(
+        await questionsOf(tx, event.id),
+        answers,
+        input.questionsVersion,
+      );
+      if (answerError) return { kind: 'answers_invalid', error: answerError };
+
       // Opening requires settings for any paid term (S2-06, S3-C04) and S2-09
       // keeps them valid; only an all-free event may have none.
       if (!hasPaymentSettings && terms.some((term) => term.priceMinor > 0)) {
@@ -229,6 +247,15 @@ export class RegistrationsRepository {
           decidedAt,
         })),
       });
+      if (answers.length > 0)
+        await tx.registrationAnswer.createMany({
+          data: answers.map((answer) => ({
+            registrationId: registration.id,
+            eventId: event.id,
+            questionId: answer.questionId,
+            optionId: answer.optionId,
+          })),
+        });
       await termInputsChanged(tx, event.id, input.termIds);
 
       await tx.emailDelivery.create({

@@ -2,24 +2,36 @@ import { z } from "zod"
 
 // The term evaluation API of S3-01 (Přihlášky → Vyhodnocení, Nastavení →
 // Automatizace). Answers and values of the hard attribute are the API's
-// codes, e.g. `female`; labels come from the client.
+// codes: gender's `female`, or the option id of a question (#485); their
+// labels come with the event's attributes (`eventAttributeSchema`).
 
 export const evaluationModeSchema = z.enum(["automatic", "manual"])
 export type EvaluationMode = z.infer<typeof evaluationModeSchema>
 
 export const evaluationModeResponseSchema = z.object({ mode: evaluationModeSchema })
 
-/** Nastavení → Pravidla ubytování (#384): none or one hard attribute of the event. */
+/** A categorical question of the event: gender or one of its own (#485), with labels. */
+export const eventAttributeSchema = z.object({
+  /** `gender`, or the id of a question. */
+  attribute: z.string(),
+  label: z.string(),
+  /** Every answer, in form order. */
+  values: z.array(z.object({ value: z.string(), label: z.string() })),
+  /** The answers that decide no room when it is first chosen as the hard attribute. */
+  defaultNonDeterminingValues: z.array(z.string()),
+  /** The answers offered as neutral when it is first added as a soft preference. */
+  defaultNeutralValues: z.array(z.string()),
+})
+export type EventAttribute = z.infer<typeof eventAttributeSchema>
+
+/** Nastavení → Pravidla ubytování (#384, #485): none or one hard attribute of the event. */
 export const hardAttributeSettingSchema = z.object({
   /** The question that splits rooms, e.g. `gender`; null when none does. */
   hardAttribute: z.string().nullable(),
-  options: z.array(
-    z.object({
-      attribute: z.string(),
-      values: z.array(z.string()),
-      nonDeterminingValues: z.array(z.string()),
-    }),
-  ),
+  /** Its answers that decide no room; empty without a hard attribute. */
+  nonDeterminingValues: z.array(z.string()),
+  /** Every categorical question of the event, gender first. */
+  options: z.array(eventAttributeSchema),
 })
 export type HardAttributeSetting = z.infer<typeof hardAttributeSettingSchema>
 

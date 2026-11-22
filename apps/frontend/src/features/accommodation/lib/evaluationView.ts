@@ -1,6 +1,7 @@
 import { formatCalendarRange, formatPragueDateTime } from "@/lib/date"
 
 import {
+  type EventAttribute,
   type MoveRecord,
   type RunEvidence,
   type RunListItem,
@@ -28,24 +29,44 @@ export const EVERYONE = "everyone"
 /** The queue tab of the people waiting for a manual determination. */
 export const MANUAL = "manual"
 
-const ATTRIBUTE_LABELS: Record<string, string> = { gender: "Pohlaví" }
-
-/** The answers of the gender preset (F64), worded as the registration form words them. */
-const GENDER_VALUE_LABELS: Record<string, string> = {
-  female: "Žena",
-  male: "Muž",
-  other: "Jiná odpověď",
-  undisclosed: "Nechci uvést",
+/** The built-in gender question (F64), worded as the registration form words it. */
+const GENDER: Pick<EventAttribute, "attribute" | "label" | "values"> = {
+  attribute: "gender",
+  label: "Pohlaví",
+  values: [
+    { value: "female", label: "Žena" },
+    { value: "male", label: "Muž" },
+    { value: "other", label: "Jiná odpověď" },
+    { value: "undisclosed", label: "Nechci uvést" },
+  ],
 }
 
-export const attributeLabel = (attribute: string) => ATTRIBUTE_LABELS[attribute] ?? attribute
-
-/** An answer or a value of the hard attribute; no answer reads "Neuvedeno" (F64). */
-export function valueLabel(attribute: string, value: string | null) {
-  if (value === null) return "Neuvedeno"
-  if (attribute === "gender") return GENDER_VALUE_LABELS[value] ?? value
-  return value
+/** Labels of an event's categorical questions and their answers (#485). */
+export type AttributeLabels = {
+  attribute: (attribute: string) => string
+  /** No answer reads "Neuvedeno" (F64). */
+  value: (attribute: string, value: string | null) => string
 }
+
+/**
+ * The labels of gender and of the event's questions (from the attributes of
+ * Pravidla ubytování). A question removed since reads "Odstraněná otázka".
+ */
+export function attributeLabels(
+  attributes: readonly Pick<EventAttribute, "attribute" | "label" | "values">[] = [],
+): AttributeLabels {
+  const known = new Map([GENDER, ...attributes].map((a) => [a.attribute, a]))
+  return {
+    attribute: (attribute) => known.get(attribute)?.label ?? "Odstraněná otázka",
+    value: (attribute, value) =>
+      value === null
+        ? "Neuvedeno"
+        : (known.get(attribute)?.values.find((v) => v.value === value)?.label ?? value),
+  }
+}
+
+/** Gender's labels alone, where the event's questions do not matter. */
+export const GENDER_LABELS = attributeLabels()
 
 export const toEvaluationTerm = (term: {
   id: string
@@ -58,17 +79,20 @@ export const toEvaluationTerm = (term: {
   dates: formatCalendarRange(term.startDate, term.endDate),
 })
 
-export function toOrderPeople(data: TermEvaluationData): OrderPerson[] {
+export function toOrderPeople(
+  data: TermEvaluationData,
+  labels: AttributeLabels = GENDER_LABELS,
+): OrderPerson[] {
   const hard = data.hardAttribute
   return data.order.map((entry) => ({
     id: entry.registrationId,
     position: entry.position,
     name: `${entry.firstName} ${entry.lastName}`,
     receivedAt: formatPragueDateTime(entry.receivedAt),
-    answer: hard ? valueLabel(hard.attribute, entry.answer) : "",
+    answer: hard ? labels.value(hard.attribute, entry.answer) : "",
     determinedAs:
       hard && entry.determinedValue !== null
-        ? valueLabel(hard.attribute, entry.determinedValue)
+        ? labels.value(hard.attribute, entry.determinedValue)
         : undefined,
     queueId: hard ? entry.effectiveValue : EVERYONE,
     state: entry.status,
@@ -78,11 +102,14 @@ export function toOrderPeople(data: TermEvaluationData): OrderPerson[] {
   }))
 }
 
-export function toQueues(data: TermEvaluationData): TermQueue[] {
+export function toQueues(
+  data: TermEvaluationData,
+  labels: AttributeLabels = GENDER_LABELS,
+): TermQueue[] {
   const hard = data.hardAttribute
   return data.queues.map((queue) => ({
     id: queue.value ?? EVERYONE,
-    label: hard && queue.value !== null ? valueLabel(hard.attribute, queue.value) : "Všichni",
+    label: hard && queue.value !== null ? labels.value(hard.attribute, queue.value) : "Všichni",
     pending: queue.pending,
     waitlisted: queue.waitlisted,
     suitable: queue.suitable,
@@ -104,9 +131,12 @@ const CONSTRAINTS: Record<
     `Homogenita: potvrzení se podle hodnoty „${attribute ?? "tvrdého atributu"}“ nevejdou do dostupných pokojů.`,
 }
 
-export function toConflict(data: TermEvaluationData): EvaluationConflict | undefined {
+export function toConflict(
+  data: TermEvaluationData,
+  labels: AttributeLabels = GENDER_LABELS,
+): EvaluationConflict | undefined {
   if (!data.conflict) return undefined
-  const attribute = data.hardAttribute ? attributeLabel(data.hardAttribute.attribute) : null
+  const attribute = data.hardAttribute ? labels.attribute(data.hardAttribute.attribute) : null
   return {
     constraint: CONSTRAINTS[data.conflict.constraint](attribute),
     confirmed: data.conflict.confirmed.map((person) => `${person.firstName} ${person.lastName}`),
@@ -129,37 +159,46 @@ export const toHistoryRun = (run: RunListItem, termLabel: string): HistoryRun =>
 })
 
 /** E.g. "1. turnus · fronta Žena"; "fronta všech" without a hard attribute. */
-export function queueLabel(termLabel: string, attribute: string | null, queue: string | null) {
+export function queueLabel(
+  termLabel: string,
+  attribute: string | null,
+  queue: string | null,
+  labels: AttributeLabels = GENDER_LABELS,
+) {
   return `${termLabel} · ${
-    attribute && queue !== null ? `fronta ${valueLabel(attribute, queue)}` : "fronta všech"
+    attribute && queue !== null ? `fronta ${labels.value(attribute, queue)}` : "fronta všech"
   }`
 }
 
 /** A manual change of the order (F39-1); the attribute of the term's rules, if any. */
-export const toHistoryMove = (move: MoveRecord, attribute: string | null): HistoryMove => ({
+export const toHistoryMove = (
+  move: MoveRecord,
+  attribute: string | null,
+  labels: AttributeLabels = GENDER_LABELS,
+): HistoryMove => ({
   kind: "move",
   id: move.id,
   at: formatPragueDateTime(move.createdAt),
   author: move.actor.name,
   person: `${move.person.firstName} ${move.person.lastName}`,
-  queueLabel: queueLabel(move.termLabel, attribute, move.queue),
+  queueLabel: queueLabel(move.termLabel, attribute, move.queue, labels),
   fromPosition: move.fromPosition,
   toPosition: move.toPosition,
   reason: move.reason,
 })
 
 /** The evidence sheet's content, with the run's own answers and determinations. */
-export function toEvidence(run: RunEvidence) {
+export function toEvidence(run: RunEvidence, labels: AttributeLabels = GENDER_LABELS) {
   const hard = run.hardAttribute
   const order: EvidencePerson[] = run.order.map((person) => ({
     id: person.registrationId,
     position: person.position ?? 0,
     name: `${person.firstName} ${person.lastName}`,
     receivedAt: formatPragueDateTime(person.receivedAt),
-    answer: hard ? valueLabel(hard.attribute, person.answer) : "",
+    answer: hard ? labels.value(hard.attribute, person.answer) : "",
     determinedAs:
       hard && person.manualValue !== null
-        ? valueLabel(hard.attribute, person.manualValue)
+        ? labels.value(hard.attribute, person.manualValue)
         : undefined,
     result: person.result,
     reason: person.reason,
@@ -169,8 +208,8 @@ export function toEvidence(run: RunEvidence) {
     startedBy: run.triggeredBy?.name ?? "Automaticky",
     solverVersion: run.solverVersion,
     rules: hard && {
-      attribute: attributeLabel(hard.attribute),
-      nonDetermining: hard.nonDeterminingValues.map((value) => valueLabel(hard.attribute, value)),
+      attribute: labels.attribute(hard.attribute),
+      nonDetermining: hard.nonDeterminingValues.map((value) => labels.value(hard.attribute, value)),
     },
     rooms: run.rooms.map((room) => ({
       id: room.roomId,

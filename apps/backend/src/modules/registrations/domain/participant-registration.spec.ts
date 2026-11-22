@@ -42,6 +42,8 @@ const registration = (
     0,
     false,
     NO_NEEDS,
+    [],
+    [],
   );
 
 describe('ParticipantRegistrationModel', () => {

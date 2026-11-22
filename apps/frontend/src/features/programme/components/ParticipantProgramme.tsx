@@ -5,10 +5,10 @@ import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { Notice } from "@/components/Notice"
 import { ParticipationBadge } from "@/components/ParticipationBadge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Button } from "@/components/ui/button"
 import { type TermParticipation } from "@/lib/participation"
 
 import { ProgrammeList, type ProgrammeDay } from "@/features/programme/components/ProgrammeList"
@@ -61,7 +61,11 @@ export function ParticipantProgramme({ terms, onRetry }: ParticipantProgrammePro
                       className="size-4 shrink-0 transition-transform group-data-[state=closed]:-rotate-90 motion-reduce:transition-none"
                     />
                     <span className="min-w-0 space-y-1">
-                      <span role="heading" aria-level={2} className="block text-h4 wrap-break-word">
+                      <span
+                        role="heading"
+                        aria-level={2}
+                        className="block text-h4 wrap-break-word"
+                      >
                         Program – {term.label}
                       </span>
                       <span className="block text-sm font-normal text-muted-foreground">

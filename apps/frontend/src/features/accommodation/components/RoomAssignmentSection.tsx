@@ -14,11 +14,13 @@ import { publicationQueryOptions } from "@/features/accommodation/api/publicatio
 import { PlacementWarningDialog } from "@/features/accommodation/components/PlacementWarningDialog"
 import { RoomAssignment } from "@/features/accommodation/components/RoomAssignment"
 import { RoomPublicationControl } from "@/features/accommodation/components/RoomPublicationControl"
+import { useAttributeLabels } from "@/features/accommodation/hooks/useAttributeLabels"
 import {
   useSavePlacement,
   type PlacementChange,
 } from "@/features/accommodation/hooks/useSavePlacement"
 import { useSetPublication } from "@/features/accommodation/hooks/useSetPublication"
+import { AttributeLabelsContext } from "@/features/accommodation/lib/attributeLabelsContext"
 import {
   describeWarnings,
   offersLock,
@@ -66,6 +68,7 @@ export function RoomAssignmentSection({
   eventId,
   selectedTermId,
 }: RoomAssignmentSectionProps) {
+  const labels = useAttributeLabels(organizationId, eventId)
   const queryClient = useQueryClient()
   const placements = useQuery(placementsQueryOptions(organizationId, eventId, selectedTermId))
   const save = useSavePlacement(organizationId, eventId, selectedTermId)
@@ -116,7 +119,7 @@ export function RoomAssignmentSection({
             fresh,
             personId,
             change.roomId,
-            describeWarnings(fresh, personId, change.roomId, result.warnings),
+            describeWarnings(fresh, personId, change.roomId, result.warnings, labels),
             true,
           )
         }
@@ -147,7 +150,7 @@ export function RoomAssignmentSection({
       toast.error("Pokoj v tomto termínu není k dispozici.")
       return
     }
-    const warnings = placementWarnings(data, personId, roomId)
+    const warnings = placementWarnings(data, personId, roomId, labels)
     if (warnings.length === 0) {
       void store(personId, { kind: "place", roomId, confirmWarnings: [] }, "Umístění bylo uloženo.")
       return
@@ -166,9 +169,9 @@ export function RoomAssignmentSection({
   }
 
   return (
-    <>
+    <AttributeLabelsContext.Provider value={labels}>
       <RoomAssignment
-        board={data ? toPlacementBoard(data) : undefined}
+        board={data ? toPlacementBoard(data, labels) : undefined}
         isLoadFailed={placements.isError}
         onRetryLoad={placements.refetch}
         isSwitching={placements.isPlaceholderData}
@@ -237,6 +240,6 @@ export function RoomAssignmentSection({
           onCancel={() => setPending(null)}
         />
       ) : null}
-    </>
+    </AttributeLabelsContext.Provider>
   )
 }

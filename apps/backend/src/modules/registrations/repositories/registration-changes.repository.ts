@@ -1,5 +1,10 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import {
+  answersSelect,
+  GENDER_ATTRIBUTE,
+} from '@/modules/accommodation/domain/attributes';
+import { lockedRules } from '@/modules/accommodation/repositories/accommodation-rules.repository';
 import { answerChanged } from '@/modules/accommodation/repositories/determination-lapse';
 import {
   confirmedTermsOf,
@@ -25,6 +30,7 @@ import {
   needsSelect,
 } from '@/modules/registrations/domain/registration-needs';
 import { queueParticipantUpdate } from '@/modules/registrations/repositories/participant-update-queue';
+import { questionSelect } from '@/modules/registrations/repositories/registration-questions.repository';
 import { Injectable } from '@nestjs/common';
 
 type Db = Prisma.TransactionClient;
@@ -111,7 +117,16 @@ const snapshotSelect = {
   ...needsSelect,
   gender: true,
   genderOther: true,
-  event: { select: { changeApprovalDays: true } },
+  answers: answersSelect,
+  event: {
+    select: {
+      changeApprovalDays: true,
+      questions: questionSelect,
+      accommodationRules: {
+        select: { hardAttribute: true, softAttributes: true },
+      },
+    },
+  },
   terms: {
     orderBy: [{ term: { startDate: 'asc' } }, { termId: 'asc' }],
     select: {
@@ -157,6 +172,8 @@ const subjectOf = (row: Snapshot): ChangeSubject => ({
   needs: needsOf(row),
   gender: row.gender,
   genderOther: row.genderOther,
+  questions: row.event.questions,
+  answers: row.answers,
   paidMinor: row.payments.reduce((sum, p) => sum + p.amountMinor, 0),
   terms: row.terms.map((term) => ({
     termId: term.termId,
@@ -205,6 +222,19 @@ const storedSummary = (plan: ChangePlan): Prisma.InputJsonValue =>
   JSON.parse(
     JSON.stringify({ kinds: plan.kinds, ...plan.summary }),
   ) as Prisma.InputJsonValue;
+
+/**
+ * A change of answers holds the questions as they are until it commits: the
+ * lock that saving the questions takes (#485). Taken right after the
+ * registration and before the terms, the order the rule saves use too.
+ */
+async function lockQuestions(
+  tx: Db,
+  eventId: string,
+  proposal: ChangeProposal,
+): Promise<void> {
+  if (proposal.answers?.length) await lockedRules(tx, eventId);
+}
 
 @Injectable()
 export class RegistrationChangesRepository {
@@ -284,6 +314,7 @@ export class RegistrationChangesRepository {
         snapshot,
         row.proposal as unknown as ChangeProposal,
         new Date(),
+        false,
       );
       return toModel(row, plan);
     } catch (error) {
@@ -345,12 +376,13 @@ export class RegistrationChangesRepository {
     now: Date,
   ): Promise<SubmitOutcome> {
     return this.prisma.$transaction(async (tx) => {
-      const locked = await tx.$queryRaw<{ id: string }[]>`
-        SELECT "id" FROM "registration"
+      const locked = await tx.$queryRaw<{ id: string; eventId: string }[]>`
+        SELECT "id", "eventId" FROM "registration"
         WHERE "id" = ${registrationId}::uuid
           AND "participantAccountId" = ${accountId}::uuid
         FOR UPDATE`;
       if (locked.length === 0) return { kind: 'not_found' };
+      await lockQuestions(tx, locked[0]!.eventId, input.proposal);
       const snapshot = await tx.registration.findUniqueOrThrow({
         where: { id: registrationId },
         select: snapshotSelect,
@@ -442,17 +474,19 @@ export class RegistrationChangesRepository {
       registrationId,
       changeId,
       async (tx, row) => {
+        const proposal = row.proposal as unknown as StoredProposal;
+        await lockQuestions(tx, scope.eventId, proposal);
         const snapshot = await tx.registration.findUniqueOrThrow({
           where: { id: registrationId },
           select: snapshotSelect,
         });
-        const proposal = row.proposal as unknown as StoredProposal;
         // Never overwrite data that changed after the participant confirmed.
         if (proposal.baseVersion !== snapshot.version) return { kind: 'stale' };
         let plan: ChangePlan;
         try {
           await this.lockTerms(tx, snapshot, proposal);
-          plan = await this.plan(tx, snapshot, proposal, now);
+          // Approved as filed: a question added since is asked for later.
+          plan = await this.plan(tx, snapshot, proposal, now, false);
         } catch (error) {
           return invalid(error);
         }
@@ -574,6 +608,7 @@ export class RegistrationChangesRepository {
     snapshot: Snapshot,
     proposal: ChangeProposal,
     now: Date,
+    asksMissingAnswers = true,
   ): Promise<ChangePlan> {
     const targets = await db.eventTerm.findMany({
       where: {
@@ -596,6 +631,7 @@ export class RegistrationChangesRepository {
       eventTerms,
       snapshot.event.changeApprovalDays,
       now,
+      asksMissingAnswers,
     );
   }
 
@@ -655,7 +691,41 @@ export class RegistrationChangesRepository {
       where: { id: snapshot.id },
       data: { ...fields, version: { increment: 1 } },
     });
-    if (fields.gender !== undefined) await answerChanged(tx, snapshot.id);
+    if (fields.gender !== undefined)
+      await answerChanged(tx, snapshot.id, GENDER_ATTRIBUTE);
+    // The answers to the event's questions (#485), and the determinations
+    // made on the answers that changed.
+    const answerChanges = plan.summary.answers ?? [];
+    for (const change of answerChanges) {
+      if (change.proposed)
+        await tx.registrationAnswer.upsert({
+          where: {
+            registrationId_questionId: {
+              registrationId: snapshot.id,
+              questionId: change.questionId,
+            },
+          },
+          create: {
+            registrationId: snapshot.id,
+            eventId: snapshot.eventId,
+            questionId: change.questionId,
+            optionId: change.proposed.optionId,
+          },
+          update: { optionId: change.proposed.optionId, answeredAt: now },
+        });
+      else
+        await tx.registrationAnswer.deleteMany({
+          where: { registrationId: snapshot.id, questionId: change.questionId },
+        });
+      await answerChanged(tx, snapshot.id, change.questionId);
+    }
+    // Only an answer the accommodation rules read is an input of a proposal.
+    const rules = snapshot.event.accommodationRules;
+    const changesRuledAnswer = answerChanges.some(
+      (change) =>
+        change.questionId === rules?.hardAttribute ||
+        (rules?.softAttributes ?? []).includes(change.questionId),
+    );
     // The participation or the answer changed in every term it touched.
     await termInputsChanged(tx, snapshot.eventId, [
       ...new Set([
@@ -674,7 +744,7 @@ export class RegistrationChangesRepository {
       )
       .map((row) => row.termId);
     // A dropped room is a placement in another term of the person (§7.1).
-    if (fields.gender !== undefined || hasDroppedRoom) {
+    if (fields.gender !== undefined || hasDroppedRoom || changesRuledAnswer) {
       layout.push(...(await confirmedTermsOf(tx, snapshot.id)));
     }
     await termLayoutChanged(tx, snapshot.eventId, [...new Set(layout)]);

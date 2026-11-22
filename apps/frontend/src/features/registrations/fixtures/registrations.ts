@@ -118,6 +118,7 @@ export function makeRegistrationDetail(
     gender: "female",
     genderOther: null,
     requiresManualAccommodation: false,
+    answers: [],
     ...overrides,
   })
 }
