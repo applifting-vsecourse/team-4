@@ -9,6 +9,8 @@ Dva SQL skripty pro produkční databázi akc.io. Spouštějí se ručně v Admi
 | `demo-delete.sql` | Smaže organizátora Marka, jeho organizaci, všechny její akce a všechno, co k nim na demu přibylo, a demo účastníky, kteří nemají jiné přihlášky.        |
 
 Obnovení výchozího stavu: spusťte `demo-create.sql` a potom `demo-photos.mjs upload` (viz níže).
+Skripty pouštějte, když nikdo nepracuje s ubytováním akcí: po dobu běhu krátce zamknou jeho
+tabulky. Pokud skript přesto skončí chybou zablokování, nic nezměnil a jde ho pustit znovu.
 
 Reset projde i po běžném použití dema, například po nové přihlášce, importu výpisu, návrhu
 pokojů, jeho použití a zveřejnění, přání na spolubydlící, změnové žádosti nebo nové akci.
@@ -70,6 +72,9 @@ Adamova cena za 1. turnus je 4 500 Kč, zaevidováno je 2 000 Kč a zbývá 2 50
 na tábor má vždy variabilní symbol `9000000001`. `fio-vypis-tabor.csv` obsahuje jednu příchozí
 platbu 2 500 Kč s tímto VS. Po importu ve správě tábora (Platby → Import výpisu) se platba
 spáruje s Adamovou přihláškou. Po každém obnovení jde výpis importovat znovu.
+
+Na rozdíl od termínů je datum platby ve výpisu pevné (21. 11. 2026). Pokud demo proběhne po 21. 12. 2026, platba by byla starší než Adamova přihláška (D − 30). V tom případě předem upravte
+ve výpisu sloupec `Datum` a období v hlavičce na dny po D − 30.
 
 ## Fotky akcí
 
