@@ -385,3 +385,20 @@ export const QuestionsChanged: Story = {
     await expect(canvas.getByLabelText(/^Jméno/)).toHaveValue("Tereza")
   },
 }
+
+/** Rooms are split by gender (PO feedback on #485): an answer is needed, "Nechci uvést" counts. */
+export const GenderRequired: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...publicEventHandlers.detail({ ...PUBLIC_EVENT_WITHOUT_CONDITIONS, isGenderRequired: true }),
+    )
+  },
+  play: async (context) => {
+    const { canvas } = context
+    await register(context, false)
+    await showsText("Vyberte odpověď, i kdyby to mělo být „Nechci uvést“.")
+    await userEvent.click(canvas.getByRole("radio", { name: "Nechci uvést" }))
+    await userEvent.click(canvas.getByRole("button", { name: "Odeslat přihlášku" }))
+    await expect(await canvas.findByRole("heading", { name: "Přihláška je uložená" })).toBeVisible()
+  },
+}

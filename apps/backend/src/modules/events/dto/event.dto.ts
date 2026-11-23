@@ -314,6 +314,13 @@ export class PublicEventDto {
   })
   questionsVersion!: string;
 
+  @ApiProperty({
+    description:
+      'Rooms are split by gender, so the form requires a gender answer; ' +
+      '"undisclosed" counts as one.',
+  })
+  isGenderRequired!: boolean;
+
   static from(model: PublicEventModel): PublicEventDto {
     return {
       name: model.name,
@@ -329,7 +336,8 @@ export class PublicEventDto {
       isPublished: model.isPublished,
       conditions: model.conditions,
       questions: model.questions.map(FormQuestionDto.from),
-      questionsVersion: questionsVersion(model.questions),
+      questionsVersion: questionsVersion(model),
+      isGenderRequired: model.isGenderRequired,
     };
   }
 }

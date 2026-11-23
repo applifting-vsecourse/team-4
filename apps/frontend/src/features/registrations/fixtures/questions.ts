@@ -37,6 +37,7 @@ export const TROOP: FormQuestion = formQuestionSchema.parse({
 export type OwnQuestions = {
   questions: FormQuestion[]
   questionsVersion: string
+  isGenderRequired: boolean
   answers: Answer[]
   missingAnswers: string[]
 }
@@ -44,6 +45,7 @@ export type OwnQuestions = {
 export const NO_QUESTIONS: OwnQuestions = {
   questions: [],
   questionsVersion: "q-none",
+  isGenderRequired: false,
   answers: [],
   missingAnswers: [],
 }
@@ -52,6 +54,7 @@ export const NO_QUESTIONS: OwnQuestions = {
 export const ANSWERED: OwnQuestions = {
   questions: [SCHOOL, TROOP],
   questionsVersion: "q-school-troop",
+  isGenderRequired: false,
   answers: [
     { questionId: SCHOOL.id, optionId: SCHOOL.options[1]!.id },
     { questionId: TROOP.id, optionId: TROOP.options[0]!.id },
@@ -63,6 +66,7 @@ export const ANSWERED: OwnQuestions = {
 export const MISSING_REQUIRED: OwnQuestions = {
   questions: [SCHOOL, TROOP],
   questionsVersion: "q-school-troop",
+  isGenderRequired: false,
   answers: [],
   missingAnswers: [SCHOOL.id],
 }

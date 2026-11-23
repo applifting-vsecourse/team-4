@@ -13,7 +13,12 @@ import {
   AVAILABLE_TERMS,
   OWN_REGISTRATION,
 } from "@/features/registrations/fixtures/participantRegistrations"
-import { ANSWERED, MISSING_REQUIRED, SCHOOL } from "@/features/registrations/fixtures/questions"
+import {
+  ANSWERED,
+  MISSING_REQUIRED,
+  NO_QUESTIONS,
+  SCHOOL,
+} from "@/features/registrations/fixtures/questions"
 import {
   ADD_TERM_PREVIEW,
   CANCEL_TERM_SUMMARY,
@@ -564,7 +569,7 @@ export const MissingRequiredAnswer: Story = {
   },
   play: async ({ canvas }) => {
     await expect(
-      await canvas.findByText("Pořadatel přidal povinnou otázku", {}, { timeout: 5000 }),
+      await canvas.findByText("Přihláška potřebuje doplnit odpověď", {}, { timeout: 5000 }),
     ).toBeVisible()
     await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
     await showsText("Vyberte odpověď.")
@@ -593,6 +598,33 @@ export const CancelWithMissingAnswer: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
     await review("Odhlášení")
     await expect(canvas.queryByText("Vyberte odpověď.")).not.toBeInTheDocument()
+  },
+}
+
+/**
+ * Rooms are split by gender and it was never answered (PO feedback on #485):
+ * the page asks for it first; "Nechci uvést" is an answer.
+ */
+export const MissingGender: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...registrationHandlers.ownRegistration(
+        { ...OWN_REGISTRATION, contact: { ...OWN_REGISTRATION.contact, gender: null } },
+        AVAILABLE_TERMS,
+        { ...NO_QUESTIONS, isGenderRequired: true },
+      ),
+    )
+  },
+  play: async (context) => {
+    const { canvas } = context
+    await expect(
+      await canvas.findByText("Přihláška potřebuje doplnit odpověď", {}, { timeout: 5000 }),
+    ).toBeVisible()
+    await changePhone(context)
+    await showsText("Vyberte odpověď, i kdyby to mělo být „Nechci uvést“.")
+    await userEvent.click(canvas.getByRole("radio", { name: "Nechci uvést" }))
+    await userEvent.click(canvas.getByRole("button", { name: "Zkontrolovat změny" }))
+    await review()
   },
 }
 

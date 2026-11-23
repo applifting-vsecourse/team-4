@@ -12,7 +12,7 @@ import {
   RegistrationResultModel,
 } from '@/modules/registrations/domain/registration';
 import { normalizeNeeds } from '@/modules/registrations/domain/registration-needs';
-import { questionsOf } from '@/modules/registrations/repositories/registration-questions.repository';
+import { registrationFormOf } from '@/modules/registrations/repositories/registration-questions.repository';
 import { Injectable } from '@nestjs/common';
 
 const resultSelect = {
@@ -183,9 +183,10 @@ export class RegistrationsRepository {
       // foreign key, which the service reports the same way.
       const answers = input.answers ?? [];
       const answerError = invalidAnswers(
-        await questionsOf(tx, event.id),
+        await registrationFormOf(tx, event.id),
         answers,
         input.questionsVersion,
+        input.gender,
       );
       if (answerError) return { kind: 'answers_invalid', error: answerError };
 

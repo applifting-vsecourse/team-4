@@ -31,6 +31,8 @@ export const publicEventSchema = z.object({
   ),
   // The version of the questions shown; sent back with the registration.
   questionsVersion: z.string(),
+  // Rooms are split by gender: the form requires an answer ("Nechci uvést" counts).
+  isGenderRequired: z.boolean(),
 })
 
 export type PublicEvent = z.infer<typeof publicEventSchema>

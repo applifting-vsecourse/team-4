@@ -139,8 +139,13 @@ export class PublicEventModel {
     public readonly isPublished: boolean,
     /** Participation terms (F07); empty means nothing to confirm. */
     public readonly conditions: string,
-    /** The categorical questions of the form (#485), in form order. */
+    /**
+     * The categorical questions of the form (#485), in form order; the one
+     * that splits rooms is required.
+     */
     public readonly questions: Question[],
+    /** Rooms are split by gender, so the form requires an answer. */
+    public readonly isGenderRequired: boolean,
   ) {}
 }
 

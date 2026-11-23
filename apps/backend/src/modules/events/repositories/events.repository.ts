@@ -21,6 +21,7 @@ import {
   PresentationInput,
   PublicContact,
 } from '@/modules/events/domain/presentation';
+import { formOf } from '@/modules/registrations/domain/questions';
 import { questionSelect } from '@/modules/registrations/repositories/registration-questions.repository';
 import { Injectable } from '@nestjs/common';
 
@@ -482,9 +483,14 @@ export class EventsRepository {
         conditions: true,
         terms: PUBLIC_TERM_SELECT,
         questions: questionSelect,
+        accommodationRules: { select: { hardAttribute: true } },
       },
     });
     if (!event) return null;
+    const form = formOf(
+      event.questions,
+      event.accommodationRules?.hardAttribute,
+    );
     return new PublicEventModel(
       event.name,
       event.description,
@@ -492,7 +498,8 @@ export class EventsRepository {
       event.terms.map(toPublicTerm),
       event.isPublished,
       event.conditions,
-      event.questions,
+      form.questions,
+      form.isGenderRequired,
     );
   }
 

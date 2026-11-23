@@ -137,13 +137,14 @@ test("an older registration without an answer reads Neuvedeno, decided by hand",
   page,
 }) => {
   const event = await setUpEvent(page.request, { terms, rooms })
-  await setHardAttribute(page.request, event, "gender")
+  // Registered before rooms were split by gender: a later form requires it.
   const registration = await register(
     page.request,
     event.publicId,
     newParticipant("Eva"),
     event.termIds,
   )
+  await setHardAttribute(page.request, event, "gender")
 
   await page.goto(
     `/organizations/${event.organizationId}/events/${event.eventId}/registrations/${registration.id}`,

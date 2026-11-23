@@ -1019,6 +1019,7 @@ describe('public event page', () => {
       conditions: '',
       questions: [],
       questionsVersion: expect.any(String),
+      isGenderRequired: false,
     });
   });
 

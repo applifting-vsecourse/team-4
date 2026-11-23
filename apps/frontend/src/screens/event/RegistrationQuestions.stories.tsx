@@ -70,6 +70,13 @@ export const Questions: Story = {
       ),
     ).toBeVisible()
     await expect(section.getByRole("button", { name: "Odebrat Škola" })).toBeDisabled()
+    // Rooms are split by it, so it stays required (PO feedback).
+    const [schoolRequired, troopRequired] = section.getAllByRole("checkbox", {
+      name: "Povinná odpověď",
+    })
+    await expect(schoolRequired).toBeChecked()
+    await expect(schoolRequired).toBeDisabled()
+    await expect(troopRequired).toBeEnabled()
     await expect(section.getAllByText("Zvolená")).toHaveLength(2)
     await expect(section.getByRole("button", { name: "Odebrat Oddíl" })).toBeEnabled()
   },

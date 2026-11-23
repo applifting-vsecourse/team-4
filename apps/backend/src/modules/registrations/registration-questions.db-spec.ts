@@ -382,7 +382,10 @@ describe('answers on the public form', () => {
     expect(unknown.body.code).toBe('questions_changed');
 
     // A form opened before a rename sends the version it showed.
-    const shown = questionsVersion([school]);
+    const shown = questionsVersion({
+      questions: [school],
+      isGenderRequired: false,
+    });
     const [renamedSchool] = (
       await f.save([
         { ...(asDrafts([school])[0] as object), label: 'Základní škola' },
@@ -395,7 +398,10 @@ describe('answers on the public form', () => {
     expect(renamed.status).toBe(409);
     expect(renamed.body.code).toBe('questions_changed');
 
-    const current = questionsVersion([renamedSchool]);
+    const current = questionsVersion({
+      questions: [renamedSchool],
+      isGenderRequired: false,
+    });
     const saved = await submit(f, {
       answers: [{ questionId: school.id, optionId: school.options[1].id }],
       questionsVersion: current,
@@ -571,5 +577,69 @@ describe('a question as an accommodation attribute', () => {
       (await call('GET', detail, { user: f.ownerId })).body
         .requiresManualAccommodation,
     ).toBe(false);
+  });
+});
+
+describe('what splits rooms is required (PO feedback)', () => {
+  it('asks for gender or the question while it splits rooms', async () => {
+    const f = await setup();
+    const rules = `organizations/${f.organizationId}/events/${f.event.id}/accommodation/hard-attribute`;
+    // Registered while nothing split rooms: no gender given.
+    const before = await submit(f);
+    expect(before.status).toBe(201);
+
+    await call('PUT', rules, { user: f.ownerId }, { hardAttribute: 'gender' });
+    const noGender = await submit(f);
+    expect(noGender.status).toBe(400);
+    expect(noGender.body.code).toBe('gender_required');
+    expect((await submit(f, { gender: 'undisclosed' })).status).toBe(201);
+
+    // The earlier registration is asked for it on its next change; a
+    // cancellation alone goes through.
+    const account = (
+      await prisma.registration.findUniqueOrThrow({
+        where: { id: before.body.id },
+        select: { participantAccountId: true },
+      })
+    ).participantAccountId;
+    const own = { account };
+    const path = `participant/registrations/${before.body.id}`;
+    expect((await call('GET', path, own)).body.isGenderRequired).toBe(true);
+    const phone = await call('POST', `${path}/changes/preview`, own, {
+      moves: [],
+      cancelledTermIds: [],
+      phone: '+420731987654',
+    });
+    expect(phone.body.code).toBe('gender_required');
+    expect(
+      (
+        await call('POST', `${path}/changes/preview`, own, {
+          moves: [],
+          cancelledTermIds: [f.terms[0].id],
+        })
+      ).status,
+    ).toBe(200);
+
+    // An optional question that splits rooms is required while it does.
+    const [troop] = (
+      await f.save([
+        {
+          label: 'Oddíl',
+          isRequired: false,
+          options: [{ label: 'Lišky' }, { label: 'Vlci' }],
+        },
+      ])
+    ).body.questions;
+    await call('PUT', rules, { user: f.ownerId }, { hardAttribute: troop.id });
+    const unanswered = await submit(f);
+    expect(unanswered.status).toBe(400);
+    expect(unanswered.body.code).toBe('answer_required');
+    expect(
+      (
+        await submit(f, {
+          answers: [{ questionId: troop.id, optionId: troop.options[0].id }],
+        })
+      ).status,
+    ).toBe(201);
   });
 });

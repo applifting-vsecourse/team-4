@@ -4,11 +4,13 @@ import { lockedRules } from '@/modules/accommodation/repositories/accommodation-
 import { ownedEvent } from '@/modules/accommodation/repositories/term-evaluation.repository';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import {
+  formOf,
   planQuestions,
   Question,
   QuestionDraft,
   QuestionsError,
   QuestionUsage,
+  RegistrationForm,
 } from '@/modules/registrations/domain/questions';
 import { Injectable } from '@nestjs/common';
 
@@ -49,6 +51,21 @@ export async function questionsOf(
     where: { eventId },
     ...questionSelect,
   });
+}
+
+/** The form as participants answer it now: the rules make their question required. */
+export async function registrationFormOf(
+  db: Db,
+  eventId: string,
+): Promise<RegistrationForm> {
+  const [questions, rules] = await Promise.all([
+    questionsOf(db, eventId),
+    db.accommodationRules.findUnique({
+      where: { eventId },
+      select: { hardAttribute: true },
+    }),
+  ]);
+  return formOf(questions, rules?.hardAttribute);
 }
 
 async function usageOf(

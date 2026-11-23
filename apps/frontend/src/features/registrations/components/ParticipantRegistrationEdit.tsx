@@ -29,6 +29,7 @@ import {
   type ContactErrors,
   type FormTerm,
 } from "@/features/registrations/components/RegistrationChangeForm"
+import { GENDER_REQUIRED } from "@/features/registrations/components/RegistrationForm"
 import { RegistrationTermStates } from "@/features/registrations/components/RegistrationTermStates"
 import { RoommateWishesCard } from "@/features/registrations/components/RoommateWishesCard"
 import {
@@ -208,6 +209,7 @@ function EditForm({ registration, hasConfirmedTerm, onReload, onLeave }: EditFor
   const [errors, setErrors] = useState<ContactErrors>({})
   const [needsErrors, setNeedsErrors] = useState<RegistrationNeedsErrors>({})
   const [answerErrors, setAnswerErrors] = useState<Partial<Record<string, string>>>({})
+  const [genderError, setGenderError] = useState<string>()
   const [message, setMessage] = useState<string>()
   const [proposal, setProposal] = useState<ChangeProposal | null>(null)
 
@@ -226,6 +228,9 @@ function EditForm({ registration, hasConfirmedTerm, onReload, onLeave }: EditFor
     }))
   }, [active, availableTerms])
 
+  // Answered before the rule, or never: asked for before other changes.
+  const isGenderMissing = registration.isGenderRequired && contact.gender === null
+
   const review = () => {
     const contactErrors = validateContact(state)
     const invalidNeeds = validateNeeds(state.needs)
@@ -243,12 +248,19 @@ function EditForm({ registration, hasConfirmedTerm, onReload, onLeave }: EditFor
           )
     setErrors(contactErrors)
     setNeedsErrors(invalidNeeds)
+    // Rooms are split by gender: it needs an answer, except to cancel alone.
+    const missingGender =
+      registration.isGenderRequired && state.gender === null && !(next && isCancellationOnly(next))
+        ? GENDER_REQUIRED
+        : undefined
     setAnswerErrors(unanswered)
+    setGenderError(missingGender)
     if (
       Object.keys(contactErrors).length +
         Object.keys(invalidNeeds).length +
         Object.keys(unanswered).length >
-      0
+        0 ||
+      missingGender
     ) {
       setMessage(undefined)
       return
@@ -264,13 +276,18 @@ function EditForm({ registration, hasConfirmedTerm, onReload, onLeave }: EditFor
 
   return (
     <>
-      {registration.missingAnswers.length > 0 ? (
+      {registration.missingAnswers.length > 0 || isGenderMissing ? (
         <Notice
           tone="warning"
-          title="Pořadatel přidal povinnou otázku"
+          title="Přihláška potřebuje doplnit odpověď"
         >
-          Odpovězte na ni v části Otázky pořadatele. Do té doby lze přihlášku jen odhlásit, jiné
-          změny uložit nelze.
+          {isGenderMissing
+            ? "Pokoje se dělí podle pohlaví, vyberte ho v části Osobní a kontaktní údaje. "
+            : null}
+          {registration.missingAnswers.length > 0
+            ? "Odpovězte na povinnou otázku v části Otázky pořadatele. "
+            : null}
+          Do té doby lze přihlášku jen odhlásit, jiné změny uložit nelze.
         </Notice>
       ) : null}
       <RegistrationChangeForm
@@ -278,6 +295,8 @@ function EditForm({ registration, hasConfirmedTerm, onReload, onLeave }: EditFor
         questions={questions}
         answers={currentAnswers}
         answerErrors={answerErrors}
+        isGenderRequired={registration.isGenderRequired}
+        genderError={genderError}
         onAnswersChange={(answers) => setState((current) => ({ ...current, answers }))}
         terms={formTerms}
         needs={needs}

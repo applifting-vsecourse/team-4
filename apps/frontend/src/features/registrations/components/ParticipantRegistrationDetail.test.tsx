@@ -93,6 +93,7 @@ const REGISTRATION: DetailData = {
   availableTerms: [],
   questions: [],
   questionsVersion: "q-none",
+  isGenderRequired: false,
   answers: [],
   missingAnswers: [],
 }

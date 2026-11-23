@@ -73,6 +73,8 @@ export const participantRegistrationDetailSchema = participantRegistrationSchema
   questions: z.array(formQuestionSchema),
   /** The version of those questions; a change sends it back (#485). */
   questionsVersion: z.string(),
+  /** Rooms are split by gender: a change answers it first while it has none. */
+  isGenderRequired: z.boolean(),
   /** The answers given; a question without one is not answered. */
   answers: z.array(answerSchema),
   /** Required questions without an answer: a change must answer them first. */

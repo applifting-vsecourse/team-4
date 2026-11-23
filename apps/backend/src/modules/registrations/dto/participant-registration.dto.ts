@@ -208,6 +208,13 @@ export class ParticipantRegistrationDetailDto extends ParticipantRegistrationDto
   })
   missingAnswers!: string[];
 
+  @ApiProperty({
+    description:
+      'Rooms are split by gender, so a change must answer it first while ' +
+      'it has none; "undisclosed" counts as an answer.',
+  })
+  isGenderRequired!: boolean;
+
   static fromDetail(
     model: ParticipantRegistrationModel,
     terms: EventTermInfo[],
@@ -222,7 +229,8 @@ export class ParticipantRegistrationDetailDto extends ParticipantRegistrationDto
         priceMinor: term.priceMinor,
       })),
       questions: model.questions.map(FormQuestionDto.from),
-      questionsVersion: questionsVersion(model.questions),
+      questionsVersion: questionsVersion(model.form),
+      isGenderRequired: model.form.isGenderRequired,
       answers: model.answers.map((answer) => ({ ...answer })),
       missingAnswers: model.missingAnswers.map((question) => question.id),
     };

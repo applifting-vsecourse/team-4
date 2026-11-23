@@ -7,7 +7,14 @@ import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Field, FieldDescription, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 
 import {
@@ -163,6 +170,7 @@ export function RegistrationQuestionsSettings({
               const saved = questions.find((question) => question.id === draft.id)
               const kept = keptBecause(saved)
               const canRemoveOptions = !saved?.usedBy
+              const isSplittingRooms = saved?.usedBy === "hard"
               return (
                 <li
                   key={draft.key}
@@ -216,12 +224,24 @@ export function RegistrationQuestionsSettings({
                   <Field orientation="horizontal">
                     <Checkbox
                       id={`required-${draft.key}`}
-                      checked={draft.isRequired}
+                      // Rooms are split by it: required while they are (PO feedback).
+                      checked={draft.isRequired || isSplittingRooms}
+                      disabled={isSplittingRooms}
+                      aria-describedby={
+                        isSplittingRooms ? `required-${draft.key}-reason` : undefined
+                      }
                       onCheckedChange={(checked) =>
                         update(draft.key, (d) => ({ ...d, isRequired: checked === true }))
                       }
                     />
-                    <FieldLabel htmlFor={`required-${draft.key}`}>Povinná odpověď</FieldLabel>
+                    <FieldContent>
+                      <FieldLabel htmlFor={`required-${draft.key}`}>Povinná odpověď</FieldLabel>
+                      {isSplittingRooms ? (
+                        <FieldDescription id={`required-${draft.key}-reason`}>
+                          Povinná, dokud se podle ní dělí pokoje.
+                        </FieldDescription>
+                      ) : null}
+                    </FieldContent>
                   </Field>
                   <FieldSet>
                     <FieldLegend variant="label">Možnosti odpovědi: {name}</FieldLegend>

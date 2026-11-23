@@ -150,7 +150,8 @@ export type ChangeErrorCode =
   | 'term_conflict'
   | 'gender_other_mismatch'
   | 'questions_changed'
-  | 'answer_required';
+  | 'answer_required'
+  | 'gender_required';
 
 const MESSAGES: Record<ChangeErrorCode, string> = {
   no_change: 'Nic se nezměnilo.',
@@ -162,6 +163,7 @@ const MESSAGES: Record<ChangeErrorCode, string> = {
   questions_changed: ANSWER_MESSAGES.questions_changed,
   answer_required:
     'Nejdřív odpovězte na povinné otázky přihlášky, pak lze uložit i další změny.',
+  gender_required: ANSWER_MESSAGES.gender_required,
 };
 
 export class InvalidChangeError extends Error {
@@ -183,6 +185,8 @@ export type ChangeSubject = {
   /** The event's questions in form order and the answers to them (#485). */
   questions: Question[];
   answers: Answer[];
+  /** Rooms are split by gender, so it needs an answer ("undisclosed" counts). */
+  isGenderRequired: boolean;
 };
 
 /** A term of the event with its current price. */
@@ -225,7 +229,11 @@ function planAnswers(
   if (
     asksMissingAnswers &&
     proposal.questionsVersion !== undefined &&
-    proposal.questionsVersion !== questionsVersion(subject.questions)
+    proposal.questionsVersion !==
+      questionsVersion({
+        questions: subject.questions,
+        isGenderRequired: subject.isGenderRequired,
+      })
   )
     throw new InvalidChangeError('questions_changed');
   const proposed = proposal.answers ?? [];
@@ -267,6 +275,10 @@ function planAnswers(
     missingRequired(subject.questions, finalAnswers).length > 0
   )
     throw new InvalidChangeError('answer_required');
+  const finalGender =
+    proposal.gender !== undefined ? proposal.gender : subject.gender;
+  if (asksMissingAnswers && subject.isGenderRequired && finalGender === null)
+    throw new InvalidChangeError('gender_required');
   return changes;
 }
 

@@ -8,6 +8,7 @@ import {
   Answer,
   missingRequired,
   Question,
+  RegistrationForm,
 } from '@/modules/registrations/domain/questions';
 import {
   amountDueMinor,
@@ -56,15 +57,27 @@ export class ParticipantRegistrationModel {
     public readonly hasPendingChange: boolean,
     /** Transport, diet and health (F63). */
     public readonly needs: RegistrationNeeds,
-    /** The categorical questions of the event's form (#485). */
-    public readonly questions: Question[],
-    /** The answers given to them. */
+    /**
+     * The event's form (#485): its questions, the one that splits rooms
+     * required, and whether gender is required for the same reason.
+     */
+    public readonly form: RegistrationForm,
+    /** The answers given to the questions. */
     public readonly answers: Answer[],
   ) {}
+
+  get questions(): Question[] {
+    return this.form.questions;
+  }
 
   /** Required questions without an answer: Úprava přihlášky asks for them first (#485). */
   get missingAnswers(): Question[] {
     return missingRequired(this.questions, this.answers);
+  }
+
+  /** Rooms are split by gender and it has no answer yet: asked for first too. */
+  get isGenderMissing(): boolean {
+    return this.form.isGenderRequired && this.contact.gender === null;
   }
 
   /** Every term released. */

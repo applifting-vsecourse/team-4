@@ -4,6 +4,7 @@
 // preference; its id is the attribute and its option ids are the values.
 
 import { createHash } from 'node:crypto';
+import { GENDER_ATTRIBUTE } from '@/modules/accommodation/domain/attributes';
 
 export const MAX_QUESTIONS = 5;
 export const MIN_OPTIONS = 2;
@@ -20,6 +21,28 @@ export type Question = {
   isRequired: boolean;
   options: QuestionOption[];
 };
+
+/**
+ * The form as participants answer it: the question that splits rooms is
+ * required while it does, gender too (PO feedback on #485). "Nechci uvést"
+ * stays a valid gender answer; it decides no room.
+ */
+export type RegistrationForm = {
+  questions: Question[];
+  isGenderRequired: boolean;
+};
+
+export const formOf = (
+  questions: readonly Question[],
+  hardAttribute: string | null | undefined,
+): RegistrationForm => ({
+  questions: questions.map((question) =>
+    question.id === hardAttribute
+      ? { ...question, isRequired: true }
+      : question,
+  ),
+  isGenderRequired: hardAttribute === GENDER_ATTRIBUTE,
+});
 
 /** A participant's answer: one option of one question. */
 export type Answer = { questionId: string; optionId: string };
@@ -68,13 +91,17 @@ export type AnswerError =
   /** A question is answered twice. */
   | 'answer_invalid'
   /** A required question has no answer. */
-  | 'answer_required';
+  | 'answer_required'
+  /** Rooms are split by gender, so it needs an answer ("Nechci uvést" counts). */
+  | 'gender_required';
 
 export const ANSWER_MESSAGES: Record<AnswerError, string> = {
   questions_changed:
     'Otázky přihlášky se mezitím změnily. Zkontrolujte odpovědi a odešlete je znovu.',
   answer_invalid: 'Na každou otázku lze odpovědět jen jednou.',
   answer_required: 'Odpovězte na povinné otázky.',
+  gender_required:
+    'Vyberte pohlaví pro ubytování. Pokud ho nechcete uvádět, zvolte „Nechci uvést“.',
 };
 
 /**
@@ -83,17 +110,18 @@ export const ANSWER_MESSAGES: Record<AnswerError, string> = {
  * any change made meanwhile, a rename or an added question too, asks the
  * participant again instead of saving answers to other questions (#485).
  */
-export const questionsVersion = (questions: readonly Question[]): string =>
+export const questionsVersion = (form: RegistrationForm): string =>
   createHash('sha256')
     .update(
-      JSON.stringify(
-        questions.map((q) => [
+      JSON.stringify([
+        form.isGenderRequired,
+        form.questions.map((q) => [
           q.id,
           q.label,
           q.isRequired,
           q.options.map((o) => [o.id, o.label]),
         ]),
-      ),
+      ]),
     )
     .digest('hex')
     .slice(0, 16);
@@ -103,12 +131,16 @@ export const questionsVersion = (questions: readonly Question[]): string =>
  * `version` is the one the form showed; left out, only the answers count.
  */
 export function invalidAnswers(
-  questions: readonly Question[],
+  form: RegistrationForm,
   answers: readonly Answer[],
   version?: string,
+  gender?: string | null,
 ): AnswerError | null {
-  if (version !== undefined && version !== questionsVersion(questions))
+  const { questions } = form;
+  if (version !== undefined && version !== questionsVersion(form))
     return 'questions_changed';
+  if (form.isGenderRequired && (gender ?? null) === null)
+    return 'gender_required';
   const ids = answers.map((answer) => answer.questionId);
   if (new Set(ids).size !== ids.length) return 'answer_invalid';
   for (const answer of answers) {

@@ -1,5 +1,6 @@
 import {
   answersView,
+  formOf,
   invalidAnswers,
   missingRequired,
   planQuestions,
@@ -38,23 +39,28 @@ const draft = (question: Question) => ({
   options: question.options.map((o) => ({ id: o.id, label: o.label })),
 });
 
+/** A form without a hard attribute among them. */
+const form = (questions: Question[]) => ({
+  questions,
+  isGenderRequired: false,
+});
+
 describe('answers to the questions of a form (#485)', () => {
   it('needs every required answer, from the question’s own options', () => {
-    expect(invalidAnswers([school, troop], [])).toBe('answer_required');
+    expect(invalidAnswers(form([school, troop]), [])).toBe('answer_required');
     expect(
-      invalidAnswers([school, troop], [{ questionId: 'q1', optionId: 'o2' }]),
+      invalidAnswers(form([school, troop]), [
+        { questionId: 'q1', optionId: 'o2' },
+      ]),
     ).toBeNull();
     expect(
-      invalidAnswers([school], [{ questionId: 'q1', optionId: 'o3' }]),
+      invalidAnswers(form([school]), [{ questionId: 'q1', optionId: 'o3' }]),
     ).toBe('questions_changed');
     expect(
-      invalidAnswers(
-        [school],
-        [
-          { questionId: 'q1', optionId: 'o1' },
-          { questionId: 'q1', optionId: 'o2' },
-        ],
-      ),
+      invalidAnswers(form([school]), [
+        { questionId: 'q1', optionId: 'o1' },
+        { questionId: 'q1', optionId: 'o2' },
+      ]),
     ).toBe('answer_invalid');
     expect(missingRequired([school, troop], []).map((q) => q.id)).toEqual([
       'q1',
@@ -62,21 +68,46 @@ describe('answers to the questions of a form (#485)', () => {
   });
 
   it('refuses a form that showed other questions, a rename too', () => {
-    const shown = questionsVersion([school, troop]);
+    const shown = questionsVersion(form([school, troop]));
     const answers = [{ questionId: 'q1', optionId: 'o1' }];
-    expect(invalidAnswers([school, troop], answers, shown)).toBeNull();
+    expect(invalidAnswers(form([school, troop]), answers, shown)).toBeNull();
     const renamed = {
       ...troop,
       options: [troop.options[0]!, { id: 'o4', label: 'Medvědi' }],
     };
-    expect(invalidAnswers([school, renamed], answers, shown)).toBe(
+    expect(invalidAnswers(form([school, renamed]), answers, shown)).toBe(
       'questions_changed',
     );
     expect(
-      invalidAnswers([school, troop, { ...troop, id: 'q3' }], answers, shown),
+      invalidAnswers(
+        form([school, troop, { ...troop, id: 'q3' }]),
+        answers,
+        shown,
+      ),
     ).toBe('questions_changed');
     // Without a version, only the answers count.
-    expect(invalidAnswers([school, renamed], answers)).toBeNull();
+    expect(invalidAnswers(form([school, renamed]), answers)).toBeNull();
+  });
+
+  it('requires what splits rooms: its question, or gender (PO feedback)', () => {
+    const byTroop = formOf([school, troop], 'q2');
+    expect(byTroop.questions.map((q) => q.isRequired)).toEqual([true, true]);
+    expect(byTroop.isGenderRequired).toBe(false);
+    expect(
+      invalidAnswers(byTroop, [{ questionId: 'q1', optionId: 'o1' }]),
+    ).toBe('answer_required');
+
+    const byGender = formOf([troop], 'gender');
+    expect(byGender.questions[0]!.isRequired).toBe(false);
+    expect(invalidAnswers(byGender, [], undefined, null)).toBe(
+      'gender_required',
+    );
+    // "Nechci uvést" is an answer.
+    expect(invalidAnswers(byGender, [], undefined, 'undisclosed')).toBeNull();
+    // The version changes with the rule, so an open form is asked again.
+    expect(questionsVersion(byGender)).not.toBe(
+      questionsVersion(formOf([troop], null)),
+    );
   });
 
   it('shows every question with the answer given or none', () => {

@@ -25,6 +25,8 @@ type PublicRegistrationProps = {
   questions?: FormQuestion[]
   /** The version of those questions, sent back with the registration. */
   questionsVersion?: string
+  /** Rooms are split by gender, so the gender answer is required. */
+  isGenderRequired?: boolean
   /** A refusal said the questions changed since the form opened: read them again. */
   onQuestionsChanged?: () => void
   /**
@@ -49,6 +51,7 @@ export function PublicRegistration({
   conditions,
   questions = [],
   questionsVersion,
+  isGenderRequired = false,
   onQuestionsChanged,
   contact,
 }: PublicRegistrationProps) {
@@ -109,6 +112,7 @@ export function PublicRegistration({
       terms={terms}
       conditions={conditions}
       questions={questions}
+      isGenderRequired={isGenderRequired}
       // A draft holds what was already typed, prefilled or not.
       initialValues={draft ?? contact}
       onValuesChange={(values) => saveDraft(publicId, values)}

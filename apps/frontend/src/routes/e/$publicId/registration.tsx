@@ -64,6 +64,7 @@ function PublicRegistrationPage() {
               conditions={event.conditions}
               questions={event.questions}
               questionsVersion={event.questionsVersion}
+              isGenderRequired={event.isGenderRequired}
               // A question changed since the form opened: read them again.
               onQuestionsChanged={() =>
                 queryClient.invalidateQueries({

@@ -78,6 +78,10 @@ export type RegistrationChangeFormProps = {
   onAnswersChange?: (answers: AnswerValues) => void
   /** A message by question id, e.g. a required one still unanswered. */
   answerErrors?: Partial<Record<string, string>>
+  /** Rooms are split by gender, so an answer is needed ("Nechci uvést" counts). */
+  isGenderRequired?: boolean
+  /** E.g. a required gender answer still missing. */
+  genderError?: string
 }
 
 // Moje přihlášky → Detail přihlášky → Úprava přihlášky (F35-2a): personal and
@@ -103,6 +107,8 @@ export function RegistrationChangeForm({
   answers: initialAnswers = {},
   onAnswersChange,
   answerErrors,
+  isGenderRequired = false,
+  genderError,
 }: RegistrationChangeFormProps) {
   const [answers, setAnswers] = useState<AnswerValues>(initialAnswers)
   const chooseAnswers = (next: AnswerValues) => {
@@ -312,6 +318,8 @@ export function RegistrationChangeForm({
           <FieldGroup>
             <GenderField
               id="change-gender"
+              isRequired={isGenderRequired}
+              error={genderError}
               value={gender}
               onChange={chooseGender}
             />

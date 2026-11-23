@@ -43,6 +43,7 @@ const subject = (
   terms,
   questions: [],
   answers: [],
+  isGenderRequired: false,
 });
 
 const info = (

@@ -83,13 +83,19 @@ export type RegistrationFormValues = z.infer<typeof baseSchema>
 
 // Confirmation is required only when the event has participation terms; an
 // answer only to a required question (#485).
-const createSchema = (isRequired: boolean, questions: FormQuestion[]) =>
+export const GENDER_REQUIRED = "Vyberte odpověď, i kdyby to mělo být „Nechci uvést“."
+
+const createSchema = (isRequired: boolean, questions: FormQuestion[], isGenderRequired: boolean) =>
   (isRequired
     ? baseSchema.extend({
         conditionsConfirmed: z.boolean().refine((isConfirmed) => isConfirmed, CONDITIONS_MESSAGE),
       })
     : baseSchema
   ).superRefine((values, context) => {
+    // Rooms are split by gender: an answer is needed, "Nechci uvést" counts.
+    if (isGenderRequired && values.gender === null) {
+      context.addIssue({ code: "custom", path: ["gender"], message: GENDER_REQUIRED })
+    }
     for (const question of questions) {
       // An option the organizer removed since (a stored draft) is no answer.
       const optionId = values.answers[question.id]
@@ -122,6 +128,8 @@ type RegistrationFormProps = {
   conditions: string
   /** The organizer's categorical questions (#485), in form order. */
   questions?: FormQuestion[]
+  /** Rooms are split by gender, so the gender answer is required. */
+  isGenderRequired?: boolean
   /**
    * Values to start from, e.g. a draft kept for the browser tab or the contact
    * details of the signed-in participant's profile; never a confirmation.
@@ -142,6 +150,7 @@ export function RegistrationForm({
   terms,
   conditions,
   questions = [],
+  isGenderRequired = false,
   initialValues,
   onValuesChange,
   isSubmitting,
@@ -149,7 +158,10 @@ export function RegistrationForm({
   onSubmit,
 }: RegistrationFormProps) {
   const hasConditions = conditions.trim() !== ""
-  const schema = useMemo(() => createSchema(hasConditions, questions), [hasConditions, questions])
+  const schema = useMemo(
+    () => createSchema(hasConditions, questions, isGenderRequired),
+    [hasConditions, questions, isGenderRequired],
+  )
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(schema),
     shouldFocusError: false,
@@ -454,15 +466,17 @@ export function RegistrationForm({
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-h4">Doplňující údaje</h2>
-            <Badge variant="secondary">Nepovinné</Badge>
+            {isGenderRequired ? null : <Badge variant="secondary">Nepovinné</Badge>}
           </div>
 
           <FormField
             control={form.control}
             name="gender"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <GenderField
                 id="registration-gender"
+                isRequired={isGenderRequired}
+                error={fieldState.error?.message}
                 value={{ gender: field.value, genderOther: genderOther ?? null }}
                 onChange={(answer) => {
                   field.onChange(answer.gender)

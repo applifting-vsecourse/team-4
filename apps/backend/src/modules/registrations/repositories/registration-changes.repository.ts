@@ -14,6 +14,7 @@ import {
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { EventScope } from '@/modules/events/repositories/events.repository';
 import { changedBalance } from '@/modules/registrations/domain/participant-update';
+import { formOf } from '@/modules/registrations/domain/questions';
 import {
   changedFields,
   ChangeKind,
@@ -172,7 +173,7 @@ const subjectOf = (row: Snapshot): ChangeSubject => ({
   needs: needsOf(row),
   gender: row.gender,
   genderOther: row.genderOther,
-  questions: row.event.questions,
+  ...formOf(row.event.questions, row.event.accommodationRules?.hardAttribute),
   answers: row.answers,
   paidMinor: row.payments.reduce((sum, p) => sum + p.amountMinor, 0),
   terms: row.terms.map((term) => ({
