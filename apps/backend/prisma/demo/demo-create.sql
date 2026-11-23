@@ -10,8 +10,8 @@
 -- Organizer: Marek Pořadatel, team4vse@seznam.cz / akcio-demo-2026
 -- Participant with a mailbox (magic link): Adam Král, team4vse@seznam.cz
 -- Everyone else is fictional (@example.com), cannot sign in and gets no e-mail.
--- The Fio statement fio-vypis-tabor.csv pays the rest of Adam's camp price
--- through the fixed variable symbol 9000000001.
+-- The Fio statement fio-vypis-tabor-dve-platby.csv pays Adam's camp balance
+-- through the fixed variable symbol and leaves Eliška's payment unmatched.
 
 BEGIN;
 
@@ -252,12 +252,12 @@ DECLARE
 
   -- Camp registrations
   reg_adam uuid;
+  reg_david uuid;
   reg_filip uuid;
   reg_eliska uuid;
   reg_tereza uuid;
   reg_petr uuid;
   reg_lukas uuid;
-  reg_viktor uuid;
 
   v_terms jsonb;
 BEGIN
@@ -285,7 +285,7 @@ BEGIN
   -- 1. Past paid one-day trip, Adam's registration paid.
   -- 2. Ongoing free volunteer week, registration closed, Adam confirmed.
   -- 3. Paid course, registration open, two one-day terms with different prices.
-  -- 4. Paid camp, two terms, rooms separated by gender, nothing published.
+  -- 4. Paid camp, two terms, gender-separated rooms and two distinct proposal demos.
   INSERT INTO event (
     id, "organizationId", "publicId", name, description, location, status,
     "firstOpenedAt", "isPublished", "bankAccountNumber", "bankCode",
@@ -353,10 +353,10 @@ BEGIN
     (r_classroom, t_course2, e_course, true, 12, 0),
     (r_buk, t_camp1, e_camp, true, 2, 0),
     (r_javor, t_camp1, e_camp, true, 2, 0),
-    (r_attic, t_camp1, e_camp, false, 1, 0),
-    (r_buk, t_camp2, e_camp, true, 2, 0),
-    (r_javor, t_camp2, e_camp, true, 3, 0),
-    (r_attic, t_camp2, e_camp, true, 1, 0);
+    (r_attic, t_camp1, e_camp, true, 1, 0),
+    (r_buk, t_camp2, e_camp, true, 8, 0),
+    (r_javor, t_camp2, e_camp, true, 2, 0),
+    (r_attic, t_camp2, e_camp, false, 1, 0);
 
   -- Camp rooms are separated by gender (hard rule); other and undisclosed
   -- answers leave the room to the organizer. Roommate wishes are the soft
@@ -425,13 +425,16 @@ BEGIN
   PERFORM pg_temp.demo_registration(e_course, 'Petra', 'Soukupová', 'petra.soukupova@example.com', '+420604000008', NULL,
     now_ts - interval '5 days', v_terms, ARRAY[85000]);
 
-  -- ── Camp, 1. turnus: four confirmed ──
+  -- ── Camp, 1. turnus: five confirmed, starting placements leave Adam's
+  -- wish for Filip unsatisfied. Adam can then move into the attic with Filip.
   -- Adam: price 4 500 Kč, 2 000 Kč recorded, 2 500 Kč left. The fixed
   -- variable symbol lies outside the sequence (starts at 1000001), so the
   -- committed Fio statement always matches it.
   v_terms := jsonb_build_object(t_camp1, 'confirmed');
   reg_adam := pg_temp.demo_registration(e_camp, 'Adam', 'Král', 'team4vse@seznam.cz', '+420601000001', 'male',
     now_ts - interval '30 days', v_terms, ARRAY[200000], '9000000001');
+  reg_david := pg_temp.demo_registration(e_camp, 'David', 'Horák', 'david.horak@example.com', '+420605000010', 'male',
+    now_ts - interval '30 days', v_terms, ARRAY[450000]);
   reg_filip := pg_temp.demo_registration(e_camp, 'Filip', 'Veselý', 'filip.vesely@example.com', '+420605000001', 'male',
     now_ts - interval '29 days', v_terms, ARRAY[450000]);
   reg_eliska := pg_temp.demo_registration(e_camp, 'Eliška', 'Novotná', 'eliska.novotna@example.com', '+420605000002', 'female',
@@ -439,36 +442,55 @@ BEGIN
   reg_tereza := pg_temp.demo_registration(e_camp, 'Tereza', 'Malá', 'tereza.mala@example.com', '+420605000003', 'female',
     now_ts - interval '26 days', v_terms, ARRAY[450000]);
 
-  -- ── Camp, 2. turnus: six confirmed ──
+  -- ── Camp, 2. turnus: 10 confirmed (Petr, Lukáš and eight women) plus
+  -- five women awaiting evaluation. No starting placements: show the default
+  -- capacity proposal, then lock Petr into the large hut and show its impact.
   v_terms := jsonb_build_object(t_camp2, 'confirmed');
   reg_petr := pg_temp.demo_registration(e_camp, 'Petr', 'Svoboda', 'petr.svoboda@example.com', '+420605000004', 'male',
     now_ts - interval '28 days', v_terms, ARRAY[450000]);
   reg_lukas := pg_temp.demo_registration(e_camp, 'Lukáš', 'Černý', 'lukas.cerny@example.com', '+420605000005', 'male',
     now_ts - interval '25 days', v_terms, ARRAY[200000]);
-  reg_viktor := pg_temp.demo_registration(e_camp, 'Viktor', 'Král', 'viktor.kral@example.com', '+420605000006', 'male',
-    now_ts - interval '24 days', v_terms);
   PERFORM pg_temp.demo_registration(e_camp, 'Nina', 'Dvořáková', 'nina.dvorakova@example.com', '+420605000007', 'female',
     now_ts - interval '23 days', v_terms, ARRAY[450000]);
   PERFORM pg_temp.demo_registration(e_camp, 'Barbora', 'Malá', 'barbora.mala@example.com', '+420605000008', 'female',
     now_ts - interval '21 days', v_terms, ARRAY[450000]);
   PERFORM pg_temp.demo_registration(e_camp, 'Zuzana', 'Nová', 'zuzana.nova@example.com', '+420605000009', 'female',
     now_ts - interval '19 days', v_terms, ARRAY[100000]);
+  PERFORM pg_temp.demo_registration(e_camp, 'Iva', 'Benešová', 'iva.benesova@example.com', '+420605000011', 'female',
+    now_ts - interval '18 days', v_terms);
+  PERFORM pg_temp.demo_registration(e_camp, 'Hana', 'Veselá', 'hana.vesela@example.com', '+420605000012', 'female',
+    now_ts - interval '17 days', v_terms);
+  PERFORM pg_temp.demo_registration(e_camp, 'Veronika', 'Kučerová', 'veronika.kucerova@example.com', '+420605000013', 'female',
+    now_ts - interval '16 days', v_terms);
+  PERFORM pg_temp.demo_registration(e_camp, 'Jana', 'Nováková', 'jana.novakova@example.com', '+420605000014', 'female',
+    now_ts - interval '15 days', v_terms);
+  PERFORM pg_temp.demo_registration(e_camp, 'Alena', 'Procházková', 'alena.prochazkova@example.com', '+420605000015', 'female',
+    now_ts - interval '14 days', v_terms);
 
-  -- ── Room placements, nothing published ──
-  -- Petr is not locked, so the room proposal of the 2nd term may move him.
+  v_terms := jsonb_build_object(t_camp2, 'pending');
+  PERFORM pg_temp.demo_registration(e_camp, 'Radka', 'Malá', 'radka.mala@example.com', '+420605000016', 'female',
+    now_ts - interval '10 days', v_terms);
+  PERFORM pg_temp.demo_registration(e_camp, 'Lenka', 'Černá', 'lenka.cerna@example.com', '+420605000017', 'female',
+    now_ts - interval '9 days', v_terms);
+  PERFORM pg_temp.demo_registration(e_camp, 'Kateřina', 'Dvořáková', 'katerina.dvorakova@example.com', '+420605000018', 'female',
+    now_ts - interval '8 days', v_terms);
+  PERFORM pg_temp.demo_registration(e_camp, 'Marie', 'Svobodová', 'marie.svobodova@example.com', '+420605000019', 'female',
+    now_ts - interval '7 days', v_terms);
+  PERFORM pg_temp.demo_registration(e_camp, 'Eva', 'Novotná', 'eva.novotna@example.com', '+420605000020', 'female',
+    now_ts - interval '6 days', v_terms);
+
+  -- ── Initial room placements: the first turnus is saved, unlocked and ready
+  -- to demonstrate an unsatisfied wish changing the proposal. The second
+  -- turnus starts completely empty.
   INSERT INTO room_placement ("registrationId", "termId", "eventId", "roomId", "isLocked", "placedById", "placedAt") VALUES
     (reg_adam, t_camp1, e_camp, r_buk, false, v_owner, now_ts - interval '3 days'),
-    (reg_filip, t_camp1, e_camp, r_buk, false, v_owner, now_ts - interval '3 days'),
+    (reg_david, t_camp1, e_camp, r_buk, false, v_owner, now_ts - interval '3 days'),
+    (reg_filip, t_camp1, e_camp, r_attic, false, v_owner, now_ts - interval '3 days'),
     (reg_eliska, t_camp1, e_camp, r_javor, false, v_owner, now_ts - interval '3 days'),
-    (reg_tereza, t_camp1, e_camp, r_javor, false, v_owner, now_ts - interval '3 days'),
-    (reg_petr, t_camp2, e_camp, r_buk, false, v_owner, now_ts - interval '3 days');
+    (reg_tereza, t_camp1, e_camp, r_javor, false, v_owner, now_ts - interval '3 days');
 
-  -- ── Roommate wishes: Lukáš and Viktor want to share a room ──
-  -- Buk has one free bed next to Petr, so fulfilling both wishes means the
-  -- proposal moves Petr to the attic. Adam has no wish yet.
-  INSERT INTO roommate_wish ("eventId", "fromRegistrationId", "toRegistrationId", "createdAt") VALUES
-    (e_camp, reg_lukas, reg_viktor, now_ts - interval '10 days'),
-    (e_camp, reg_viktor, reg_lukas, now_ts - interval '9 days');
+  -- Adam starts without a roommate wish. The participant adds Filip during
+  -- the demo, so the proposal preview can show the wish become fulfilled.
 
   RAISE NOTICE 'Sprint 4 demo set ready: organizer team4vse@seznam.cz, organization Spolek Lípa, 4 events, D = %.', d;
 END $$;
