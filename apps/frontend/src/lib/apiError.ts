@@ -69,6 +69,13 @@ export type ApiErrorCode =
   | "room_unavailable"
   | "placement_locked"
   | "not_placed"
+  | "questions_changed"
+  | "questions_invalid"
+  | "question_answered"
+  | "option_chosen"
+  | "question_in_use"
+  | "answer_required"
+  | "answer_invalid"
 
 export type ApiError = {
   status: number | null

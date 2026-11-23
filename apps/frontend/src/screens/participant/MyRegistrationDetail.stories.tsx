@@ -14,6 +14,7 @@ import {
   OWN_REGISTRATION,
   SETTLED_REGISTRATION,
 } from "@/features/registrations/fixtures/participantRegistrations"
+import { NO_QUESTIONS } from "@/features/registrations/fixtures/questions"
 import {
   CANCEL_ALL_SUMMARY,
   makeChangePreview,
@@ -341,7 +342,11 @@ export const LoadFailed: Story = {
 export const RefreshFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(
-      ...failsOnRefresh("get", DETAIL, { ...OWN_REGISTRATION, availableTerms: AVAILABLE_TERMS }),
+      ...failsOnRefresh("get", DETAIL, {
+        ...OWN_REGISTRATION,
+        availableTerms: AVAILABLE_TERMS,
+        ...NO_QUESTIONS,
+      }),
     )
   },
   play: async (context) => {

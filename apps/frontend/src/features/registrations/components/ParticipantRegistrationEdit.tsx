@@ -15,20 +15,26 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { formatCalendarRange } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 
-import { RegistrationTermStates } from "@/features/registrations/components/RegistrationTermStates"
 import { participantRegistrationQueryOptions } from "@/features/registrations/api/participantRegistrationQueryOptions"
 import { type ParticipantRegistrationDetail } from "@/features/registrations/api/participantRegistrationSchemas"
 import { type ChangeProposal } from "@/features/registrations/api/registrationChangeSchemas"
 import { AccommodationCard } from "@/features/registrations/components/AccommodationCard"
 import { ChangeReviewDialog } from "@/features/registrations/components/ChangeReviewDialog"
 import {
+  missingAnswers,
+  type AnswerValues,
+} from "@/features/registrations/components/QuestionAnswersFields"
+import {
   RegistrationChangeForm,
   type ContactErrors,
   type FormTerm,
 } from "@/features/registrations/components/RegistrationChangeForm"
+import { GENDER_REQUIRED } from "@/features/registrations/components/RegistrationForm"
+import { RegistrationTermStates } from "@/features/registrations/components/RegistrationTermStates"
 import { RoommateWishesCard } from "@/features/registrations/components/RoommateWishesCard"
 import {
   buildProposal,
+  isCancellationOnly,
   validateContact,
   type EditState,
 } from "@/features/registrations/lib/changeProposal"
@@ -62,6 +68,8 @@ export function ParticipantRegistrationEdit({
 }: ParticipantRegistrationEditProps) {
   const query = useQuery(participantRegistrationQueryOptions(registrationId))
   const { data } = query
+  // An asked-for reload starts the form again; a background one keeps the edits.
+  const [reloads, setReloads] = useState(0)
 
   if (query.isError && isSessionRefused(query.error)) return sessionEnded
   if (query.isError && isRegistrationUnavailable(query.error)) {
@@ -103,12 +111,12 @@ export function ParticipantRegistrationEdit({
             description={data.event.name}
           />
           {data.canChange ? (
-            // A reloaded registration (new version) starts a fresh form.
+            // A new version or an asked-for reload starts a fresh form.
             <EditForm
-              key={data.version}
+              key={`${data.version}-${reloads}`}
               registration={data}
               hasConfirmedTerm={data.terms.some((term) => term.status === "confirmed")}
-              onReload={() => void query.refetch()}
+              onReload={() => void query.refetch().then(() => setReloads((n) => n + 1))}
               onLeave={onLeave}
             />
           ) : data.isCancelled ? (
@@ -173,7 +181,14 @@ type EditFormProps = {
 }
 
 function EditForm({ registration, hasConfirmedTerm, onReload, onLeave }: EditFormProps) {
-  const { contact, needs, terms, availableTerms } = registration
+  const { contact, needs, terms, availableTerms, questions } = registration
+  const currentAnswers = useMemo<AnswerValues>(
+    () =>
+      Object.fromEntries(
+        registration.answers.map((answer) => [answer.questionId, answer.optionId]),
+      ),
+    [registration.answers],
+  )
   const active = useMemo(() => terms.filter((term) => term.status !== "cancelled"), [terms])
 
   const heldTermIds = useMemo(() => active.map((term) => term.termId), [active])
@@ -186,12 +201,15 @@ function EditForm({ registration, hasConfirmedTerm, onReload, onLeave }: EditFor
       gender: contact.gender,
       genderOther: contact.genderOther,
       selectedTermIds: heldTermIds,
+      answers: currentAnswers,
     }),
-    [contact, needs, heldTermIds],
+    [contact, needs, heldTermIds, currentAnswers],
   )
   const [state, setState] = useState(initial)
   const [errors, setErrors] = useState<ContactErrors>({})
   const [needsErrors, setNeedsErrors] = useState<RegistrationNeedsErrors>({})
+  const [answerErrors, setAnswerErrors] = useState<Partial<Record<string, string>>>({})
+  const [genderError, setGenderError] = useState<string>()
   const [message, setMessage] = useState<string>()
   const [proposal, setProposal] = useState<ChangeProposal | null>(null)
 
@@ -210,28 +228,76 @@ function EditForm({ registration, hasConfirmedTerm, onReload, onLeave }: EditFor
     }))
   }, [active, availableTerms])
 
+  // Answered before the rule, or never: asked for before other changes.
+  const isGenderMissing = registration.isGenderRequired && contact.gender === null
+
   const review = () => {
     const contactErrors = validateContact(state)
     const invalidNeeds = validateNeeds(state.needs)
+    const next = buildProposal({ ...contact, needs, heldTermIds, answers: currentAnswers }, state)
+    // A required question comes first, also one added after the registration,
+    // except for a cancellation alone, which is always possible (#485).
+    const unanswered =
+      next && isCancellationOnly(next)
+        ? {}
+        : Object.fromEntries(
+            missingAnswers(questions, state.answers).map((question) => [
+              question.id,
+              "Vyberte odpověď.",
+            ]),
+          )
     setErrors(contactErrors)
     setNeedsErrors(invalidNeeds)
-    if (Object.keys(contactErrors).length + Object.keys(invalidNeeds).length > 0) {
+    // Rooms are split by gender: it needs an answer, except to cancel alone.
+    const missingGender =
+      registration.isGenderRequired && state.gender === null && !(next && isCancellationOnly(next))
+        ? GENDER_REQUIRED
+        : undefined
+    setAnswerErrors(unanswered)
+    setGenderError(missingGender)
+    if (
+      Object.keys(contactErrors).length +
+        Object.keys(invalidNeeds).length +
+        Object.keys(unanswered).length >
+        0 ||
+      missingGender
+    ) {
       setMessage(undefined)
       return
     }
-    const next = buildProposal({ ...contact, needs, heldTermIds }, state)
     if (!next) {
       setMessage(NOTHING_CHANGED)
       return
     }
     setMessage(undefined)
-    setProposal(next)
+    // Against the questions shown: changed meanwhile, the server refuses it.
+    setProposal({ ...next, questionsVersion: registration.questionsVersion })
   }
 
   return (
     <>
+      {registration.missingAnswers.length > 0 || isGenderMissing ? (
+        <Notice
+          tone="warning"
+          title="Přihláška potřebuje doplnit odpověď"
+        >
+          {isGenderMissing
+            ? "Pokoje se dělí podle pohlaví, vyberte ho v části Osobní a kontaktní údaje. "
+            : null}
+          {registration.missingAnswers.length > 0
+            ? "Odpovězte na povinnou otázku v části Otázky pořadatele. "
+            : null}
+          Do té doby lze přihlášku jen odhlásit, jiné změny uložit nelze.
+        </Notice>
+      ) : null}
       <RegistrationChangeForm
         contact={contact}
+        questions={questions}
+        answers={currentAnswers}
+        answerErrors={answerErrors}
+        isGenderRequired={registration.isGenderRequired}
+        genderError={genderError}
+        onAnswersChange={(answers) => setState((current) => ({ ...current, answers }))}
         terms={formTerms}
         needs={needs}
         errors={errors}
@@ -274,7 +340,10 @@ function EditForm({ registration, hasConfirmedTerm, onReload, onLeave }: EditFor
 
 function RoommateWishesSection({ registrationId }: { registrationId: string }) {
   return (
-    <section aria-label="Přání na spolubydlící" className="space-y-3 border-t border-border pt-4">
+    <section
+      aria-label="Přání na spolubydlící"
+      className="space-y-3 border-t border-border pt-4"
+    >
       <RoommateWishesCard registrationId={registrationId} />
     </section>
   )

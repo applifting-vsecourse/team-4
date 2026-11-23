@@ -66,7 +66,7 @@ test("proposing rooms by hand, stale after a change, and automatically", async (
   await expect(proposal.getByText("Aktuální návrh", { exact: true })).toBeVisible({
     timeout: 30_000,
   })
-  await proposal.getByRole("button", { name: "Zobrazit návrh" }).click()
+  // A completed proposal opens its full view automatically.
   await expect(page).toHaveURL(/view=proposal/)
   await page.getByRole("button", { name: "Zpět na uložené rozdělení" }).click()
   await expect(page).toHaveURL(/view=assignment/)
@@ -111,8 +111,12 @@ test("proposing rooms by hand, stale after a change, and automatically", async (
   await expect(proposal.getByText("Neaktuální návrh", { exact: true })).toBeVisible()
 
   // Nastavení → Automatizace: automatic room proposals, beside the evaluation mode.
-  await page.locator('a[href$="/settings#room-proposal-settings-heading"]').click()
+  await page
+    .getByRole("navigation", { name: "Navigace organizace a akce" })
+    .getByRole("link", { name: "Nastavení" })
+    .click()
   const automation = page.getByRole("region", { name: "Automatizace" })
+  await automation.scrollIntoViewIfNeeded()
   const automatic = automation.getByRole("radio", {
     name: "Navrhovat pokoje automaticky po každé změně",
   })
@@ -164,7 +168,7 @@ test("applying a proposal saves its rooms, and the wishes follow the saved rooms
   await expect(proposal.getByText("Aktuální návrh", { exact: true })).toBeVisible({
     timeout: 30_000,
   })
-  await proposal.getByRole("button", { name: "Zobrazit návrh" }).click()
+  await expect(page).toHaveURL(/view=proposal/)
   await proposal.getByRole("button", { name: "Použít návrh" }).click()
   const dialog = page.getByRole("dialog", { name: "Použít návrh pokojů" })
   await expect(dialog.getByText("Nová umístění (3)")).toBeVisible()
@@ -216,7 +220,6 @@ test("a server refusal leaves the proposal unsaved and offers a retry", async ({
   await expect(proposal.getByText("Aktuální návrh", { exact: true })).toBeVisible({
     timeout: 30_000,
   })
-  await proposal.getByRole("button", { name: "Zobrazit návrh" }).click()
   await expect(page).toHaveURL(/view=proposal/)
 
   await page.route(`**/terms/${event.termIds[0]}/room-proposal/apply`, (route) =>

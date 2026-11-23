@@ -12,6 +12,7 @@ const DRAFT = {
   gender: "other" as const,
   genderOther: "nebinární",
   needs: { ...NO_NEEDS, transport: "shared" as const, diet: ["vegan" as const] },
+  answers: { q1: "o2" },
 }
 
 afterEach(() => {

@@ -4,7 +4,7 @@ import type {
   RoomWarning,
   TermPlacements,
 } from "@/features/accommodation/api/placementSchemas"
-import { attributeLabel, valueLabel } from "@/features/accommodation/lib/evaluationView"
+import { GENDER_LABELS, type AttributeLabels } from "@/features/accommodation/lib/evaluationView"
 
 export type BoardPerson = {
   id: string
@@ -42,13 +42,16 @@ const byName = (a: PlacementPerson, b: PlacementPerson) =>
   a.name.localeCompare(b.name, "cs") || (a.registrationId < b.registrationId ? -1 : 1)
 
 /** The term's placements as rooms with their people and the people without a room. */
-export function toPlacementBoard(data: TermPlacements): PlacementBoard {
+export function toPlacementBoard(
+  data: TermPlacements,
+  labels: AttributeLabels = GENDER_LABELS,
+): PlacementBoard {
   const people = [...data.people].sort(byName).map((person): BoardPerson => ({
     id: person.registrationId,
     name: person.name,
     value:
       data.hardAttribute && person.value !== null
-        ? valueLabel(data.hardAttribute, person.value)
+        ? labels.value(data.hardAttribute, person.value)
         : null,
     roomId: person.roomId,
     isLocked: person.isLocked,
@@ -87,6 +90,7 @@ export function placementWarnings(
   data: TermPlacements,
   registrationId: string,
   roomId: string,
+  labels: AttributeLabels = GENDER_LABELS,
 ): PlacementWarning[] {
   const room = data.rooms.find((candidate) => candidate.id === roomId)
   const person = data.people.find((candidate) => candidate.registrationId === registrationId)
@@ -101,8 +105,8 @@ export function placementWarnings(
     if (values.length > 1) {
       warnings.push({
         kind: "mixed",
-        attribute: attributeLabel(attribute),
-        values: values.map((value) => valueLabel(attribute, value)),
+        attribute: labels.attribute(attribute),
+        values: values.map((value) => labels.value(attribute, value)),
       })
     }
   }
@@ -124,13 +128,14 @@ export function describeWarnings(
   registrationId: string,
   roomId: string,
   codes: readonly ConfirmableWarning[],
+  labels: AttributeLabels = GENDER_LABELS,
 ): PlacementWarning[] {
-  const known = placementWarnings(data, registrationId, roomId)
+  const known = placementWarnings(data, registrationId, roomId, labels)
   return codes.map(
     (code) =>
       known.find((warning) => warning.kind === code) ??
       (code === "mixed"
-        ? { kind: "mixed", attribute: attributeLabel(data.hardAttribute ?? ""), values: [] }
+        ? { kind: "mixed", attribute: labels.attribute(data.hardAttribute ?? ""), values: [] }
         : { kind: code }),
   )
 }

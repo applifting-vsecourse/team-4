@@ -1,6 +1,9 @@
 import { z } from "zod"
 
-import { evaluationModeSchema } from "@/features/accommodation/api/evaluationSchemas"
+import {
+  evaluationModeSchema,
+  eventAttributeSchema,
+} from "@/features/accommodation/api/evaluationSchemas"
 
 /**
  * The state of a roommate wish in a layout (#317, phase-2 spec §5.3). When
@@ -127,14 +130,8 @@ export const roomProposalPreferencesSchema = z.object({
   preferences: z.array(softPreferenceItemSchema),
   /** The id of "Přání". */
   wishes: z.string(),
-  /** The categorical questions that can be ranked; never the hard attribute. */
-  attributes: z.array(
-    z.object({
-      attribute: z.string(),
-      values: z.array(z.string()),
-      defaultNeutralValues: z.array(z.string()),
-    }),
-  ),
+  /** The categorical questions that can be ranked, with labels; never the hard attribute. */
+  attributes: z.array(eventAttributeSchema),
 })
 
 export type SoftPreferenceItem = z.infer<typeof softPreferenceItemSchema>

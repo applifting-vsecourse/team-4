@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Loader2 } from "lucide-react"
 
 import { FormError } from "@/components/FormError"
+import { Notice } from "@/components/Notice"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -44,6 +45,8 @@ type ChangeReviewDialogProps = {
 }
 
 const PREVIEW_FAILED = "Kontrolu změn se nepodařilo načíst. Zkuste to prosím znovu."
+const QUESTIONS_CHANGED =
+  "Pořadatel mezitím změnil otázky přihlášky. Načtěte ji znovu a odpovědi zkontrolujte."
 
 // The review before a change is made (F35-2a): the server works out the
 // original and proposed registration, the participant confirms it, and the
@@ -62,13 +65,17 @@ export function ChangeReviewDialog({
   const submitChange = useSubmitChange(registrationId)
   const [preview, setPreview] = useState<ChangePreview | null>(null)
   const [error, setError] = useState<ChangeError | null>(null)
-  const [isStale, setIsStale] = useState(false)
+  const [stale, setStale] = useState<"registration" | "questions" | null>(null)
   const [isApprovalNewlyRequired, setIsApprovalNewlyRequired] = useState(false)
 
   const { mutate: requestPreview } = previewChange
   useEffect(() => {
     requestPreview(proposal, { onSuccess: setPreview })
   }, [requestPreview, proposal])
+
+  // The questions changed since the form opened (#485): only a reload helps.
+  const isPreviewOutdated =
+    previewChange.isError && describeChangeError(previewChange.error).kind === "questions_changed"
 
   if (!preview) {
     return (
@@ -83,7 +90,12 @@ export function ChangeReviewDialog({
               Původní a navržené údaje, dotčené termíny a změna ceny účasti a salda.
             </DialogDescription>
           </DialogHeader>
-          {previewChange.isError ? (
+          {isPreviewOutdated ? (
+            <Notice
+              tone="error"
+              title={QUESTIONS_CHANGED}
+            />
+          ) : previewChange.isError ? (
             <FormError message={PREVIEW_FAILED} />
           ) : (
             <p
@@ -98,7 +110,9 @@ export function ChangeReviewDialog({
             <DialogClose asChild>
               <Button variant="outline">Zpět k úpravám</Button>
             </DialogClose>
-            {previewChange.isError ? (
+            {isPreviewOutdated ? (
+              <Button onClick={onReload}>Načíst přihlášku znovu</Button>
+            ) : previewChange.isError ? (
               <Button onClick={() => requestPreview(proposal, { onSuccess: setPreview })}>
                 Zkusit znovu
               </Button>
@@ -148,7 +162,9 @@ export function ChangeReviewDialog({
         onError: (failure) => {
           const described = describeChangeError(failure)
           if (described.kind === "stale") {
-            setIsStale(true)
+            setStale("registration")
+          } else if (described.kind === "questions_changed") {
+            setStale("questions")
           } else if (described.kind === "approval_changed") {
             setIsApprovalNewlyRequired(described.preview.requiresApproval)
             setPreview(described.preview)
@@ -183,7 +199,8 @@ export function ChangeReviewDialog({
           : undefined
       }
       errorMessage={error?.kind === "message" ? error.message : undefined}
-      isStale={isStale}
+      isStale={stale !== null}
+      staleTitle={stale === "questions" ? QUESTIONS_CHANGED : undefined}
       isSubmitting={submitChange.isPending}
       onOpenChange={(isOpen) => (isOpen ? undefined : onClose())}
       onConfirm={confirm}

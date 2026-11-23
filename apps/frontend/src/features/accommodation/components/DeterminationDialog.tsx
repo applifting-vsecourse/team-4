@@ -3,8 +3,8 @@ import { toast } from "sonner"
 import { readApiError } from "@/lib/apiError"
 
 import { ManualDeterminationDialog } from "@/features/accommodation/components/ManualDeterminationDialog"
+import { useAttributeLabels } from "@/features/accommodation/hooks/useAttributeLabels"
 import { useDetermine } from "@/features/accommodation/hooks/useDetermine"
-import { valueLabel } from "@/features/accommodation/lib/evaluationView"
 
 export type DeterminationTarget = {
   registrationId: string
@@ -46,8 +46,9 @@ export function DeterminationDialog({
   onClose,
   invalidate,
 }: DeterminationDialogProps) {
+  const labels = useAttributeLabels(organizationId, eventId)
   const determine = useDetermine(organizationId, eventId, target.registrationId, invalidate)
-  const label = (value: string) => valueLabel(hardAttribute.attribute, value)
+  const label = (value: string) => labels.value(hardAttribute.attribute, value)
   const codeOf = new Map(hardAttribute.determiningValues.map((value) => [label(value), value]))
 
   return (
@@ -55,7 +56,7 @@ export function DeterminationDialog({
       isOpen
       person={target.person}
       isChange={target.current !== null}
-      answer={valueLabel(hardAttribute.attribute, target.answer)}
+      answer={labels.value(hardAttribute.attribute, target.answer)}
       values={hardAttribute.determiningValues.map(label)}
       value={target.current ? label(target.current) : undefined}
       saveError={determine.isError ? describeError(determine.error) : undefined}

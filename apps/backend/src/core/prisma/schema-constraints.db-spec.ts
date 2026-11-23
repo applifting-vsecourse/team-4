@@ -824,3 +824,73 @@ describe('room proposal applications (#365)', () => {
     ).rejects.toThrow(/is immutable/);
   });
 });
+
+describe('registration questions (#485)', () => {
+  it('takes an answer only from its own question and keeps answered ones', async () => {
+    const organization = await createOrganization(prisma);
+    const { event, terms } = await createEvent(prisma, {
+      organizationId: organization.id,
+      terms: SUMMER,
+    });
+    const registration = await createRegistration(prisma, {
+      event,
+      terms: [{ term: terms[0]!, status: 'pending' }],
+    });
+    const question = (
+      label: string,
+      position: number,
+    ): Promise<{ id: string; options: { id: string }[] }> =>
+      prisma.registrationQuestion.create({
+        data: {
+          eventId: event.id,
+          label,
+          position,
+          isRequired: false,
+          options: {
+            create: [
+              { label: 'A', position: 0 },
+              { label: 'B', position: 1 },
+            ],
+          },
+        },
+        include: { options: true },
+      });
+    const school = await question('Škola', 0);
+    const troop = await question('Oddíl', 1);
+
+    await expect(
+      prisma.registrationQuestion.create({
+        data: { eventId: event.id, label: ' ', position: 2, isRequired: false },
+      }),
+    ).rejects.toThrow(/registration_question_label_chk/);
+    // An option of another question.
+    await expect(
+      prisma.registrationAnswer.create({
+        data: {
+          registrationId: registration.id,
+          eventId: event.id,
+          questionId: school.id,
+          optionId: troop.options[0]!.id,
+        },
+      }),
+    ).rejects.toThrow(/Foreign key constraint/);
+
+    await prisma.registrationAnswer.create({
+      data: {
+        registrationId: registration.id,
+        eventId: event.id,
+        questionId: school.id,
+        optionId: school.options[0]!.id,
+      },
+    });
+    await expect(
+      prisma.registrationQuestionOption.delete({
+        where: { id: school.options[0]!.id },
+      }),
+    ).rejects.toThrow(/Foreign key constraint|violates RESTRICT/);
+    await expect(
+      prisma.registrationQuestion.delete({ where: { id: school.id } }),
+    ).rejects.toThrow(/Foreign key constraint|violates RESTRICT/);
+    await prisma.registrationQuestion.delete({ where: { id: troop.id } });
+  });
+});

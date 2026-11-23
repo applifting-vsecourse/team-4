@@ -1,6 +1,10 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import {
+  hardAttributeFrom,
+  questionAttributesSelect,
+} from '@/modules/accommodation/domain/attributes';
+import {
   AccommodationRules,
   NO_RULES,
   TermRoom,
@@ -165,6 +169,7 @@ export class TermEvaluationRepository {
         event: {
           select: {
             accommodationEvaluationMode: true,
+            questions: questionAttributesSelect,
             accommodationRules: {
               select: { hardAttribute: true, nonDeterminingValues: true },
             },
@@ -192,7 +197,7 @@ export class TermEvaluationRepository {
                 lastName: true,
                 receivedAt: true,
                 accommodationManualValue: {
-                  select: { value: true, basedOnAnswer: true },
+                  select: { attribute: true, value: true, basedOnAnswer: true },
                 },
               },
             },
@@ -223,12 +228,7 @@ export class TermEvaluationRepository {
         endDate: fromDate(term.endDate),
       },
       rules: rules?.hardAttribute
-        ? {
-            hardAttribute: {
-              attribute: rules.hardAttribute,
-              nonDeterminingValues: rules.nonDeterminingValues,
-            },
-          }
+        ? { hardAttribute: hardAttributeFrom(rules, term.event.questions) }
         : NO_RULES,
       hasRooms: term.event._count.rooms > 0,
       rooms: term.roomAvailabilities.map((availability) => ({

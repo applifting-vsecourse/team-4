@@ -1,5 +1,6 @@
 import { z } from "zod"
 
+import { answerViewSchema } from "@/features/registrations/api/questionSchemas"
 import {
   activeParticipationStatusSchema,
   genderOtherSchema,
@@ -61,6 +62,8 @@ export const registrationDetailSchema = registrationSummarySchema.extend({
   genderOther: genderOtherSchema,
   /** "Jiná odpověď", "Nechci uvést" or no answer: the organizer decides the accommodation. */
   requiresManualAccommodation: z.boolean(),
+  /** Every question of the organizer (#485) with the answer given or none. */
+  answers: z.array(answerViewSchema),
 })
 
 export type RegistrationSummary = z.infer<typeof registrationSummarySchema>

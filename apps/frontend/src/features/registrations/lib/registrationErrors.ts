@@ -7,6 +7,8 @@ export type RegistrationSubmitError =
   | { kind: "unavailable" }
   | { kind: "terms"; message: string }
   | { kind: "conditions"; message: string }
+  /** The organizer changed the questions after the form opened (#485). */
+  | { kind: "questions"; message: string }
   | { kind: "message"; message: string }
 
 /** Maps a refused or failed submit; none of them is shown as success. */
@@ -19,6 +21,14 @@ export function describeRegistrationError(error: unknown): RegistrationSubmitErr
   }
   if (apiError.code === "conditions_unconfirmed") {
     return { kind: "conditions", message: apiError.message ?? CONDITIONS_MESSAGE }
+  }
+  if (apiError.code === "questions_changed") {
+    return {
+      kind: "questions",
+      message:
+        apiError.message ??
+        "Otázky přihlášky se mezitím změnily. Zkontrolujte odpovědi a odešlete je znovu.",
+    }
   }
   if (apiError.code === "submission_key_reused" && apiError.message) {
     return { kind: "message", message: apiError.message }

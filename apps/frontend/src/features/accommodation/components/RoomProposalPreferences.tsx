@@ -15,32 +15,27 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+import type { EventAttribute } from "@/features/accommodation/api/evaluationSchemas"
 import type { SoftPreferenceItem } from "@/features/accommodation/api/roomProposalSchemas"
-import { attributeLabel, valueLabel } from "@/features/accommodation/lib/evaluationView"
+import { attributeLabels, type AttributeLabels } from "@/features/accommodation/lib/evaluationView"
 
 /** A categorical question the organizer can rank, with its answers. */
-export type SoftAttributeChoice = {
-  attribute: string
-  values: string[]
-  defaultNeutralValues: string[]
-}
-
 export type RoomProposalPreferencesProps = {
   /** The saved list, most important first. The form starts on it. */
   preferences: SoftPreferenceItem[]
   /** The id of "Přání". */
   wishes: string
   /** The soft attributes that can be ranked; never the hard attribute. */
-  attributes: SoftAttributeChoice[]
+  attributes: EventAttribute[]
   /** A failed save: which list still applies, already worded. */
   saveError?: string
   onSave?: (preferences: SoftPreferenceItem[]) => void
   isSaving?: boolean
 }
 
-/** The name of an item in the list and the menu. */
-export const preferenceLabel = (id: string, wishes: string) =>
-  id === wishes ? "Přání" : attributeLabel(id)
+/** The name of an item in the list and the menu; a question by the event's labels (#485). */
+export const preferenceLabel = (id: string, wishes: string, labels: AttributeLabels) =>
+  id === wishes ? "Přání" : labels.attribute(id)
 
 const handleId = (id: string) => `preference-${id}-handle`
 
@@ -77,6 +72,7 @@ export function RoomProposalPreferences({
   onSave,
   isSaving = false,
 }: RoomProposalPreferencesProps) {
+  const labels = attributeLabels(attributes)
   const [items, setItems] = useState(preferences)
   const [toAdd, setToAdd] = useState("")
   const [isAdding, setIsAdding] = useState(false)
@@ -91,7 +87,7 @@ export function RoomProposalPreferences({
   }, [keyboardItemId, items])
 
   const announcePosition = (id: string, list: SoftPreferenceItem[]) => {
-    const label = preferenceLabel(id, wishes)
+    const label = preferenceLabel(id, wishes, labels)
     const index = list.findIndex((item) => item.id === id)
     setAnnouncement(`${label}, pozice ${index + 1} z ${list.length}.`)
   }
@@ -108,7 +104,7 @@ export function RoomProposalPreferences({
     keyboardOriginal.current = items
     setKeyboardItemId(id)
     setAnnouncement(
-      `${preferenceLabel(id, wishes)} je na pozici ${items.findIndex((item) => item.id === id) + 1} z ${items.length}. Přesuňte šipkami, položte mezerníkem nebo zrušte klávesou Escape.`,
+      `${preferenceLabel(id, wishes, labels)} je na pozici ${items.findIndex((item) => item.id === id) + 1} z ${items.length}. Přesuňte šipkami, položte mezerníkem nebo zrušte klávesou Escape.`,
     )
   }
 
@@ -123,7 +119,7 @@ export function RoomProposalPreferences({
     if (!keyboardItemId) return
     const original = keyboardOriginal.current ?? items
     setItems(original)
-    setAnnouncement(`Přesun ${preferenceLabel(keyboardItemId, wishes)} zrušen.`)
+    setAnnouncement(`Přesun ${preferenceLabel(keyboardItemId, wishes, labels)} zrušen.`)
     keyboardOriginal.current = null
     setKeyboardItemId(null)
   }
@@ -174,7 +170,7 @@ export function RoomProposalPreferences({
             {items.length ? (
               <ol className="space-y-2">
                 {items.map((item, index) => {
-                  const label = preferenceLabel(item.id, wishes)
+                  const label = preferenceLabel(item.id, wishes, labels)
                   const option = optionOf(item.id)
                   return (
                     <li
@@ -265,7 +261,7 @@ export function RoomProposalPreferences({
                             Neutrální i prázdné odpovědi se nehodnotí.
                           </FieldDescription>
                           <div className="flex flex-wrap gap-x-6 gap-y-2">
-                            {option.values.map((value) => {
+                            {option.values.map(({ value, label: valueText }) => {
                               const id = `neutral-${item.id}-${value}`
                               return (
                                 <Field
@@ -279,7 +275,7 @@ export function RoomProposalPreferences({
                                       setNeutral(index, value, checked === true)
                                     }
                                   />
-                                  <FieldLabel htmlFor={id}>{valueLabel(item.id, value)}</FieldLabel>
+                                  <FieldLabel htmlFor={id}>{valueText}</FieldLabel>
                                 </Field>
                               )
                             })}
@@ -334,7 +330,7 @@ export function RoomProposalPreferences({
                         key={id}
                         value={id}
                       >
-                        {preferenceLabel(id, wishes)}
+                        {preferenceLabel(id, wishes, labels)}
                       </SelectItem>
                     ))}
                   </SelectContent>

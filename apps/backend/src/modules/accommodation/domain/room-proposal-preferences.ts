@@ -1,4 +1,4 @@
-import { GENDER_ATTRIBUTE } from '@/modules/accommodation/domain/determination';
+import { EventAttribute } from '@/modules/accommodation/domain/attributes';
 
 // The ranked soft preferences of the room proposal (#389, phase 2 §5): "Přání"
 // and categorical questions, each item outranking every one below it, with
@@ -10,28 +10,6 @@ export const WISHES_PREFERENCE = 'roommate-wishes';
 /** The list of a new event: only "Přání" (spec §5). */
 export const DEFAULT_SOFT_ATTRIBUTES: readonly string[] = [WISHES_PREFERENCE];
 
-/** A categorical question the organizer can rank as a soft attribute. */
-export type SoftAttributeOption = {
-  attribute: string;
-  /** Every answer of the question. */
-  values: readonly string[];
-  /** The answers offered as neutral when the attribute is added to the list. */
-  defaultNeutralValues: readonly string[];
-};
-
-/**
- * The categorical questions of an event (spec §5.4). Gender is the only one
- * today; "Jiná odpověď" and "Nechci uvést" are neutral by default. More come
- * with the categorical-questions story.
- */
-export const SOFT_ATTRIBUTE_OPTIONS: readonly SoftAttributeOption[] = [
-  {
-    attribute: GENDER_ATTRIBUTE,
-    values: ['female', 'male', 'other', 'undisclosed'],
-    defaultNeutralValues: ['other', 'undisclosed'],
-  },
-];
-
 /** One item of the list: "Přání", or a soft attribute with its neutral answers. */
 export type SoftPreferenceItem =
   | { id: typeof WISHES_PREFERENCE }
@@ -40,11 +18,15 @@ export type SoftPreferenceItem =
 /** The neutral answers by soft attribute, as `accommodation_rules.softNeutralValues` stores them. */
 export type SoftNeutralValues = Readonly<Record<string, readonly string[]>>;
 
-/** The questions that can be soft attributes: never the hard attribute. */
+/**
+ * The categorical questions that can be soft attributes (spec §5.4): gender
+ * and the event's questions (#485), never the hard attribute.
+ */
 export const softAttributeOptions = (
+  attributes: readonly EventAttribute[],
   hardAttribute: string | null,
-): SoftAttributeOption[] =>
-  SOFT_ATTRIBUTE_OPTIONS.filter((option) => option.attribute !== hardAttribute);
+): EventAttribute[] =>
+  attributes.filter((option) => option.attribute !== hardAttribute);
 
 /** The stored list and neutral answers as items, in the stored order. */
 export function preferenceItems(
@@ -79,6 +61,7 @@ export function readNeutralValues(json: unknown): SoftNeutralValues {
  */
 export function invalidPreferences(
   items: readonly { id: string; neutralValues?: readonly string[] }[],
+  attributes: readonly EventAttribute[],
 ): string | null {
   const ids = items.map((item) => item.id);
   if (new Set(ids).size !== ids.length)
@@ -88,12 +71,13 @@ export function invalidPreferences(
       if (item.neutralValues?.length) return 'Přání nemají neutrální hodnoty.';
       continue;
     }
-    const option = SOFT_ATTRIBUTE_OPTIONS.find((o) => o.attribute === item.id);
+    const option = attributes.find((o) => o.attribute === item.id);
     if (!option) return 'Vyberte preference z nabídky.';
     const neutral = item.neutralValues ?? [];
     if (new Set(neutral).size !== neutral.length)
       return 'Neutrální hodnotu lze uvést jen jednou.';
-    if (neutral.some((value) => !option.values.includes(value)))
+    const values = option.values.map((value) => value.value);
+    if (neutral.some((value) => !values.includes(value)))
       return 'Neutrální hodnoty vyberte z odpovědí otázky.';
   }
   return null;

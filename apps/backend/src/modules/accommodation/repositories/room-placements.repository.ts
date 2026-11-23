@@ -1,10 +1,12 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
-import { answerOf } from '@/modules/accommodation/domain/determination';
 import {
-  effectiveValue,
-  HardAttribute,
-} from '@/modules/accommodation/domain/effective-value';
+  answerOf,
+  answersSelect,
+  hardAttributeFrom,
+  questionAttributesSelect,
+} from '@/modules/accommodation/domain/attributes';
+import { effectiveValue } from '@/modules/accommodation/domain/effective-value';
 import { ProposalSnapshot } from '@/modules/accommodation/domain/proposal-input';
 import {
   byName,
@@ -112,19 +114,6 @@ type Loaded = {
   people: Map<string, PlacedPerson & PlacementPerson>;
   beds: Map<string, RoomBeds>;
 };
-
-const hardAttributeOf = (
-  rules: {
-    hardAttribute: string | null;
-    nonDeterminingValues: string[];
-  } | null,
-): HardAttribute | null =>
-  rules?.hardAttribute
-    ? {
-        attribute: rules.hardAttribute,
-        nonDeterminingValues: rules.nonDeterminingValues,
-      }
-    : null;
 
 const isConfirmable = (value: string): value is ConfirmableWarning =>
   value === 'mixed' || value === 'extra_bed' || value === 'over_capacity';
@@ -561,6 +550,7 @@ export class RoomPlacementsRepository {
       select: {
         event: {
           select: {
+            questions: questionAttributesSelect,
             accommodationRules: {
               select: { hardAttribute: true, nonDeterminingValues: true },
             },
@@ -589,8 +579,9 @@ export class RoomPlacementsRepository {
                 firstName: true,
                 lastName: true,
                 gender: true,
+                answers: answersSelect,
                 accommodationManualValue: {
-                  select: { value: true, basedOnAnswer: true },
+                  select: { attribute: true, value: true, basedOnAnswer: true },
                 },
               },
             },
@@ -602,7 +593,10 @@ export class RoomPlacementsRepository {
       },
     });
     if (!term) return null;
-    const hard = hardAttributeOf(term.event.accommodationRules);
+    const hard = hardAttributeFrom(
+      term.event.accommodationRules,
+      term.event.questions,
+    );
 
     const beds = new Map<string, RoomBeds>(
       term.event.rooms.map((room) => [

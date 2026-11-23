@@ -11,6 +11,8 @@ import {
 } from '@/modules/events/domain/event';
 import { PaymentSettings } from '@/modules/events/domain/payment-settings';
 import { PublicContact } from '@/modules/events/domain/presentation';
+import { questionsVersion } from '@/modules/registrations/domain/questions';
+import { FormQuestionDto } from '@/modules/registrations/dto/registration-questions.dto';
 import { ApiProperty } from '@nestjs/swagger';
 
 const STATUSES: EventStatus[] = ['draft', 'open', 'closed'];
@@ -297,6 +299,28 @@ export class PublicEventDto {
   })
   conditions!: string;
 
+  @ApiProperty({
+    type: [FormQuestionDto],
+    description:
+      'The categorical questions of the form (#485), in form order; ' +
+      'answers go with the registration.',
+  })
+  questions!: FormQuestionDto[];
+
+  @ApiProperty({
+    description:
+      'Version of the questions as shown; the form sends it back with the ' +
+      'registration (#485).',
+  })
+  questionsVersion!: string;
+
+  @ApiProperty({
+    description:
+      'Rooms are split by gender, so the form requires a gender answer; ' +
+      '"undisclosed" counts as one.',
+  })
+  isGenderRequired!: boolean;
+
   static from(model: PublicEventModel): PublicEventDto {
     return {
       name: model.name,
@@ -311,6 +335,9 @@ export class PublicEventDto {
       })),
       isPublished: model.isPublished,
       conditions: model.conditions,
+      questions: model.questions.map(FormQuestionDto.from),
+      questionsVersion: questionsVersion(model),
+      isGenderRequired: model.isGenderRequired,
     };
   }
 }

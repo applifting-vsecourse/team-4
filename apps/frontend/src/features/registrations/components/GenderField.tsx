@@ -1,5 +1,12 @@
 import { Button } from "@/components/ui/button"
-import { Field, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
@@ -18,19 +25,47 @@ type GenderFieldProps = {
   value: GenderAnswer
   onChange: (value: GenderAnswer) => void
   isDisabled?: boolean
+  /**
+   * Rooms are split by gender, so an answer is needed; "Nechci uvést" counts
+   * as one (PO feedback on #485).
+   */
+  isRequired?: boolean
+  /** E.g. a required answer still missing. */
+  error?: string
 }
 
 // F64: the voluntary answer for accommodation, one option at most. "Jiná
 // odpověď" opens a field for the participant's own words; another option drops
 // them. "Zrušit výběr" returns to no answer, which differs from "Nechci uvést".
-export function GenderField({ id, value, onChange, isDisabled }: GenderFieldProps) {
+export function GenderField({
+  id,
+  value,
+  onChange,
+  isDisabled,
+  isRequired = false,
+  error,
+}: GenderFieldProps) {
   const otherId = `${id}-other-words`
+  const descriptionId = `${id}-description`
+  const errorId = `${id}-error`
   return (
     <div className="rounded-lg border border-border bg-background p-4 sm:p-5">
-      <FieldSet>
+      <FieldSet data-invalid={error ? true : undefined}>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <FieldLegend>Pohlaví pro ubytování</FieldLegend>
-          {value.gender ? (
+          <FieldLegend>
+            Pohlaví pro ubytování
+            {isRequired ? (
+              <span
+                aria-hidden="true"
+                className="text-destructive"
+              >
+                {" "}
+                *
+              </span>
+            ) : null}
+          </FieldLegend>
+          {/* A required answer is changed, never cleared. */}
+          {value.gender && !isRequired ? (
             <Button
               type="button"
               variant="ghost"
@@ -42,6 +77,11 @@ export function GenderField({ id, value, onChange, isDisabled }: GenderFieldProp
             </Button>
           ) : null}
         </div>
+        {isRequired ? (
+          <FieldDescription id={descriptionId}>
+            Pokoje se dělí podle pohlaví. Pokud ho nechcete uvádět, zvolte „Nechci uvést“.
+          </FieldDescription>
+        ) : null}
         <RadioGroup
           value={value.gender ?? ""}
           onValueChange={(next) => {
@@ -50,6 +90,12 @@ export function GenderField({ id, value, onChange, isDisabled }: GenderFieldProp
           }}
           disabled={isDisabled}
           className="sm:grid-cols-2"
+          aria-required={isRequired || undefined}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={
+            [isRequired ? descriptionId : null, error ? errorId : null].filter(Boolean).join(" ") ||
+            undefined
+          }
         >
           {GENDERS.map((gender) => (
             <Field
@@ -82,6 +128,7 @@ export function GenderField({ id, value, onChange, isDisabled }: GenderFieldProp
             </Field>
           </div>
         ) : null}
+        {error ? <FieldError id={errorId}>{error}</FieldError> : null}
       </FieldSet>
     </div>
   )

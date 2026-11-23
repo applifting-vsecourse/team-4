@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react"
 
 import { toE164 } from "@/lib/phone"
 
+import type { FormQuestion } from "@/features/registrations/api/questionSchemas"
 import { type SelectableTerm } from "@/features/registrations/api/registrationSchemas"
+import { answersOf } from "@/features/registrations/components/QuestionAnswersFields"
 import {
   RegistrationForm,
   type RegistrationFormValues,
@@ -19,6 +21,14 @@ type PublicRegistrationProps = {
   terms: SelectableTerm[]
   /** Participation terms of the event (F07); empty when it has none. */
   conditions: string
+  /** The organizer's categorical questions (#485), in form order. */
+  questions?: FormQuestion[]
+  /** The version of those questions, sent back with the registration. */
+  questionsVersion?: string
+  /** Rooms are split by gender, so the gender answer is required. */
+  isGenderRequired?: boolean
+  /** A refusal said the questions changed since the form opened: read them again. */
+  onQuestionsChanged?: () => void
   /**
    * Contact details of the signed-in participant's profile (S4-08). They only
    * prefill the form: it stays editable and saving it never changes the profile.
@@ -39,6 +49,10 @@ export function PublicRegistration({
   publicId,
   terms,
   conditions,
+  questions = [],
+  questionsVersion,
+  isGenderRequired = false,
+  onQuestionsChanged,
   contact,
 }: PublicRegistrationProps) {
   const [submissionKey] = useState(() => crypto.randomUUID())
@@ -54,6 +68,10 @@ export function PublicRegistration({
     () => (submit.error ? describeRegistrationError(submit.error) : null),
     [submit.error],
   )
+
+  useEffect(() => {
+    if (submitError?.kind === "questions") onQuestionsChanged?.()
+  }, [submitError, onQuestionsChanged])
 
   useEffect(() => {
     if (!submit.data) return
@@ -84,6 +102,8 @@ export function PublicRegistration({
       needs: normalizeNeeds(values.needs),
       ...toGenderAnswer(values),
       conditionsConfirmed: values.conditionsConfirmed,
+      answers: answersOf(questions, values.answers),
+      ...(questionsVersion ? { questionsVersion } : {}),
     })
   }
 
@@ -91,6 +111,8 @@ export function PublicRegistration({
     <RegistrationForm
       terms={terms}
       conditions={conditions}
+      questions={questions}
+      isGenderRequired={isGenderRequired}
       // A draft holds what was already typed, prefilled or not.
       initialValues={draft ?? contact}
       onValuesChange={(values) => saveDraft(publicId, values)}

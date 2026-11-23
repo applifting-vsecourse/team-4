@@ -1,11 +1,18 @@
 import {
+  ANSWER_MESSAGES,
+  AnswerError,
+} from '@/modules/registrations/domain/questions';
+import {
   RegistrationInput,
   RegistrationResultModel,
   submissionHash,
 } from '@/modules/registrations/domain/registration';
 import { RegistrationsRepository } from '@/modules/registrations/repositories/registrations.repository';
 import { RegistrationConfirmationService } from '@/modules/registrations/services/registration-confirmation.service';
-import { isUniqueViolation } from '@/modules/rooms/repositories/rooms.repository';
+import {
+  isForeignKeyViolation,
+  isUniqueViolation,
+} from '@/modules/rooms/repositories/rooms.repository';
 import {
   BadRequestException,
   ConflictException,
@@ -39,6 +46,20 @@ const keyReused = (): ConflictException =>
       'Tato přihláška už byla odeslána s jinými údaji. Načtěte formulář znovu.',
   });
 
+/** Answers that don't fit the questions: changed ones are a conflict, the rest invalid. */
+export const answersRefused = (
+  error: AnswerError,
+): ConflictException | BadRequestException => {
+  const body = {
+    code: error,
+    field: 'answers',
+    message: ANSWER_MESSAGES[error],
+  };
+  return error === 'questions_changed'
+    ? new ConflictException({ statusCode: 409, ...body })
+    : new BadRequestException({ statusCode: 400, ...body });
+};
+
 export type SubmitResult = {
   /** False when this repeats a submission that was already saved. */
   created: boolean;
@@ -69,6 +90,8 @@ export class RegistrationsService {
     try {
       outcome = await this.repository.submit(publicId, input, payloadHash);
     } catch (error) {
+      if (isForeignKeyViolation(error))
+        throw answersRefused('questions_changed');
       if (!isUniqueViolation(error)) throw error;
       // Either a concurrent submit with the same key won the race, or the
       // e-mail is already registered for this event.
@@ -86,6 +109,7 @@ export class RegistrationsService {
         message: 'Potvrďte, že jste si přečetli podmínky účasti.',
       });
     }
+    if (outcome.kind === 'answers_invalid') throw answersRefused(outcome.error);
     if (outcome.kind === 'term_unknown') {
       throw new BadRequestException({
         statusCode: 400,

@@ -1,5 +1,5 @@
+import { answerOf } from '@/modules/accommodation/domain/attributes';
 import {
-  answerOf,
   determiningValues,
   needsDetermination,
   refuseDetermination,
@@ -42,7 +42,11 @@ describe('determination (spec v4 §4)', () => {
     expect(needsDetermination(GENDER, 'male', null)).toBe(false);
     expect(needsDetermination(GENDER, null, null)).toBe(true);
     expect(
-      needsDetermination(GENDER, null, { value: 'male', basedOnAnswer: null }),
+      needsDetermination(GENDER, null, {
+        attribute: 'gender',
+        value: 'male',
+        basedOnAnswer: null,
+      }),
     ).toBe(false);
   });
 });

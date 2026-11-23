@@ -7,6 +7,7 @@ import {
 } from "@/features/accommodation/fixtures/evaluation"
 import {
   EVERYONE,
+  GENDER_LABELS,
   queueLabel,
   toConflict,
   toEvidence,
@@ -14,7 +15,6 @@ import {
   toHistoryRun,
   toOrderPeople,
   toQueues,
-  valueLabel,
 } from "@/features/accommodation/lib/evaluationView"
 
 describe("evaluationView", () => {
@@ -40,7 +40,7 @@ describe("evaluationView", () => {
       determinedAs: "Muž",
       queueId: "male",
     })
-    expect(valueLabel("gender", null)).toBe("Neuvedeno")
+    expect(GENDER_LABELS.value("gender", null)).toBe("Neuvedeno")
   })
 
   it("puts everyone into one queue without a hard attribute", () => {

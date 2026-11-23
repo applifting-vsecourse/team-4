@@ -19,7 +19,7 @@ import { AccommodationTermTabs } from "@/features/accommodation/components/Accom
 import { RoomAssignmentSection } from "@/features/accommodation/components/RoomAssignmentSection"
 import { RoommateWishStatesSection } from "@/features/accommodation/components/RoommateWishStatesSection"
 import { RoomProposalSection } from "@/features/accommodation/components/RoomProposalSection"
-import { attributeLabel } from "@/features/accommodation/lib/evaluationView"
+import { useAttributeLabels } from "@/features/accommodation/hooks/useAttributeLabels"
 import { useSession } from "@/features/auth/hooks/useSession"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
@@ -62,7 +62,8 @@ function RoomsPage() {
   // The reason H names the hard attribute; while it loads or if it fails,
   // the reason keeps its generic wording ("pravidla ubytování") on purpose.
   const { data: rules } = useQuery(hardAttributeQueryOptions(organizationId, eventId))
-  const attribute = rules?.hardAttribute ? attributeLabel(rules.hardAttribute) : null
+  const labels = useAttributeLabels(organizationId, eventId)
+  const attribute = rules?.hardAttribute ? labels.attribute(rules.hardAttribute) : null
   const termId = event.terms.find((t) => t.id === term)?.id ?? event.terms[0]?.id
   const selectedTab = tab ?? "occupancy"
   const selectedSplitView = view ?? "assignment"

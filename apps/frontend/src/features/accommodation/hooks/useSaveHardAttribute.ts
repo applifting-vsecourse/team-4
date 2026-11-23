@@ -17,16 +17,16 @@ import { roomProposalKeys } from "@/features/accommodation/api/roomProposalQuery
 export function useSaveHardAttribute(
   organizationId: string,
   eventId: string,
-  /** Also reloaded on success, e.g. the registrations of another feature. */
-  invalidate: readonly unknown[] = [],
+  /** Also reloaded on success, e.g. the registrations or questions of another feature. */
+  invalidate: readonly (readonly unknown[])[] = [],
 ) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (hardAttribute: string | null) =>
+    mutationFn: async (choice: { hardAttribute: string | null; nonDeterminingValues: string[] }) =>
       hardAttributeSettingSchema.parse(
         await api
           .put(`${accommodationPath(organizationId, eventId)}/hard-attribute`, {
-            json: { hardAttribute },
+            json: choice,
           })
           .json(),
       ),
@@ -52,7 +52,7 @@ export function useSaveHardAttribute(
         queryClient.invalidateQueries({
           queryKey: roomProposalKeys.terms(organizationId, eventId),
         }),
-        ...(invalidate.length ? [queryClient.invalidateQueries({ queryKey: invalidate })] : []),
+        ...invalidate.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
       ])
     },
   })

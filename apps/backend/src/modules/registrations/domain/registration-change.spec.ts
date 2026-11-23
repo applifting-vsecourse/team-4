@@ -41,6 +41,9 @@ const subject = (
   genderOther: null,
   paidMinor,
   terms,
+  questions: [],
+  answers: [],
+  isGenderRequired: false,
 });
 
 const info = (

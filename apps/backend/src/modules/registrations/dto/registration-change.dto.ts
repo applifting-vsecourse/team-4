@@ -3,6 +3,7 @@ import {
   GENDER_OTHER_MAX_LENGTH,
   GENDERS,
 } from '@/modules/registrations/domain/gender';
+import { MAX_QUESTIONS } from '@/modules/registrations/domain/questions';
 import { ParticipationStatus } from '@/modules/registrations/domain/registration';
 import {
   CHANGEABLE_FIELDS,
@@ -91,6 +92,22 @@ export class TermMoveDto {
 }
 
 /** What a participant changes; a field left out stays as it is. */
+export class ChangeAnswerDto {
+  @ApiProperty({ format: 'uuid', description: 'A question of the event.' })
+  @IsUUID('all', { message: 'Otázky přihlášky se mezitím změnily.' })
+  questionId!: string;
+
+  @ApiProperty({
+    format: 'uuid',
+    type: String,
+    nullable: true,
+    description: 'One of its options; null removes the answer.',
+  })
+  @ValidateIf((_, value) => value !== null)
+  @IsUUID('all', { message: 'Otázky přihlášky se mezitím změnily.' })
+  optionId!: string | null;
+}
+
 export class ChangeProposalDto {
   @ApiPropertyOptional({ maxLength: 100 })
   @ValidateIf((_: object, value: unknown) => value !== undefined)
@@ -175,6 +192,32 @@ export class ChangeProposalDto {
   @ArrayMaxSize(100)
   @IsUUID('all', { each: true, message: 'Neplatný termín.' })
   addedTermIds?: string[];
+
+  @ApiPropertyOptional({
+    type: [ChangeAnswerDto],
+    description:
+      'Answers to the event’s questions (#485); a question left out keeps ' +
+      'its answer. 400 `questions_changed` for a question or option the ' +
+      'form no longer has, `answer_required` while a required question ' +
+      'would stay unanswered.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_QUESTIONS)
+  @ValidateNested({ each: true })
+  @Type(() => ChangeAnswerDto)
+  answers?: ChangeAnswerDto[];
+
+  @ApiPropertyOptional({
+    description:
+      'The `questionsVersion` of the registration detail the form showed ' +
+      '(#485); when the questions changed since, 400 `questions_changed`.',
+    maxLength: 64,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  questionsVersion?: string;
 }
 
 export class SubmitChangeDto extends ChangeProposalDto {
@@ -264,9 +307,45 @@ export class NeedsChangeDto {
   }
 }
 
+export class AnswerChoiceDto {
+  @ApiProperty({ format: 'uuid' })
+  optionId!: string;
+
+  @ApiProperty()
+  label!: string;
+}
+
+export class AnswerChangeDto {
+  @ApiProperty({ format: 'uuid' })
+  questionId!: string;
+
+  @ApiProperty()
+  question!: string;
+
+  @ApiProperty({
+    type: AnswerChoiceDto,
+    nullable: true,
+    description: 'Null when not answered before.',
+  })
+  original!: AnswerChoiceDto | null;
+
+  @ApiProperty({
+    type: AnswerChoiceDto,
+    nullable: true,
+    description: 'Null when the answer is removed.',
+  })
+  proposed!: AnswerChoiceDto | null;
+}
+
 export class ChangeSummaryDto {
   @ApiProperty({ type: [ChangedValueDto] })
   values!: ChangedValueDto[];
+
+  @ApiProperty({
+    type: [AnswerChangeDto],
+    description: 'Changed answers to the event’s questions (#485).',
+  })
+  answers!: AnswerChangeDto[];
 
   @ApiProperty({
     type: NeedsChangeDto,
@@ -287,6 +366,7 @@ export class ChangeSummaryDto {
   static from(summary: ChangeSummary): ChangeSummaryDto {
     return {
       values: summary.values.map((value) => ({ ...value })),
+      answers: (summary.answers ?? []).map((change) => ({ ...change })),
       needs: summary.needs && NeedsChangeDto.from(summary.needs),
       terms: summary.terms.map((term: PlannedTerm) => ({ ...term })),
       original: { ...summary.original },

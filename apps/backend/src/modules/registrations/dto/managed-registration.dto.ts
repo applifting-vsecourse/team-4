@@ -10,6 +10,7 @@ import {
   RegistrationList,
 } from '@/modules/registrations/domain/managed-registration';
 import { RegistrationNeedsDto } from '@/modules/registrations/dto/registration-needs.dto';
+import { AnswerViewDto } from '@/modules/registrations/dto/registration-questions.dto';
 import { RegistrationTermResultDto } from '@/modules/registrations/dto/registration-result.dto';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -172,6 +173,14 @@ export class RegistrationDetailDto extends RegistrationSummaryDto {
   })
   requiresManualAccommodation!: boolean;
 
+  @ApiProperty({
+    type: [AnswerViewDto],
+    description:
+      'Every categorical question of the event, in form order, with the ' +
+      'answer given or null (#485).',
+  })
+  answers!: AnswerViewDto[];
+
   static from(model: ManagedRegistrationDetailModel): RegistrationDetailDto {
     const hasObligation = model.amountDueMinor > 0;
     return {
@@ -185,6 +194,7 @@ export class RegistrationDetailDto extends RegistrationSummaryDto {
       gender: model.gender,
       genderOther: model.genderOther,
       requiresManualAccommodation: model.requiresManualAccommodation,
+      answers: model.answers.map(AnswerViewDto.from),
     };
   }
 }

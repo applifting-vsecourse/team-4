@@ -9,6 +9,7 @@ import type {
   ParticipantRegistration,
 } from "@/features/registrations/api/participantRegistrationSchemas"
 import type { QrPaymentPage } from "@/features/registrations/api/qrPaymentSchemas"
+import type { ManagedQuestion, QuestionDraft } from "@/features/registrations/api/questionSchemas"
 import type {
   ChangePreview,
   RegistrationChange,
@@ -27,6 +28,7 @@ import {
   makeQrPaymentPage,
   makeRegistrationResult,
 } from "@/features/registrations/fixtures/publicRegistration"
+import { NO_QUESTIONS, type OwnQuestions } from "@/features/registrations/fixtures/questions"
 import {
   makeChangePreview,
   makeOwnChange,
@@ -41,6 +43,7 @@ import { ORGANIZER_WISHES, STORED_WISHES } from "@/features/registrations/fixtur
 // MSW handlers for registrations: the organizer's view of an event and the
 // participant's own. Install with `msw.use(...)` in a story's `beforeEach`.
 
+const QUESTIONS = `${env.VITE_API_URL}/organizations/:organizationId/events/:eventId/questions`
 const EVENT_LIST = `${env.VITE_API_URL}/organizations/:organizationId/events/:eventId/registrations`
 const EVENT_CHANGES = `${env.VITE_API_URL}/organizations/:organizationId/events/:eventId`
 const OWN_LIST = `${env.VITE_API_URL}/participant/registrations`
@@ -76,6 +79,34 @@ export const registrationHandlers = {
   eventPayments: (overview: EventPayments = makeEventPayments()) => [
     http.get(`${EVENT_CHANGES}/payments`, () => HttpResponse.json(overview)),
   ],
+  /** Nastavení → Otázky v přihlášce (#485): the saved list, kept in memory. */
+  questions: (initial: ManagedQuestion[] = []) => {
+    let questions = initial
+    return [
+      http.get(QUESTIONS, () => HttpResponse.json({ questions })),
+      http.put(QUESTIONS, async ({ request }) => {
+        const body = (await request.json()) as { questions: QuestionDraft[] }
+        let n = 0
+        const id = () => `0190c0de-0000-7000-8000-${String(990_000 + (n += 1)).padStart(12, "0")}`
+        questions = body.questions.map((draft) => {
+          const saved = questions.find((q) => q.id === draft.id)
+          return {
+            id: draft.id ?? id(),
+            label: draft.label.trim(),
+            isRequired: draft.isRequired,
+            isAnswered: saved?.isAnswered ?? false,
+            usedBy: saved?.usedBy ?? null,
+            options: draft.options.map((option) => ({
+              id: option.id ?? id(),
+              label: option.label.trim(),
+              isChosen: saved?.options.find((o) => o.id === option.id)?.isChosen ?? false,
+            })),
+          }
+        })
+        return HttpResponse.json({ questions })
+      }),
+    ]
+  },
   event: () => [
     http.get(EVENT_LIST, () => HttpResponse.json(makeRegistrationList())),
     http.get(`${EVENT_CHANGES}/payments`, () => HttpResponse.json(makeEventPayments())),
@@ -115,7 +146,7 @@ export const registrationHandlers = {
     http.get(`${OWN_LIST}/:registrationId`, ({ params }) => {
       const registration = OWN_REGISTRATIONS.find(({ id }) => id === params.registrationId)
       return registration
-        ? HttpResponse.json({ ...registration, availableTerms: AVAILABLE_TERMS })
+        ? HttpResponse.json({ ...registration, availableTerms: AVAILABLE_TERMS, ...NO_QUESTIONS })
         : notFound()
     }),
   ],
@@ -131,9 +162,10 @@ export const registrationHandlers = {
   ownRegistration: (
     registration: ParticipantRegistration,
     availableTerms: AvailableTerm[] = AVAILABLE_TERMS,
+    questions: OwnQuestions = NO_QUESTIONS,
   ) => [
     http.get(`${OWN_LIST}/:registrationId`, () =>
-      HttpResponse.json({ ...registration, availableTerms }),
+      HttpResponse.json({ ...registration, availableTerms, ...questions }),
     ),
   ],
   /** Stored changes of the own registration: requests and their history. */

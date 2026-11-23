@@ -25,6 +25,7 @@ const pendingChanges = registrationChangeListSchema.parse({
       decidedAt: null,
       summary: {
         values: [],
+        answers: [],
         needs: null,
         terms: [
           {

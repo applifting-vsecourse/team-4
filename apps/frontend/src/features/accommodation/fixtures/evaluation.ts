@@ -7,6 +7,7 @@ import {
   runEvidenceSchema,
   runListSchema,
   termEvaluationSchema,
+  type EventAttribute,
   type HardAttributeSetting,
   type MoveRecord,
   type RegistrationAccommodation,
@@ -231,18 +232,43 @@ export function makeRegistrationAccommodation(
   })
 }
 
-/** Nastavení → Pravidla ubytování (#384): gender is the only option yet. */
+/** The built-in gender question as the rules list it. */
+export const GENDER_ATTRIBUTE: EventAttribute = {
+  attribute: "gender",
+  label: "Pohlaví",
+  values: [
+    { value: "female", label: "Žena" },
+    { value: "male", label: "Muž" },
+    { value: "other", label: "Jiná odpověď" },
+    { value: "undisclosed", label: "Nechci uvést" },
+  ],
+  defaultNonDeterminingValues: ["other", "undisclosed"],
+  defaultNeutralValues: ["other", "undisclosed"],
+}
+
+/** A question of the event's form (#485): its id is the attribute, option ids the values. */
+export const SCHOOL_ATTRIBUTE: EventAttribute = {
+  attribute: "0190c0de-0000-7000-8000-000000000485",
+  label: "Škola",
+  values: [
+    { value: "0190c0de-0000-7000-8000-000000004851", label: "ZŠ Lipová" },
+    { value: "0190c0de-0000-7000-8000-000000004852", label: "ZŠ Dubová" },
+    { value: "0190c0de-0000-7000-8000-000000004853", label: "Jiná škola" },
+  ],
+  defaultNonDeterminingValues: [],
+  defaultNeutralValues: [],
+}
+
+/** Nastavení → Pravidla ubytování (#384, #485): gender and the event's questions. */
 export function makeHardAttributeSetting(
   hardAttribute: string | null = "gender",
+  questions: EventAttribute[] = [],
 ): HardAttributeSetting {
+  const options = [GENDER_ATTRIBUTE, ...questions]
   return hardAttributeSettingSchema.parse({
     hardAttribute,
-    options: [
-      {
-        attribute: "gender",
-        values: ["female", "male", "other", "undisclosed"],
-        nonDeterminingValues: ["other", "undisclosed"],
-      },
-    ],
+    nonDeterminingValues:
+      options.find((o) => o.attribute === hardAttribute)?.defaultNonDeterminingValues ?? [],
+    options,
   })
 }

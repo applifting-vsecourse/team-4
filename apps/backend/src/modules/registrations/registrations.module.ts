@@ -11,12 +11,14 @@ import { PaymentsController } from './controllers/payments.controller';
 import { PublicRegistrationsController } from './controllers/public-registrations.controller';
 import { QrPaymentsController } from './controllers/qr-payments.controller';
 import { RegistrationChangesController } from './controllers/registration-changes.controller';
+import { RegistrationQuestionsController } from './controllers/registration-questions.controller';
 import { EventRegistrationsRepository } from './repositories/event-registrations.repository';
 import { ParticipantRegistrationsRepository } from './repositories/participant-registrations.repository';
 import { ParticipantUpdatesRepository } from './repositories/participant-updates.repository';
 import { PaymentsRepository } from './repositories/payments.repository';
 import { QrPaymentsRepository } from './repositories/qr-payments.repository';
 import { RegistrationChangesRepository } from './repositories/registration-changes.repository';
+import { RegistrationQuestionsRepository } from './repositories/registration-questions.repository';
 import { RegistrationsRepository } from './repositories/registrations.repository';
 import { RoommateWishesRepository } from './repositories/roommate-wishes.repository';
 import { EventPaymentsService } from './services/event-payments.service';
@@ -28,6 +30,7 @@ import { PaymentsService } from './services/payments.service';
 import { QrPaymentsService } from './services/qr-payments.service';
 import { RegistrationChangesService } from './services/registration-changes.service';
 import { RegistrationConfirmationService } from './services/registration-confirmation.service';
+import { RegistrationQuestionsService } from './services/registration-questions.service';
 import { RegistrationsService } from './services/registrations.service';
 import { RoommateWishesService } from './services/roommate-wishes.service';
 
@@ -40,6 +43,7 @@ import { RoommateWishesService } from './services/roommate-wishes.service';
     PaymentsController,
     ParticipantRegistrationsController,
     RegistrationChangesController,
+    RegistrationQuestionsController,
     QrPaymentsController,
     ParticipantRoommateWishesController,
     EventRoommateWishesController,
@@ -60,6 +64,8 @@ import { RoommateWishesService } from './services/roommate-wishes.service';
     ParticipantRegistrationsRepository,
     RegistrationChangesService,
     RegistrationChangesRepository,
+    RegistrationQuestionsRepository,
+    RegistrationQuestionsService,
     QrPaymentsService,
     QrPaymentsRepository,
     RoommateWishesService,

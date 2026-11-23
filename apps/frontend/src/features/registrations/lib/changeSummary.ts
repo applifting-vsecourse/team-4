@@ -86,6 +86,12 @@ export function toSummaryProps(
         original: valueText(value, "original"),
         proposed: valueText(value, "proposed"),
       })),
+      // The organizer's questions (#485): by their own labels.
+      ...summary.answers.map((answer) => ({
+        label: answer.question,
+        original: answer.original?.label ?? "Neuvedeno",
+        proposed: answer.proposed?.label ?? "Neuvedeno",
+      })),
       ...needsRows(summary.needs),
     ],
     terms: terms.map((term) => ({

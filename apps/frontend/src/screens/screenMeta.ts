@@ -35,6 +35,7 @@ export const organizerBackend = () => [
   ...paymentHandlers.transactions(),
   ...paymentHandlers.import(),
   ...registrationHandlers.event(),
+  ...registrationHandlers.questions(),
   ...accommodationHandlers.evaluation(),
   ...accommodationHandlers.roomProposal(),
   ...placementHandlers(),

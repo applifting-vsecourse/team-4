@@ -250,7 +250,11 @@ export class TermDecisionService {
       if (refusal) {
         throw this.determinationFailure({ kind: 'refused', refusal });
       }
-      manualValue = { value: determination.value, basedOnAnswer: answer };
+      manualValue = {
+        attribute: hard?.attribute ?? '',
+        value: determination.value,
+        basedOnAnswer: answer,
+      };
     }
 
     const { input } = buildEvaluation(

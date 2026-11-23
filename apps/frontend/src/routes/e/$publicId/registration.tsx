@@ -1,4 +1,4 @@
-import { useQueryErrorResetBoundary, useSuspenseQuery } from "@tanstack/react-query"
+import { useQueryClient, useQueryErrorResetBoundary, useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { CalendarX } from "lucide-react"
 
@@ -48,6 +48,7 @@ function PublicRegistrationPage() {
   const { publicId } = Route.useParams()
   const { data: event } = useSuspenseQuery(publicEventQueryOptions(publicId))
   const { contact } = Route.useLoaderData()
+  const queryClient = useQueryClient()
 
   return (
     <PublicShell>
@@ -61,6 +62,15 @@ function PublicRegistrationPage() {
               publicId={publicId}
               terms={event.terms}
               conditions={event.conditions}
+              questions={event.questions}
+              questionsVersion={event.questionsVersion}
+              isGenderRequired={event.isGenderRequired}
+              // A question changed since the form opened: read them again.
+              onQuestionsChanged={() =>
+                queryClient.invalidateQueries({
+                  queryKey: publicEventQueryOptions(publicId).queryKey,
+                })
+              }
               contact={contact}
             />
           }

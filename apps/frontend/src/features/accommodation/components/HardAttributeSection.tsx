@@ -9,15 +9,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { hardAttributeQueryOptions } from "@/features/accommodation/api/evaluationQueryOptions"
 import { HardAttributeSettings } from "@/features/accommodation/components/HardAttributeSettings"
 import { useSaveHardAttribute } from "@/features/accommodation/hooks/useSaveHardAttribute"
-import { attributeLabel } from "@/features/accommodation/lib/evaluationView"
+import { attributeLabels, type AttributeLabels } from "@/features/accommodation/lib/evaluationView"
 
 /** Where the Nastavení buttons of Přihlášky and Ubytování lead (#384). */
 export const ACCOMMODATION_RULES_HEADING = "accommodation-rules-heading"
 
-const stillApplies = (hardAttribute: string | null) =>
+const stillApplies = (hardAttribute: string | null, labels: AttributeLabels) =>
   hardAttribute === null
     ? "Pokoje se dál nedělí."
-    : `Pokoje se dál dělí podle: ${attributeLabel(hardAttribute)}.`
+    : `Pokoje se dál dělí podle: ${labels.attribute(hardAttribute)}.`
 
 // Nastavení → Pravidla ubytování (#384): the saved hard attribute of the
 // event. A failed save says which choice still applies and keeps the chosen
@@ -30,8 +30,11 @@ export function HardAttributeSection({
 }: {
   organizationId: string
   eventId: string
-  /** Reloaded after a save: the registrations show who needs a determination. */
-  invalidate?: readonly unknown[]
+  /**
+   * Reloaded after a save: the registrations show who needs a determination,
+   * the questions which of them the rules use (#485).
+   */
+  invalidate?: readonly (readonly unknown[])[]
   presentation?: "section" | "dialog"
 }) {
   const setting = useQuery(hardAttributeQueryOptions(organizationId, eventId))
@@ -50,11 +53,16 @@ export function HardAttributeSection({
   ) : (
     <HardAttributeSettings
       // A newly saved or reloaded choice starts the form again.
-      key={setting.data.hardAttribute ?? "none"}
+      key={`${setting.data.hardAttribute ?? "none"}:${setting.data.nonDeterminingValues.join(",")}`}
       hardAttribute={setting.data.hardAttribute}
+      nonDeterminingValues={setting.data.nonDeterminingValues}
       options={setting.data.options}
       isSaving={save.isPending}
-      saveError={save.isError ? stillApplies(setting.data.hardAttribute) : undefined}
+      saveError={
+        save.isError
+          ? stillApplies(setting.data.hardAttribute, attributeLabels(setting.data.options))
+          : undefined
+      }
       onSave={(next) =>
         save.mutate(next, {
           onSuccess: () => toast.success("Pravidla ubytování byla uložena."),

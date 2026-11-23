@@ -50,6 +50,10 @@ erDiagram
     Registration ||--|{ RegistrationTerm : "selects 1..n"
     EventTerm ||--o{ RegistrationTerm : "selected in"
     Registration ||--o{ Payment : "paid by"
+    Event ||--o{ RegistrationQuestion : asks
+    RegistrationQuestion ||--|{ RegistrationQuestionOption : "offers 2..10"
+    Registration ||--o{ RegistrationAnswer : answers
+    RegistrationQuestionOption ||--o{ RegistrationAnswer : "chosen in"
     User ||--o{ Payment : "recorded"
     ParticipantAccount ||--o{ ParticipantMagicLink : ""
     ParticipantAccount ||--o{ ParticipantSession : ""
@@ -71,6 +75,8 @@ erDiagram
 | `Registration`                                  | `registration`                                   | Submission: personal data snapshot, VS, payment snapshot, reminder date.                          |
 | `RegistrationTerm`                              | `registration_term`                              | Selected term + participation outcome + price snapshot.                                           |
 | `RegistrationChange`                            | `registration_change`                            | A participant's change of an own registration, executed or awaiting approval (§3.13).             |
+| `RegistrationQuestion` (+ `…Option`)            | `registration_question` (+ `_option`)            | The organizer's own categorical questions of the form and their options (#485, §3.14).            |
+| `RegistrationAnswer`                            | `registration_answer`                            | A participant's chosen option of one question; no row is no answer (#485).                        |
 | `AccommodationRules`                            | `accommodation_rules`                            | Hard attribute, its non-determining answers and ranked soft attributes of an event (§3.14).       |
 | `AccommodationManualValue`                      | `accommodation_manual_value`                     | The organizer's determination of a participant's effective value (§3.14).                         |
 | `AccommodationTermOrder`                        | `accommodation_term_order`                       | A manually changed order of a term's unconfirmed participants (§3.14).                            |
@@ -423,8 +429,15 @@ current data; a run only proposes and never changes a participation, a debt or a
 - **Rules.** `accommodation_rules` holds at most one hard attribute (the categorical question
   that splits rooms), its non-determining answers and the ranked soft attributes. No row means
   no hard attribute: capacity and order alone decide.
+- **Attributes (#485).** A categorical question is gender (built in, `gender` with fixed codes)
+  or one of the event's own `registration_question`s, at most 5 with 2–10 options. A question's
+  id is its attribute and its option ids are the values, so labels can be renamed without
+  touching rules or snapshots. A question or option that is answered, or a question the rules
+  use, is never deleted (`registration_answer` FKs are `RESTRICT`; question saves take the
+  `accommodation_rules` row lock that rule saves take).
 - **Effective value.** A participant's determining answer, or the organizer's determination in
-  `accommodation_manual_value`. The determination stores the answer it was made on
+  `accommodation_manual_value`. The determination records the `attribute` it was made for and
+  counts only while that is still the hard attribute. The determination stores the answer it was made on
   (`basedOnAnswer`) and applies only while the answer is still the same, so any change of the
   answer cancels it without a trigger. Without an effective value the participant is not
   evaluated (reason R); no value is guessed.
@@ -541,6 +554,17 @@ current data; a run only proposes and never changes a participation, a debt or a
 | `registration_term.decidedAt`             | timestamptz                           | When the status was set.                                                                        |
 | `registration.version`                    | int default 0                         | Bumped by every executed change; guards stale proposals (§3.13).                                |
 
+### RegistrationQuestion, RegistrationQuestionOption, RegistrationAnswer (#485)
+
+| Field                                        | Type                              | Notes                                                                       |
+| -------------------------------------------- | --------------------------------- | --------------------------------------------------------------------------- |
+| `registration_question.eventId`, `.position` | uuid, int                         | Form order, `position >= 0` (CHECK). Cascade with the event.                |
+| `registration_question.label`, `.isRequired` | varchar(200), boolean             | Label not blank (CHECK). Required applies on submit and on the next change. |
+| `registration_question_option.label`         | varchar(100)                      | Not blank (CHECK); `UNIQUE (id, questionId)` for the answer FK.             |
+| `registration_answer` PK                     | `(registrationId, questionId)`    | One answer per question; no row is no answer.                               |
+| `registration_answer.(questionId, eventId)`  | FK `registration_question`        | `RESTRICT`: an answered question stays. Same event as the registration.     |
+| `registration_answer.(optionId, questionId)` | FK `registration_question_option` | `RESTRICT`: a chosen option stays; it belongs to the answered question.     |
+
 ### RegistrationChange
 
 | Field                       | Type                                     | Notes                                                                       |
@@ -560,6 +584,7 @@ current data; a run only proposes and never changes a participation, a debt or a
 | `accommodation_rules.softAttributes`                 | varchar(64)[]                           | Most important first (phase 2).                                           |
 | `accommodation_manual_value.value`, `.basedOnAnswer` | varchar(100), varchar(100)?             | Valid only while the answer equals `basedOnAnswer`. One per registration. |
 | `accommodation_manual_value.reason`                  | varchar(500)                            | Not blank (CHECK).                                                        |
+| `accommodation_manual_value.attribute`               | varchar(64)                             | The hard attribute it was made for; ignored under another (#485).         |
 | `accommodation_term_order.registrationIds`           | uuid[]                                  | The manual order of the term.                                             |
 | `accommodation_intervention.kind`                    | enum `position/manual_value`            | `termId` set exactly for `position` (CHECK). Reason not blank. Immutable. |
 | `accommodation_intervention.before`, `.after`        | jsonb                                   | Order or value before and after.                                          |

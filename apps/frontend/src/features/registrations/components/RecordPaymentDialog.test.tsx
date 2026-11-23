@@ -50,6 +50,7 @@ const DETAIL = {
   gender: null,
   genderOther: null,
   requiresManualAccommodation: true,
+  answers: [],
   payments: [
     {
       id: "0190c0de-0000-7000-8000-0000000000b1",

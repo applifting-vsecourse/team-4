@@ -20,7 +20,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
-import { attributeLabel } from "@/features/accommodation/lib/evaluationView"
+import { useShownLabels } from "@/features/accommodation/lib/attributeLabelsContext"
 import type {
   BoardPerson,
   BoardRoom,
@@ -114,10 +114,11 @@ export function RoomAssignment({
 }
 
 function RuleLabel({ hardAttribute }: { hardAttribute: string | null }) {
+  const labels = useShownLabels()
   return (
     <p className="mb-3 text-sm text-muted-foreground">
       {hardAttribute
-        ? `Rozdělení podle ${attributeLabel(hardAttribute).toLocaleLowerCase("cs")}`
+        ? `Rozdělení podle ${labels.attribute(hardAttribute).toLocaleLowerCase("cs")}`
         : "Bez tvrdého pravidla"}
     </p>
   )

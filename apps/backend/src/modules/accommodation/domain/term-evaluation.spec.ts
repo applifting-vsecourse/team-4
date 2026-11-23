@@ -159,11 +159,19 @@ describe('buildTermView', () => {
       people: [
         {
           ...person('A', 'pending', 'other'),
-          manualValue: { value: 'female', basedOnAnswer: 'other' },
+          manualValue: {
+            attribute: 'gender',
+            value: 'female',
+            basedOnAnswer: 'other',
+          },
         },
         {
           ...person('B', 'pending', 'female', 1),
-          manualValue: { value: 'male', basedOnAnswer: 'other' },
+          manualValue: {
+            attribute: 'gender',
+            value: 'male',
+            basedOnAnswer: 'other',
+          },
         },
       ],
     });
