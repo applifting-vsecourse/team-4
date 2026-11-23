@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import type { ReactNode } from "react"
 import { GripVertical, Plus, X } from "lucide-react"
 
 import { ActionTooltip } from "@/components/ActionTooltip"
@@ -31,6 +32,8 @@ export type RoomProposalPreferencesProps = {
   attributes: EventAttribute[]
   /** A failed save: which list still applies, already worded. */
   saveError?: string
+  /** Router link to the event's registration questions. */
+  manageQuestionsAction?: ReactNode
   onSave?: (preferences: SoftPreferenceItem[]) => void
   isSaving?: boolean
 }
@@ -132,6 +135,7 @@ export function RoomProposalPreferences({
   wishes,
   attributes,
   saveError,
+  manageQuestionsAction,
   onSave,
   isSaving = false,
 }: RoomProposalPreferencesProps) {
@@ -257,8 +261,8 @@ export function RoomProposalPreferences({
                           : ""
                       }`}
                     >
-                      <div className="flex min-w-0 items-start gap-2">
-                        <div className="flex shrink-0 items-start gap-1 self-start">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="flex shrink-0 items-center gap-1 self-center">
                           <ActionTooltip label="Přetažením změnit pořadí">
                             <Button
                               variant="ghost"
@@ -303,7 +307,7 @@ export function RoomProposalPreferences({
                               />
                             </Button>
                           </ActionTooltip>
-                          <span className="mt-1 w-5 self-start text-right text-sm text-muted-foreground tabular-nums">
+                          <span className="w-5 self-center text-right text-sm text-muted-foreground tabular-nums">
                             {index + 1}.
                           </span>
                         </div>
@@ -338,7 +342,7 @@ export function RoomProposalPreferences({
                             </div>
                           ) : null}
                         </div>
-                        <div className="flex shrink-0">
+                        <div className="flex shrink-0 self-center">
                           <ActionTooltip label="Odebrat preferenci">
                             <Button
                               variant="ghost"
@@ -383,7 +387,12 @@ export function RoomProposalPreferences({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : null}
+          ) : (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+              <p>Další preference můžete přidat z otázek v přihlášce.</p>
+              {manageQuestionsAction}
+            </div>
+          )}
           <span
             className="sr-only"
             role="status"

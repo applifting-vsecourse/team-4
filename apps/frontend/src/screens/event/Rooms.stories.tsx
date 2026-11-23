@@ -152,6 +152,39 @@ export const RoomSplitRules: Story = {
   },
 }
 
+/** The exhausted preference list links from the dialog to event questions. */
+export const RoomSplitRulesManageQuestions: Story = {
+  args: { url: assignmentUrl },
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...accommodationHandlers.attributeRules([], null),
+      ...accommodationHandlers.roomProposalPreferences(makeRoomProposalPreferences("ranked")),
+    )
+  },
+  play: async ({ canvas }) => {
+    const section = within(await canvas.findByRole("region", { name: "Návrh pokojů" }))
+    await userEvent.click(await section.findByRole("button", { name: "Upravit pravidla" }))
+    const dialog = within(
+      await within(document.body).findByRole("dialog", { name: "Pravidla rozdělení" }),
+    )
+    await waitFor(async () => {
+      await expect(
+        dialog.getByText("Další preference můžete přidat z otázek v přihlášce."),
+      ).toBeVisible()
+    })
+    await dialog.findByRole("link", { name: "Spravovat otázky" })
+    await userEvent.click(dialog.getByRole("link", { name: "Spravovat otázky" }))
+    await expect(canvas.getByRole("tab", { name: "Přihláška" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+    await expect(canvas.getByRole("heading", { name: "Otázky v přihlášce" })).toHaveAttribute(
+      "id",
+      "registration-questions-heading",
+    )
+  },
+}
+
 export const RoomSplitRulesDark: Story = {
   ...RoomSplitRules,
   globals: { theme: "dark" },
