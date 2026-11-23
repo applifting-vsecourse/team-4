@@ -10,6 +10,7 @@ import { formatPhone } from "@/lib/phone"
 
 import { participantProfileQueryOptions } from "@/features/participant-access/api/participantQueryOptions"
 import { type ParticipantProfile } from "@/features/participant-access/api/participantSchemas"
+import { ParticipantAwareHeader } from "@/features/participant-access/components/ParticipantAwareHeader"
 import { publicEventQueryOptions } from "@/features/public-events/api/publicEventQueryOptions"
 import { PublicEventView } from "@/features/public-events/components/PublicEventView"
 import {
@@ -51,7 +52,7 @@ function PublicRegistrationPage() {
   const queryClient = useQueryClient()
 
   return (
-    <PublicShell>
+    <PublicShell header={<ParticipantAwareHeader />}>
       <Seo title={event?.name ?? "Akce není dostupná"} />
       {event ? (
         <PublicEventView
@@ -92,7 +93,7 @@ function PublicRegistrationErrorPage() {
   const { reset } = useQueryErrorResetBoundary()
 
   return (
-    <PublicShell>
+    <PublicShell header={<ParticipantAwareHeader />}>
       <Seo title="Akci se nepodařilo načíst" />
       <LoadError
         variant="page"

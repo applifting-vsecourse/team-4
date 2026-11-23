@@ -22,7 +22,7 @@ function MyNotificationsPage() {
   return (
     <>
       <Seo title="Oznámení" />
-      <ParticipantLayout participant={participant}>
+      <ParticipantLayout>
         {participant ? (
           <ParticipantNotifications sessionEnded={<ParticipantSessionEnded />} />
         ) : (

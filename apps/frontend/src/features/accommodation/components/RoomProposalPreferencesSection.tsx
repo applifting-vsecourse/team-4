@@ -99,6 +99,7 @@ export function RoomProposalPreferencesSection({
     <CollapsibleSection
       headingId={ROOM_PROPOSAL_SETTINGS_HEADING}
       title="Návrh pokojů"
+      alwaysOpen
     >
       {content}
     </CollapsibleSection>

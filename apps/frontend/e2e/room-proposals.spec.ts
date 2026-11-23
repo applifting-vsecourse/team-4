@@ -110,25 +110,20 @@ test("proposing rooms by hand, stale after a change, and automatically", async (
   await page.reload()
   await expect(proposal.getByText("Neaktuální návrh", { exact: true })).toBeVisible()
 
-  // Nastavení → Automatizace: automatic room proposals, beside the evaluation mode.
+  // Nastavení → Automatizace: room proposals can be automated independently.
   await page
     .getByRole("navigation", { name: "Navigace organizace a akce" })
     .getByRole("link", { name: "Nastavení" })
     .click()
+  await page.getByRole("tab", { name: "Automatizace" }).click()
   const automation = page.getByRole("region", { name: "Automatizace" })
   await automation.scrollIntoViewIfNeeded()
-  const automatic = automation.getByRole("radio", {
-    name: "Navrhovat pokoje automaticky po každé změně",
+  const automatic = automation.getByRole("switch", {
+    name: "Automaticky navrhovat pokoje",
   })
   await automatic.check()
-  await automation
-    .locator('[data-slot="card"]')
-    .filter({
-      has: page.getByRole("radio", { name: "Navrhovat pokoje automaticky po každé změně" }),
-    })
-    .getByRole("button", { name: "Uložit" })
-    .click()
-  await expect(page.getByText("Režim návrhu pokojů byl uložen.")).toBeVisible()
+  await automation.getByRole("button", { name: "Uložit automatizaci" }).click()
+  await expect(page.getByText("Automatizace byla uložena.")).toBeVisible()
 
   // The next change is proposed again about 10 s later, without a request.
   await confirmed(page, event, "Lucie", "female")

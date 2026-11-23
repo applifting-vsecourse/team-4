@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { http, HttpResponse } from "msw"
 import { toast } from "sonner"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 
 import { apiUrl, failOn, failsOnRefresh, neverAnswer } from "@/screens/msw"
 import { eventUrl, organizerBackend, screenMeta } from "@/screens/screenMeta"
@@ -10,6 +10,7 @@ import { openDialog, refresh, showsText } from "@/screens/steps"
 import type { TermRoomProposalData } from "@/features/accommodation/api/roomProposalSchemas"
 import { accommodationHandlers } from "@/features/accommodation/fixtures/handlers"
 import {
+  makeRoomProposalPreferences,
   makeTermRoomProposal,
   type ProposalPreset,
 } from "@/features/accommodation/fixtures/roomProposal"
@@ -52,6 +53,126 @@ export const Rooms: Story = {
     await expect(
       await context.canvas.findByRole("region", { name: "Obsazenost po termínech" }),
     ).toBeVisible()
+  },
+}
+
+/** The same accommodation rule form opens from the split proposal dialog. */
+export const RoomSplitRules: Story = {
+  args: { url: assignmentUrl },
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...accommodationHandlers.attributeRules([], "gender"),
+      ...accommodationHandlers.roomProposalPreferences(makeRoomProposalPreferences("ranked")),
+    )
+  },
+  play: async ({ canvas }) => {
+    const section = within(await canvas.findByRole("region", { name: "Návrh pokojů" }))
+    await userEvent.click(await section.findByRole("button", { name: "Upravit pravidla" }))
+    const dialogElement = await within(document.body).findByRole("dialog", {
+      name: "Pravidla rozdělení",
+    })
+    await waitFor(() => expect(dialogElement).toBeVisible())
+    const dialog = within(dialogElement)
+    const preferences = dialog.getByRole("list")
+    preferences.style.width = "12rem"
+    const wishRow = within(preferences).getAllByRole("listitem")[1]!
+    const sourceBadge = within(wishRow).getByText("Z přihlášek")
+    const title = wishRow.querySelector("p")!
+    await expect(sourceBadge).toBeVisible()
+    await expect(title.getBoundingClientRect().height).toBeGreaterThan(24)
+    await expect(sourceBadge.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      title.getBoundingClientRect().bottom,
+    )
+    await expect(
+      within(wishRow).getByRole("button", { name: "Přesunout Přání na spolubydlící" }),
+    ).toBeVisible()
+    await expect(
+      within(wishRow).getByRole("button", { name: "Odebrat Přání na spolubydlící" }),
+    ).toBeVisible()
+    const handle = within(wishRow).getByRole("button", {
+      name: "Přesunout Přání na spolubydlící",
+    })
+    handle.focus()
+    await userEvent.tab()
+    await expect(sourceBadge).toHaveFocus()
+    await waitFor(async () => {
+      const tooltip = within(document.body).getByRole("tooltip")
+      await expect(tooltip).toHaveTextContent(
+        "Spolubydlící si účastníci vybírají ve správě přihlášky.",
+      )
+      await expect(tooltip).toBeVisible()
+      const bounds = tooltip.getBoundingClientRect()
+      await expect(bounds.left).toBeGreaterThanOrEqual(0)
+      await expect(bounds.right).toBeLessThanOrEqual(window.innerWidth)
+      await expect(bounds.height).toBeLessThanOrEqual(48)
+    })
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() =>
+      expect(within(document.body).queryByRole("tooltip")).not.toBeInTheDocument(),
+    )
+    await userEvent.hover(sourceBadge)
+    await waitFor(() => expect(within(document.body).getByRole("tooltip")).toBeVisible())
+    await userEvent.click(dialog.getByRole("heading", { name: "Pravidla rozdělení" }))
+    await waitFor(() =>
+      expect(within(document.body).queryByRole("tooltip")).not.toBeInTheDocument(),
+    )
+    await userEvent.pointer({ target: sourceBadge, keys: "[TouchA>]" })
+    await userEvent.pointer({ target: sourceBadge, keys: "[/TouchA]" })
+    await userEvent.click(sourceBadge)
+    await waitFor(() => expect(within(document.body).getByRole("tooltip")).toBeVisible())
+    await userEvent.click(dialog.getByRole("heading", { name: "Pravidla rozdělení" }))
+    await waitFor(() =>
+      expect(within(document.body).queryByRole("tooltip")).not.toBeInTheDocument(),
+    )
+    handle.focus()
+    await userEvent.keyboard(" {ArrowUp} ")
+    await expect(dialog.getByRole("status")).toHaveTextContent(
+      "Přání na spolubydlící, pozice 1 z 2.",
+    )
+    const rules = dialog.getByRole("combobox", { name: "Pokoje dělit podle" })
+    await expect(rules).toHaveTextContent("Pohlaví pro ubytování")
+    await waitFor(() =>
+      expect(
+        dialog.getByText("Přednastavená otázka", { selector: '[data-variant="outline"]' }),
+      ).toBeVisible(),
+    )
+    const save = dialog.getByRole("button", { name: "Uložit pravidlo" })
+    await expect(save).toBeDisabled()
+    const exceptions = dialog.getByRole("button", { name: /Komu určit pokoj ručně/ })
+    await expect(exceptions).toHaveTextContent("Chybějící odpověď")
+    await userEvent.click(exceptions)
+    await expect(
+      dialog.getByText("Účastníkům bez vyplněné odpovědi určíte pokoj vždy ručně."),
+    ).toBeVisible()
+    await userEvent.click(dialog.getByRole("checkbox", { name: "Žena" }))
+    await userEvent.click(save)
+    await waitFor(() =>
+      expect(dialog.getByRole("button", { name: "Uložit pravidlo" })).toBeDisabled(),
+    )
+  },
+}
+
+export const RoomSplitRulesDark: Story = {
+  ...RoomSplitRules,
+  globals: { theme: "dark" },
+  play: async ({ canvas }) => {
+    const section = within(await canvas.findByRole("region", { name: "Návrh pokojů" }))
+    await userEvent.click(await section.findByRole("button", { name: "Upravit pravidla" }))
+    const dialogElement = await within(document.body).findByRole("dialog", {
+      name: "Pravidla rozdělení",
+    })
+    await waitFor(() => expect(dialogElement).toBeVisible())
+    const dialog = within(dialogElement)
+    const sourceBadge = await dialog.findByText("Z přihlášek")
+    await waitFor(() => expect(sourceBadge).toBeVisible())
+    await userEvent.hover(sourceBadge)
+    await waitFor(async () => {
+      const tooltip = within(document.body).getByRole("tooltip")
+      await expect(tooltip).toHaveTextContent(
+        "Spolubydlící si účastníci vybírají ve správě přihlášky.",
+      )
+      await expect(tooltip).toBeVisible()
+    })
   },
 }
 

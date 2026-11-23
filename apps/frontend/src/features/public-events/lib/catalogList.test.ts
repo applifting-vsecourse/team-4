@@ -32,6 +32,20 @@ describe("toCatalogEventItem", () => {
     expect(toCatalogEventItem({ ...item, terms: [] }).terms).toEqual([])
   })
 
+  it("uses the detail registration rules, including closed status without terms", () => {
+    expect(toCatalogEventItem(item).registrationStatus).toBe("open")
+    expect(toCatalogEventItem({ ...item, registrationStatus: "not-open" }).registrationStatus).toBe(
+      "not-open",
+    )
+    expect(toCatalogEventItem({ ...item, registrationStatus: "closed" }).registrationStatus).toBe(
+      "closed",
+    )
+    expect(toCatalogEventItem({ ...item, terms: [] }).registrationStatus).toBe("no-terms")
+    expect(
+      toCatalogEventItem({ ...item, registrationStatus: "closed", terms: [] }).registrationStatus,
+    ).toBe("closed")
+  })
+
   it("uses the public photo URL of the cover, or none", () => {
     expect(toCatalogEventItem(item).imageUrl).toBeNull()
     expect(toCatalogEventItem({ ...item, coverPhotoId: uuid(9) }).imageUrl).toMatch(

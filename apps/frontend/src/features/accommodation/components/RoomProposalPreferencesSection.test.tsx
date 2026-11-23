@@ -3,6 +3,8 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { TooltipProvider } from "@/components/ui/tooltip"
+
 import { roomProposalKeys } from "@/features/accommodation/api/roomProposalQueryOptions"
 import { RoomProposalPreferencesSection } from "@/features/accommodation/components/RoomProposalPreferencesSection"
 import { makeRoomProposalPreferences } from "@/features/accommodation/fixtures/roomProposal"
@@ -33,10 +35,12 @@ function renderSection() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={client}>
-      <RoomProposalPreferencesSection
-        organizationId="org"
-        eventId="event"
-      />
+      <TooltipProvider>
+        <RoomProposalPreferencesSection
+          organizationId="org"
+          eventId="event"
+        />
+      </TooltipProvider>
     </QueryClientProvider>,
   )
   return client
@@ -57,11 +61,11 @@ describe("RoomProposalPreferencesSection", () => {
     get.mockReturnValue(answer(RANKED))
     renderSection()
 
-    const handle = await screen.findByRole("button", { name: "Přesunout Přání" })
+    const handle = await screen.findByRole("button", { name: "Přesunout Přání na spolubydlící" })
     await userEvent.click(handle)
     await userEvent.keyboard(" {ArrowUp} ")
-    expect(items()[0]).toMatch(/^1\.Přání/)
-    const save = screen.getByRole("button", { name: "Uložit" })
+    expect(items()[0]).toMatch(/^1\.Přání na spolubydlící/)
+    const save = screen.getByRole("button", { name: "Uložit preference" })
     expect(save).toBeEnabled()
     expect(handle).toHaveFocus()
     await userEvent.keyboard(" {ArrowDown} ")
@@ -70,6 +74,7 @@ describe("RoomProposalPreferencesSection", () => {
     await userEvent.keyboard(" {ArrowUp}{Escape}")
     expect(items()[0]).toMatch(/^1\.Pohlaví/)
     expect(save).toBeDisabled()
+    await userEvent.click(screen.getByRole("button", { name: /Ignorované odpovědi/ }))
     const other = screen.getByRole("checkbox", { name: "Jiná odpověď" })
     await userEvent.click(other)
     expect(save).toBeEnabled()
@@ -87,11 +92,12 @@ describe("RoomProposalPreferencesSection", () => {
     const client = renderSection()
     const invalidate = vi.spyOn(client, "invalidateQueries")
 
-    const handle = await screen.findByRole("button", { name: "Přesunout Přání" })
+    const handle = await screen.findByRole("button", { name: "Přesunout Přání na spolubydlící" })
     await userEvent.click(handle)
     await userEvent.keyboard(" {ArrowUp} ")
+    await userEvent.click(screen.getByRole("button", { name: /Ignorované odpovědi/ }))
     await userEvent.click(screen.getByRole("checkbox", { name: "Jiná odpověď" }))
-    await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
+    await userEvent.click(screen.getByRole("button", { name: "Uložit preference" }))
 
     await waitFor(() =>
       expect(put).toHaveBeenCalledWith(PATH, { json: { preferences: saved.preferences } }),
@@ -102,7 +108,7 @@ describe("RoomProposalPreferencesSection", () => {
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: roomProposalKeys.terms("org", "event"),
     })
-    expect(items()[0]).toMatch(/^1\.Přání/)
+    expect(items()[0]).toMatch(/^1\.Přání na spolubydlící/)
   })
 
   // Adding through the menu is covered by the Settings stories (a real
@@ -114,13 +120,10 @@ describe("RoomProposalPreferencesSection", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Odebrat Pohlaví" }))
     expect(screen.queryByRole("checkbox", { name: "Jiná odpověď" })).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole("button", { name: "Odebrat Přání" }))
+    await userEvent.click(screen.getByRole("button", { name: "Odebrat Přání na spolubydlící" }))
     expect(screen.getByText("Žádné preference nejsou přidané.")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Přidat preferenci" })).toBeInTheDocument()
-    expect(screen.queryByRole("combobox", { name: "Nová preference" })).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole("button", { name: "Přidat preferenci" }))
-    expect(await screen.findByRole("combobox", { name: "Nová preference" })).toBeInTheDocument()
-    await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
+    await userEvent.click(screen.getByRole("button", { name: "Uložit preference" }))
 
     await waitFor(() => expect(put).toHaveBeenCalledWith(PATH, { json: { preferences: [] } }))
   })
@@ -131,14 +134,14 @@ describe("RoomProposalPreferencesSection", () => {
     renderSection()
 
     await userEvent.click(await screen.findByRole("button", { name: "Odebrat Pohlaví" }))
-    await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
+    await userEvent.click(screen.getByRole("button", { name: "Uložit preference" }))
 
     expect(await screen.findByText("Preference se nepodařilo uložit")).toBeInTheDocument()
-    expect(screen.getByText("Platí dál: 1. Pohlaví, 2. Přání.")).toBeInTheDocument()
+    expect(screen.getByText("Platí dál: 1. Pohlaví, 2. Přání na spolubydlící.")).toBeInTheDocument()
     // The saved list is read again after the failure; the form keeps its own.
     await waitFor(() => expect(get).toHaveBeenCalledTimes(2))
     expect(items()).toHaveLength(1)
-    expect(items()[0]).toMatch(/^1\.Přání/)
+    expect(items()[0]).toMatch(/^1\.Přání na spolubydlící/)
   })
 
   it("asks to remove the hard attribute when it became one meanwhile", async () => {
@@ -149,10 +152,10 @@ describe("RoomProposalPreferencesSection", () => {
     renderSection()
 
     // Any change of the list is refused while it holds the hard attribute.
-    const handle = await screen.findByRole("button", { name: "Přesunout Přání" })
+    const handle = await screen.findByRole("button", { name: "Přesunout Přání na spolubydlící" })
     await userEvent.click(handle)
     await userEvent.keyboard(" {ArrowUp} ")
-    await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
+    await userEvent.click(screen.getByRole("button", { name: "Uložit preference" }))
 
     expect(
       await screen.findByText(/^Tvrdé pravidlo ubytování nelze přidat mezi měkké preference/),

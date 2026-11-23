@@ -9,7 +9,7 @@ import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DatePicker } from "@/components/ui/date-picker"
-import { Field, FieldError, FieldLabel } from "@/components/ui/field"
+import { Field, FieldError, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
 import {
   Form,
   FormControl,
@@ -251,6 +251,30 @@ export function ControlsSection() {
               />
               <FieldError id="ds-input-invalid-msg">Zadejte platný e-mail</FieldError>
             </Field>
+          </ShowcaseItem>
+          <ShowcaseItem label="FieldSet · kompaktní">
+            <FieldSet spacing="compact">
+              <FieldLegend variant="label">
+                Možnosti odpovědi{" "}
+                <span className="text-xs text-muted-foreground">2–10 možností</span>
+              </FieldLegend>
+              <div className="space-y-2">
+                <Field>
+                  <FieldLabel htmlFor="ds-compact-option-1">Možnost 1</FieldLabel>
+                  <Input
+                    id="ds-compact-option-1"
+                    placeholder="Např. Začátečník"
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="ds-compact-option-2">Možnost 2</FieldLabel>
+                  <Input
+                    id="ds-compact-option-2"
+                    placeholder="Např. Pokročilý"
+                  />
+                </Field>
+              </div>
+            </FieldSet>
           </ShowcaseItem>
           <ShowcaseItem label="Input · dlouhý text">
             <Field>

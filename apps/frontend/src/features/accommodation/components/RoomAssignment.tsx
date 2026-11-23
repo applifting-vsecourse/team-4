@@ -1,6 +1,7 @@
 import { useState, type DragEvent, type ReactNode } from "react"
 import { BedDouble, ChevronDown, EllipsisVertical, GripVertical, Lock, Users } from "lucide-react"
 
+import { ActionTooltip } from "@/components/ActionTooltip"
 import { EmptyState } from "@/components/EmptyState"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
@@ -405,24 +406,43 @@ function PersonItem({
       />
       <span className="min-w-0 flex-1 text-sm">{person.name}</span>
       {person.isLocked ? (
-        <Lock
-          className="size-3.5 shrink-0"
-          aria-label="Zamčené umístění"
-        />
+        <ActionTooltip label="Změna pokoje vyžaduje odemčení">
+          <span
+            role="img"
+            aria-label="Zamčené umístění"
+            aria-describedby={`locked-placement-${person.id}`}
+            className="shrink-0"
+          >
+            <Lock
+              className="size-3.5"
+              aria-hidden
+            />
+          </span>
+        </ActionTooltip>
+      ) : null}
+      {person.isLocked ? (
+        <span
+          id={`locked-placement-${person.id}`}
+          className="sr-only"
+        >
+          Změna pokoje vyžaduje odemčení
+        </span>
       ) : null}
       {shouldShowValue ? (
         <Badge variant="outline">{person.value ?? "Bez určující hodnoty"}</Badge>
       ) : null}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            disabled={isDisabled}
-            aria-label={`Akce: ${person.name}`}
-          >
-            <EllipsisVertical aria-hidden />
-          </Button>
+          <ActionTooltip label="Akce účastníka">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              disabled={isDisabled}
+              aria-label={`Akce: ${person.name}`}
+            >
+              <EllipsisVertical aria-hidden />
+            </Button>
+          </ActionTooltip>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {isMovable && targets.length > 0 ? (

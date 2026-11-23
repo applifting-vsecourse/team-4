@@ -77,6 +77,7 @@ export function HardAttributeSection({
     <CollapsibleSection
       headingId={ACCOMMODATION_RULES_HEADING}
       title="Pravidla ubytování"
+      alwaysOpen
     >
       {content}
     </CollapsibleSection>

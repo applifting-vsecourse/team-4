@@ -66,38 +66,42 @@ export const accommodationHandlers = {
       return HttpResponse.json({ ...setting, preferences })
     }),
   ],
-  evaluation: () => [
-    ...accommodationHandlers.roomProposalPreferences(),
-    http.get(`${BASE}/evaluation-mode`, () => HttpResponse.json({ mode: "automatic" })),
-    http.get(`${BASE}/hard-attribute`, () => HttpResponse.json(makeHardAttributeSetting())),
-    http.put(`${BASE}/hard-attribute`, async ({ request }) => {
-      const { hardAttribute } = (await request.json()) as { hardAttribute: string | null }
-      return HttpResponse.json(makeHardAttributeSetting(hardAttribute))
-    }),
-    http.put(`${BASE}/evaluation-mode`, async ({ request }) =>
-      HttpResponse.json(await request.json()),
-    ),
-    http.get(`${BASE}/terms/:termId/evaluation`, () => HttpResponse.json(makeTermEvaluation())),
-    http.post(`${BASE}/terms/:termId/evaluation`, () =>
-      HttpResponse.json(makeTermEvaluation({ status: "running" }), { status: 202 }),
-    ),
-    http.post(`${BASE}/terms/:termId/confirmations`, () =>
-      HttpResponse.json({ confirmed: [], isReplay: false }),
-    ),
-    http.post(`${BASE}/terms/:termId/registrations/:registrationId/decision`, () =>
-      HttpResponse.json({ status: "confirmed" }),
-    ),
-    http.get(`${BASE}/terms/:termId/runs`, () => HttpResponse.json({ runs: makeRuns() })),
-    http.get(`${BASE}/terms/:termId/order/moves`, () => HttpResponse.json(makeMoves())),
-    http.post(`${BASE}/terms/:termId/order/moves`, () =>
-      HttpResponse.json(makeTermEvaluation({ status: "stale" })),
-    ),
-    http.get(`${BASE}/runs/:runId`, () => HttpResponse.json(makeRunEvidence())),
-    http.get(REGISTRATION, () => HttpResponse.json(makeRegistrationAccommodation())),
-    http.put(`${REGISTRATION}/determination`, () =>
-      HttpResponse.json(makeRegistrationAccommodation()),
-    ),
-  ],
+  evaluation: () => {
+    let mode: "automatic" | "manual" = "automatic"
+    return [
+      ...accommodationHandlers.roomProposalPreferences(),
+      http.get(`${BASE}/evaluation-mode`, () => HttpResponse.json({ mode })),
+      http.get(`${BASE}/hard-attribute`, () => HttpResponse.json(makeHardAttributeSetting())),
+      http.put(`${BASE}/hard-attribute`, async ({ request }) => {
+        const { hardAttribute } = (await request.json()) as { hardAttribute: string | null }
+        return HttpResponse.json(makeHardAttributeSetting(hardAttribute))
+      }),
+      http.put(`${BASE}/evaluation-mode`, async ({ request }) => {
+        mode = ((await request.json()) as { mode: "automatic" | "manual" }).mode
+        return HttpResponse.json({ mode })
+      }),
+      http.get(`${BASE}/terms/:termId/evaluation`, () => HttpResponse.json(makeTermEvaluation())),
+      http.post(`${BASE}/terms/:termId/evaluation`, () =>
+        HttpResponse.json(makeTermEvaluation({ status: "running" }), { status: 202 }),
+      ),
+      http.post(`${BASE}/terms/:termId/confirmations`, () =>
+        HttpResponse.json({ confirmed: [], isReplay: false }),
+      ),
+      http.post(`${BASE}/terms/:termId/registrations/:registrationId/decision`, () =>
+        HttpResponse.json({ status: "confirmed" }),
+      ),
+      http.get(`${BASE}/terms/:termId/runs`, () => HttpResponse.json({ runs: makeRuns() })),
+      http.get(`${BASE}/terms/:termId/order/moves`, () => HttpResponse.json(makeMoves())),
+      http.post(`${BASE}/terms/:termId/order/moves`, () =>
+        HttpResponse.json(makeTermEvaluation({ status: "stale" })),
+      ),
+      http.get(`${BASE}/runs/:runId`, () => HttpResponse.json(makeRunEvidence())),
+      http.get(REGISTRATION, () => HttpResponse.json(makeRegistrationAccommodation())),
+      http.put(`${REGISTRATION}/determination`, () =>
+        HttpResponse.json(makeRegistrationAccommodation()),
+      ),
+    ]
+  },
   /** The room proposal of the term, changed for one story (stale, failed…). */
   termRoomProposal: (proposal: TermRoomProposalData) => [
     http.get(`${BASE}/terms/:termId/room-proposal`, () => HttpResponse.json(proposal)),
@@ -107,22 +111,26 @@ export const accommodationHandlers = {
     http.get(`${BASE}/terms/:termId/roommate-wishes`, () => HttpResponse.json(wishes)),
   ],
   /** The room proposal mode and the proposal of a term (#365, #385). */
-  roomProposal: () => [
-    http.get(`${BASE}/room-proposal-mode`, () => HttpResponse.json({ mode: "manual" })),
-    http.put(`${BASE}/room-proposal-mode`, async ({ request }) =>
-      HttpResponse.json(await request.json()),
-    ),
-    http.get(`${BASE}/terms/:termId/room-proposal`, () =>
-      HttpResponse.json(makeTermRoomProposal()),
-    ),
-    http.post(`${BASE}/terms/:termId/room-proposal`, () =>
-      HttpResponse.json(makeTermRoomProposal("running"), { status: 202 }),
-    ),
-    // Přání na spolubydlící (#317) of a term, with their saved state (#365).
-    http.get(`${BASE}/terms/:termId/roommate-wishes`, () => HttpResponse.json(makeTermWishes())),
-    // "Použít návrh" (#390, #365).
-    http.post(`${BASE}/terms/:termId/room-proposal/apply`, () =>
-      HttpResponse.json({ added: 2, moved: 1, removed: 1, layoutVersion: 5 }),
-    ),
-  ],
+  roomProposal: () => {
+    let mode: "automatic" | "manual" = "manual"
+    return [
+      http.get(`${BASE}/room-proposal-mode`, () => HttpResponse.json({ mode })),
+      http.put(`${BASE}/room-proposal-mode`, async ({ request }) => {
+        mode = ((await request.json()) as { mode: "automatic" | "manual" }).mode
+        return HttpResponse.json({ mode })
+      }),
+      http.get(`${BASE}/terms/:termId/room-proposal`, () =>
+        HttpResponse.json(makeTermRoomProposal()),
+      ),
+      http.post(`${BASE}/terms/:termId/room-proposal`, () =>
+        HttpResponse.json(makeTermRoomProposal("running"), { status: 202 }),
+      ),
+      // Přání na spolubydlící (#317) of a term, with their saved state (#365).
+      http.get(`${BASE}/terms/:termId/roommate-wishes`, () => HttpResponse.json(makeTermWishes())),
+      // "Použít návrh" (#390, #365).
+      http.post(`${BASE}/terms/:termId/room-proposal/apply`, () =>
+        HttpResponse.json({ added: 2, moved: 1, removed: 1, layoutVersion: 5 }),
+      ),
+    ]
+  },
 }

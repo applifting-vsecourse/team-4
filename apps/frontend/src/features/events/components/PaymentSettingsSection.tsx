@@ -61,6 +61,7 @@ export function PaymentSettingsSection({ organizationId, event }: PaymentSetting
     <CollapsibleSection
       headingId="payments-heading"
       title="Platební údaje"
+      alwaysOpen
     >
       <Card>
         <CardContent className="space-y-4">

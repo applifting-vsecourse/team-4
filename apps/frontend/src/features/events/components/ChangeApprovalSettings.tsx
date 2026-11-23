@@ -44,6 +44,7 @@ export function ChangeApprovalSettings({
     <CollapsibleSection
       headingId="change-approval-heading"
       title="Schvalování změn přihlášek"
+      alwaysOpen
     >
       <Card>
         <CardContent>

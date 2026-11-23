@@ -1,5 +1,6 @@
 import { Monitor, Moon, Sun } from "lucide-react"
 
+import { ActionTooltip } from "@/components/ActionTooltip"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -15,14 +16,16 @@ export function ThemeSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Toggle theme"
-        >
-          <Sun className="size-4 dark:hidden" />
-          <Moon className="hidden size-4 dark:block" />
-        </Button>
+        <ActionTooltip label="Změnit motiv">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Toggle theme"
+          >
+            <Sun className="size-4 dark:hidden" />
+            <Moon className="hidden size-4 dark:block" />
+          </Button>
+        </ActionTooltip>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => setTheme("light")}>

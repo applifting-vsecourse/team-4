@@ -85,6 +85,7 @@ export function RegistrationQuestionsSection({
     <CollapsibleSection
       headingId={REGISTRATION_QUESTIONS_HEADING}
       title="Otázky v přihlášce"
+      alwaysOpen
     >
       {content}
     </CollapsibleSection>

@@ -1,10 +1,11 @@
 import type { Meta, StoryContext, StoryObj } from "@storybook/react-vite"
-import { expect, userEvent } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 
 import { failOn, neverAnswer } from "@/screens/msw"
 import { screenMeta } from "@/screens/screenMeta"
 import { showsText } from "@/screens/steps"
 
+import { participantHandlers } from "@/features/participant-access/fixtures/handlers"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
 import { makeQrPaymentPage, QR_TOKEN } from "@/features/registrations/fixtures/publicRegistration"
 
@@ -47,6 +48,37 @@ export const Loading: Story = {
   },
   play: async ({ canvas }) => {
     await expect(await canvas.findByRole("status", { name: "Načítání platby" })).toBeVisible()
+  },
+}
+
+/** The participant shell keeps the account slot in place while validating a session. */
+export const LoadingAccountSession: Story = {
+  globals: { viewport: { value: "mobile", isRotated: false } },
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.qrPayment(), ...neverAnswer("get", "/participant/me"))
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await expect(await canvas.findByLabelText("Částka (Kč)")).toHaveValue("2500")
+    await expect(await canvas.findByRole("status", { name: "Načítání účtu" })).toBeVisible()
+    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(360)
+  },
+}
+
+/** A signed-in account is shared with the public payment page shell. */
+export const SignedInAccount: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.qrPayment(), ...participantHandlers.signedIn())
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await expect(await canvas.findByLabelText("Částka (Kč)")).toHaveValue("2500")
+    const header = within(canvasElement.querySelector("header")!)
+    await userEvent.click(await header.findByRole("button", { name: "Účet" }))
+    const menu = await within(document.body).findByRole("menu")
+    await waitFor(() =>
+      expect(within(menu).getByRole("menuitem", { name: /Můj profil/ })).toBeVisible(),
+    )
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(within(document.body).queryByRole("menu")).not.toBeInTheDocument())
   },
 }
 

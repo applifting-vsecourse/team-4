@@ -51,22 +51,19 @@ test("the manual mode evaluates a term only on request, with queues, reasons and
 
   // Nastavení → Automatizace: the manual mode is kept after a reload.
   await page.goto(`/organizations/${event.organizationId}/events/${event.eventId}/settings`)
+  await page.getByRole("tab", { name: "Automatizace" }).click()
   const automation = page.getByRole("region", { name: "Automatizace" })
-  const manual = automation.getByRole("radio", {
-    name: "Přepočítat návrh jen tlačítkem Přepočítat",
+  const automaticEvaluation = automation.getByRole("switch", {
+    name: "Automaticky vyhodnocovat účast",
   })
-  await manual.check()
-  // Automatizace has one card per mode, each with its own "Uložit".
-  await automation
-    .locator('[data-slot="card"]')
-    .filter({ has: page.getByRole("radio", { name: "Přepočítat návrh jen tlačítkem Přepočítat" }) })
-    .getByRole("button", { name: "Uložit" })
-    .click()
-  await expect(page.getByText("Režim vyhodnocení byl uložen.")).toBeVisible()
+  await automaticEvaluation.uncheck()
+  await automation.getByRole("button", { name: "Uložit automatizaci" }).click()
+  await expect(page.getByText("Automatizace byla uložena.")).toBeVisible()
   await page.reload()
+  await page.getByRole("tab", { name: "Automatizace" }).click()
   await expect(
-    page.getByRole("radio", { name: "Přepočítat návrh jen tlačítkem Přepočítat" }),
-  ).toBeChecked()
+    page.getByRole("switch", { name: "Automaticky vyhodnocovat účast" }),
+  ).not.toBeChecked()
 
   await page.goto(evaluationUrl(event))
   await expect(page.getByText("Termín zatím nebyl vyhodnocen")).toBeVisible()

@@ -158,6 +158,8 @@ export function RegistrationForm({
   onSubmit,
 }: RegistrationFormProps) {
   const hasConditions = conditions.trim() !== ""
+  const hasRequiredParticipationAnswer =
+    isGenderRequired || questions.some((question) => question.isRequired)
   const schema = useMemo(
     () => createSchema(hasConditions, questions, isGenderRequired),
     [hasConditions, questions, isGenderRequired],
@@ -425,67 +427,78 @@ export function RegistrationForm({
           </FieldSet>
         </section>
 
-        {questions.length > 0 ? (
+        {questions.length > 0 || isGenderRequired ? (
           <section
             aria-labelledby="registration-questions-heading"
             className="space-y-6 rounded-lg border border-border bg-card p-4 sm:p-6"
           >
-            <h2
-              id="registration-questions-heading"
-              className="text-h4"
-            >
-              Otázky pořadatele
-            </h2>
-            <FormField
-              control={form.control}
-              name="answers"
-              render={({ field }) => (
-                <QuestionAnswersFields
-                  idPrefix="registration-answer"
-                  questions={questions}
-                  value={field.value}
-                  onChange={field.onChange}
-                  errors={Object.fromEntries(
-                    questions.map((question) => [
-                      question.id,
-                      (
-                        form.formState.errors.answers as
-                          Record<string, { message?: string }> | undefined
-                      )?.[question.id]?.message,
-                    ]),
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2
+                id="registration-questions-heading"
+                className="text-h4"
+              >
+                Otázky k účasti
+              </h2>
+              {hasRequiredParticipationAnswer ? (
+                <Badge variant="outline">Povinné</Badge>
+              ) : (
+                <Badge variant="secondary">Nepovinné</Badge>
+              )}
+            </div>
+            <div className="space-y-6">
+              {isGenderRequired ? (
+                <FormField
+                  control={form.control}
+                  name="gender"
+                  render={({ field, fieldState }) => (
+                    <GenderField
+                      id="registration-gender"
+                      isRequired
+                      error={fieldState.error?.message}
+                      value={{ gender: field.value, genderOther: genderOther ?? null }}
+                      onChange={(answer) => {
+                        field.onChange(answer.gender)
+                        form.setValue("genderOther", answer.genderOther)
+                      }}
+                    />
                   )}
                 />
-              )}
-            />
+              ) : null}
+              {questions.length > 0 ? (
+                <FormField
+                  control={form.control}
+                  name="answers"
+                  render={({ field }) => (
+                    <QuestionAnswersFields
+                      idPrefix="registration-answer"
+                      questions={questions}
+                      value={field.value}
+                      onChange={field.onChange}
+                      errors={Object.fromEntries(
+                        questions.map((question) => [
+                          question.id,
+                          (
+                            form.formState.errors.answers as
+                              Record<string, { message?: string }> | undefined
+                          )?.[question.id]?.message,
+                        ]),
+                      )}
+                    />
+                  )}
+                />
+              ) : null}
+            </div>
           </section>
         ) : null}
 
         <section
-          aria-label="Doplňující údaje"
+          aria-label="Doprava, strava a zdraví"
           className="space-y-6 rounded-lg border border-border bg-card p-4 sm:p-6"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-h4">Doplňující údaje</h2>
-            {isGenderRequired ? null : <Badge variant="secondary">Nepovinné</Badge>}
+            <h2 className="text-h4">Doprava, strava a zdraví</h2>
+            <Badge variant="secondary">Nepovinné</Badge>
           </div>
-
-          <FormField
-            control={form.control}
-            name="gender"
-            render={({ field, fieldState }) => (
-              <GenderField
-                id="registration-gender"
-                isRequired={isGenderRequired}
-                error={fieldState.error?.message}
-                value={{ gender: field.value, genderOther: genderOther ?? null }}
-                onChange={(answer) => {
-                  field.onChange(answer.gender)
-                  form.setValue("genderOther", answer.genderOther)
-                }}
-              />
-            )}
-          />
-
           <FieldSet>
             <FieldLegend className="sr-only">Doprava, strava a zdraví</FieldLegend>
             <FormField

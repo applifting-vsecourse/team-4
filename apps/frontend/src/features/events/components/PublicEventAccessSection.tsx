@@ -15,6 +15,7 @@ export function PublicEventAccessSection({ organizationId, event }: PublicEventA
     <CollapsibleSection
       headingId="public-access-heading"
       title="Veřejný přístup"
+      alwaysOpen
     >
       <div className="space-y-4">
         <Card>

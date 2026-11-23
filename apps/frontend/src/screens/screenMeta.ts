@@ -11,6 +11,7 @@ import { OPEN_EVENT } from "@/features/events/fixtures/events"
 import { eventHandlers } from "@/features/events/fixtures/handlers"
 import { organizationHandlers } from "@/features/organizations/fixtures/handlers"
 import { ORGANIZATION } from "@/features/organizations/fixtures/organizations"
+import { participantHandlers } from "@/features/participant-access/fixtures/handlers"
 import { paymentHandlers } from "@/features/payments/fixtures/handlers"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
 import { roomHandlers } from "@/features/rooms/fixtures/handlers"
@@ -22,6 +23,7 @@ export const screenMeta = {
     // The app's own router replaces the global one-route decorator.
     appRouter: true,
     layout: "fullscreen",
+    msw: { handlers: participantHandlers.signedOut() },
   },
   globals: { viewport: { value: "desktop", isRotated: false } },
 } satisfies Partial<Meta<typeof ScreenPreview>>

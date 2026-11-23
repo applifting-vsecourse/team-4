@@ -1,6 +1,4 @@
-import type { ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { toast } from "sonner"
 
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
@@ -8,61 +6,54 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { Skeleton } from "@/components/ui/skeleton"
 
 import { evaluationModeQueryOptions } from "@/features/accommodation/api/evaluationQueryOptions"
-import { EvaluationModeSettings } from "@/features/accommodation/components/EvaluationModeSettings"
+import { roomProposalModeQueryOptions } from "@/features/accommodation/api/roomProposalQueryOptions"
+import { AutomationSettings } from "@/features/accommodation/components/AutomationSettings"
 import { useSaveEvaluationMode } from "@/features/accommodation/hooks/useSaveEvaluationMode"
+import { useSaveRoomProposalMode } from "@/features/accommodation/hooks/useSaveRoomProposalMode"
 
-const STILL_APPLIES = {
-  automatic: "Platí dál automatický přepočet.",
-  manual: "Platí dál přepočet jen tlačítkem Přepočítat.",
-}
-
-// Nastavení → Automatizace (S3-01): the saved evaluation mode of the event.
-// Saving evaluates nothing by itself; a failed save says which mode applies.
+// Nastavení → Automatizace: the two independently saved modes share one form.
 export function EvaluationModeSection({
   organizationId,
   eventId,
-  children,
 }: {
   organizationId: string
   eventId: string
-  /** Further automation of the event beside the evaluation mode, e.g. room proposals. */
-  children?: ReactNode
 }) {
-  const mode = useQuery(evaluationModeQueryOptions(organizationId, eventId))
-  const save = useSaveEvaluationMode(organizationId, eventId)
+  const evaluation = useQuery(evaluationModeQueryOptions(organizationId, eventId))
+  const rooms = useQuery(roomProposalModeQueryOptions(organizationId, eventId))
+  const saveEvaluation = useSaveEvaluationMode(organizationId, eventId)
+  const saveRooms = useSaveRoomProposalMode(organizationId, eventId)
 
-  const content = mode.isPending ? (
-    <LoadingBlock label="Načítání automatizace">
-      <Skeleton className="h-40 w-full" />
-    </LoadingBlock>
-  ) : mode.isError ? (
-    <LoadError
-      title="Automatizaci se nepodařilo načíst"
-      isRetrying={mode.isFetching}
-      onRetry={() => mode.refetch()}
-    />
-  ) : (
-    <EvaluationModeSettings
-      // A newly saved or reloaded mode starts the form again.
-      key={mode.data}
-      mode={mode.data}
-      isSaving={save.isPending}
-      saveError={save.isError ? STILL_APPLIES[mode.data] : undefined}
-      onSave={(next) =>
-        save.mutate(next, { onSuccess: () => toast.success("Režim vyhodnocení byl uložen.") })
-      }
-    />
-  )
+  const content =
+    evaluation.isPending || rooms.isPending ? (
+      <LoadingBlock label="Načítání automatizace">
+        <Skeleton className="h-52 w-full" />
+      </LoadingBlock>
+    ) : evaluation.isError || rooms.isError ? (
+      <LoadError
+        title="Automatizaci se nepodařilo načíst"
+        isRetrying={evaluation.isFetching || rooms.isFetching}
+        onRetry={() => {
+          void evaluation.refetch()
+          void rooms.refetch()
+        }}
+      />
+    ) : (
+      <AutomationSettings
+        evaluationMode={evaluation.data}
+        roomProposalMode={rooms.data}
+        saveEvaluationMode={(mode) => saveEvaluation.mutateAsync(mode)}
+        saveRoomProposalMode={(mode) => saveRooms.mutateAsync(mode)}
+      />
+    )
 
   return (
     <CollapsibleSection
       headingId="automation-heading"
       title="Automatizace"
+      alwaysOpen
     >
-      <div className="space-y-4">
-        {content}
-        {children}
-      </div>
+      {content}
     </CollapsibleSection>
   )
 }

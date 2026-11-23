@@ -1,10 +1,12 @@
 import type { Meta, StoryContext, StoryObj } from "@storybook/react-vite"
+import { http, HttpResponse } from "msw"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 
-import { failOn, neverAnswer } from "@/screens/msw"
+import { apiUrl, failOn, neverAnswer } from "@/screens/msw"
 import { eventUrl, organizerBackend, screenMeta, showsHeading } from "@/screens/screenMeta"
 import { openDialog, showsText } from "@/screens/steps"
 
+import { GENDER_ATTRIBUTE, SCHOOL_ATTRIBUTE } from "@/features/accommodation/fixtures/evaluation"
 import { accommodationHandlers } from "@/features/accommodation/fixtures/handlers"
 import { makeRoomProposalPreferences } from "@/features/accommodation/fixtures/roomProposal"
 import { DRAFT_EVENT, OPEN_EVENT } from "@/features/events/fixtures/events"
@@ -26,36 +28,24 @@ export default meta
 export const Settings: StoryObj<typeof meta> = {
   play: async (context) => {
     await showsHeading("Termíny a ceny")(context)
-    const title = "Schvalování změn přihlášek"
-    const approval = within(context.canvas.getByRole("region", { name: title }))
-    await expect(approval.getByRole("heading", { name: title, level: 2 })).toBeVisible()
-    const field = () => approval.queryByRole("textbox", { name: "Počet dní před začátkem termínu" })
-    const trigger = approval.getByRole("button", { name: title })
-    await expect(trigger).toHaveAttribute("aria-expanded", "true")
-    await expect(field()).toBeVisible()
-    await context.userEvent.click(within(trigger).getByText(title))
-    await expect(trigger).toHaveAttribute("aria-expanded", "false")
-    await expect(trigger).toHaveFocus()
-    await waitFor(() =>
-      expect(field()?.closest("[data-collapsible-section-content]")).toHaveAttribute("inert"),
+    await expect(context.canvas.getByRole("tab", { name: "Akce" })).toHaveAttribute(
+      "aria-selected",
+      "true",
     )
-    await expect(field()).toBeInTheDocument()
-    await context.userEvent.keyboard("{Enter}")
-    await expect(trigger).toHaveAttribute("aria-expanded", "true")
-    await expect(field()?.closest("[data-collapsible-section-content]")).not.toHaveAttribute(
-      "inert",
-    )
-    await expect(field()).toBeVisible()
+    for (const title of ["Základní údaje", "Termíny a ceny", "Veřejná prezentace"]) {
+      await expect(context.canvas.getByRole("heading", { name: title, level: 2 })).toBeVisible()
+    }
+    await expect(
+      context.canvas.queryByRole("region", { name: "Schvalování změn přihlášek" }),
+    ).not.toBeInTheDocument()
   },
 }
 
 export const Draft: StoryObj<typeof meta> = {
-  args: { url: `/organizations/${ORGANIZATION.id}/events/${DRAFT_EVENT.id}/settings` },
+  args: { url: `/organizations/${ORGANIZATION.id}/events/${DRAFT_EVENT.id}/settings?tab=event` },
   play: async ({ canvas, userEvent }) => {
-    const automation = within(await canvas.findByRole("region", { name: "Automatizace" }))
-    const presentation = within(canvas.getByRole("region", { name: "Veřejná prezentace" }))
+    const presentation = within(await canvas.findByRole("region", { name: "Veřejná prezentace" }))
     const presentationSave = presentation.getByRole("button", { name: /^Uložit$/ })
-    const automationSave = await automation.findByRole("button", { name: /^Uložit$/ })
     const presentationContent = presentationSave.closest<HTMLElement>(
       "[data-collapsible-section-content]",
     )
@@ -67,36 +57,129 @@ export const Draft: StoryObj<typeof meta> = {
       await expect(getComputedStyle(presentationContent).overflow).toBe("visible")
     })
     await expect(presentationSave).toBeVisible()
-    const approval = canvas.getByRole("button", { name: "Uložit schvalování změn" })
-    const rightEdge = approval.getBoundingClientRect().right
-
-    for (const action of [
-      canvas.getByRole("button", { name: "Otevřít přihlašování" }),
-      canvas.getByRole("button", { name: "Uložit platební nastavení" }),
-      presentationSave,
-      automationSave,
-    ]) {
-      await expect(action.getBoundingClientRect().right).toBeCloseTo(rightEdge)
-    }
-
+    await userEvent.click(canvas.getByRole("tab", { name: "Platby" }))
     const payment = within(canvas.getByRole("region", { name: "Platební údaje" }))
-    const trigger = payment.getByRole("button", { name: "Platební údaje" })
     const account = payment.getByLabelText("Číslo účtu", { exact: true })
-    const accountContent = account.closest<HTMLElement>("[data-collapsible-section-content]")
-    if (!accountContent) throw new Error("Payment content wrapper is missing")
     await userEvent.type(account, "12345678")
-    await userEvent.click(trigger)
-    await expect(trigger).toHaveAttribute("aria-expanded", "false")
-    await waitFor(() => expect(accountContent).toHaveAttribute("inert"))
-    await expect(getComputedStyle(accountContent).clipPath).toMatch(/-\d+px/)
-
-    const registration = within(canvas.getByRole("region", { name: "Přihlašování" }))
-    await userEvent.click(registration.getByRole("link", { name: "Doplnit" }))
-    await expect(trigger).toHaveAttribute("aria-expanded", "true")
-    await expect(accountContent).not.toHaveAttribute("inert")
-    await waitFor(() => expect(account).toBeVisible())
-    await waitFor(() => expect(getComputedStyle(accountContent).clipPath).toBe("none"))
+    await userEvent.click(canvas.getByRole("tab", { name: "Přihláška" }))
+    await expect(account).not.toBeVisible()
+    await userEvent.click(canvas.getByRole("tab", { name: "Platby" }))
     await expect(account).toHaveValue("12345678")
+
+    await userEvent.click(canvas.getByRole("tab", { name: "Automatizace" }))
+    const automation = within(await canvas.findByRole("region", { name: "Automatizace" }))
+    await expect(automation.getByRole("button", { name: "Uložit automatizaci" })).toBeVisible()
+  },
+}
+
+export const SettingsTabsKeyboard: Story = {
+  play: async ({ canvas, userEvent }) => {
+    const eventTab = await canvas.findByRole("tab", { name: "Akce" })
+    eventTab.focus()
+    await userEvent.keyboard("{ArrowRight}")
+    await expect(canvas.getByRole("tab", { name: "Přihláška" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+    await userEvent.keyboard("{ArrowRight}")
+    await expect(canvas.getByRole("tab", { name: "Platby" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+  },
+}
+
+export const SettingsTabRestoredFromUrl: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("tab", { name: "Ubytování" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+    await expect(await canvas.findByRole("region", { name: "Pravidla ubytování" })).toBeVisible()
+  },
+}
+
+export const SettingsDirectSectionLink: Story = {
+  args: { url: `${eventUrl("/settings")}#payments-heading` },
+  play: async ({ canvas }) => {
+    await waitFor(() =>
+      expect(canvas.getByRole("tab", { name: "Platby" })).toHaveAttribute("aria-selected", "true"),
+    )
+    const heading = await canvas.findByRole("heading", { name: "Platební údaje" })
+    await expect(heading).toBeVisible()
+    await waitFor(() =>
+      expect(heading.getBoundingClientRect().top).toBeLessThan(window.innerHeight),
+    )
+  },
+}
+
+export const SettingsLinkFromRegistrations: Story = {
+  args: { url: `${eventUrl("/settings")}#accommodation-rules-heading` },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("tab", { name: "Ubytování" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+    await expect(await canvas.findByRole("heading", { name: "Pravidla ubytování" })).toBeVisible()
+  },
+}
+
+export const SettingsLinkFromAccommodation: Story = {
+  args: { url: `${eventUrl("/settings")}#terms-heading` },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("tab", { name: "Akce" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+    await expect(await canvas.findByRole("heading", { name: "Termíny a ceny" })).toBeVisible()
+  },
+}
+
+export const SettingsLinkFromOverview: Story = {
+  args: { url: `${eventUrl("/settings")}#automation-heading` },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("tab", { name: "Automatizace" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+    await expect(await canvas.findByRole("heading", { name: "Automatizace" })).toBeVisible()
+  },
+}
+
+export const SettingsTabsDark: Story = {
+  globals: { theme: "dark" },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("tab", { name: "Akce" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+    await expect(canvas.getByRole("heading", { name: "Základní údaje" })).toBeVisible()
+  },
+}
+
+export const SettingsTabsAt1024: Story = {
+  globals: { viewport: { value: "organizer1024", isRotated: false } },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("tab", { name: "Akce" })).toBeVisible()
+    await expect(canvas.getByRole("tab", { name: "Automatizace" })).toBeVisible()
+    const list = canvas.getByRole("tablist", { name: "Kategorie nastavení" })
+    await expect(list.scrollWidth).toBeLessThanOrEqual(list.clientWidth + 1)
+  },
+}
+
+export const SettingsTabsNarrow: Story = {
+  globals: { viewport: { value: "mobile", isRotated: false } },
+  play: async ({ canvas }) => {
+    const list = await canvas.findByRole("tablist", { name: "Kategorie nastavení" })
+    const viewport = list.parentElement
+    if (!viewport) throw new Error("Tab overflow viewport is missing")
+    await expect(getComputedStyle(viewport).overflowX).toBe("auto")
+    await expect(viewport.scrollWidth).toBeGreaterThan(viewport.clientWidth)
+    const tabTops = [...list.querySelectorAll<HTMLElement>('[role="tab"]')].map((tab) =>
+      Math.round(tab.getBoundingClientRect().top),
+    )
+    await expect(new Set(tabTops).size).toBe(1)
   },
 }
 
@@ -112,19 +195,12 @@ const READY_DRAFT = {
   openingBlockers: [],
 }
 
-/** The card of a control: its form and its "Uložit". */
-const cardOf = (element: HTMLElement) => {
-  const card = element.closest<HTMLElement>('[data-slot="card"]')
-  if (!card) throw new Error("The control is not in a card")
-  return within(card)
-}
-
 const region = async (canvas: Canvas, name: string) =>
   within(await canvas.findByRole("region", { name }, { timeout: 5000 }))
 
 /** A free event: no payment settings needed (S2-09). */
 export const FreeEvent: Story = {
-  args: { url: draftUrl },
+  args: { url: `${draftUrl}?tab=payments` },
   beforeEach: ({ msw }) => {
     msw.use(
       ...eventHandlers.detail({
@@ -138,7 +214,7 @@ export const FreeEvent: Story = {
 }
 
 export const PaymentSaveFailed: Story = {
-  args: { url: draftUrl },
+  args: { url: `${draftUrl}?tab=payments` },
   beforeEach: ({ msw }) => {
     msw.use(...eventHandlers.detail(READY_DRAFT), ...failOn("put", `${EVENT}/payment-settings`))
   },
@@ -154,7 +230,7 @@ export const PaymentSaveFailed: Story = {
 }
 
 export const OpenRegistrationFailed: Story = {
-  args: { url: draftUrl },
+  args: { url: `${draftUrl}?tab=event` },
   beforeEach: ({ msw }) => {
     msw.use(...eventHandlers.detail(READY_DRAFT), ...failOn("post", `${EVENT}/open-registration`))
   },
@@ -166,7 +242,7 @@ export const OpenRegistrationFailed: Story = {
 
 /** The server finds something missing at the last moment. */
 export const OpenRegistrationRefused: Story = {
-  args: { url: draftUrl },
+  args: { url: `${draftUrl}?tab=event` },
   beforeEach: ({ msw }) => {
     msw.use(
       ...eventHandlers.detail(READY_DRAFT),
@@ -183,6 +259,7 @@ export const OpenRegistrationRefused: Story = {
 
 /** No approval period set (F35-1a). */
 export const ChangeApprovalNotSet: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=registration` },
   beforeEach: ({ msw }) => {
     msw.use(...eventHandlers.detail({ ...OPEN_EVENT, changeApprovalDays: null }))
   },
@@ -191,6 +268,7 @@ export const ChangeApprovalNotSet: Story = {
 
 /** A failed save of the approval period stays at the form, like the other sections. */
 export const ChangeApprovalSaveFailed: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=registration` },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("put", `${EVENT}/change-approval`))
   },
@@ -204,6 +282,7 @@ export const ChangeApprovalSaveFailed: Story = {
 }
 
 export const PublicationSaveFailed: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=event` },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("put", `${EVENT}/publication`))
   },
@@ -216,7 +295,7 @@ export const PublicationSaveFailed: Story = {
 
 /** The public description is required for the catalog (F55); it remains editable after registration opens. */
 export const PresentationInvalid: Story = {
-  args: { url: draftUrl },
+  args: { url: `${draftUrl}?tab=event` },
   play: async ({ canvas }) => {
     const presentation = await region(canvas, "Veřejná prezentace")
     await userEvent.clear(presentation.getByLabelText("Popis akce"))
@@ -226,7 +305,7 @@ export const PresentationInvalid: Story = {
 }
 
 export const PublishedPresentationPreview: Story = {
-  args: { url: draftUrl },
+  args: { url: `${draftUrl}?tab=event` },
   beforeEach: ({ msw }) => {
     msw.use(...eventHandlers.detail({ ...DRAFT_EVENT, isPublished: true }))
   },
@@ -239,6 +318,7 @@ export const PublishedPresentationPreview: Story = {
 }
 
 export const PresentationSaveFailed: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=event` },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("put", `${EVENT}/presentation`))
   },
@@ -251,6 +331,7 @@ export const PresentationSaveFailed: Story = {
 }
 
 export const PhotoUploadFailed: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=event` },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("post", `${EVENT}/photos`))
   },
@@ -262,29 +343,9 @@ export const PhotoUploadFailed: Story = {
   },
 }
 
-export const EvaluationModeSaveFailed: Story = {
-  beforeEach: ({ msw }) => {
-    msw.use(...failOn("put", `${EVENT}/accommodation/evaluation-mode`))
-  },
-  play: async ({ canvas }) => {
-    const automation = await region(canvas, "Automatizace")
-    const manual = await automation.findByLabelText("Přepočítat návrh jen tlačítkem Přepočítat")
-    await userEvent.click(manual)
-    await userEvent.click(cardOf(manual).getByRole("button", { name: "Uložit" }))
-    await showsText("Režim se nepodařilo uložit")
-  },
-}
-
-export const EvaluationModeLoadFailed: Story = {
-  beforeEach: ({ msw }) => {
-    msw.use(...failOn("get", `${EVENT}/accommodation/evaluation-mode`))
-  },
-  play: () => showsText("Automatizaci se nepodařilo načíst"),
-}
-
 /** A draft without any term yet. */
 export const NoTerms: Story = {
-  args: { url: draftUrl },
+  args: { url: `${draftUrl}?tab=event` },
   beforeEach: ({ msw }) => {
     msw.use(...eventHandlers.detail({ ...DRAFT_EVENT, terms: [] }))
   },
@@ -293,7 +354,7 @@ export const NoTerms: Story = {
 
 /** Sent without the label and dates of the new term. */
 export const TermInvalid: Story = {
-  args: { url: draftUrl },
+  args: { url: `${draftUrl}?tab=event` },
   play: async ({ canvas }) => {
     const dialog = await openDialog(canvas, "Přidat termín", "Nový termín")
     await userEvent.type(within(dialog).getByLabelText("Označení"), "  ")
@@ -304,7 +365,7 @@ export const TermInvalid: Story = {
 }
 
 export const TermSaveFailed: Story = {
-  args: { url: draftUrl },
+  args: { url: `${draftUrl}?tab=event` },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("put", `${EVENT}/terms/:termId`))
   },
@@ -317,7 +378,7 @@ export const TermSaveFailed: Story = {
 }
 
 export const DeleteTermFailed: Story = {
-  args: { url: draftUrl },
+  args: { url: `${draftUrl}?tab=event` },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("delete", `${EVENT}/terms/:termId`))
   },
@@ -345,45 +406,103 @@ export const EventUnavailable: Story = {
   play: () => showsText("Záznam není dostupný"),
 }
 
-/** Pravidla ubytování (#384): rooms split by gender, switched off and saved. */
+/** Pravidla ubytování (#384): compact selection, defaults, manual exceptions and save. */
 export const HardAttribute: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
   play: async ({ canvas }) => {
     const rules = await region(canvas, "Pravidla ubytování")
-    await expect(await rules.findByRole("radio", { name: "Pohlaví" })).toBeChecked()
-    await userEvent.click(rules.getByRole("radio", { name: "Nedělit" }))
-    await userEvent.click(rules.getByRole("button", { name: "Uložit" }))
+    const select = await rules.findByRole("combobox", { name: "Pokoje dělit podle" })
+    const save = rules.getByRole("button", { name: "Uložit pravidlo" })
+    await expect(select).toHaveTextContent("Pohlaví pro ubytování")
+    select.focus()
+    await expect(select).toHaveFocus()
+    await expect(rules.getByText("Přednastavená otázka")).toBeVisible()
+    await expect(rules.getByText("Různé odpovědi znamenají oddělené pokoje.")).toBeVisible()
+    const exceptions = rules.getByRole("button", { name: /Komu určit pokoj ručně/ })
+    await expect(exceptions).toHaveAttribute("aria-expanded", "false")
+    await expect(exceptions).toHaveTextContent(
+      "Komu určit pokoj ručněJiná odpověď · Nechci uvést · Chybějící odpověď",
+    )
+    exceptions.focus()
+    await expect(exceptions).toHaveFocus()
+    await userEvent.keyboard(" ")
+    await expect(exceptions).toHaveAttribute("aria-expanded", "true")
+    await expect(
+      rules.getByText("Účastníkům bez vyplněné odpovědi určíte pokoj vždy ručně."),
+    ).toBeVisible()
+    await expect(rules.getByRole("checkbox", { name: "Jiná odpověď" })).toBeChecked()
+    await expect(rules.getByRole("checkbox", { name: "Nechci uvést" })).toBeChecked()
+    const female = rules.getByRole("checkbox", { name: "Žena" })
+    await userEvent.click(female)
+    await expect(exceptions).toHaveTextContent("Žena")
+    await expect(exceptions).toHaveTextContent("Chybějící odpověď")
+    await userEvent.click(save)
     await showsText("Pravidla ubytování byla uložena.")
-    await expect(rules.getByRole("radio", { name: "Nedělit" })).toBeChecked()
+    await expect(select).toHaveTextContent("Pohlaví pro ubytování")
+    exceptions.focus()
+    await userEvent.keyboard(" ")
+    await expect(exceptions).toHaveAttribute("aria-expanded", "false")
   },
+}
+
+/** The hard attribute controls keep readable contrast in Night ticket mode. */
+export const HardAttributeDark: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
+  globals: { theme: "dark" },
+  play: HardAttribute.play,
 }
 
 /** No hard attribute: only the beds of the rooms count. */
 export const NoHardAttribute: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
   beforeEach: ({ msw }) => {
     msw.use(...accommodationHandlers.hardAttribute(null))
   },
   play: async ({ canvas }) => {
     const rules = await region(canvas, "Pravidla ubytování")
-    await expect(await rules.findByRole("radio", { name: "Nedělit" })).toBeChecked()
+    await expect(
+      await rules.findByRole("combobox", { name: "Pokoje dělit podle" }),
+    ).toHaveTextContent("Bez rozdělení")
+    await expect(
+      rules.getByText("Pokoj mohou sdílet všichni. Návrh zohlední kapacity a preference."),
+    ).toBeVisible()
+    await expect(
+      rules.queryByRole("button", { name: /Komu určit pokoj ručně/ }),
+    ).not.toBeInTheDocument()
   },
+}
+
+export const NoHardAttributeDark: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
+  globals: { theme: "dark" },
+  beforeEach: NoHardAttribute.beforeEach,
+  play: NoHardAttribute.play,
 }
 
 /** A failed save keeps the chosen option and says which rule still applies. */
 export const HardAttributeSaveFailed: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("put", `${EVENT}/accommodation/hard-attribute`))
   },
   play: async ({ canvas }) => {
     const rules = await region(canvas, "Pravidla ubytování")
-    await userEvent.click(await rules.findByRole("radio", { name: "Nedělit" }))
-    await userEvent.click(rules.getByRole("button", { name: "Uložit" }))
+    const select = await rules.findByRole("combobox", { name: "Pokoje dělit podle" })
+    const exceptions = rules.getByRole("button", { name: /Komu určit pokoj ručně/ })
+    await userEvent.click(exceptions)
+    const female = rules.getByRole("checkbox", { name: "Žena" })
+    await userEvent.click(female)
+    const save = rules.getByRole("button", { name: "Uložit pravidlo" })
+    await userEvent.click(save)
     await showsText("Pravidlo se nepodařilo uložit")
     await showsText("Pokoje se dál dělí podle: Pohlaví.")
-    await expect(rules.getByRole("radio", { name: "Nedělit" })).toBeChecked()
+    await expect(select).toHaveTextContent("Pohlaví pro ubytování")
+    await expect(female).toBeChecked()
   },
 }
 
 export const HardAttributeLoadFailed: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", `${EVENT}/accommodation/hard-attribute`))
   },
@@ -391,6 +510,19 @@ export const HardAttributeLoadFailed: Story = {
 }
 
 const PREFERENCES = `${EVENT}/accommodation/room-proposal-preferences`
+const SOURCE_QUESTION = {
+  ...SCHOOL_ATTRIBUTE,
+  label: "Jakou školu nebo vzdělávací program účastník navštěvuje?",
+}
+const SOURCE_PREFERENCES = {
+  preferences: [
+    { id: "gender", neutralValues: ["other", "undisclosed"] },
+    { id: SOURCE_QUESTION.attribute },
+    { id: "roommate-wishes" },
+  ],
+  wishes: "roommate-wishes",
+  attributes: [GENDER_ATTRIBUTE, SOURCE_QUESTION],
+}
 
 /** The ranked items of Návrh pokojů, in order. */
 const rankedItems = (section: Awaited<ReturnType<typeof region>>) =>
@@ -398,22 +530,112 @@ const rankedItems = (section: Awaited<ReturnType<typeof region>>) =>
     .getAllByRole("listitem")
     .map((item) => item.textContent ?? "")
 
-/**
- * Návrh pokojů (#389) of a new event split by gender: only "Přání" is
- * ranked, and gender cannot be added because it is the hard attribute.
- */
+/** All three preference sources appear together in the ranked room proposal (#389). */
 export const RoomProposalPreferences: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...accommodationHandlers.attributeRules([SOURCE_QUESTION]),
+      ...accommodationHandlers.roomProposalPreferences(SOURCE_PREFERENCES),
+    )
+  },
   play: async ({ canvas }) => {
     const section = await region(canvas, "Návrh pokojů")
-    await expect(await section.findByText("Přání")).toBeVisible()
-    await expect(rankedItems(section)).toHaveLength(1)
-    await expect(section.queryByRole("button", { name: "Přesunout Přání" })).not.toBeInTheDocument()
-    await expect(section.queryByLabelText("Přidat preferenci")).not.toBeInTheDocument()
+    await expect(await section.findByText("Přání na spolubydlící")).toBeVisible()
+    await expect(rankedItems(section)).toHaveLength(3)
+    const list = section.getByRole("list")
+    list.style.width = "12rem"
+    const expectedSources = [
+      [
+        "Přednastavená otázka",
+        "Vychází z odpovědí účastníků na přednastavenou otázku o pohlaví pro ubytování.",
+      ],
+      [
+        "Vlastní otázka",
+        "Vychází z odpovědí účastníků na otázku, kterou jste přidali do přihlášky.",
+      ],
+      ["Z přihlášek", "Spolubydlící si účastníci vybírají ve správě přihlášky."],
+    ] as const
+    for (const [label, tooltipText] of expectedSources) {
+      const row = within(list)
+        .getAllByRole("listitem")
+        .find((item) => within(item).queryByText(label))!
+      const badge = within(row).getByText(label)
+      await expect(badge).toBeVisible()
+      await expect(badge).toHaveAttribute("data-variant", "secondary")
+      badge.focus()
+      await waitFor(async () => {
+        const tooltip = within(document.body).getByRole("tooltip")
+        await expect(tooltip).toHaveTextContent(tooltipText)
+        await expect(tooltip).toBeVisible()
+      })
+      await userEvent.keyboard("{Escape}")
+      await waitFor(() =>
+        expect(within(document.body).queryByRole("tooltip")).not.toBeInTheDocument(),
+      )
+    }
+    const wishesBadge = within(list).getByText("Z přihlášek")
+    await userEvent.pointer({ target: wishesBadge, keys: "[TouchA>]" })
+    await userEvent.pointer({ target: wishesBadge, keys: "[/TouchA]" })
+    await userEvent.click(wishesBadge)
+    await waitFor(async () => {
+      const tooltip = within(document.body).getByRole("tooltip")
+      await expect(tooltip).toHaveTextContent(
+        "Spolubydlící si účastníci vybírají ve správě přihlášky.",
+      )
+      await expect(tooltip).toBeVisible()
+    })
+    await userEvent.click(document.body)
+    await waitFor(() =>
+      expect(within(document.body).queryByRole("tooltip")).not.toBeInTheDocument(),
+    )
+    const customRow = within(list)
+      .getAllByRole("listitem")
+      .find((item) => within(item).queryByText(SOURCE_QUESTION.label))!
+    const customTitle = customRow.querySelector("p")!
+    const customBadge = within(customRow).getByText("Vlastní otázka")
+    await expect(customTitle.getBoundingClientRect().height).toBeGreaterThan(24)
+    await expect(customBadge.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+      customTitle.getBoundingClientRect().bottom,
+    )
+    for (const label of ["Pohlaví", SOURCE_QUESTION.label, "Přání na spolubydlící"]) {
+      await expect(section.getByRole("button", { name: `Odebrat ${label}` })).toBeVisible()
+      await expect(section.getByRole("button", { name: `Přesunout ${label}` })).toBeVisible()
+    }
+    await expect(
+      section.queryByRole("button", { name: "Přidat preferenci" }),
+    ).not.toBeInTheDocument()
   },
+}
+
+export const RoomProposalPreferencesDark: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
+  ...RoomProposalPreferences,
+  globals: { theme: "dark" },
+  play: async ({ canvas }) => {
+    const section = await region(canvas, "Návrh pokojů")
+    const sourceBadge = await section.findByText("Z přihlášek")
+    await expect(sourceBadge).toBeVisible()
+    sourceBadge.focus()
+    await waitFor(async () => {
+      const tooltip = within(document.body).getByRole("tooltip")
+      await expect(tooltip).toHaveTextContent(
+        "Spolubydlící si účastníci vybírají ve správě přihlášky.",
+      )
+      await expect(tooltip).toBeVisible()
+    })
+  },
+}
+
+export const RoomProposalPreferencesNarrow: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
+  ...RoomProposalPreferences,
+  globals: { viewport: { value: "mobile", isRotated: false } },
 }
 
 /** Gender ranked above "Přání" with its neutral answers; reordered and saved. */
 export const RankedPreferences: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
   beforeEach: ({ msw }) => {
     msw.use(
       ...accommodationHandlers.hardAttribute(null),
@@ -423,24 +645,36 @@ export const RankedPreferences: Story = {
   play: async ({ canvas }) => {
     const section = await region(canvas, "Návrh pokojů")
     await waitFor(() => expect(rankedItems(section)[0]).toMatch(/^1\.Pohlaví/))
+    const ignoredAnswers = section.getByRole("button", { name: /Ignorované odpovědi/ })
+    await expect(ignoredAnswers).toHaveAttribute("aria-expanded", "false")
+    await userEvent.click(ignoredAnswers)
+    await expect(
+      section.getByText("Vybrané odpovědi ani prázdné odpovědi neovlivní návrh."),
+    ).toBeVisible()
     await expect(section.getByRole("checkbox", { name: "Jiná odpověď" })).toBeChecked()
     await expect(section.getByRole("checkbox", { name: "Nechci uvést" })).toBeChecked()
     await expect(section.getByRole("checkbox", { name: "Žena" })).not.toBeChecked()
-    const handle = section.getByRole("button", { name: "Přesunout Přání" })
+    const handle = section.getByRole("button", { name: "Přesunout Přání na spolubydlící" })
     await userEvent.click(handle)
     await userEvent.keyboard(" {ArrowUp} ")
     await expect(handle).toHaveFocus()
-    await expect(section.getByRole("status")).toHaveTextContent("Přání, pozice 1 z 2.")
+    await expect(section.getByRole("status")).toHaveTextContent(
+      "Přání na spolubydlící, pozice 1 z 2.",
+    )
     await userEvent.click(section.getByRole("checkbox", { name: "Jiná odpověď" }))
-    await userEvent.click(section.getByRole("button", { name: "Uložit" }))
+    await userEvent.click(section.getByRole("button", { name: "Uložit preference" }))
     await showsText("Preference návrhu pokojů byly uloženy.")
     await expect(rankedItems(section)[0]).toMatch(/^1\.Přání/)
-    await expect(section.getByRole("checkbox", { name: "Jiná odpověď" })).not.toBeChecked()
+    await expect(section.getByRole("button", { name: /Ignorované odpovědi/ })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    )
   },
 }
 
 /** Nothing ranked: gender is added with its default neutral answers. */
 export const NoPreferences: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
   beforeEach: ({ msw }) => {
     msw.use(
       ...accommodationHandlers.hardAttribute(null),
@@ -450,35 +684,60 @@ export const NoPreferences: Story = {
   play: async ({ canvas }) => {
     const section = await region(canvas, "Návrh pokojů")
     await expect(await section.findByText("Žádné preference nejsou přidané.")).toBeVisible()
-    await expect(
-      section.queryByRole("combobox", { name: "Nová preference" }),
-    ).not.toBeInTheDocument()
     await userEvent.click(section.getByRole("button", { name: "Přidat preferenci" }))
-    await userEvent.click(section.getByRole("combobox", { name: "Nová preference" }))
-    await userEvent.click(await within(document.body).findByRole("option", { name: "Pohlaví" }))
-    await userEvent.click(await section.findByRole("button", { name: "Přidat" }))
-    await expect(rankedItems(section)[0]).toMatch(/^1\.Pohlaví/)
+    await userEvent.click(await within(document.body).findByRole("menuitem", { name: "Pohlaví" }))
+    await waitFor(() => expect(rankedItems(section)[0]).toMatch(/^1\.Pohlaví/))
+    await expect(section.getByRole("button", { name: /Ignorované odpovědi/ })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    )
+    await userEvent.click(section.getByRole("button", { name: "Přidat preferenci" }))
+    await userEvent.click(
+      await within(document.body).findByRole("menuitem", { name: "Přání na spolubydlící" }),
+    )
+    await expect(rankedItems(section)[1]).toMatch(/^2\.Přání na spolubydlící/)
+    const handle = section.getByRole("button", { name: "Přesunout Přání na spolubydlící" })
+    await userEvent.click(handle)
+    await userEvent.keyboard(" {ArrowUp} ")
+    await expect(rankedItems(section)[0]).toMatch(/^1\.Přání na spolubydlící/)
+    await userEvent.click(section.getByRole("button", { name: /Ignorované odpovědi/ }))
+    await expect(
+      section.getByText("Vybrané odpovědi ani prázdné odpovědi neovlivní návrh."),
+    ).toBeVisible()
     await expect(section.getByRole("checkbox", { name: "Nechci uvést" })).toBeChecked()
     await expect(section.getByRole("checkbox", { name: "Muž" })).not.toBeChecked()
+    await userEvent.click(section.getByRole("checkbox", { name: "Jiná odpověď" }))
+    await userEvent.click(section.getByRole("checkbox", { name: "Nechci uvést" }))
+    await expect(section.getByRole("button", { name: /Ignorované odpovědi/ })).toHaveTextContent(
+      "Žádné",
+    )
   },
 }
 
 /** A failed save keeps the unsent list and says which one still applies. */
 export const PreferencesSaveFailed: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("put", PREFERENCES))
   },
   play: async ({ canvas }) => {
     const section = await region(canvas, "Návrh pokojů")
-    await userEvent.click(await section.findByRole("button", { name: "Odebrat Přání" }))
-    await userEvent.click(section.getByRole("button", { name: "Uložit" }))
+    await userEvent.click(
+      await section.findByRole("button", { name: "Odebrat Přání na spolubydlící" }),
+    )
+    const save = section.getByRole("button", { name: "Uložit preference" })
+    await userEvent.click(save)
     await showsText("Preference se nepodařilo uložit")
-    await showsText("Platí dál: 1. Přání.")
+    await showsText("Platí dál: 1. Přání na spolubydlící.")
     await expect(section.getByText("Žádné preference nejsou přidané.")).toBeVisible()
+    await expect(save).toBeEnabled()
+    await userEvent.click(save)
+    await showsText("Preference se nepodařilo uložit")
   },
 }
 
 export const PreferencesLoading: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
   beforeEach: ({ msw }) => {
     msw.use(...neverAnswer("get", PREFERENCES))
   },
@@ -490,6 +749,7 @@ export const PreferencesLoading: Story = {
 }
 
 export const PreferencesLoadFailed: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=accommodation` },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", PREFERENCES))
   },
@@ -501,49 +761,100 @@ export const PreferencesLoadFailed: Story = {
  * own mode; a new event proposes rooms only on request. Saving one leaves
  * the other as it is.
  */
-export const RoomProposalMode: Story = {
+export const AutomationMixedModes: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=automation` },
   play: async ({ canvas }) => {
     const automation = await region(canvas, "Automatizace")
-    await expect(
-      await automation.findByRole("radio", { name: "Navrhovat pokoje jen ručně" }),
-    ).toBeChecked()
-    await expect(
-      await automation.findByRole("radio", {
-        name: "Přepočítat návrh automaticky po každé změně",
-      }),
-    ).toBeChecked()
-    const automatic = automation.getByRole("radio", {
-      name: "Navrhovat pokoje automaticky po každé změně",
+    const evaluation = await automation.findByRole("switch", {
+      name: "Automaticky vyhodnocovat účast",
     })
-    await userEvent.click(automatic)
-    await userEvent.click(cardOf(automatic).getByRole("button", { name: "Uložit" }))
-    await showsText("Režim návrhu pokojů byl uložen.")
+    const rooms = automation.getByRole("switch", { name: "Automaticky navrhovat pokoje" })
+    await expect(evaluation).toBeChecked()
+    await expect(rooms).not.toBeChecked()
     await expect(
-      automation.getByRole("radio", { name: "Přepočítat návrh automaticky po každé změně" }),
-    ).toBeChecked()
+      automation.getByText("Potvrzení účasti a použití návrhu pokojů provádíte vy."),
+    ).toBeVisible()
+    evaluation.focus()
+    await userEvent.keyboard(" ")
+    await expect(evaluation).not.toBeChecked()
+    await expect(rooms).not.toBeChecked()
   },
 }
 
-/** A failed save keeps the chosen mode and says which one still applies. */
-export const RoomProposalModeSaveFailed: Story = {
+export const AutomationSharedSave: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=automation` },
+  play: async ({ canvas }) => {
+    const automation = await region(canvas, "Automatizace")
+    const evaluation = await automation.findByRole("switch", {
+      name: "Automaticky vyhodnocovat účast",
+    })
+    const rooms = automation.getByRole("switch", { name: "Automaticky navrhovat pokoje" })
+    const save = automation.getByRole("button", { name: "Uložit automatizaci" })
+    await userEvent.click(evaluation)
+    await userEvent.click(rooms)
+    await expect(save).toBeEnabled()
+    await userEvent.click(save)
+    await showsText("Automatizace byla uložena.")
+    await expect(evaluation).not.toBeChecked()
+    await expect(rooms).toBeChecked()
+    await expect(save).toBeDisabled()
+  },
+}
+
+export const AutomationPartialSaveFailed: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=automation` },
   beforeEach: ({ msw }) => {
-    msw.use(...failOn("put", `${EVENT}/accommodation/room-proposal-mode`))
+    let roomSaves = 0
+    msw.use(
+      http.put(apiUrl(`${EVENT}/accommodation/room-proposal-mode`), async ({ request }) => {
+        roomSaves += 1
+        if (roomSaves === 1) return HttpResponse.json({ statusCode: 500 }, { status: 500 })
+        return HttpResponse.json(await request.json())
+      }),
+    )
   },
   play: async ({ canvas }) => {
     const automation = await region(canvas, "Automatizace")
-    const automatic = await automation.findByRole("radio", {
-      name: "Navrhovat pokoje automaticky po každé změně",
+    const evaluation = await automation.findByRole("switch", {
+      name: "Automaticky vyhodnocovat účast",
     })
-    await userEvent.click(automatic)
-    await userEvent.click(cardOf(automatic).getByRole("button", { name: "Uložit" }))
-    await showsText("Režim návrhu pokojů se nepodařilo uložit")
-    await showsText("Pokoje se dál navrhují jen ručně.")
+    const rooms = automation.getByRole("switch", { name: "Automaticky navrhovat pokoje" })
+    const save = automation.getByRole("button", { name: "Uložit automatizaci" })
+    await userEvent.click(evaluation)
+    await userEvent.click(rooms)
+    await userEvent.click(save)
+    await showsText("Automatické navrhování pokojů se nepodařilo uložit")
+    await expect(evaluation).not.toBeChecked()
+    await expect(rooms).toBeChecked()
+    await expect(save).toBeEnabled()
+    await userEvent.click(save)
+    await showsText("Automatizace byla uložena.")
+    await expect(save).toBeDisabled()
   },
 }
 
-export const RoomProposalModeLoadFailed: Story = {
+export const AutomationMobile: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=automation` },
+  globals: { viewport: { value: "mobile", isRotated: false } },
+  play: async ({ canvas }) => {
+    const automation = await region(canvas, "Automatizace")
+    const toggle = await automation.findByRole("switch", {
+      name: "Automaticky vyhodnocovat účast",
+    })
+    const card = toggle.closest<HTMLElement>('[data-slot="card"]')
+    if (!card) throw new Error("Automation card is missing")
+    await expect(card.scrollWidth).toBeLessThanOrEqual(card.clientWidth + 1)
+    await expect(
+      automation.getByRole("switch", { name: "Automaticky navrhovat pokoje" }),
+    ).toBeVisible()
+    await expect(automation.getByRole("button", { name: "Uložit automatizaci" })).toBeVisible()
+  },
+}
+
+export const AutomationLoadFailed: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=automation` },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", `${EVENT}/accommodation/room-proposal-mode`))
   },
-  play: () => showsText("Režim návrhu pokojů se nepodařilo načíst"),
+  play: () => showsText("Automatizaci se nepodařilo načíst"),
 }

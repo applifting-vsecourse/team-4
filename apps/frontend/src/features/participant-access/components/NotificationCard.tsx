@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { X } from "lucide-react"
 
 import { ROUTES, SECTIONS } from "@/app/routes"
+import { ActionTooltip } from "@/components/ActionTooltip"
 import { Money } from "@/components/Money"
 import { ParticipationBadge } from "@/components/ParticipationBadge"
 import { Button } from "@/components/ui/button"
@@ -94,16 +95,18 @@ export function NotificationCard({ notification, onOpen, onDismiss }: Notificati
               <time dateTime={notification.at}>{formatPragueDateTime(notification.at)}</time>
             </p>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="relative z-10 -mt-1 -mr-2 shrink-0"
-            aria-label={`Skrýt oznámení ${title}, ${notification.eventName}`}
-            onClick={onDismiss}
-          >
-            <X aria-hidden />
-          </Button>
+          <ActionTooltip label="Skrýt oznámení">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="relative z-10 -mt-1 -mr-2 shrink-0"
+              aria-label={`Skrýt oznámení ${title}, ${notification.eventName}`}
+              onClick={onDismiss}
+            >
+              <X aria-hidden />
+            </Button>
+          </ActionTooltip>
         </div>
       </CardContent>
     </Card>

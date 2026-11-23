@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import {
   ArrowRight,
@@ -124,9 +125,10 @@ function OrganizerDemo() {
   )
 }
 
-export function ForOrganizersPage() {
+export function ForOrganizersPage({ header }: { header: ReactNode }) {
   return (
     <AudiencePage
+      header={header}
       title="Pro organizátory"
       lead="Přihlášky, termíny, ubytování i platby vaší akce v jedné aplikaci místo tabulek a e-mailů."
       imageSrc={organizersImage}

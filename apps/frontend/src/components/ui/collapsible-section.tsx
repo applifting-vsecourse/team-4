@@ -13,6 +13,8 @@ type CollapsibleSectionProps = {
   children: ReactNode
   actions?: ReactNode
   afterContent?: ReactNode
+  /** Render the section expanded without a disclosure control. */
+  alwaysOpen?: boolean
 }
 
 const storageKey = (pathname: string, headingId: string) =>
@@ -45,6 +47,7 @@ export function CollapsibleSection({
   children,
   actions,
   afterContent,
+  alwaysOpen = false,
 }: CollapsibleSectionProps) {
   const router = useRouter({ warn: false })
   const pathname = typeof window === "undefined" ? "/" : window.location.pathname
@@ -67,6 +70,28 @@ export function CollapsibleSection({
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open)
     saveOpenState(sectionStorageKey, open)
+  }
+
+  if (alwaysOpen) {
+    return (
+      <section aria-labelledby={headingId}>
+        <div className="flex min-h-9 flex-wrap items-center justify-between gap-4">
+          <h2
+            id={headingId}
+            className="min-w-0 flex-1 text-h4 font-extrabold"
+          >
+            {title}
+          </h2>
+          {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+        </div>
+        <div data-collapsible-section-content="">
+          <div className="min-h-0">
+            <div className="pt-4">{children}</div>
+          </div>
+        </div>
+        {afterContent}
+      </section>
+    )
   }
 
   return (

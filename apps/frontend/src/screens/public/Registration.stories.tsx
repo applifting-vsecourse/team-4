@@ -62,6 +62,13 @@ export const Form: Story = {
     await showsHeading(PUBLIC_EVENT.name)(context)
     const back = within(context.canvasElement).getByRole("link", { name: "Zpět na detail akce" })
     await expect(back).toHaveAttribute("href", `/e/${PUBLIC_ID}`)
+    await expect(
+      context.canvas.queryByRole("region", { name: "Otázky k účasti" }),
+    ).not.toBeInTheDocument()
+    await expect(context.canvas.queryByRole("radio", { name: "Žena" })).not.toBeInTheDocument()
+    await expect(
+      context.canvas.getByRole("region", { name: "Doprava, strava a zdraví" }),
+    ).toBeVisible()
   },
 }
 
@@ -185,14 +192,19 @@ export const ConditionsRefusedByServer: Story = {
 
 /** "Jiná odpověď" opens a field for the participant's own words (F64). */
 export const OwnGenderAnswer: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...publicEventHandlers.detail({ ...PUBLIC_EVENT_WITHOUT_CONDITIONS, isGenderRequired: true }),
+    )
+  },
   play: async (context) => {
     await showsHeading(PUBLIC_EVENT.name)(context)
-    const canvas = within(context.canvasElement)
+    const participation = within(context.canvas.getByRole("region", { name: "Otázky k účasti" }))
     const words = { name: "Vlastní odpověď (nepovinné)" }
-    await expect(canvas.queryByRole("textbox", words)).not.toBeInTheDocument()
-    await userEvent.click(canvas.getByRole("radio", { name: "Jiná odpověď" }))
-    await userEvent.type(canvas.getByRole("textbox", words), "nebinární")
-    await expect(canvas.getByRole("textbox", words)).toHaveValue("nebinární")
+    await expect(participation.queryByRole("textbox", words)).not.toBeInTheDocument()
+    await userEvent.click(participation.getByRole("radio", { name: "Jiná odpověď" }))
+    await userEvent.type(participation.getByRole("textbox", words), "nebinární")
+    await expect(participation.getByRole("textbox", words)).toHaveValue("nebinární")
   },
 }
 
@@ -351,14 +363,41 @@ export const Questions: Story = {
   play: async (context) => {
     const { canvas } = context
     const section = within(
-      await canvas.findByRole("region", { name: "Otázky pořadatele" }, { timeout: 5000 }),
+      await canvas.findByRole("region", { name: "Otázky k účasti" }, { timeout: 5000 }),
     )
+    await expect(section.getByText("Povinné", { selector: "[data-slot=badge]" })).toBeVisible()
+    const radios = section.getAllByRole("radio")
+    await expect(radios[0]).toHaveAccessibleName("ZŠ Lipová")
+    await expect(radios[1]).toHaveAccessibleName("ZŠ Dubová")
+    await expect(section.queryByText("Pohlaví pro ubytování")).not.toBeInTheDocument()
+    await expect(section.queryByText("Pro rozdělení do pokojů.")).not.toBeInTheDocument()
+    await expect(section.getAllByRole("radiogroup")).toHaveLength(2)
     await expect(section.getByRole("radio", { name: "Neuvádím" })).toBeChecked()
     await register(context, false)
     await showsText("Vyberte odpověď.")
     await userEvent.click(section.getByRole("radio", { name: "ZŠ Dubová" }))
     await userEvent.click(canvas.getByRole("button", { name: "Odeslat přihlášku" }))
     await expect(await canvas.findByRole("heading", { name: "Přihláška je uložená" })).toBeVisible()
+  },
+}
+
+/** Every organizer question is optional. */
+export const OptionalQuestions: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...publicEventHandlers.detail({
+        ...PUBLIC_EVENT_WITHOUT_CONDITIONS,
+        questions: [TROOP],
+      }),
+    )
+  },
+  play: async ({ canvas }) => {
+    const section = within(
+      await canvas.findByRole("region", { name: "Otázky k účasti" }, { timeout: 5000 }),
+    )
+    await expect(section.getByText("Nepovinné", { selector: "[data-slot=badge]" })).toBeVisible()
+    await expect(section.getByRole("radiogroup")).not.toHaveAttribute("aria-required", "true")
+    await expect(section.getByRole("radio", { name: "Neuvádím" })).toBeVisible()
   },
 }
 
@@ -395,6 +434,14 @@ export const GenderRequired: Story = {
   },
   play: async (context) => {
     const { canvas } = context
+    const participation = within(
+      await canvas.findByRole("region", { name: "Otázky k účasti" }, { timeout: 5000 }),
+    )
+    await expect(
+      participation.getByText("Povinné", { selector: "[data-slot=badge]" }),
+    ).toBeVisible()
+    await expect(participation.getByText("Pro rozdělení do pokojů.")).toBeVisible()
+    await expect(participation.getByRole("radiogroup")).toHaveAttribute("aria-required", "true")
     await register(context, false)
     await showsText("Vyberte odpověď, i kdyby to mělo být „Nechci uvést“.")
     await userEvent.click(canvas.getByRole("radio", { name: "Nechci uvést" }))

@@ -38,7 +38,7 @@ function MyRegistrationPage() {
   return (
     <>
       <Seo title="Detail přihlášky" />
-      <ParticipantLayout participant={participant}>
+      <ParticipantLayout>
         <ParticipantRegistrationDetail
           registrationId={registrationId}
           sessionEnded={<ParticipantSessionEnded />}

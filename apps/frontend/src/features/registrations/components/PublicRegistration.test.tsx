@@ -90,7 +90,7 @@ const failWith = (status: number, body: unknown) => ({
   json: () => Promise.reject(new FakeHTTPError({ status }, body)),
 })
 
-function renderForm(terms: SelectableTerm[] = TERMS, conditions = "") {
+function renderForm(terms: SelectableTerm[] = TERMS, conditions = "", isGenderRequired = false) {
   const queryClient = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
@@ -98,6 +98,7 @@ function renderForm(terms: SelectableTerm[] = TERMS, conditions = "") {
         publicId="abcdefghijkl"
         terms={terms}
         conditions={conditions}
+        isGenderRequired={isGenderRequired}
       />
     </QueryClientProvider>,
   )
@@ -278,10 +279,11 @@ describe("usability (S4-C03)", () => {
 })
 
 describe("the gender answer (F64)", () => {
-  it("is voluntary: the form is sent without it as not answered", async () => {
+  it("is not shown when room assignment does not use gender and sends no answer", async () => {
     post.mockReturnValue(respondWith(RESULT))
     renderForm()
-    expect(screen.getByText("Pohlaví pro ubytování")).toBeVisible()
+    expect(screen.queryByText("Pohlaví pro ubytování")).not.toBeInTheDocument()
+    expect(screen.queryByRole("region", { name: "Otázky k účasti" })).not.toBeInTheDocument()
     await user.click(screen.getByLabelText(/1\. turnus/))
     await fillContact()
 
@@ -291,12 +293,16 @@ describe("the gender answer (F64)", () => {
     expect(sentBody()).toMatchObject({ gender: null })
   })
 
-  it("sends the one chosen answer, and none again after the choice is cleared", async () => {
+  it("requires an answer when rooms split by gender and accepts Nechci uvést", async () => {
     post.mockReturnValue(respondWith(RESULT))
-    renderForm()
+    renderForm(TERMS, "", true)
     await user.click(screen.getByLabelText(/1\. turnus/))
     await fillContact()
 
+    await user.click(screen.getByRole("button", { name: "Odeslat přihlášku" }))
+    expect(
+      await screen.findByText("Vyberte odpověď, i kdyby to mělo být „Nechci uvést“."),
+    ).toBeInTheDocument()
     await user.click(screen.getByRole("radio", { name: "Žena" }))
     await user.click(screen.getByRole("radio", { name: "Nechci uvést" }))
     expect(screen.getByRole("radio", { name: "Žena" })).not.toBeChecked()
@@ -306,19 +312,9 @@ describe("the gender answer (F64)", () => {
     expect(sentBody()).toMatchObject({ gender: "undisclosed" })
   })
 
-  it("can be cleared back to no answer", async () => {
-    renderForm()
-    await user.click(screen.getByRole("radio", { name: "Muž" }))
-
-    await user.click(screen.getByRole("button", { name: "Zrušit výběr" }))
-
-    for (const radio of screen.getAllByRole("radio")) expect(radio).not.toBeChecked()
-    expect(screen.queryByRole("button", { name: "Zrušit výběr" })).not.toBeInTheDocument()
-  })
-
   it("asks for the own words only with Jiná odpověď and sends them trimmed", async () => {
     post.mockReturnValue(respondWith(RESULT))
-    renderForm()
+    renderForm(TERMS, "", true)
     await user.click(screen.getByLabelText(/1\. turnus/))
     await fillContact()
     const wordsField = { name: "Vlastní odpověď (nepovinné)" }
@@ -334,7 +330,7 @@ describe("the gender answer (F64)", () => {
 
   it("drops the own words with another answer", async () => {
     post.mockReturnValue(respondWith(RESULT))
-    renderForm()
+    renderForm(TERMS, "", true)
     await user.click(screen.getByLabelText(/1\. turnus/))
     await fillContact()
 

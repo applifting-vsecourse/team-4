@@ -2,14 +2,21 @@ import { useState } from "react"
 
 import { FormError } from "@/components/FormError"
 import { PendingButton } from "@/components/PendingButton"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Field, FieldDescription, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 import type { EventAttribute } from "@/features/accommodation/api/evaluationSchemas"
+import { AnswerSelectionDisclosure } from "@/features/accommodation/components/AnswerSelectionDisclosure"
 
-/** The radio value of "no hard attribute"; options are attribute codes. */
+/** The select value for rooms without a hard attribute; options are attribute codes. */
 const NONE = "none"
 
 export type HardAttributeChoice = {
@@ -30,11 +37,9 @@ export type HardAttributeSettingsProps = HardAttributeChoice & {
 const sameSet = (a: readonly string[], b: readonly string[]) =>
   a.length === b.length && a.every((value) => b.includes(value))
 
-// Správa akce → Nastavení → Pravidla ubytování (#384, #485): none or one
-// categorical question splits rooms, so people with different answers never
-// share one; its answers marked here decide no room and leave it to the
-// organizer, as a missing answer always does. Design only: every value is
-// passed in.
+// Správa akce → Nastavení → Pravidla ubytování (#384, #485): one compact
+// choice decides whether rooms are split. Missing answers always go to manual
+// placement; selected exceptions do too.
 export function HardAttributeSettings({
   hardAttribute,
   nonDeterminingValues,
@@ -43,27 +48,24 @@ export function HardAttributeSettings({
   onSave,
   isSaving = false,
 }: HardAttributeSettingsProps) {
-  const [chosen, setSelected] = useState(hardAttribute ?? NONE)
+  const [chosen, setChosen] = useState(hardAttribute ?? NONE)
   const [chosenNonDetermining, setNonDetermining] = useState(nonDeterminingValues)
   // A question removed before this choice was saved (#485): the saved rule applies.
   const isGone = chosen !== NONE && !options.some((candidate) => candidate.attribute === chosen)
   const selected = isGone ? (hardAttribute ?? NONE) : chosen
   const nonDetermining = isGone ? nonDeterminingValues : chosenNonDetermining
   const option = options.find((candidate) => candidate.attribute === selected)
-
+  const gender = options.find((candidate) => candidate.attribute === "gender")
   const choose = (attribute: string) => {
-    setSelected(attribute)
+    setChosen(attribute)
     // The saved answers for the saved question, the defaults for another.
     setNonDetermining(
       attribute === hardAttribute
         ? nonDeterminingValues
-        : (options.find((o) => o.attribute === attribute)?.defaultNonDeterminingValues ?? []),
+        : (options.find((candidate) => candidate.attribute === attribute)
+            ?.defaultNonDeterminingValues ?? []),
     )
   }
-  const toggle = (value: string, isChecked: boolean) =>
-    setNonDetermining((current) =>
-      isChecked ? [...current, value] : current.filter((other) => other !== value),
-    )
   const isUnchanged =
     selected === (hardAttribute ?? NONE) &&
     (selected === NONE || sameSet(nonDetermining, nonDeterminingValues))
@@ -71,85 +73,94 @@ export function HardAttributeSettings({
   return (
     <Card>
       <CardContent>
-        <div className="space-y-6">
-          <FieldSet>
-            <FieldLegend>Pokoje dělit podle</FieldLegend>
-            <RadioGroup
+        <div className="space-y-3">
+          <Field>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <FieldLabel htmlFor="hard-attribute-select">Pokoje dělit podle</FieldLabel>
+              {option?.attribute === "gender" ? (
+                <Badge variant="outline">Přednastavená otázka</Badge>
+              ) : null}
+            </div>
+            <Select
               value={selected}
               onValueChange={choose}
             >
-              <Field orientation="horizontal">
-                <RadioGroupItem
-                  id="hard-attribute-none"
-                  value={NONE}
-                />
-                <FieldLabel htmlFor="hard-attribute-none">Nedělit</FieldLabel>
-              </Field>
-              {options.map((candidate) => (
-                <Field
-                  key={candidate.attribute}
-                  orientation="horizontal"
-                >
-                  <RadioGroupItem
-                    id={`hard-attribute-${candidate.attribute}`}
-                    value={candidate.attribute}
-                  />
-                  <FieldLabel htmlFor={`hard-attribute-${candidate.attribute}`}>
-                    {candidate.label}
-                  </FieldLabel>
-                </Field>
-              ))}
-            </RadioGroup>
-          </FieldSet>
-          {option ? (
-            <FieldSet>
-              <FieldLegend variant="label">Odpovědi, které o pokoji nerozhodují</FieldLegend>
-              <FieldDescription>
-                Účastníkovi s takovou odpovědí, nebo bez odpovědi, určíte pokoj ručně.
-              </FieldDescription>
-              <div className="flex flex-wrap gap-x-6 gap-y-2">
-                {option.values.map(({ value, label }) => {
-                  const id = `non-determining-${option.attribute}-${value}`
-                  return (
-                    <Field
-                      key={value}
-                      orientation="horizontal"
+              <SelectTrigger
+                id="hard-attribute-select"
+                aria-label="Pokoje dělit podle"
+                className="w-full sm:w-fit"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>Bez rozdělení</SelectItem>
+                {gender ? <SelectItem value="gender">Pohlaví pro ubytování</SelectItem> : null}
+                {options
+                  .filter((candidate) => candidate.attribute !== "gender")
+                  .map((candidate) => (
+                    <SelectItem
+                      key={candidate.attribute}
+                      value={candidate.attribute}
                     >
-                      <Checkbox
-                        id={id}
-                        checked={nonDetermining.includes(value)}
-                        onCheckedChange={(checked) => toggle(value, checked === true)}
-                      />
-                      <FieldLabel htmlFor={id}>{label}</FieldLabel>
-                    </Field>
+                      {candidate.label}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          {option ? (
+            <div className="space-y-2">
+              <FieldDescription>Různé odpovědi znamenají oddělené pokoje.</FieldDescription>
+              <AnswerSelectionDisclosure
+                id={`manual-placement-${option.attribute}`}
+                title="Komu určit pokoj ručně"
+                summary={[
+                  ...option.values
+                    .filter(({ value }) => nonDetermining.includes(value))
+                    .map(({ label }) => label),
+                  "Chybějící odpověď",
+                ].join(" · ")}
+                options={option.values}
+                selectedValues={nonDetermining}
+                explanation="Účastníkům bez vyplněné odpovědi určíte pokoj vždy ručně."
+                onSelectionChange={(value, isChecked) =>
+                  setNonDetermining((current) =>
+                    isChecked ? [...current, value] : current.filter((other) => other !== value),
                   )
-                })}
-              </div>
-            </FieldSet>
-          ) : null}
+                }
+              />
+            </div>
+          ) : (
+            <FieldDescription>
+              Pokoj mohou sdílet všichni. Návrh zohlední kapacity a preference.
+            </FieldDescription>
+          )}
+
           {saveError ? (
             <FormError
               title="Pravidlo se nepodařilo uložit"
               message={saveError}
             />
           ) : null}
+
+          <div className="flex justify-end">
+            <PendingButton
+              isPending={isSaving}
+              disabled={isUnchanged}
+              onClick={() =>
+                onSave?.(
+                  selected === NONE
+                    ? { hardAttribute: null, nonDeterminingValues: [] }
+                    : { hardAttribute: selected, nonDeterminingValues: nonDetermining },
+                )
+              }
+            >
+              Uložit pravidlo
+            </PendingButton>
+          </div>
         </div>
       </CardContent>
-      <CardFooter className="justify-end">
-        <PendingButton
-          isPending={isSaving}
-          disabled={isUnchanged}
-          onClick={() =>
-            onSave?.(
-              selected === NONE
-                ? { hardAttribute: null, nonDeterminingValues: [] }
-                : { hardAttribute: selected, nonDeterminingValues: nonDetermining },
-            )
-          }
-        >
-          Uložit
-        </PendingButton>
-      </CardFooter>
     </Card>
   )
 }

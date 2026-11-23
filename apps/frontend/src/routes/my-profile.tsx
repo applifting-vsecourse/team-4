@@ -22,7 +22,7 @@ function MyProfilePage() {
   return (
     <>
       <Seo title="Můj profil" />
-      <ParticipantLayout participant={participant}>
+      <ParticipantLayout>
         {participant ? (
           <ParticipantProfile sessionEnded={<ParticipantSessionEnded />} />
         ) : (

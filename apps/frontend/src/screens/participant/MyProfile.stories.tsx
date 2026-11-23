@@ -198,3 +198,41 @@ export const MobileNavigation: Story = {
     await expect(within(menu).queryByRole("link", { name: "Organizátor" })).not.toBeInTheDocument()
   },
 }
+
+/** The participant account stays visible on a narrow dark-mode page. */
+export const DarkMobileAccount: Story = {
+  globals: { ...MOBILE, theme: "dark" },
+  play: async ({ canvas, canvasElement }) => {
+    await showsHeading("Můj profil")({ canvas })
+    const header = within(canvasElement.querySelector("header")!)
+    await expect(header.getByRole("button", { name: "Účet" })).toBeVisible()
+    await expect(header.getByRole("button", { name: "Otevřít menu" })).toBeVisible()
+    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(360)
+  },
+}
+
+/** Logging out clears the account control and keeps participant navigation available. */
+export const LoggedOut: Story = {
+  globals: MOBILE,
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...participantHandlers.signedIn(),
+      ...participantHandlers.logout(),
+      ...participantHandlers.profile(),
+    )
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await showsHeading("Můj profil")({ canvas })
+    const header = within(canvasElement.querySelector("header")!)
+    await userEvent.click(header.getByRole("button", { name: "Účet" }))
+    const menu = await screen.findByRole("menu", {}, TIMEOUT)
+    await userEvent.click(within(menu).getByRole("menuitem", { name: "Odhlásit se" }))
+    await waitFor(
+      () => expect(header.queryByRole("button", { name: "Účet" })).not.toBeInTheDocument(),
+      TIMEOUT,
+    )
+    await userEvent.click(header.getByRole("button", { name: "Otevřít menu" }))
+    const navigation = await screen.findByRole("dialog", { name: "Menu" }, TIMEOUT)
+    await expect(within(navigation).getByRole("link", { name: "Moje přihlášky" })).toBeVisible()
+  },
+}

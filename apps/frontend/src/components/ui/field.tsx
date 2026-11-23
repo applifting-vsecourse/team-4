@@ -5,12 +5,17 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
-function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
+function FieldSet({
+  className,
+  spacing = "default",
+  ...props
+}: React.ComponentProps<"fieldset"> & { spacing?: "default" | "compact" }) {
   return (
     <fieldset
       data-slot="field-set"
+      data-spacing={spacing}
       className={cn(
-        "flex flex-col gap-6",
+        "flex flex-col data-[spacing=compact]:gap-2 data-[spacing=default]:gap-6",
         "has-[>[data-slot=checkbox-group]]:gap-3 has-[>[data-slot=radio-group]]:gap-3",
         className,
       )}

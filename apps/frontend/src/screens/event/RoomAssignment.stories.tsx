@@ -376,11 +376,21 @@ export const CancelWarning: Story = {
 
 /** Locked and unlocked from the participant's menu. */
 export const LockAndUnlock: Story = {
+  globals: { theme: "dark" },
   play: async ({ canvas }) => {
     await pick(canvas, "Jakub Novák", "Zamknout umístění")
+    const lockedIcon = await (await zoneOf(canvas, "Chatka 2")).findByLabelText("Zamčené umístění")
+    await expect(lockedIcon).toBeVisible()
+    await userEvent.hover(lockedIcon)
     await expect(
-      await (await zoneOf(canvas, "Chatka 2")).findByLabelText("Zamčené umístění"),
-    ).toBeVisible()
+      await within(document.body).findByRole("tooltip", {
+        name: "Změna pokoje vyžaduje odemčení",
+      }),
+    ).toHaveAttribute("role", "tooltip")
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() =>
+      expect(within(document.body).queryByRole("tooltip")).not.toBeInTheDocument(),
+    )
     await pick(canvas, "Petr Kučera", "Odemknout umístění")
     await waitFor(async () =>
       expect(

@@ -99,4 +99,13 @@ export const CATALOG_LIST: CatalogItem[] = catalogListSchema.parse([
     registrationStatus: "not-open",
     terms: [{ id: uuid(301), label: "Víkend", startDate: "2027-10-15", endDate: "2027-10-17" }],
   },
+  {
+    publicId: "zimni-vikend-2027",
+    name: "Zimní víkend v horách",
+    organizationName: "Spolek Modrá Hora",
+    location: "Chata pod Javorem, Pec pod Sněžkou",
+    coverPhotoId: null,
+    registrationStatus: "closed",
+    terms: [{ id: uuid(302), label: "Víkend", startDate: "2027-12-10", endDate: "2027-12-12" }],
+  },
 ])

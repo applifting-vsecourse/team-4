@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { CalendarCog, ListChecks, Pencil, Plus, Trash2 } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { ActionTooltip } from "@/components/ActionTooltip"
 import { EmptyState } from "@/components/EmptyState"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -56,6 +57,7 @@ export function TermsSection({ organizationId, event }: TermsSectionProps) {
     <CollapsibleSection
       headingId="terms-heading"
       title="Termíny a ceny"
+      alwaysOpen
       actions={canEdit ? addButton : null}
     >
       {event.terms.length === 0 ? (
@@ -111,13 +113,15 @@ export function TermsSection({ organizationId, event }: TermsSectionProps) {
                             term={term}
                             allTerms={event.terms}
                             trigger={
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={`Upravit termín ${term.label}`}
-                              >
-                                <Pencil />
-                              </Button>
+                              <ActionTooltip label="Upravit termín">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={`Upravit termín ${term.label}`}
+                                >
+                                  <Pencil />
+                                </Button>
+                              </ActionTooltip>
                             }
                           />
                           <DeleteTermDialog
@@ -125,13 +129,15 @@ export function TermsSection({ organizationId, event }: TermsSectionProps) {
                             eventId={event.id}
                             term={term}
                             trigger={
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={`Odstranit termín ${term.label}`}
-                              >
-                                <Trash2 />
-                              </Button>
+                              <ActionTooltip label="Odstranit termín">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={`Odstranit termín ${term.label}`}
+                                >
+                                  <Trash2 />
+                                </Button>
+                              </ActionTooltip>
                             }
                           />
                         </>

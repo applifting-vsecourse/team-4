@@ -5,6 +5,7 @@ import {
   questionsOf,
   register,
   setEvaluationMode,
+  setHardAttribute,
   setUpEvent,
   type TermSpec,
 } from "./support/api"
@@ -25,18 +26,20 @@ const orderRow = (page: Page, name: string) =>
 test("a question of the organizer is asked, shown and splits rooms", async ({ page, browser }) => {
   const event = await setUpEvent(page.request, { terms, rooms })
   await setEvaluationMode(page.request, event, "manual")
+  await setHardAttribute(page.request, event, "gender")
   const eventPath = `/organizations/${event.organizationId}/events/${event.eventId}`
 
   // The organizer adds a required question with two options.
   await page.goto(`${eventPath}/settings`)
+  await page.getByRole("tab", { name: "Přihláška" }).click()
   const section = page.getByRole("region", { name: "Otázky v přihlášce" })
   await expect(section.getByText("Akce nemá vlastní otázky")).toBeVisible()
   await section.getByRole("button", { name: "Přidat otázku" }).click()
-  await section.getByRole("textbox", { name: "Otázka 1", exact: true }).fill("Škola")
-  await section.getByRole("textbox", { name: "Škola, možnost 1" }).fill("ZŠ Lipová")
-  await section.getByRole("textbox", { name: "Škola, možnost 2" }).fill("ZŠ Dubová")
+  await section.getByRole("textbox", { name: "Znění otázky" }).fill("Škola")
+  await section.getByRole("textbox", { name: "Možnost 1" }).fill("ZŠ Lipová")
+  await section.getByRole("textbox", { name: "Možnost 2" }).fill("ZŠ Dubová")
   await section.getByRole("checkbox", { name: "Povinná odpověď" }).check()
-  await section.getByRole("button", { name: "Uložit" }).click()
+  await section.getByRole("button", { name: "Uložit otázky" }).click()
   await expect(page.getByText("Otázky přihlášky byly uloženy.")).toBeVisible()
 
   // A visitor answers it on the public form; it is required.
@@ -77,9 +80,12 @@ test("a question of the organizer is asked, shown and splits rooms", async ({ pa
 
   // Rooms split by the question: the two schools no longer share the room.
   await page.goto(`${eventPath}/settings`)
+  await page.getByRole("tab", { name: "Ubytování" }).click()
   const rules = page.getByRole("region", { name: "Pravidla ubytování" })
-  await rules.getByRole("radio", { name: "Škola" }).check()
-  await rules.getByRole("button", { name: "Uložit" }).click()
+  const splitBy = rules.getByRole("combobox", { name: "Pokoje dělit podle" })
+  await splitBy.click()
+  await page.getByRole("option", { name: "Škola" }).click()
+  await rules.getByRole("button", { name: "Uložit pravidlo" }).click()
   await expect(page.getByText("Pravidla ubytování byla uložena.")).toBeVisible()
 
   await page.goto(`${eventPath}/registrations?view=evaluation`)
@@ -91,5 +97,6 @@ test("a question of the organizer is asked, shown and splits rooms", async ({ pa
 
   // The question used by the rules cannot be removed.
   await page.goto(`${eventPath}/settings`)
+  await page.getByRole("tab", { name: "Přihláška" }).click()
   await expect(section.getByRole("button", { name: "Odebrat Škola" })).toBeDisabled()
 })

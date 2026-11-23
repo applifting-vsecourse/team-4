@@ -3,6 +3,8 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
+import { TooltipProvider } from "@/components/ui/tooltip"
+
 import { TermEvaluationSection } from "@/features/accommodation/components/TermEvaluationSection"
 import {
   EVALUATED_TERM,
@@ -52,15 +54,17 @@ function renderSection(queue = "all") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const section = (termId: string) => (
     <QueryClientProvider client={client}>
-      <TermEvaluationSection
-        organizationId="org"
-        eventId="event"
-        terms={[EVALUATED_TERM, SECOND]}
-        termId={termId}
-        queue={queue}
-        onSelect={onSelect}
-        renderName={(person) => <a href={`/detail/${person.id}`}>{person.name}</a>}
-      />
+      <TooltipProvider>
+        <TermEvaluationSection
+          organizationId="org"
+          eventId="event"
+          terms={[EVALUATED_TERM, SECOND]}
+          termId={termId}
+          queue={queue}
+          onSelect={onSelect}
+          renderName={(person) => <a href={`/detail/${person.id}`}>{person.name}</a>}
+        />
+      </TooltipProvider>
     </QueryClientProvider>
   )
   const { rerender } = render(section(EVALUATED_TERM.id))
