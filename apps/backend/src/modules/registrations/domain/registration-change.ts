@@ -1,6 +1,13 @@
 import { requiresApproval } from '@/modules/events/domain/change-approval';
 import { Gender, genderOtherFits } from '@/modules/registrations/domain/gender';
 import {
+  Answer,
+  ANSWER_MESSAGES,
+  missingRequired,
+  Question,
+  questionsVersion,
+} from '@/modules/registrations/domain/questions';
+import {
   amountDueMinor,
   ParticipationStatus,
   RegistrationTermResult,
@@ -55,6 +62,24 @@ export type ChangeProposal = {
    * none. An added term starts `pending` and is evaluated like a moved-to one (S3-01).
    */
   addedTermIds?: string[];
+  /**
+   * Answers to the event's questions (#485); a question left out keeps its
+   * answer, null removes one.
+   */
+  answers?: { questionId: string; optionId: string | null }[];
+  /**
+   * The questions version Úprava přihlášky showed (#485); checked on the
+   * participant's own preview and submit, another one is `questions_changed`.
+   */
+  questionsVersion?: string;
+};
+
+/** A changed answer to a question of the event, by labels (#485). */
+export type AnswerChange = {
+  questionId: string;
+  question: string;
+  original: { optionId: string; label: string } | null;
+  proposed: { optionId: string; label: string } | null;
 };
 
 export type ChangeKind =
@@ -94,6 +119,8 @@ export type NeedsChange = {
 
 export type ChangeSummary = {
   values: ChangedValue[];
+  /** Absent in summaries stored before questions existed. */
+  answers?: AnswerChange[];
   /** Null when the needs stay as they are. */
   needs: NeedsChange | null;
   terms: PlannedTerm[];
@@ -121,7 +148,10 @@ export type ChangeErrorCode =
   | 'term_not_active'
   | 'term_unknown'
   | 'term_conflict'
-  | 'gender_other_mismatch';
+  | 'gender_other_mismatch'
+  | 'questions_changed'
+  | 'answer_required'
+  | 'gender_required';
 
 const MESSAGES: Record<ChangeErrorCode, string> = {
   no_change: 'Nic se nezměnilo.',
@@ -130,6 +160,10 @@ const MESSAGES: Record<ChangeErrorCode, string> = {
   term_unknown: 'Termín nepatří k této akci.',
   term_conflict: 'Termíny změny si odporují.',
   gender_other_mismatch: 'Vlastní odpověď lze uvést jen u „Jiná odpověď“.',
+  questions_changed: ANSWER_MESSAGES.questions_changed,
+  answer_required:
+    'Nejdřív odpovězte na povinné otázky přihlášky, pak lze uložit i další změny.',
+  gender_required: ANSWER_MESSAGES.gender_required,
 };
 
 export class InvalidChangeError extends Error {
@@ -148,6 +182,11 @@ export type ChangeSubject = {
   genderOther: string | null;
   terms: RegistrationTermResult[];
   paidMinor: number;
+  /** The event's questions in form order and the answers to them (#485). */
+  questions: Question[];
+  answers: Answer[];
+  /** Rooms are split by gender, so it needs an answer ("undisclosed" counts). */
+  isGenderRequired: boolean;
 };
 
 /** A term of the event with its current price. */
@@ -164,6 +203,85 @@ const money = (
   return { dueMinor, paidMinor, balanceMinor: dueMinor - paidMinor };
 };
 
+/** Whether the proposal only cancels terms, changing nothing else (#485). */
+export const isCancellationOnly = (proposal: ChangeProposal): boolean =>
+  proposal.cancelledTermIds.length > 0 &&
+  proposal.moves.length === 0 &&
+  !proposal.addedTermIds?.length &&
+  !proposal.answers?.length &&
+  proposal.firstName === undefined &&
+  proposal.lastName === undefined &&
+  proposal.phone === undefined &&
+  proposal.needs === undefined &&
+  proposal.gender === undefined &&
+  proposal.genderOther === undefined;
+
+/**
+ * The answers a proposal changes, against the questions as they are now: an
+ * unknown question or option means the form changed (#485). With
+ * `asksMissingAnswers`, every required question must end up answered.
+ */
+function planAnswers(
+  subject: ChangeSubject,
+  proposal: ChangeProposal,
+  asksMissingAnswers: boolean,
+): AnswerChange[] {
+  if (
+    asksMissingAnswers &&
+    proposal.questionsVersion !== undefined &&
+    proposal.questionsVersion !==
+      questionsVersion({
+        questions: subject.questions,
+        isGenderRequired: subject.isGenderRequired,
+      })
+  )
+    throw new InvalidChangeError('questions_changed');
+  const proposed = proposal.answers ?? [];
+  const ids = proposed.map((answer) => answer.questionId);
+  if (new Set(ids).size !== ids.length)
+    throw new InvalidChangeError('questions_changed');
+  const after = new Map(
+    subject.answers.map((answer) => [answer.questionId, answer.optionId]),
+  );
+  const changes: AnswerChange[] = [];
+  for (const answer of proposed) {
+    const question = subject.questions.find((q) => q.id === answer.questionId);
+    if (!question) throw new InvalidChangeError('questions_changed');
+    const option =
+      answer.optionId === null
+        ? null
+        : question.options.find((o) => o.id === answer.optionId);
+    if (option === undefined) throw new InvalidChangeError('questions_changed');
+    const before = after.get(question.id) ?? null;
+    if ((option?.id ?? null) === before) continue;
+    const original = question.options.find((o) => o.id === before);
+    changes.push({
+      questionId: question.id,
+      question: question.label,
+      original: original
+        ? { optionId: original.id, label: original.label }
+        : null,
+      proposed: option ? { optionId: option.id, label: option.label } : null,
+    });
+    if (option) after.set(question.id, option.id);
+    else after.delete(question.id);
+  }
+  const finalAnswers = [...after].map(([questionId, optionId]) => ({
+    questionId,
+    optionId,
+  }));
+  if (
+    asksMissingAnswers &&
+    missingRequired(subject.questions, finalAnswers).length > 0
+  )
+    throw new InvalidChangeError('answer_required');
+  const finalGender =
+    proposal.gender !== undefined ? proposal.gender : subject.gender;
+  if (asksMissingAnswers && subject.isGenderRequired && finalGender === null)
+    throw new InvalidChangeError('gender_required');
+  return changes;
+}
+
 /**
  * Works out a proposal against the registration and the event's terms: what
  * changes, what each term ends as, and whether the organizer must approve
@@ -176,6 +294,12 @@ export const planChange = (
   eventTerms: ReadonlyMap<string, EventTermInfo>,
   approvalDays: number | null,
   now: Date,
+  /**
+   * The participant files the change: a required question still without an
+   * answer must be answered first (#485). Off when re-planning a waiting
+   * request, which was filed under the questions of its day.
+   */
+  asksMissingAnswers = true,
 ): ChangePlan => {
   const own = new Map(subject.terms.map((term) => [term.termId, term]));
   const active = subject.terms.filter((term) => term.status !== 'cancelled');
@@ -237,12 +361,20 @@ export const planChange = (
       proposed: genderOther,
     });
   }
+  // Cancelling is always possible; any other change answers a missing
+  // required question first (#485).
+  const answerChanges = planAnswers(
+    subject,
+    proposal,
+    asksMissingAnswers && !isCancellationOnly(proposal),
+  );
   const needs: NeedsChange | null =
     proposal.needs !== undefined && !sameNeeds(subject.needs, proposal.needs)
       ? { original: subject.needs, proposed: normalizeNeeds(proposal.needs) }
       : null;
-  // Names, phone, gender and needs belong to the whole registration.
-  const changesData = values.length > 0 || needs !== null;
+  // Names, phone, gender, answers and needs belong to the whole registration.
+  const changesData =
+    values.length > 0 || needs !== null || answerChanges.length > 0;
   if (
     !changesData &&
     cancelled.size + proposal.moves.length + addedIds.length === 0
@@ -343,6 +475,7 @@ export const planChange = (
     requiresApproval: requiresApproval(approvalDays, affected, now),
     summary: {
       values,
+      answers: answerChanges,
       needs,
       terms: [...planned.values()].sort(
         (a, b) =>

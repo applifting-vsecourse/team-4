@@ -1,4 +1,4 @@
-import { HARD_ATTRIBUTE_OPTIONS } from '@/modules/accommodation/domain/determination';
+import { EventAttribute } from '@/modules/accommodation/domain/attributes';
 import {
   HardAttributeSetting,
   PreferencesSetting,
@@ -8,29 +8,66 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
-  IsIn,
   IsOptional,
   IsString,
   MaxLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
-const ATTRIBUTES = HARD_ATTRIBUTE_OPTIONS.map((option) => option.attribute);
+export class AttributeValueDto {
+  @ApiProperty({
+    example: 'female',
+    description: 'Gender’s code, or the option id of a question.',
+  })
+  value!: string;
 
-export class HardAttributeOptionDto {
-  @ApiProperty({ example: 'gender' })
+  @ApiProperty({ example: 'Žena' })
+  label!: string;
+}
+
+/** A categorical question of the event: gender or one of its own (#485). */
+export class EventAttributeDto {
+  @ApiProperty({
+    example: 'gender',
+    description: '`gender`, or the id of a question of the event.',
+  })
   attribute!: string;
 
-  @ApiProperty({ type: [String], description: 'Every answer of the question.' })
-  values!: string[];
+  @ApiProperty({ example: 'Pohlaví' })
+  label!: string;
+
+  @ApiProperty({
+    type: [AttributeValueDto],
+    description: 'Every answer, in the order of the form.',
+  })
+  values!: AttributeValueDto[];
 
   @ApiProperty({
     type: [String],
     description:
-      'Answers that leave the room to the organizer when this attribute is ' +
-      'chosen; a missing answer never determines a room either.',
+      'Answers that decide no room when it is chosen as the hard attribute ' +
+      'without choosing them: “Jiná odpověď” and “Nechci uvést” for ' +
+      'gender, none for a question.',
   })
-  nonDeterminingValues!: string[];
+  defaultNonDeterminingValues!: string[];
+
+  @ApiProperty({
+    type: [String],
+    description:
+      'The neutral answers offered when it is added as a soft attribute.',
+  })
+  defaultNeutralValues!: string[];
+
+  static from(attribute: EventAttribute): EventAttributeDto {
+    return {
+      attribute: attribute.attribute,
+      label: attribute.label,
+      values: attribute.values.map((value) => ({ ...value })),
+      defaultNonDeterminingValues: [...attribute.defaultNonDetermining],
+      defaultNeutralValues: [...attribute.defaultNeutral],
+    };
+  }
 }
 
 export class HardAttributeSettingDto {
@@ -45,19 +82,26 @@ export class HardAttributeSettingDto {
   hardAttribute!: string | null;
 
   @ApiProperty({
-    type: [HardAttributeOptionDto],
-    description: 'The questions the organizer can choose from.',
+    type: [String],
+    description:
+      'Its answers that decide no room; a missing answer never decides one ' +
+      'either. Empty without a hard attribute.',
   })
-  options!: HardAttributeOptionDto[];
+  nonDeterminingValues!: string[];
+
+  @ApiProperty({
+    type: [EventAttributeDto],
+    description:
+      'Every categorical question of the event, gender first, to choose ' +
+      'from and to word answers with.',
+  })
+  options!: EventAttributeDto[];
 
   static from(setting: HardAttributeSetting): HardAttributeSettingDto {
     return {
       hardAttribute: setting.hardAttribute,
-      options: setting.options.map((option) => ({
-        attribute: option.attribute,
-        values: [...option.values],
-        nonDeterminingValues: [...option.nonDeterminingValues],
-      })),
+      nonDeterminingValues: [...setting.nonDeterminingValues],
+      options: setting.attributes.map(EventAttributeDto.from),
     };
   }
 }
@@ -66,13 +110,25 @@ export class SaveHardAttributeDto {
   @ApiProperty({
     type: String,
     nullable: true,
-    enum: ATTRIBUTES,
+    example: 'gender',
     description: 'One of the options, or null for none.',
   })
-  @IsIn([...ATTRIBUTES, null], {
-    message: 'Vyberte tvrdý atribut z nabídky, nebo žádný.',
-  })
+  @ValidateIf((_, value) => value !== null)
+  @IsString({ message: 'Vyberte tvrdý atribut z nabídky, nebo žádný.' })
+  @MaxLength(64, { message: 'Vyberte tvrdý atribut z nabídky, nebo žádný.' })
   hardAttribute!: string | null;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description:
+      'Its answers that decide no room; left out, the option’s defaults.',
+  })
+  @IsOptional()
+  @IsArray({ message: 'Vyberte odpovědi z nabídky.' })
+  @ArrayMaxSize(10, { message: 'Vyberte odpovědi z nabídky.' })
+  @IsString({ each: true, message: 'Vyberte odpovědi z nabídky.' })
+  @MaxLength(100, { each: true, message: 'Vyberte odpovědi z nabídky.' })
+  nonDeterminingValues?: string[];
 }
 
 export class SoftPreferenceItemDto {
@@ -100,20 +156,6 @@ export class SoftPreferenceItemDto {
   neutralValues?: string[];
 }
 
-export class SoftAttributeOptionDto {
-  @ApiProperty({ example: 'gender' })
-  attribute!: string;
-
-  @ApiProperty({ type: [String], description: 'Every answer of the question.' })
-  values!: string[];
-
-  @ApiProperty({
-    type: [String],
-    description: 'The neutral answers offered when the attribute is added.',
-  })
-  defaultNeutralValues!: string[];
-}
-
 export class RoomProposalPreferencesDto {
   @ApiProperty({
     type: [SoftPreferenceItemDto],
@@ -130,12 +172,12 @@ export class RoomProposalPreferencesDto {
   wishes!: string;
 
   @ApiProperty({
-    type: [SoftAttributeOptionDto],
+    type: [EventAttributeDto],
     description:
       'The categorical questions that can be soft attributes; never the ' +
       'hard attribute of the event.',
   })
-  attributes!: SoftAttributeOptionDto[];
+  attributes!: EventAttributeDto[];
 
   static from(setting: PreferencesSetting): RoomProposalPreferencesDto {
     return {
@@ -145,11 +187,7 @@ export class RoomProposalPreferencesDto {
           : { id: item.id },
       ),
       wishes: setting.wishes,
-      attributes: setting.attributes.map((option) => ({
-        attribute: option.attribute,
-        values: [...option.values],
-        defaultNeutralValues: [...option.defaultNeutralValues],
-      })),
+      attributes: setting.attributes.map(EventAttributeDto.from),
     };
   }
 }

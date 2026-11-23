@@ -9,7 +9,7 @@ import { formatPragueDateTime } from "@/lib/date"
 
 import { registrationAccommodationQueryOptions } from "@/features/accommodation/api/evaluationQueryOptions"
 import { DeterminationDialog } from "@/features/accommodation/components/DeterminationDialog"
-import { valueLabel } from "@/features/accommodation/lib/evaluationView"
+import { useAttributeLabels } from "@/features/accommodation/hooks/useAttributeLabels"
 
 type RegistrationDeterminationPanelProps = {
   organizationId: string
@@ -31,6 +31,7 @@ export function RegistrationDeterminationPanel({
   person,
   invalidate,
 }: RegistrationDeterminationPanelProps) {
+  const labels = useAttributeLabels(organizationId, eventId)
   const accommodation = useQuery(
     registrationAccommodationQueryOptions(organizationId, eventId, registrationId),
   )
@@ -57,7 +58,7 @@ export function RegistrationDeterminationPanel({
       {valid ? (
         <DefinitionList layout="stacked">
           <DefinitionRow label="Ubytovat jako">
-            {valueLabel(hardAttribute.attribute, valid.value)}, všechny termíny
+            {labels.value(hardAttribute.attribute, valid.value)}, všechny termíny
           </DefinitionRow>
           <DefinitionRow label="Důvod určení">{valid.reason}</DefinitionRow>
           <DefinitionRow label="Určil(a)">

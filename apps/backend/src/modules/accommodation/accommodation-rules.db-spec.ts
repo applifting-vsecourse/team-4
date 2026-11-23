@@ -171,8 +171,15 @@ const register = async (
 
 const GENDER_OPTION = {
   attribute: 'gender',
-  values: ['female', 'male', 'other', 'undisclosed'],
-  nonDeterminingValues: ['other', 'undisclosed'],
+  label: 'Pohlaví',
+  values: [
+    { value: 'female', label: 'Žena' },
+    { value: 'male', label: 'Muž' },
+    { value: 'other', label: 'Jiná odpověď' },
+    { value: 'undisclosed', label: 'Nechci uvést' },
+  ],
+  defaultNonDeterminingValues: ['other', 'undisclosed'],
+  defaultNeutralValues: ['other', 'undisclosed'],
 };
 
 describe('choosing the hard attribute', () => {
@@ -181,7 +188,11 @@ describe('choosing the hard attribute', () => {
 
     expect(await call(f.ownerId, 'GET', f.path)).toEqual({
       status: 200,
-      body: { hardAttribute: null, options: [GENDER_OPTION] },
+      body: {
+        hardAttribute: null,
+        nonDeterminingValues: [],
+        options: [GENDER_OPTION],
+      },
     });
   });
 
@@ -191,7 +202,11 @@ describe('choosing the hard attribute', () => {
 
     expect(await choose(f, 'gender')).toEqual({
       status: 200,
-      body: { hardAttribute: 'gender', options: [GENDER_OPTION] },
+      body: {
+        hardAttribute: 'gender',
+        nonDeterminingValues: ['other', 'undisclosed'],
+        options: [GENDER_OPTION],
+      },
     });
     expect((await call(f.ownerId, 'GET', f.path)).body.hardAttribute).toBe(
       'gender',
@@ -288,6 +303,7 @@ describe('choosing the hard attribute', () => {
       data: {
         registrationId: person.id,
         eventId: f.event.id,
+        attribute: 'gender',
         value: 'female',
         basedOnAnswer: 'undisclosed',
         reason: 'Domluveno telefonicky',
@@ -364,11 +380,7 @@ const preferencesPath = (f: Fixture): string =>
 const rank = (f: Fixture, preferences: unknown): Promise<Call> =>
   call(f.ownerId, 'PUT', preferencesPath(f), { preferences });
 
-const SOFT_GENDER = {
-  attribute: 'gender',
-  values: ['female', 'male', 'other', 'undisclosed'],
-  defaultNeutralValues: ['other', 'undisclosed'],
-};
+const SOFT_GENDER = GENDER_OPTION;
 
 describe('the soft preferences of the room proposal (#389)', () => {
   it('ranks only "Přání" for a new event and offers gender', async () => {

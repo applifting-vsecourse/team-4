@@ -32,7 +32,7 @@ const registration = (
     payments.map((payment) => ({ ...payment, source: 'organizer' as const })),
     null,
     null,
-    { hardAttribute: null, manualValue: null },
+    { hardAttribute: null, manualValue: null, answers: [] },
   );
 
 describe('eventPayments', () => {

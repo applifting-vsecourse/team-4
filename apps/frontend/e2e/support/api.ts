@@ -148,7 +148,11 @@ export async function register(
   publicId: string,
   participant: Participant,
   termIds: string[],
-  answers: { gender?: "female" | "male" | "other" | "undisclosed" } = {},
+  answers: {
+    gender?: "female" | "male" | "other" | "undisclosed"
+    /** Answers to the organizer's questions (#485). */
+    answers?: { questionId: string; optionId: string }[]
+  } = {},
 ): Promise<{ id: string }> {
   return post(request, `/public/events/${publicId}/registrations`, {
     submissionKey: randomUUID(),
@@ -227,6 +231,22 @@ export async function setHardAttribute(
       { data: { hardAttribute }, headers },
     ),
   )
+}
+
+/** The organizer's questions of the form (#485), with their option ids. */
+export async function questionsOf(
+  request: APIRequestContext,
+  event: OpenEvent,
+): Promise<{ id: string; label: string; options: { id: string; label: string }[] }[]> {
+  const body = await json<{
+    questions: { id: string; label: string; options: { id: string; label: string }[] }[]
+  }>(
+    await request.get(
+      `${API_URL}/organizations/${event.organizationId}/events/${event.eventId}/questions`,
+      { headers },
+    ),
+  )
+  return body.questions
 }
 
 /** Sets the evaluation mode of the event: `manual` evaluates only on Přepočítat. */

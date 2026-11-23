@@ -35,7 +35,7 @@ function renderSection(
       <HardAttributeSection
         organizationId="org"
         eventId="event"
-        invalidate={REGISTRATIONS}
+        invalidate={[REGISTRATIONS]}
       />
     </QueryClientProvider>,
   )
@@ -70,7 +70,11 @@ describe("HardAttributeSection", () => {
     await userEvent.click(screen.getByRole("radio", { name: "Nedělit" }))
     await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
 
-    await waitFor(() => expect(put).toHaveBeenCalledWith(PATH, { json: { hardAttribute: null } }))
+    await waitFor(() =>
+      expect(put).toHaveBeenCalledWith(PATH, {
+        json: { hardAttribute: null, nonDeterminingValues: [] },
+      }),
+    )
     await waitFor(() =>
       expect(client.getQueryData(evaluationKeys.hardAttribute("org", "event"))).toEqual(
         makeHardAttributeSetting(null),
@@ -94,7 +98,10 @@ describe("HardAttributeSection", () => {
     await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
 
     await waitFor(() =>
-      expect(put).toHaveBeenCalledWith(PATH, { json: { hardAttribute: "gender" } }),
+      expect(put).toHaveBeenCalledWith(PATH, {
+        // Gender's defaults: "Jiná odpověď" and "Nechci uvést" decide no room.
+        json: { hardAttribute: "gender", nonDeterminingValues: ["other", "undisclosed"] },
+      }),
     )
   })
 

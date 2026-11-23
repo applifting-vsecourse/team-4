@@ -72,7 +72,12 @@ export class AccommodationRulesController {
     return HardAttributeSettingDto.from(
       await this.rules.saveHardAttribute(
         { organizationId, ownerId: user.id, eventId },
-        body.hardAttribute,
+        body.hardAttribute === null
+          ? null
+          : {
+              attribute: body.hardAttribute,
+              nonDeterminingValues: body.nonDeterminingValues,
+            },
       ),
     );
   }

@@ -13,7 +13,12 @@ import {
  * Nastavení → Návrh pokojů (#389): a new list makes every room proposal of
  * the event stale; the evaluation of participation stays as it is.
  */
-export function useSaveRoomProposalPreferences(organizationId: string, eventId: string) {
+export function useSaveRoomProposalPreferences(
+  organizationId: string,
+  eventId: string,
+  /** Also reloaded on success, e.g. the questions the preferences use (#485). */
+  invalidate: readonly (readonly unknown[])[] = [],
+) {
   const queryClient = useQueryClient()
   const key = roomProposalKeys.preferences(organizationId, eventId)
   return useMutation({
@@ -29,6 +34,9 @@ export function useSaveRoomProposalPreferences(organizationId: string, eventId: 
     onError: () => queryClient.invalidateQueries({ queryKey: key }),
     onSuccess: async (saved) => {
       queryClient.setQueryData(key, saved)
+      // Not waited for: the section starts its form again on the saved list,
+      // and the caller's success must not wait for another section's reload.
+      for (const queryKey of invalidate) void queryClient.invalidateQueries({ queryKey })
       await queryClient.invalidateQueries({
         queryKey: roomProposalKeys.terms(organizationId, eventId),
       })

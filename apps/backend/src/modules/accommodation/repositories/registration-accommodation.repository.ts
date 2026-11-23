@@ -2,6 +2,11 @@ import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
 import {
   answerOf,
+  answersSelect,
+  hardAttributeFrom,
+  questionAttributesSelect,
+} from '@/modules/accommodation/domain/attributes';
+import {
   DeterminationRefusal,
   refuseDetermination,
 } from '@/modules/accommodation/domain/determination';
@@ -23,6 +28,7 @@ export type Actor = { id: string; name: string };
 
 /** The determination as stored; `isValid` while the answer is the one it was made on. */
 export type Determination = {
+  attribute: string;
   value: string;
   basedOnAnswer: string | null;
   reason: string;
@@ -69,19 +75,6 @@ const inScope = (scope: EventScope): Prisma.RegistrationWhereInput => ({
   event: { organization: { ownerId: scope.ownerId } },
 });
 
-const hardAttributeOf = (
-  rules: {
-    hardAttribute: string | null;
-    nonDeterminingValues: string[];
-  } | null,
-): HardAttribute | null =>
-  rules?.hardAttribute
-    ? {
-        attribute: rules.hardAttribute,
-        nonDeterminingValues: rules.nonDeterminingValues,
-      }
-    : null;
-
 @Injectable()
 export class RegistrationAccommodationRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -95,8 +88,10 @@ export class RegistrationAccommodationRepository {
       where: { id: registrationId, ...inScope(scope) },
       select: {
         gender: true,
+        answers: answersSelect,
         event: {
           select: {
+            questions: questionAttributesSelect,
             accommodationRules: {
               select: { hardAttribute: true, nonDeterminingValues: true },
             },
@@ -104,6 +99,7 @@ export class RegistrationAccommodationRepository {
         },
         accommodationManualValue: {
           select: {
+            attribute: true,
             value: true,
             basedOnAnswer: true,
             reason: true,
@@ -126,13 +122,21 @@ export class RegistrationAccommodationRepository {
       },
     });
     if (!row) return null;
-    const hard = hardAttributeOf(row.event.accommodationRules);
+    const hard = hardAttributeFrom(
+      row.event.accommodationRules,
+      row.event.questions,
+    );
     const answer = hard ? answerOf(hard.attribute, row) : null;
-    const manual = row.accommodationManualValue;
+    // A determination made for another attribute does not apply (#485).
+    const manual =
+      row.accommodationManualValue?.attribute === hard?.attribute
+        ? row.accommodationManualValue
+        : null;
     return {
       hardAttribute: hard,
       answer,
       determination: manual && {
+        attribute: manual.attribute,
         value: manual.value,
         basedOnAnswer: manual.basedOnAnswer,
         reason: manual.reason,
@@ -209,15 +213,17 @@ export class RegistrationAccommodationRepository {
       select: {
         eventId: true,
         gender: true,
+        answers: answersSelect,
         event: {
           select: {
+            questions: questionAttributesSelect,
             accommodationRules: {
               select: { hardAttribute: true, nonDeterminingValues: true },
             },
           },
         },
         accommodationManualValue: {
-          select: { value: true, basedOnAnswer: true },
+          select: { attribute: true, value: true, basedOnAnswer: true },
         },
         terms: {
           where: { status: { not: 'cancelled' } },
@@ -225,7 +231,10 @@ export class RegistrationAccommodationRepository {
         },
       },
     });
-    const hard = hardAttributeOf(row.event.accommodationRules);
+    const hard = hardAttributeFrom(
+      row.event.accommodationRules,
+      row.event.questions,
+    );
     const answer = hard ? answerOf(hard.attribute, row) : null;
     if (hard && answer !== input.answer) return { kind: 'answer_changed' };
     const refusal = refuseDetermination(hard, answer, input.value);
@@ -233,7 +242,11 @@ export class RegistrationAccommodationRepository {
 
     const current = row.accommodationManualValue;
     const previousValue =
-      current && current.basedOnAnswer === answer ? current.value : null;
+      current &&
+      current.attribute === hard?.attribute &&
+      current.basedOnAnswer === answer
+        ? current.value
+        : null;
     if (previousValue === input.value) return { kind: 'determined' };
 
     // The determination and its record carry the same moment.
@@ -243,6 +256,7 @@ export class RegistrationAccommodationRepository {
       create: {
         registrationId,
         eventId: row.eventId,
+        attribute: hard?.attribute ?? '',
         value: input.value,
         basedOnAnswer: answer,
         reason: input.reason,
@@ -250,6 +264,7 @@ export class RegistrationAccommodationRepository {
         createdAt: now,
       },
       update: {
+        attribute: hard?.attribute ?? '',
         value: input.value,
         basedOnAnswer: answer,
         reason: input.reason,

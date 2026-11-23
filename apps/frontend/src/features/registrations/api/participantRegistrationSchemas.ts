@@ -1,5 +1,6 @@
 import { z } from "zod"
 
+import { answerSchema, formQuestionSchema } from "@/features/registrations/api/questionSchemas"
 import {
   genderOtherSchema,
   genderSchema,
@@ -68,6 +69,16 @@ export const availableTermSchema = z.object({
 
 export const participantRegistrationDetailSchema = participantRegistrationSchema.extend({
   availableTerms: z.array(availableTermSchema),
+  /** The organizer's categorical questions (#485), in form order. */
+  questions: z.array(formQuestionSchema),
+  /** The version of those questions; a change sends it back (#485). */
+  questionsVersion: z.string(),
+  /** Rooms are split by gender: a change answers it first while it has none. */
+  isGenderRequired: z.boolean(),
+  /** The answers given; a question without one is not answered. */
+  answers: z.array(answerSchema),
+  /** Required questions without an answer: a change must answer them first. */
+  missingAnswers: z.array(z.string().uuid()),
 })
 
 export const participantRegistrationListSchema = z.object({

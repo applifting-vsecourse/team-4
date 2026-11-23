@@ -11,6 +11,7 @@ import {
   type QueueMoveEntry,
   type QueueMoveStep,
 } from "@/features/accommodation/components/QueueMoveDialog"
+import { useAttributeLabels } from "@/features/accommodation/hooks/useAttributeLabels"
 import { useMoveInQueue } from "@/features/accommodation/hooks/useMoveInQueue"
 import { queueLabel } from "@/features/accommodation/lib/evaluationView"
 
@@ -80,6 +81,7 @@ export function MoveInQueueDialog({
 }: MoveInQueueDialogProps) {
   const queryClient = useQueryClient()
   const move = useMoveInQueue(organizationId, eventId, term.term.id)
+  const labels = useAttributeLabels(organizationId, eventId)
   const [seenVersion, setSeenVersion] = useState(term.inputVersion)
   const [step, setStep] = useState<"form" | "review">("form")
   const [placement, setPlacement] = useState<Placement>("before")
@@ -193,6 +195,7 @@ export function MoveInQueueDialog({
         term.term.label,
         term.hardAttribute?.attribute ?? null,
         person?.effectiveValue ?? null,
+        labels,
       )}
       targets={targets.map((entry) => ({
         id: entry.registrationId,

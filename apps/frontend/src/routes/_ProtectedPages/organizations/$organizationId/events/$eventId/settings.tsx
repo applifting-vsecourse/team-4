@@ -12,6 +12,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { WorkspacePage } from "@/components/WorkspacePage"
 
+import { evaluationKeys } from "@/features/accommodation/api/evaluationQueryOptions"
+import { roomProposalKeys } from "@/features/accommodation/api/roomProposalQueryOptions"
 import { EvaluationModeSection } from "@/features/accommodation/components/EvaluationModeSection"
 import { HardAttributeSection } from "@/features/accommodation/components/HardAttributeSection"
 import { RoomProposalModeSection } from "@/features/accommodation/components/RoomProposalModeSection"
@@ -29,6 +31,8 @@ import { TermsSection } from "@/features/events/components/TermsSection"
 import { organizationQueryOptions } from "@/features/organizations/api/organizationQueryOptions"
 import { BackToEventsButton } from "@/features/organizations/components/BackToEventsButton"
 import { eventRegistrationKeys } from "@/features/registrations/api/eventRegistrationQueryOptions"
+import { questionKeys } from "@/features/registrations/api/questionQueryOptions"
+import { RegistrationQuestionsSection } from "@/features/registrations/components/RegistrationQuestionsSection"
 
 // Configuration of one event, ordered from basic details to opening registration.
 export const Route = createFileRoute(
@@ -119,14 +123,28 @@ function EventPage() {
           organizationId={organizationId}
           event={event}
         />
+        <RegistrationQuestionsSection
+          organizationId={organizationId}
+          eventId={eventId}
+          // The rules list the questions as attributes, with their labels.
+          invalidate={[
+            evaluationKeys.hardAttribute(organizationId, eventId),
+            roomProposalKeys.preferences(organizationId, eventId),
+          ]}
+        />
         <HardAttributeSection
           organizationId={organizationId}
           eventId={eventId}
-          invalidate={eventRegistrationKeys.event(organizationId, eventId)}
+          // Who needs a determination, and which questions the rules use.
+          invalidate={[
+            eventRegistrationKeys.event(organizationId, eventId),
+            questionKeys.event(organizationId, eventId),
+          ]}
         />
         <RoomProposalPreferencesSection
           organizationId={organizationId}
           eventId={eventId}
+          invalidate={[questionKeys.event(organizationId, eventId)]}
         />
         <EvaluationModeSection
           organizationId={organizationId}

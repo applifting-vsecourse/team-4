@@ -1,11 +1,14 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
 import { Prisma } from '@/generated/prisma/client';
+import { answersSelect } from '@/modules/accommodation/domain/attributes';
 import { fromDate } from '@/modules/events/domain/calendar-date';
 import { ParticipantRegistrationModel } from '@/modules/registrations/domain/participant-registration';
+import { formOf } from '@/modules/registrations/domain/questions';
 import {
   needsOf,
   needsSelect,
 } from '@/modules/registrations/domain/registration-needs';
+import { questionSelect } from '@/modules/registrations/repositories/registration-questions.repository';
 import { Injectable } from '@nestjs/common';
 
 const registrationSelect = {
@@ -17,6 +20,7 @@ const registrationSelect = {
   phone: true,
   gender: true,
   genderOther: true,
+  answers: answersSelect,
   version: true,
   ...needsSelect,
   changes: { where: { status: 'pending' }, select: { id: true } },
@@ -26,7 +30,14 @@ const registrationSelect = {
   bankCode: true,
   paymentReminderAt: true,
   paymentToken: true,
-  event: { select: { name: true, location: true } },
+  event: {
+    select: {
+      name: true,
+      location: true,
+      questions: questionSelect,
+      accommodationRules: { select: { hardAttribute: true } },
+    },
+  },
   terms: {
     orderBy: [{ term: { startDate: 'asc' } }, { termId: 'asc' }],
     select: {
@@ -48,7 +59,7 @@ const toModel = (
   new ParticipantRegistrationModel(
     row.id,
     row.receivedAt,
-    row.event,
+    { name: row.event.name, location: row.event.location },
     row.terms.map((term) => ({
       termId: term.termId,
       label: term.term.label,
@@ -84,6 +95,8 @@ const toModel = (
     row.version,
     row.changes.length > 0,
     needsOf(row),
+    formOf(row.event.questions, row.event.accommodationRules?.hardAttribute),
+    row.answers,
   );
 
 /** Every read is bound to the verified account; there is no other filter. */

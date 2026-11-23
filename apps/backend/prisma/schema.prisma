@@ -202,6 +202,7 @@ model Event {
   accommodationRuns          AccommodationRun[]
   roomProposals              AccommodationRoomProposal[]
   proposalApplications       RoomProposalApplication[]
+  questions                  RegistrationQuestion[]
   accommodationInterventions AccommodationIntervention[]
   accommodationDecisions     AccommodationDecision[]
   registrationResultEvents   RegistrationResultEvent[]
@@ -480,6 +481,7 @@ model Registration {
   resultEvents               RegistrationResultEvent[]
   roommateWishes             RoommateWish[]              @relation("RoommateWishFrom")
   wishedAsRoommate           RoommateWish[]              @relation("RoommateWishTo")
+  answers                    RegistrationAnswer[]
 
   @@unique([eventId, participantAccountId])
   @@unique([id, eventId])
@@ -680,6 +682,9 @@ model AccommodationRules {
 model AccommodationManualValue {
   registrationId String   @id @db.Uuid
   eventId        String   @db.Uuid
+  // The attribute the value was determined for (#485); it counts only while
+  // that attribute is the event's hard attribute.
+  attribute      String   @db.VarChar(64)
   value          String   @db.VarChar(100)
   basedOnAnswer  String?  @db.VarChar(100)
   reason         String   @db.VarChar(500)
@@ -1013,4 +1018,61 @@ model RoommateWish {
   @@index([eventId])
   @@index([toRegistrationId])
   @@map("roommate_wish")
+}
+
+// Categorical questions of an event's registration form (#485): one answer
+// each, chosen from the options. Each question can split rooms (the hard
+// attribute) or rank them (a soft preference); its id is the attribute and
+// its option ids are the values. Gender (F64) stays a built-in question.
+model RegistrationQuestion {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  eventId    String   @db.Uuid
+  // The order on the form, from 0.
+  position   Int
+  label      String   @db.VarChar(200)
+  isRequired Boolean
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  event   Event                        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  options RegistrationQuestionOption[]
+  answers RegistrationAnswer[]
+
+  @@unique([id, eventId])
+  @@index([eventId, position])
+  @@map("registration_question")
+}
+
+// An answer option; its id stays when its label is renamed.
+model RegistrationQuestionOption {
+  id         String @id @default(uuid(7)) @db.Uuid
+  questionId String @db.Uuid
+  position   Int
+  label      String @db.VarChar(100)
+
+  question RegistrationQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers  RegistrationAnswer[]
+
+  @@unique([id, questionId])
+  @@index([questionId, position])
+  @@map("registration_question_option")
+}
+
+// A participant's answer: one option of a question of the same event. A
+// question or option with answers cannot be removed (RESTRICT).
+model RegistrationAnswer {
+  registrationId String   @db.Uuid
+  questionId     String   @db.Uuid
+  optionId       String   @db.Uuid
+  eventId        String   @db.Uuid
+  answeredAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  registration Registration               @relation(fields: [registrationId, eventId], references: [id, eventId], onDelete: Cascade)
+  question     RegistrationQuestion       @relation(fields: [questionId, eventId], references: [id, eventId], onDelete: Restrict)
+  option       RegistrationQuestionOption @relation(fields: [optionId, questionId], references: [id, questionId], onDelete: Restrict)
+
+  @@id([registrationId, questionId])
+  @@index([questionId])
+  @@index([optionId, questionId])
+  @@map("registration_answer")
 }

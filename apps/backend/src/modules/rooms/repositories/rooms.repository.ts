@@ -53,6 +53,11 @@ export const isUniqueViolation = (error: unknown): boolean =>
   error instanceof Prisma.PrismaClientKnownRequestError &&
   error.code === 'P2002';
 
+/** True for a violated foreign key, e.g. an answer whose option was removed meanwhile. */
+export const isForeignKeyViolation = (error: unknown): boolean =>
+  error instanceof Prisma.PrismaClientKnownRequestError &&
+  error.code === 'P2003';
+
 /**
  * Room writes of one event inside a transaction that holds every term row of
  * the event, in id order, which is the serialization point shared with the

@@ -18,6 +18,7 @@ import {
   CONFIRMED_RESULT,
   makeRegistrationResult,
 } from "@/features/registrations/fixtures/publicRegistration"
+import { SCHOOL, TROOP } from "@/features/registrations/fixtures/questions"
 
 const EVENT = `/public/events/:publicId`
 const SUBMIT = `/public/events/:publicId/registrations`
@@ -333,4 +334,71 @@ export const LoadFailed: Story = {
     msw.use(...failOn("get", EVENT))
   },
   play: () => showsText("Akci se nepodařilo načíst"),
+}
+
+// ─── The organizer's questions (#485) ──────────────────────────────────────
+
+const WITH_QUESTIONS = {
+  ...PUBLIC_EVENT_WITHOUT_CONDITIONS,
+  questions: [SCHOOL, TROOP],
+}
+
+/** A required question needs an answer; an optional one can stay "Neuvádím". */
+export const Questions: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...publicEventHandlers.detail(WITH_QUESTIONS))
+  },
+  play: async (context) => {
+    const { canvas } = context
+    const section = within(
+      await canvas.findByRole("region", { name: "Otázky pořadatele" }, { timeout: 5000 }),
+    )
+    await expect(section.getByRole("radio", { name: "Neuvádím" })).toBeChecked()
+    await register(context, false)
+    await showsText("Vyberte odpověď.")
+    await userEvent.click(section.getByRole("radio", { name: "ZŠ Dubová" }))
+    await userEvent.click(canvas.getByRole("button", { name: "Odeslat přihlášku" }))
+    await expect(await canvas.findByRole("heading", { name: "Přihláška je uložená" })).toBeVisible()
+  },
+}
+
+/** The organizer changed the questions after the form opened: asked again, values kept. */
+export const QuestionsChanged: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...publicEventHandlers.detail(WITH_QUESTIONS),
+      ...failOn("post", SUBMIT, 409, {
+        code: "questions_changed",
+        message: "Otázky přihlášky se mezitím změnily. Zkontrolujte odpovědi a odešlete je znovu.",
+      }),
+    )
+  },
+  play: async (context) => {
+    const { canvas } = context
+    await userEvent.click(
+      await canvas.findByRole("radio", { name: "ZŠ Lipová" }, { timeout: 5000 }),
+    )
+    await register(context, false)
+    await showsText(
+      "Otázky přihlášky se mezitím změnily. Zkontrolujte odpovědi a odešlete je znovu.",
+    )
+    await expect(canvas.getByLabelText(/^Jméno/)).toHaveValue("Tereza")
+  },
+}
+
+/** Rooms are split by gender (PO feedback on #485): an answer is needed, "Nechci uvést" counts. */
+export const GenderRequired: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...publicEventHandlers.detail({ ...PUBLIC_EVENT_WITHOUT_CONDITIONS, isGenderRequired: true }),
+    )
+  },
+  play: async (context) => {
+    const { canvas } = context
+    await register(context, false)
+    await showsText("Vyberte odpověď, i kdyby to mělo být „Nechci uvést“.")
+    await userEvent.click(canvas.getByRole("radio", { name: "Nechci uvést" }))
+    await userEvent.click(canvas.getByRole("button", { name: "Odeslat přihlášku" }))
+    await expect(await canvas.findByRole("heading", { name: "Přihláška je uložená" })).toBeVisible()
+  },
 }

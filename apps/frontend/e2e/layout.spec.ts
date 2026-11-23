@@ -188,7 +188,7 @@ async function headerEntries(page: Page): Promise<Entry[]> {
   )
 }
 
-test("every page outside the organization's administration has the same header", async ({
+test("public pages share their header and the organizer keeps the workspace navigation", async ({
   page,
   request,
 }) => {
@@ -221,11 +221,10 @@ test("every page outside the organization's administration has the same header",
   await page.goto("/organizations")
   const menu = page.getByRole("button", { name: "Uživatelské menu" })
   await expect(menu).toBeVisible()
-  const organizer = await headerEntries(page)
-  expect(organizer.map((entry) => entry.name)).toEqual(
-    expect.arrayContaining(landing.map((entry) => entry.name)),
+  await expect(page.getByRole("link", { name: "akc.io" })).toBeVisible()
+  await expect(page.getByRole("navigation", { name: "Navigace organizace a akce" })).toContainText(
+    "Přehled organizací",
   )
-  expect(organizer.at(-1)?.name).toBe("Uživatelské menu")
 
   await unpublish(request, event)
 })

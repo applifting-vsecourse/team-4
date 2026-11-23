@@ -1,3 +1,4 @@
+import { valuesOf } from '@/modules/accommodation/domain/attributes';
 import {
   effectiveValue,
   HardAttribute,
@@ -8,56 +9,14 @@ import {
 // spec v4 §4): it never changes or guesses the answer, holds for every term
 // of the registration and lapses with any change of the answer.
 
-/** The hard attribute answered by the F64 gender question (spec v4 §11). */
-export const GENDER_ATTRIBUTE = 'gender';
-
-/** The answers of the gender question; the non-determining ones come from the rules. */
-const GENDER_VALUES = ['female', 'male', 'other', 'undisclosed'] as const;
-
-/** A categorical question the organizer can choose as the hard attribute. */
-export type HardAttributeOption = {
-  attribute: string;
-  /** Every answer of the question. */
-  values: readonly string[];
-  /** The answers that leave the room to the organizer when it is chosen. */
-  nonDeterminingValues: readonly string[];
-};
-
-/**
- * The questions an event can split rooms by (#384, spec #181: none or one).
- * Gender (F64) is the first built-in preset; its "other" and "undisclosed"
- * answers leave the room to the organizer. More options come with the
- * categorical-questions story.
- */
-export const HARD_ATTRIBUTE_OPTIONS: readonly HardAttributeOption[] = [
-  {
-    attribute: GENDER_ATTRIBUTE,
-    values: GENDER_VALUES,
-    nonDeterminingValues: ['other', 'undisclosed'],
-  },
-];
-
 /** At most this long (`accommodation_manual_value.reason`). */
 export const REASON_MAX_LENGTH = 500;
 
-/**
- * The participant's answer to the hard attribute. Only the gender question
- * (F64) stores answers yet; any other attribute is unanswered until the
- * categorical-questions story stores them.
- */
-export const answerOf = (
-  attribute: string,
-  registration: { gender: string | null },
-): string | null =>
-  attribute === GENDER_ATTRIBUTE ? registration.gender : null;
-
 /** The values a room can carry, so the values an organizer may determine. */
 export const determiningValues = (hard: HardAttribute): string[] =>
-  hard.attribute === GENDER_ATTRIBUTE
-    ? GENDER_VALUES.filter(
-        (value) => !hard.nonDeterminingValues.includes(value),
-      )
-    : [];
+  (hard.values ?? valuesOf(hard.attribute, [])).filter(
+    (value) => !hard.nonDeterminingValues.includes(value),
+  );
 
 /** The F64 notice: with a hard attribute and no effective value, the organizer decides. */
 export const needsDetermination = (

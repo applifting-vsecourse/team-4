@@ -78,6 +78,8 @@ test("a confirmed participant picks roommates, and the organizer sees them", asy
   await expect(
     portal.getByRole("list", { name: "Vybraní spolubydlící" }).getByText("Eva Nováková"),
   ).toBeVisible()
+  await expect(portal.getByRole("button", { name: "Upravit výběr" })).toHaveCount(0)
+  await portal.getByRole("link", { name: "Spravovat přihlášku" }).click()
   await expect(portal.getByRole("button", { name: "Upravit výběr" })).toBeVisible()
   await participant.close()
 

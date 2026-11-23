@@ -27,7 +27,7 @@ const registration = (
   payments: number[] = [],
   {
     gender = null,
-    accommodation = { hardAttribute: null, manualValue: null },
+    accommodation = { hardAttribute: null, manualValue: null, answers: [] },
   }: {
     gender?: Gender | null;
     accommodation?: AccommodationInputs;
@@ -77,7 +77,11 @@ describe('requiresManualAccommodation (F64, S3-01)', () => {
     expect(
       registration([], [], {
         gender,
-        accommodation: { hardAttribute: GENDER, manualValue: null },
+        accommodation: {
+          hardAttribute: GENDER,
+          manualValue: null,
+          answers: [],
+        },
       }).requiresManualAccommodation,
     ).toBe(expected);
   });
@@ -95,7 +99,12 @@ describe('requiresManualAccommodation (F64, S3-01)', () => {
         gender,
         accommodation: {
           hardAttribute: GENDER,
-          manualValue: { value: 'female', basedOnAnswer: 'undisclosed' },
+          manualValue: {
+            attribute: 'gender',
+            value: 'female',
+            basedOnAnswer: 'undisclosed',
+          },
+          answers: [],
         },
       }).requiresManualAccommodation;
     expect(determined('undisclosed')).toBe(false);

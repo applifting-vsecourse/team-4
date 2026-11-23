@@ -23,6 +23,7 @@ const MONEY = { dueMinor: 450_000, paidMinor: 200_000, balanceMinor: 250_000 }
 
 const summary = (overrides: Partial<ChangeSummaryData>): ChangeSummaryData => ({
   values: [],
+  answers: [],
   needs: null,
   terms: [],
   original: MONEY,

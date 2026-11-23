@@ -8,6 +8,7 @@ import { openDialog, refresh, showsText } from "@/screens/steps"
 
 import { organizerRoommateWishesSchema } from "@/features/registrations/api/roommateWishSchemas"
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
+import { SCHOOL, TROOP } from "@/features/registrations/fixtures/questions"
 import { makeOwnChange } from "@/features/registrations/fixtures/registrationChanges"
 import { makeRegistrationDetail } from "@/features/registrations/fixtures/registrations"
 import { ORGANIZER_WISHES, STORED_WISHES } from "@/features/registrations/fixtures/roommateWishes"
@@ -246,5 +247,41 @@ export const NeedsSaveFailed: Story = {
     await userEvent.click(needs.getByRole("button", { name: "Upravit" }))
     await userEvent.click(await canvas.findByRole("button", { name: "Uložit údaje" }))
     await showsText("Údaje se nepodařilo uložit. Zůstaly zachované, zkuste to prosím znovu.")
+  },
+}
+
+/** The answers to the organizer's questions (#485); an optional one left unanswered. */
+export const QuestionAnswers: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      http.get(apiUrl(DETAIL), () =>
+        HttpResponse.json(
+          makeRegistrationDetail({
+            answers: [
+              {
+                questionId: SCHOOL.id,
+                question: SCHOOL.label,
+                isRequired: true,
+                optionId: SCHOOL.options[1]!.id,
+                option: SCHOOL.options[1]!.label,
+              },
+              {
+                questionId: TROOP.id,
+                question: TROOP.label,
+                isRequired: false,
+                optionId: null,
+                option: null,
+              },
+            ],
+          }),
+        ),
+      ),
+    )
+  },
+  play: async (context) => {
+    await showsHeading(NAME)(context)
+    const answers = within(context.canvas.getByRole("region", { name: "Otázky pořadatele" }))
+    await expect(answers.getByText("ZŠ Dubová")).toBeVisible()
+    await expect(answers.getByText("Neuvedeno")).toBeVisible()
   },
 }

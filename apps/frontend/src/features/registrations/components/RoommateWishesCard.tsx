@@ -9,6 +9,13 @@ import { LoadingBlock } from "@/components/LoadingBlock"
 import { PendingButton } from "@/components/PendingButton"
 import { Button } from "@/components/ui/button"
 import {
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -16,13 +23,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  Command,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
 import { Skeleton } from "@/components/ui/skeleton"
 import { readApiError } from "@/lib/apiError"
 import { cn } from "@/lib/utils"
@@ -53,7 +53,10 @@ function saveErrorMessage(error: unknown): string {
 }
 
 function normalizeSearch(value: string): string {
-  return value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLocaleLowerCase("cs")
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase("cs")
 }
 
 type RoommateWishesCardProps = {
@@ -65,7 +68,10 @@ type RoommateWishesCardProps = {
 // participant's wish to share a room with other confirmed participants of the
 // event. It is saved at once, apart from the change of the registration, and
 // needs no approval.
-export function RoommateWishesCard({ registrationId, isReadOnly = false }: RoommateWishesCardProps) {
+export function RoommateWishesCard({
+  registrationId,
+  isReadOnly = false,
+}: RoommateWishesCardProps) {
   const query = useQuery(roommateWishesQueryOptions(registrationId))
   const [draft, setDraft] = useState<string[] | null>(null)
   const isEditing = draft !== null
@@ -76,10 +82,10 @@ export function RoommateWishesCard({ registrationId, isReadOnly = false }: Roomm
 
   const action =
     !isReadOnly &&
-      data &&
-      !isEditing &&
-      !isUnavailable &&
-      (data.wishes.length > 0 || data.candidates.length > 0) ? (
+    data &&
+    !isEditing &&
+    !isUnavailable &&
+    (data.wishes.length > 0 || data.candidates.length > 0) ? (
       <Button
         type="button"
         variant="secondary"
@@ -143,7 +149,10 @@ function StoredWishes({ data }: { data: RoommateWishes }) {
         className="flex flex-wrap gap-x-4 gap-y-1 text-sm"
       >
         {data.wishes.map((wish) => (
-          <li key={wish.registrationId} className="wrap-break-word">
+          <li
+            key={wish.registrationId}
+            className="wrap-break-word"
+          >
             {wish.name}
             {candidateIds.has(wish.registrationId) ? null : <NotConfirmedMark />}
           </li>
@@ -233,7 +242,7 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
           {selected.length > 0 ? (
             <ul
               aria-label="Vybraní spolubydlící"
-              className="flex max-h-24 flex-wrap gap-1 overflow-y-auto  px-4 py-3 sm:px-6"
+              className="flex max-h-24 flex-wrap gap-1 overflow-y-auto px-4 py-3 sm:px-6"
             >
               {selected.map((id) => {
                 const name = people.get(id)?.name ?? ""
@@ -269,7 +278,10 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
               {NO_CANDIDATES}
             </p>
           ) : (
-            <Command shouldFilter={false} className="h-auto min-h-0 flex-1">
+            <Command
+              shouldFilter={false}
+              className="h-auto min-h-0 flex-1"
+            >
               <CommandInput
                 placeholder="Hledat účastníka…"
                 value={search}
@@ -278,7 +290,10 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
               <CommandList className="min-h-0 flex-1">
                 <CommandGroup>
                   {filteredCandidates.length === 0 ? (
-                    <CommandItem value="no-results" disabled>
+                    <CommandItem
+                      value="no-results"
+                      disabled
+                    >
                       Nikdo nenalezen.
                     </CommandItem>
                   ) : (
@@ -312,7 +327,7 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
             </div>
           ) : null}
           <DialogFooter className="mt-3">
-            <div className="pt-3 flex gap-4">
+            <div className="flex gap-4 pt-3">
               <Button
                 type="button"
                 variant="outline"
@@ -321,7 +336,10 @@ function WishesForm({ registrationId, data, selected, onChange, onDone }: Wishes
               >
                 Zrušit
               </Button>
-              <PendingButton type="submit" isPending={save.isPending}>
+              <PendingButton
+                type="submit"
+                isPending={save.isPending}
+              >
                 {save.isPending ? "Ukládám…" : "Uložit výběr"}
               </PendingButton>
             </div>

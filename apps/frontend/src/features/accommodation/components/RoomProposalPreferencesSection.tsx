@@ -15,14 +15,18 @@ import {
   RoomProposalPreferences,
 } from "@/features/accommodation/components/RoomProposalPreferences"
 import { useSaveRoomProposalPreferences } from "@/features/accommodation/hooks/useSaveRoomProposalPreferences"
+import { attributeLabels } from "@/features/accommodation/lib/evaluationView"
 
 /** Where the Nastavení button of Ubytování leads (#389). */
 export const ROOM_PROPOSAL_SETTINGS_HEADING = "room-proposal-settings-heading"
 
-const stillApplies = ({ preferences, wishes }: Preferences) =>
+const stillApplies = ({ preferences, wishes, attributes }: Preferences) =>
   preferences.length
     ? `Platí dál: ${preferences
-        .map((item, index) => `${index + 1}. ${preferenceLabel(item.id, wishes)}`)
+        .map(
+          (item, index) =>
+            `${index + 1}. ${preferenceLabel(item.id, wishes, attributeLabels(attributes))}`,
+        )
         .join(", ")}.`
     : "Platí dál návrh bez měkkých preferencí."
 
@@ -40,13 +44,16 @@ export function RoomProposalPreferencesSection({
   organizationId,
   eventId,
   presentation = "section",
+  invalidate,
 }: {
   organizationId: string
   eventId: string
   presentation?: "section" | "dialog"
+  /** Reloaded after a save: the questions show which of them the rules use (#485). */
+  invalidate?: readonly (readonly unknown[])[]
 }) {
   const setting = useQuery(roomProposalPreferencesQueryOptions(organizationId, eventId))
-  const save = useSaveRoomProposalPreferences(organizationId, eventId)
+  const save = useSaveRoomProposalPreferences(organizationId, eventId, invalidate)
   const key = setting.data ? formKey(setting.data) : null
   const { reset } = save
 

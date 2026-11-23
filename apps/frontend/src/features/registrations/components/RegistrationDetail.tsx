@@ -12,6 +12,7 @@ import { formatCzk } from "@/lib/money"
 import { type RegistrationDetail as Detail } from "@/features/registrations/api/eventRegistrationSchemas"
 import { BalanceAmount } from "@/features/registrations/components/BalanceAmount"
 import { PaymentStateBadge } from "@/features/registrations/components/PaymentStateBadge"
+import { QuestionAnswersList } from "@/features/registrations/components/QuestionAnswersList"
 import { ReceivedPaymentsTable } from "@/features/registrations/components/ReceivedPaymentsTable"
 
 type RegistrationDetailProps = {
@@ -88,6 +89,12 @@ export function RegistrationDetail({
                 <DefinitionRow label="Telefon">{registration.phone}</DefinitionRow>
               </DefinitionList>
             </section>
+            {registration.answers.length > 0 ? (
+              <section aria-label="Otázky pořadatele">
+                <h2 className="mb-3 text-sm font-semibold">Otázky pořadatele</h2>
+                <QuestionAnswersList answers={registration.answers} />
+              </section>
+            ) : null}
             {accommodation}
           </div>
         </CardContent>

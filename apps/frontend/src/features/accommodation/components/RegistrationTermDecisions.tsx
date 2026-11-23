@@ -14,7 +14,7 @@ import {
   type ParticipationDecisionTarget,
 } from "@/features/accommodation/components/ParticipationDecisionDialog"
 import { TermDecisions, type DecisionTerm } from "@/features/accommodation/components/TermDecisions"
-import { attributeLabel } from "@/features/accommodation/lib/evaluationView"
+import { useAttributeLabels } from "@/features/accommodation/hooks/useAttributeLabels"
 import { reasonText } from "@/features/accommodation/lib/proposal"
 
 type RegistrationTerm = {
@@ -52,6 +52,7 @@ export function RegistrationTermDecisions({
   isSection = false,
   invalidate,
 }: RegistrationTermDecisionsProps) {
+  const labels = useAttributeLabels(organizationId, eventId)
   const accommodation = useQuery(
     registrationAccommodationQueryOptions(organizationId, eventId, registrationId),
   )
@@ -71,7 +72,7 @@ export function RegistrationTermDecisions({
         ? evaluation.order.find((person) => person.registrationId === registrationId)
         : undefined
     const attribute = evaluation?.hardAttribute
-      ? attributeLabel(evaluation.hardAttribute.attribute)
+      ? labels.attribute(evaluation.hardAttribute.attribute)
       : ""
     return {
       id: term.termId,

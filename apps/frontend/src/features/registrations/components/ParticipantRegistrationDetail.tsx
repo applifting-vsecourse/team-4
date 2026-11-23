@@ -29,6 +29,7 @@ import { ChangeRequestCard } from "@/features/registrations/components/ChangeReq
 import { ChangeReviewDialog } from "@/features/registrations/components/ChangeReviewDialog"
 import { ParticipantPaymentSummary } from "@/features/registrations/components/ParticipantPaymentSummary"
 import { PaymentQrCard } from "@/features/registrations/components/PaymentQrCard"
+import { QuestionAnswersList } from "@/features/registrations/components/QuestionAnswersList"
 import { RegistrationChangeActions } from "@/features/registrations/components/RegistrationChangeActions"
 import { RegistrationHistory } from "@/features/registrations/components/RegistrationHistory"
 import { RegistrationNeedsSummary } from "@/features/registrations/components/RegistrationNeedsSummary"
@@ -190,10 +191,10 @@ export function ParticipantRegistrationDetail({
                   ? {
                       onCancelRegistration: () =>
                         setCancelProposal({
-                        moves: [],
-                        cancelledTermIds: data.terms
-                          .filter((term) => term.status !== "cancelled")
-                          .map((term) => term.termId),
+                          moves: [],
+                          cancelledTermIds: data.terms
+                            .filter((term) => term.status !== "cancelled")
+                            .map((term) => term.termId),
                         }),
                     }
                   : {})}
@@ -297,7 +298,10 @@ export function ParticipantRegistrationDetail({
                     className="space-y-3 border-t border-border pt-4"
                   >
                     {hasConfirmedTerm ? (
-                      <RoommateWishesCard registrationId={registrationId} isReadOnly />
+                      <RoommateWishesCard
+                        registrationId={registrationId}
+                        isReadOnly
+                      />
                     ) : (
                       <>
                         <h2 className="text-sm font-semibold">Přání na spolubydlící</h2>
@@ -313,6 +317,28 @@ export function ParticipantRegistrationDetail({
             }
           />
           <RegistrationNeedsSummary values={data.needs} />
+          {data.questions.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Otázky pořadatele</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <QuestionAnswersList
+                  answers={data.questions.map((question) => ({
+                    questionId: question.id,
+                    question: question.label,
+                    option:
+                      question.options.find(
+                        (option) =>
+                          option.id ===
+                          data.answers.find((answer) => answer.questionId === question.id)
+                            ?.optionId,
+                      )?.label ?? null,
+                  }))}
+                />
+              </CardContent>
+            </Card>
+          ) : null}
 
           {renderProgramme?.(data)}
 

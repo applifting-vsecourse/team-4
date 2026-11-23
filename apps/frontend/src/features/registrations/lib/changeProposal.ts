@@ -4,6 +4,7 @@ import {
   type GenderAnswer,
   type RegistrationNeeds,
 } from "@/features/registrations/api/registrationSchemas"
+import { type AnswerValues } from "@/features/registrations/components/QuestionAnswersFields"
 import { type ContactErrors } from "@/features/registrations/components/RegistrationChangeForm"
 import { toGenderAnswer } from "@/features/registrations/lib/gender"
 import { normalizeNeeds, sameNeeds } from "@/features/registrations/lib/registrationNeeds"
@@ -24,6 +25,8 @@ export type EditState = {
    * preselected, unticking one cancels it, ticking another adds it (F35-2c).
    */
   selectedTermIds: string[]
+  /** The chosen option by question of the organizer (#485); null is no answer. */
+  answers: AnswerValues
 }
 
 /** The registration as it is now. */
@@ -34,6 +37,8 @@ type Current = {
   lastName: string
   phone: string
   needs: RegistrationNeeds
+  /** The answers given now, by question. */
+  answers: AnswerValues
 } & GenderAnswer
 
 const squash = (phone: string) => phone.replace(/\s+/g, "")
@@ -68,6 +73,10 @@ export function buildProposal(contact: Current, state: EditState): ChangeProposa
   }
   // The needs change as one block, like the server stores them.
   if (!sameNeeds(state.needs, contact.needs)) proposal.needs = normalizeNeeds(state.needs)
+  const answers = Object.entries(state.answers)
+    .filter(([questionId, optionId]) => (contact.answers[questionId] ?? null) !== optionId)
+    .map(([questionId, optionId]) => ({ questionId, optionId }))
+  if (answers.length > 0) proposal.answers = answers
 
   const selected = new Set(state.selectedTermIds)
   const held = new Set(contact.heldTermIds)
@@ -82,7 +91,21 @@ export function buildProposal(contact: Current, state: EditState): ChangeProposa
     proposal.gender !== undefined ||
     proposal.genderOther !== undefined ||
     proposal.needs !== undefined ||
+    answers.length > 0 ||
     added.length > 0 ||
     proposal.cancelledTermIds.length > 0
   return isChanged ? proposal : null
 }
+
+/** Only cancels terms: possible even while a required answer is missing (#485). */
+export const isCancellationOnly = (proposal: ChangeProposal): boolean =>
+  proposal.cancelledTermIds.length > 0 &&
+  proposal.moves.length === 0 &&
+  !proposal.addedTermIds?.length &&
+  !proposal.answers?.length &&
+  proposal.firstName === undefined &&
+  proposal.lastName === undefined &&
+  proposal.phone === undefined &&
+  proposal.needs === undefined &&
+  proposal.gender === undefined &&
+  proposal.genderOther === undefined

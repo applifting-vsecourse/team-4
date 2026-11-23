@@ -22,7 +22,7 @@ import {
 
 import type { RoomProposalStatus } from "@/features/accommodation/api/roomProposalSchemas"
 import type { EvaluationTerm } from "@/features/accommodation/components/TermEvaluation"
-import { attributeLabel, valueLabel } from "@/features/accommodation/lib/evaluationView"
+import { useShownLabels } from "@/features/accommodation/lib/attributeLabelsContext"
 import {
   PROPOSAL_STATUS_BADGE,
   unplacedReasonText,
@@ -151,10 +151,11 @@ const WARNING_TEXT = {
 }
 
 function ValueBadge({ attribute, value }: { attribute: string | null; value: string | null }) {
+  const labels = useShownLabels()
   if (!attribute) return null
   return (
     <Badge variant="outline">
-      {value === null ? "Bez určující hodnoty" : valueLabel(attribute, value)}
+      {value === null ? "Bez určující hodnoty" : labels.value(attribute, value)}
     </Badge>
   )
 }
@@ -417,13 +418,14 @@ export function RoomProposal({
   proposeError,
   onRetryLoad,
 }: RoomProposalProps) {
+  const labels = useShownLabels()
   const selectedTerm = terms.find((term) => term.id === selectedTermId)
   const isRunning = status === "running"
   const badge = PROPOSAL_STATUS_BADGE[status]
   const shownHardAttribute = layout ? proposalHardAttribute : null
   const shownAttributeLabel = layout
     ? shownHardAttribute
-      ? attributeLabel(shownHardAttribute)
+      ? labels.attribute(shownHardAttribute)
       : null
     : attribute
 
@@ -468,7 +470,7 @@ export function RoomProposal({
                   {layout ? (
                     <p className="text-sm text-muted-foreground">
                       {shownHardAttribute
-                        ? `Rozdělení podle ${attributeLabel(shownHardAttribute).toLocaleLowerCase("cs")}`
+                        ? `Rozdělení podle ${labels.attribute(shownHardAttribute).toLocaleLowerCase("cs")}`
                         : "Bez tvrdého pravidla"}
                     </p>
                   ) : null}

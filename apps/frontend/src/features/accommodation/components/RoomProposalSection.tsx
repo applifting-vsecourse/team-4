@@ -24,7 +24,9 @@ import {
   type RoomProposalProps,
 } from "@/features/accommodation/components/RoomProposal"
 import { RoomSplitRulesDialog } from "@/features/accommodation/components/RoomSplitRulesDialog"
+import { useAttributeLabels } from "@/features/accommodation/hooks/useAttributeLabels"
 import { useProposeRooms } from "@/features/accommodation/hooks/useProposeRooms"
+import { AttributeLabelsContext } from "@/features/accommodation/lib/attributeLabelsContext"
 import { toEvaluationTerm } from "@/features/accommodation/lib/evaluationView"
 import {
   asApplied,
@@ -61,7 +63,16 @@ const PROPOSE_FAILED = "Zkuste to prosím znovu."
 // is read again until it is stored. The last usable proposal stays shown
 // while a new one runs or after one fails. "Použít návrh" (#390) saves the
 // shown proposal while it is current.
-export function RoomProposalSection({
+export function RoomProposalSection(props: RoomProposalSectionProps) {
+  const labels = useAttributeLabels(props.organizationId, props.eventId)
+  return (
+    <AttributeLabelsContext.Provider value={labels}>
+      <RoomProposalSectionContent {...props} />
+    </AttributeLabelsContext.Provider>
+  )
+}
+
+function RoomProposalSectionContent({
   attribute,
   organizationId,
   eventId,

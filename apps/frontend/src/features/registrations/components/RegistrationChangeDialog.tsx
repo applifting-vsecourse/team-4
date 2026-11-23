@@ -59,6 +59,8 @@ export type RegistrationChangeDialogProps = {
   errorMessage?: string
   /** The registration changed meanwhile; the proposal must not overwrite it. */
   isStale?: boolean
+  /** What changed meanwhile; the registration itself unless told. */
+  staleTitle?: string
   isSubmitting?: boolean
   onOpenChange?: (isOpen: boolean) => void
   /** Confirms the change; `isReleaseAccepted` is the state of the consent checkbox. */
@@ -84,6 +86,7 @@ export function RegistrationChangeDialog({
   added,
   errorMessage,
   isStale = false,
+  staleTitle = "Přihláška se mezitím změnila. Načtěte ji znovu a změnu potvrďte.",
   isSubmitting = false,
   onOpenChange,
   onConfirm,
@@ -117,7 +120,7 @@ export function RegistrationChangeDialog({
           {isStale ? (
             <Notice
               tone="error"
-              title="Přihláška se mezitím změnila. Načtěte ji znovu a změnu potvrďte."
+              title={staleTitle}
             />
           ) : null}
 

@@ -9,6 +9,7 @@ import {
   type TermWishes,
   type WishState,
 } from "@/features/accommodation/api/roomProposalSchemas"
+import { GENDER_ATTRIBUTE } from "@/features/accommodation/fixtures/evaluation"
 
 // Preview and test data for the room proposal of a term (#365, #385). Every
 // factory parses its result with the API schema; values are fixed so stories
@@ -242,11 +243,7 @@ export function makeTermRoomProposal(
   return termRoomProposalSchema.parse({ ...byPreset[preset], ...overrides })
 }
 
-const GENDER_SOFT = {
-  attribute: "gender",
-  values: ["female", "male", "other", "undisclosed"],
-  defaultNeutralValues: ["other", "undisclosed"],
-}
+const GENDER_SOFT = GENDER_ATTRIBUTE
 
 export type PreferencesPreset = "default" | "ranked" | "empty"
 
