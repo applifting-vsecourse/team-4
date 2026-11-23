@@ -71,10 +71,9 @@ Storybook shows every screen with fixture data, without the backend: `pnpm story
 ```sh
 pnpm check-all                  # Local checks: automation, lint, types, unit tests, builds, formatting
 pnpm frontend test:e2e          # Playwright end-to-end tests
-pnpm frontend demo:v2           # Guided organizer + mobile participant demonstration
 ```
 
-CI additionally applies migrations to a clean database and runs database constraint tests. See the [demo guide](docs/sprint-review-2.md) for controls and remote email setup. The demo creates persistent application data.
+CI additionally applies migrations to a clean database and runs database constraint tests. The `pnpm frontend demo` walkthrough is for the money path and creates persistent application data.
 
 The [course deployment](https://team-4.vsepractical.applifting.dev) is a shared staging environment. Deployment configuration and version redeployment instructions are documented in the [delivery workflow](docs/delivery-workflow.md#releases-and-the-stage).
 

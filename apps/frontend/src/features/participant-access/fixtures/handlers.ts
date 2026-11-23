@@ -34,6 +34,7 @@ export const participantHandlers = {
     http.get(PROFILE_URL, unauthorized),
     http.get(NOTIFICATIONS_URL, unauthorized),
   ],
+  logout: () => [http.post(`${API}/logout`, () => new HttpResponse(null, { status: 204 }))],
   /** Asking for a link always answers alike, whether the e-mail is known or not. */
   magicLinkSent: () => [
     http.post(`${API}/magic-links`, () => HttpResponse.json({ message: MAGIC_LINK_SENT })),

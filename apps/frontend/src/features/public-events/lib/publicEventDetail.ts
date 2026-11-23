@@ -14,10 +14,14 @@ import {
  * A closed registration says so even without terms; otherwise an event without
  * terms cannot be registered for yet, whatever its status.
  */
-const registrationStatus = (event: CatalogEvent): PublicEventRegistrationStatus => {
-  if (event.registrationStatus === "closed") return "closed"
-  if (event.terms.length === 0) return "no-terms"
-  return event.registrationStatus
+/** Shared public rule for registration availability on detail and catalog cards. */
+export const getPublicEventRegistrationStatus = (
+  status: CatalogEvent["registrationStatus"],
+  hasTerms: boolean,
+): PublicEventRegistrationStatus => {
+  if (status === "closed") return "closed"
+  if (!hasTerms) return "no-terms"
+  return status
 }
 
 /** The catalog detail as the page shows it: formatted, nothing invented. */
@@ -46,6 +50,9 @@ export function toPublicEventDetail(publicId: string, event: CatalogEvent): Publ
           phone: event.contact.phone ? formatPhone(event.contact.phone) : undefined,
         }
       : null,
-    registrationStatus: registrationStatus(event),
+    registrationStatus: getPublicEventRegistrationStatus(
+      event.registrationStatus,
+      event.terms.length > 0,
+    ),
   }
 }

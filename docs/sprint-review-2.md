@@ -6,32 +6,9 @@
 
 Cíl: Alena ze Spolku Jasan připraví víkend první pomoci pro vedoucí. Jana se na telefonu přihlásí na oba dny a později vidí zaevidovanou platbu. Organizátor se ukazuje pouze na desktopu; účastník na mobilním viewportu širokém 360 px.
 
-## Spuštění
+## Automatizace
 
-Z kořene repozitáře:
-
-```bash
-pnpm frontend demo:v2
-```
-
-Šipka doprava, PageDown nebo tlačítko Spustit spustí další kapitolu. Mezi kroky otevře šipka doleva / PageUp náhled posledního dokončeného kroku; opakováním lze procházet starší kroky. V náhledu šipka doprava / PageDown prochází vpřed a nakonec vrátí živé demo. Až další šipka doprava spustí novou kapitolu. Náhled je označený jako uložený obraz; neodesílá znovu formuláře ani platby a uchovává se jen v paměti běhu. Po spuštění je samostatné úvodní zastavení na landing page (S2-01). První kliknutí spustí pomalé projetí celé landing page rychlostí přibližně 160 px/s a skončí u vstupů „Moje přihlášky“ a „Organizátor“. Scroll lze během pohybu pozastavit pomocí Alt+P. Teprve následující samostatné kliknutí na Spustit nebo šipku doprava otevře přihlášení organizátora. V autoplay zůstane po projetí stránky u vstupů ještě alespoň 6 sekund. Uvnitř kapitoly se kliká automaticky. **Alt+P pozastaví nebo obnoví průchod i při zaměření pole.** Mimo textová pole funguje také mezerník. V titulku se zobrazí „Pauza“. Právě běžící kliknutí, posun nebo vypsání pole může doběhnout; následující akce už čeká. Pauza platí pro obě okna a zachová se po navigaci. Během pauzy šipka doprava ani Spustit další krok nespustí. Výchozí tempo je 1 sekunda mezi akcemi a alespoň 4 sekundy po přechodu na stránku. Všechna pole se píší postupně po znacích (ve výchozím tempu 25 ms na znak). Při zadávání Neděle zůstává postupné psaní stejnou rychlostí, ale mezi poli je jen krátká prodleva. Prázdná pole se zbytečně nemažou; při výběru dat obou termínů se také nevybírá znovu už nastavený rok či měsíc. Kalendář pro oba termíny používá kratší prodlevy. Celé vytvoření Neděle má rychlé tempo včetně otevření formuláře, vyplnění a uložení; po zápisu vyčká 0,5 sekundy místo 3 sekund. Sobota mimo kalendář zachovává běžné tempo. Formulář registrace účtu organizátora má rychlé tempo: postupné psaní 25 ms na znak a kratší prodlevy při jeho vyplňování a odeslání. Kontaktní údaje účastnice v kroku 5 se také vypisují rychleji, stále postupně; odeslání přihlášky už probíhá běžným tempem. Krok 7 ponechá po ověření obsazenosti dalších 5 sekund na komentář a seznam přihlášek další 4 sekundy před otevřením detailu. Založení organizace také používá kratší prodlevy mezi akcemi, s postupným vypsáním názvu. Landing page a přechod přes vstup Organizátor zachovávají původní pomalejší tempo. Automatické posunutí k prvku trvá 1,8 sekundy, s pozvolným rozjezdem i zastavením. Po dokončení scrollu následují další 2 sekundy na přečtení. Po odeslání formuláře demo vyčká na dokončení zápisu a ponechá výsledek 3 sekundy na obrazovce před další akcí; stejná prodleva platí i pro formulář s validační chybou. Pro ještě pomalejší průchod přidej před spouštěcí příkaz `DEMO_SLOWMO=1500`; tato hodnota je v milisekundách. Následující zastavení nechá výsledek předchozí kapitoly na obrazovce, aby byl čas na komentář. Titulek už přitom pojmenuje následující kapitolu.
-
-```bash
-# Souvislá zkouška bez zastavení
-pnpm frontend demo:v2:autoplay
-# Rychlé funkční ověření proti již běžící lokální aplikaci
-pnpm frontend exec playwright test e2e/sprint-review.spec.ts
-```
-
-Pro nasazenou aplikaci nastav její skutečnou URL a přístupnou demo schránku:
-
-```bash
-E2E_BASE_URL=https://team-4.vsepractical.applifting.dev DEMO_PARTICIPANT_EMAIL=team4vse@seznam.cz pnpm frontend demo:v2
-```
-
-Vzdálený běh nestartuje lokální servery a nepoužívá přímý přístup do databáze. V poslední kapitole si vyžádá skutečný magic link. Doručený odkaz vlož do dialogu, který demo otevře v okně mobilního náhledu, a potvrď OK. Skript jej otevře uvnitř náhledu a naváže otevřením detailu. Adresní řádek prohlížeče nepřepisuj. E-mail ani token nepatří do repozitáře. Autoplay bez obsluhy schránky tedy na nasazené aplikaci nestačí.
-
-Každý běh vytvoří nového organizátora a organizaci s jednou akcí; každý odeslaný formulář zakládá skutečnou přihlášku. Na vzdáleném prostředí odešle zprávy do zadané schránky. Data zůstávají uložená, scénář je nemaže.
+Playwright walkthrough pro tuto prezentaci byl odstraněn. Zbývající části jsou prezentační podklady; před použitím ověř aktuální stav stagingu.
 
 ## Režie do 9 minut
 

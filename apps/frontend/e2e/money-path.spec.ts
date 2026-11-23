@@ -68,10 +68,12 @@ test("an organizer opens an event, participants register and payments settle the
   })
 
   await step(page, "4 · Vyplní účet pro platby", async () => {
+    await page.getByRole("tab", { name: "Platby" }).click()
     await type(page.getByLabel("Číslo účtu"), "2000145399")
     await type(page.getByLabel("Kód banky"), "0800")
     await type(page.getByLabel("Počet dní do připomenutí platby"), "14")
     await page.getByRole("button", { name: "Uložit platební nastavení" }).click()
+    await page.getByRole("tab", { name: "Akce" }).click()
     await expect(
       page.getByText("Číslo účtu a počet dní do připomenutí platby – splněno"),
     ).toBeVisible()
@@ -93,8 +95,7 @@ test("an organizer opens an event, participants register and payments settle the
 
   const publicUrl = await step(page, "6 · Otevře přihlašování a sdílí odkaz", async () => {
     await page.getByRole("link", { name: "Nastavení" }).first().click()
-    const publicAccess = page.getByRole("button", { name: "Veřejný přístup" })
-    if ((await publicAccess.getAttribute("aria-expanded")) !== "true") await publicAccess.click()
+    await page.getByRole("tab", { name: "Akce" }).click()
     await page.getByRole("button", { name: "Otevřít přihlašování" }).click()
     await expect(page.getByText("Přihlašování otevřeno", { exact: true })).toBeVisible()
     return page.getByLabel("Odkaz na přihlášku").inputValue()

@@ -12,7 +12,6 @@ import {
 
 import { ROUTES } from "@/app/routes"
 import { BrandMark } from "@/components/BrandMark"
-import { Header } from "@/components/Header/Header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -77,7 +76,13 @@ const FOOTER_PLACEHOLDERS = ["Kontakt", "Ochrana osobních údajů", "Podmínky 
  * `catalogPreview` fills the catalog section with published events; the route
  * supplies it, because features do not import each other.
  */
-export function LandingPage({ catalogPreview }: { catalogPreview: ReactNode }) {
+export function LandingPage({
+  catalogPreview,
+  header,
+}: {
+  catalogPreview: ReactNode
+  header: ReactNode
+}) {
   return (
     <div
       lang="cs"
@@ -91,7 +96,7 @@ export function LandingPage({ catalogPreview }: { catalogPreview: ReactNode }) {
         <a href="#obsah">Přeskočit na obsah</a>
       </Button>
 
-      <Header />
+      {header}
 
       <main
         id="obsah"

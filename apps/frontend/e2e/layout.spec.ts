@@ -213,7 +213,25 @@ test("public pages share their header and the organizer keeps the workspace navi
   for (const path of visitorPages) {
     await page.goto(path)
     await expect(page.getByRole("heading").first()).toBeVisible()
-    expect.soft(await headerEntries(page), path).toEqual(expect.arrayContaining(landing))
+    const entries = await headerEntries(page)
+    if (path === "/my-registrations") {
+      expect
+        .soft(
+          entries.map((entry) => entry.name),
+          path,
+        )
+        .toEqual(
+          expect.arrayContaining(["akc.io", "Katalog akcí", "Moje přihlášky", "Toggle theme"]),
+        )
+      expect
+        .soft(
+          entries.map((entry) => entry.name),
+          path,
+        )
+        .not.toContain("Organizátor")
+    } else {
+      expect.soft(entries, path).toEqual(expect.arrayContaining(landing))
+    }
   }
 
   // A signed-in organizer's own menu closes the row after the same entries.

@@ -96,6 +96,7 @@ test("the own words of Jiná odpověď are sent from the form and changed in the
   browser,
 }) => {
   const event = await setUpEvent(page.request, { terms, rooms })
+  await setHardAttribute(page.request, event, "gender")
   const context = await browser.newContext()
   const participant = await context.newPage()
   const eva = newParticipant("Eva")

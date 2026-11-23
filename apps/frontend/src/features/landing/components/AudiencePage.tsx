@@ -18,6 +18,7 @@ type AudiencePageProps = {
   benefits: AudienceBenefit[]
   /** Static sample of the app with made-up data, never real personal data. */
   demo: ReactNode
+  header: ReactNode
   otherAudience: { to: typeof ROUTES.forOrganizers | typeof ROUTES.forParticipants; label: string }
 }
 
@@ -30,10 +31,11 @@ export function AudiencePage({
   actions,
   benefits,
   demo,
+  header,
   otherAudience,
 }: AudiencePageProps) {
   return (
-    <PublicShell>
+    <PublicShell header={header}>
       <div
         lang="cs"
         className="flex flex-col gap-14"

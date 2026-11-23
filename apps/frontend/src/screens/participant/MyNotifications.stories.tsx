@@ -98,6 +98,36 @@ export const MyNotifications: Story = {
   },
 }
 
+/** Touch activation dismisses directly; the tooltip remains a hover/focus hint. */
+export const DismissOnTouch: Story = {
+  globals: { ...MOBILE.viewport, theme: "light" },
+  play: async (context) => {
+    await titles(context)
+    const dismiss = main(context).getByRole("button", {
+      name: `Skrýt oznámení Přijatá platba, ${CAMP}`,
+    })
+    dismiss.focus()
+    await expect(await within(document.body).findByRole("tooltip")).toHaveTextContent(
+      "Skrýt oznámení",
+    )
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() =>
+      expect(within(document.body).queryByRole("tooltip")).not.toBeInTheDocument(),
+    )
+    await userEvent.pointer([
+      { target: dismiss, keys: "[TouchA>]" },
+      { target: dismiss, keys: "[/TouchA]" },
+    ])
+    await waitFor(async () =>
+      expect(await titles(context)).toEqual([
+        "Nepřečteno: Rozhodnutí o účasti",
+        "Žádost o změnu schválena",
+        "Žádost o změnu zamítnuta",
+      ]),
+    )
+  },
+}
+
 /** A failed „Označit vše“ keeps the dots and says so. */
 export const MarkAllReadFailed: Story = {
   beforeEach: ({ msw }) => {

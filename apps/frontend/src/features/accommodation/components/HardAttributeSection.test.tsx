@@ -27,6 +27,12 @@ const PATH = "organizations/org/events/event/accommodation/hard-attribute"
 /** A key of another feature, passed in by the route. */
 const REGISTRATIONS = ["event-registrations", "org", "event"]
 
+async function chooseRule(label: "Bez rozdělení" | "Pohlaví pro ubytování") {
+  const select = await screen.findByRole("combobox", { name: "Pokoje dělit podle" })
+  await userEvent.click(select)
+  await userEvent.click(await screen.findByRole("option", { name: label }))
+}
+
 function renderSection(
   client = new QueryClient({ defaultOptions: { queries: { retry: false } } }),
 ) {
@@ -43,6 +49,22 @@ function renderSection(
 }
 
 beforeEach(() => {
+  Object.defineProperty(HTMLElement.prototype, "hasPointerCapture", {
+    configurable: true,
+    value: () => false,
+  })
+  Object.defineProperty(HTMLElement.prototype, "setPointerCapture", {
+    configurable: true,
+    value: () => undefined,
+  })
+  Object.defineProperty(HTMLElement.prototype, "releasePointerCapture", {
+    configurable: true,
+    value: () => undefined,
+  })
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+    configurable: true,
+    value: () => undefined,
+  })
   get.mockReset()
   put.mockReset()
 })
@@ -52,11 +74,11 @@ describe("HardAttributeSection", () => {
     get.mockReturnValue(answer(makeHardAttributeSetting("gender")))
     renderSection()
 
-    const save = await screen.findByRole("button", { name: "Uložit" })
+    const save = await screen.findByRole("button", { name: "Uložit pravidlo" })
     expect(save).toBeDisabled()
-    await userEvent.click(screen.getByRole("radio", { name: "Nedělit" }))
+    await chooseRule("Bez rozdělení")
     expect(save).toBeEnabled()
-    await userEvent.click(screen.getByRole("radio", { name: "Pohlaví" }))
+    await chooseRule("Pohlaví pro ubytování")
     expect(save).toBeDisabled()
   })
 
@@ -66,9 +88,11 @@ describe("HardAttributeSection", () => {
     const client = renderSection()
     const invalidate = vi.spyOn(client, "invalidateQueries")
 
-    expect(await screen.findByRole("radio", { name: "Pohlaví" })).toBeChecked()
-    await userEvent.click(screen.getByRole("radio", { name: "Nedělit" }))
-    await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
+    expect(await screen.findByRole("combobox", { name: "Pokoje dělit podle" })).toHaveTextContent(
+      "Pohlaví pro ubytování",
+    )
+    await chooseRule("Bez rozdělení")
+    await userEvent.click(screen.getByRole("button", { name: "Uložit pravidlo" }))
 
     await waitFor(() =>
       expect(put).toHaveBeenCalledWith(PATH, {
@@ -93,9 +117,11 @@ describe("HardAttributeSection", () => {
     put.mockReturnValue(answer(makeHardAttributeSetting("gender")))
     renderSection()
 
-    expect(await screen.findByRole("radio", { name: "Nedělit" })).toBeChecked()
-    await userEvent.click(screen.getByRole("radio", { name: "Pohlaví" }))
-    await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
+    expect(await screen.findByRole("combobox", { name: "Pokoje dělit podle" })).toHaveTextContent(
+      "Bez rozdělení",
+    )
+    await chooseRule("Pohlaví pro ubytování")
+    await userEvent.click(screen.getByRole("button", { name: "Uložit pravidlo" }))
 
     await waitFor(() =>
       expect(put).toHaveBeenCalledWith(PATH, {
@@ -110,12 +136,14 @@ describe("HardAttributeSection", () => {
     put.mockReturnValue({ json: () => Promise.reject(new FakeHTTPError({ status: 500 }, {})) })
     renderSection()
 
-    await userEvent.click(await screen.findByRole("radio", { name: "Nedělit" }))
-    await userEvent.click(screen.getByRole("button", { name: "Uložit" }))
+    await chooseRule("Bez rozdělení")
+    await userEvent.click(screen.getByRole("button", { name: "Uložit pravidlo" }))
 
     expect(await screen.findByText("Pravidlo se nepodařilo uložit")).toBeInTheDocument()
     expect(screen.getByText("Pokoje se dál dělí podle: Pohlaví.")).toBeInTheDocument()
-    expect(screen.getByRole("radio", { name: "Nedělit" })).toBeChecked()
+    expect(screen.getByRole("combobox", { name: "Pokoje dělit podle" })).toHaveTextContent(
+      "Bez rozdělení",
+    )
   })
 
   it("offers a retry when the rule cannot be loaded", async () => {

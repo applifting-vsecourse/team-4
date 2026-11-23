@@ -36,7 +36,7 @@ function MyRegistrationsPage() {
   return (
     <>
       <Seo title="Moje přihlášky" />
-      <ParticipantLayout participant={participant}>
+      <ParticipantLayout>
         <ParticipantRegistrationList
           email={participant.email}
           sessionEnded={<ParticipantSessionEnded />}

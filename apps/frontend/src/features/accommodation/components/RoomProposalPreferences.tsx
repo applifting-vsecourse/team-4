@@ -1,22 +1,24 @@
 import { useEffect, useRef, useState } from "react"
 import { GripVertical, Plus, X } from "lucide-react"
 
+import { ActionTooltip } from "@/components/ActionTooltip"
 import { FormError } from "@/components/FormError"
 import { PendingButton } from "@/components/PendingButton"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Field, FieldDescription, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field"
+import { Card, CardContent } from "@/components/ui/card"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { FieldDescription, FieldLegend } from "@/components/ui/field"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 import type { EventAttribute } from "@/features/accommodation/api/evaluationSchemas"
 import type { SoftPreferenceItem } from "@/features/accommodation/api/roomProposalSchemas"
+import { AnswerSelectionDisclosure } from "@/features/accommodation/components/AnswerSelectionDisclosure"
 import { attributeLabels, type AttributeLabels } from "@/features/accommodation/lib/evaluationView"
 
 /** A categorical question the organizer can rank, with its answers. */
@@ -35,9 +37,70 @@ export type RoomProposalPreferencesProps = {
 
 /** The name of an item in the list and the menu; a question by the event's labels (#485). */
 export const preferenceLabel = (id: string, wishes: string, labels: AttributeLabels) =>
-  id === wishes ? "Přání" : labels.attribute(id)
+  id === wishes ? "Přání na spolubydlící" : labels.attribute(id)
 
 const handleId = (id: string) => `preference-${id}-handle`
+
+const PREFERENCE_SOURCES = {
+  wishes: {
+    label: "Z přihlášek",
+    tooltip: "Spolubydlící si účastníci vybírají ve správě přihlášky.",
+  },
+  gender: {
+    label: "Přednastavená otázka",
+    tooltip: "Vychází z odpovědí účastníků na přednastavenou otázku o pohlaví pro ubytování.",
+  },
+  question: {
+    label: "Vlastní otázka",
+    tooltip: "Vychází z odpovědí účastníků na otázku, kterou jste přidali do přihlášky.",
+  },
+} as const
+
+function PreferenceSourceBadge({ id, wishes }: { id: string; wishes: string }) {
+  const [isOpen, setOpen] = useState(false)
+  const badgeRef = useRef<HTMLSpanElement>(null)
+  const source =
+    id === wishes
+      ? PREFERENCE_SOURCES.wishes
+      : id === "gender"
+        ? PREFERENCE_SOURCES.gender
+        : PREFERENCE_SOURCES.question
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (!badgeRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer, true)
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer, true)
+  }, [isOpen])
+
+  return (
+    <Tooltip
+      open={isOpen}
+      onOpenChange={setOpen}
+    >
+      <TooltipTrigger
+        asChild
+        onClick={(event) => {
+          event.preventDefault()
+          setOpen(true)
+        }}
+      >
+        <Badge
+          ref={badgeRef}
+          variant="secondary"
+          tabIndex={0}
+        >
+          {source.label}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-full sm:max-w-xs">{source.tooltip}</TooltipContent>
+    </Tooltip>
+  )
+}
 
 /** The same ranking and the same neutral answers of each item (in any order). */
 export const samePreferences = (a: SoftPreferenceItem[], b: SoftPreferenceItem[]) =>
@@ -74,8 +137,6 @@ export function RoomProposalPreferences({
 }: RoomProposalPreferencesProps) {
   const labels = attributeLabels(attributes)
   const [items, setItems] = useState(preferences)
-  const [toAdd, setToAdd] = useState("")
-  const [isAdding, setIsAdding] = useState(false)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [insertionIndex, setInsertionIndex] = useState<number | null>(null)
   const [keyboardItemId, setKeyboardItemId] = useState<string | null>(null)
@@ -140,15 +201,10 @@ export function RoomProposalPreferences({
   ]
   const optionOf = (id: string) => attributes.find((option) => option.attribute === id)
 
-  const add = () => {
-    if (!available.includes(toAdd)) return
-    const option = optionOf(toAdd)
-    setItems([
-      ...items,
-      option ? { id: toAdd, neutralValues: [...option.defaultNeutralValues] } : { id: toAdd },
-    ])
-    setToAdd("")
-    setIsAdding(false)
+  const addPreference = (id: string) => {
+    if (!available.includes(id)) return
+    const option = optionOf(id)
+    setItems([...items, option ? { id, neutralValues: [...option.defaultNeutralValues] } : { id }])
   }
 
   const setNeutral = (index: number, value: string, isNeutral: boolean) =>
@@ -161,14 +217,16 @@ export function RoomProposalPreferences({
     )
 
   return (
-    <Card>
+    <Card padding="none">
       <CardContent>
-        <div className="space-y-6">
-          <FieldSet>
-            <FieldLegend>Pořadí preferencí</FieldLegend>
-            <FieldDescription>První položka má nejvyšší prioritu.</FieldDescription>
+        <div className="space-y-3 py-4">
+          <fieldset className="space-y-2">
+            <FieldLegend className="mb-0">Pořadí preferencí</FieldLegend>
+            <FieldDescription>
+              Přetažením určete prioritu. Výše uvedené preference mají přednost.
+            </FieldDescription>
             {items.length ? (
-              <ol className="space-y-2">
+              <ol className="space-y-1.5">
                 {items.map((item, index) => {
                   const label = preferenceLabel(item.id, wishes, labels)
                   const option = optionOf(item.id)
@@ -191,7 +249,7 @@ export function RoomProposalPreferences({
                         event.preventDefault()
                         if (draggedId) dropAt(draggedId, insertionIndex ?? index)
                       }}
-                      className={`space-y-3 rounded-md border border-border bg-muted/40 p-3 ${
+                      className={`rounded-md border border-border bg-muted/40 px-2 py-1.5 ${
                         draggedId === item.id ? "opacity-50" : ""
                       } ${insertionIndex === index ? "border-t-2 border-t-ring" : ""} ${
                         insertionIndex === items.length && index === items.length - 1
@@ -199,161 +257,132 @@ export function RoomProposalPreferences({
                           : ""
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        {items.length > 1 ? (
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            id={handleId(item.id)}
-                            aria-label={`Přesunout ${label}`}
-                            aria-pressed={keyboardItemId === item.id}
-                            draggable
-                            onDragStart={(event) => {
-                              event.dataTransfer.effectAllowed = "move"
-                              event.dataTransfer.setData("text/plain", item.id)
-                              setDraggedId(item.id)
-                            }}
-                            onDragEnd={() => {
-                              setDraggedId(null)
-                              setInsertionIndex(null)
-                            }}
-                            onKeyDown={(event) => {
-                              if (event.key === " " || event.key === "Spacebar") {
-                                event.preventDefault()
-                                if (keyboardItemId === item.id) finishKeyboardMove()
-                                else if (!keyboardItemId) startKeyboardMove(item.id)
-                              } else if (keyboardItemId === item.id && event.key === "Escape") {
-                                event.preventDefault()
-                                cancelKeyboardMove()
-                              } else if (keyboardItemId === item.id && event.key === "ArrowUp") {
-                                event.preventDefault()
-                                moveItem(index, index - 1)
-                              } else if (keyboardItemId === item.id && event.key === "ArrowDown") {
-                                event.preventDefault()
-                                moveItem(index, index + 1)
-                              }
-                            }}
-                            className="cursor-grab active:cursor-grabbing"
-                          >
-                            <GripVertical
-                              aria-hidden
-                              className="size-4 text-muted-foreground"
+                      <div className="flex min-w-0 items-start gap-2">
+                        <div className="flex shrink-0 items-start gap-1 self-start">
+                          <ActionTooltip label="Přetažením změnit pořadí">
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              id={handleId(item.id)}
+                              aria-label={`Přesunout ${label}`}
+                              aria-pressed={keyboardItemId === item.id}
+                              draggable
+                              onDragStart={(event) => {
+                                event.dataTransfer.effectAllowed = "move"
+                                event.dataTransfer.setData("text/plain", item.id)
+                                setDraggedId(item.id)
+                              }}
+                              onDragEnd={() => {
+                                setDraggedId(null)
+                                setInsertionIndex(null)
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.key === " " || event.key === "Spacebar") {
+                                  event.preventDefault()
+                                  if (keyboardItemId === item.id) finishKeyboardMove()
+                                  else if (!keyboardItemId) startKeyboardMove(item.id)
+                                } else if (keyboardItemId === item.id && event.key === "Escape") {
+                                  event.preventDefault()
+                                  cancelKeyboardMove()
+                                } else if (keyboardItemId === item.id && event.key === "ArrowUp") {
+                                  event.preventDefault()
+                                  moveItem(index, index - 1)
+                                } else if (
+                                  keyboardItemId === item.id &&
+                                  event.key === "ArrowDown"
+                                ) {
+                                  event.preventDefault()
+                                  moveItem(index, index + 1)
+                                }
+                              }}
+                              className="cursor-grab active:cursor-grabbing"
+                            >
+                              <GripVertical
+                                aria-hidden
+                                className="size-4 text-muted-foreground"
+                              />
+                            </Button>
+                          </ActionTooltip>
+                          <span className="mt-1 w-5 self-start text-right text-sm text-muted-foreground tabular-nums">
+                            {index + 1}.
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1 py-0.5">
+                          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                            <p className="min-w-0 font-medium break-words">{label}</p>
+                            <PreferenceSourceBadge
+                              id={item.id}
+                              wishes={wishes}
                             />
-                          </Button>
-                        ) : null}
-                        <span className="w-6 text-muted-foreground tabular-nums">{index + 1}.</span>
-                        <span className="min-w-0 flex-1 font-medium">{label}</span>
-                        <div className="flex shrink-0 gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`Odebrat ${label}`}
-                            onClick={() => setItems(items.filter((_, i) => i !== index))}
-                          >
-                            <X />
-                          </Button>
+                          </div>
+                          {option ? (
+                            <div className="mt-0.5">
+                              <AnswerSelectionDisclosure
+                                id={`ignored-answers-${item.id}`}
+                                title="Ignorované odpovědi"
+                                summary={
+                                  item.neutralValues?.length
+                                    ? option.values
+                                        .filter(({ value }) => item.neutralValues?.includes(value))
+                                        .map(({ label: valueLabel }) => valueLabel)
+                                        .join(" · ")
+                                    : "Žádné"
+                                }
+                                options={option.values}
+                                selectedValues={item.neutralValues ?? []}
+                                explanation="Vybrané odpovědi ani prázdné odpovědi neovlivní návrh."
+                                onSelectionChange={(value, isChecked) =>
+                                  setNeutral(index, value, isChecked)
+                                }
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="flex shrink-0">
+                          <ActionTooltip label="Odebrat preferenci">
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              aria-label={`Odebrat ${label}`}
+                              onClick={() => setItems(items.filter((_, i) => i !== index))}
+                            >
+                              <X />
+                            </Button>
+                          </ActionTooltip>
                         </div>
                       </div>
-                      {option ? (
-                        <FieldSet className="ml-9">
-                          <FieldLegend variant="label">Neutrální hodnoty: {label}</FieldLegend>
-                          <FieldDescription>
-                            Neutrální i prázdné odpovědi se nehodnotí.
-                          </FieldDescription>
-                          <div className="flex flex-wrap gap-x-6 gap-y-2">
-                            {option.values.map(({ value, label: valueText }) => {
-                              const id = `neutral-${item.id}-${value}`
-                              return (
-                                <Field
-                                  key={value}
-                                  orientation="horizontal"
-                                >
-                                  <Checkbox
-                                    id={id}
-                                    checked={item.neutralValues?.includes(value) ?? false}
-                                    onCheckedChange={(checked) =>
-                                      setNeutral(index, value, checked === true)
-                                    }
-                                  />
-                                  <FieldLabel htmlFor={id}>{valueText}</FieldLabel>
-                                </Field>
-                              )
-                            })}
-                          </div>
-                        </FieldSet>
-                      ) : null}
                     </li>
                   )
                 })}
               </ol>
             ) : (
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm text-muted-foreground">Žádné preference nejsou přidané.</p>
-                {available.length ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsAdding(true)}
-                  >
-                    <Plus />
-                    Přidat preferenci
-                  </Button>
-                ) : null}
               </div>
             )}
-          </FieldSet>
-          {items.length > 0 && available.length && !isAdding ? (
-            <Button
-              variant="outline"
-              onClick={() => setIsAdding(true)}
-            >
-              <Plus />
-              Přidat preferenci
-            </Button>
-          ) : null}
-          {available.length && isAdding ? (
-            <Field>
-              <FieldLabel htmlFor="room-proposal-preference-add">Nová preference</FieldLabel>
-              <div className="flex flex-wrap gap-2">
-                <Select
-                  value={toAdd}
-                  onValueChange={setToAdd}
-                >
-                  <SelectTrigger
-                    id="room-proposal-preference-add"
-                    className="w-56"
-                  >
-                    <SelectValue placeholder="Vyberte preferenci" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {available.map((id) => (
-                      <SelectItem
-                        key={id}
-                        value={id}
-                      >
-                        {preferenceLabel(id, wishes, labels)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          </fieldset>
+          {available.length ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button
-                  variant="secondary"
-                  disabled={!toAdd}
-                  onClick={add}
+                  variant="outline"
+                  size="sm"
                 >
                   <Plus />
-                  Přidat
+                  Přidat preferenci
                 </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setToAdd("")
-                    setIsAdding(false)
-                  }}
-                >
-                  Zrušit
-                </Button>
-              </div>
-            </Field>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {available.map((id) => (
+                  <DropdownMenuItem
+                    key={id}
+                    onSelect={() => addPreference(id)}
+                  >
+                    {preferenceLabel(id, wishes, labels)}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : null}
           <span
             className="sr-only"
@@ -368,18 +397,18 @@ export function RoomProposalPreferences({
               message={saveError}
             />
           ) : null}
+          <div className="flex justify-end">
+            <PendingButton
+              isPending={isSaving}
+              // Nothing to save until the list differs from the saved one.
+              disabled={samePreferences(items, preferences)}
+              onClick={() => onSave?.(items)}
+            >
+              Uložit preference
+            </PendingButton>
+          </div>
         </div>
       </CardContent>
-      <CardFooter className="justify-end">
-        <PendingButton
-          isPending={isSaving}
-          // Nothing to save until the list differs from the saved one.
-          disabled={samePreferences(items, preferences)}
-          onClick={() => onSave?.(items)}
-        >
-          Uložit
-        </PendingButton>
-      </CardFooter>
     </Card>
   )
 }

@@ -8,14 +8,7 @@ Text v uvozovkách je připravený k přednesu. Pokyny „Ukaž“ a „Ovládá
 
 ## Příprava před vystoupením
 
-1. Spusť z kořene repozitáře:
-
-   ```bash
-   E2E_BASE_URL=https://team-4.vsepractical.applifting.dev \
-   DEMO_PARTICIPANT_EMAIL=team4vse@seznam.cz \
-   pnpm frontend demo:v2
-   ```
-
+1. Otevři aktuální staging aplikaci a připrav desktopové okno organizátora a mobilní viewport účastnice. Automatizovaný Playwright walkthrough byl odstraněn; tento dokument zůstává jako ruční scénář.
 2. Nech demo čekat na úvodní obrazovce. Připrav desktopové okno organizátora a okno s vycentrovaným mobilním náhledem účastnice. Účastnická ukázka používá šířku 360 px; nejde o záznam z fyzického telefonu.
 3. Ve **školním profilu Chrome** otevři přihlášenou schránku `team4vse@seznam.cz`. Pracovní profil ji nemusí mít přihlášenou. Nacvič zkopírování adresy tlačítka v e-mailu a vložení do dialogu v okně mobilního náhledu.
 4. Otevři předem issues z jednotlivých bloků níže, board sprintu a jeden konkrétní výsledek CI / agentického review pro prezentovanou práci. Zkontroluj datum a commit důkazu. Neotvírej je během prezentace hledáním.

@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { Seo } from "@/components/Seo"
 
 import { LandingPage } from "@/features/landing/components/LandingPage"
+import { ParticipantAwareHeader } from "@/features/participant-access/components/ParticipantAwareHeader"
 import { CatalogPreview } from "@/features/public-events/components/CatalogPreview"
 
 // No loader: the catalog preview loads inside the page, so an empty or failing
@@ -13,7 +14,10 @@ function HomePage() {
   return (
     <>
       <Seo />
-      <LandingPage catalogPreview={<CatalogPreview />} />
+      <LandingPage
+        catalogPreview={<CatalogPreview />}
+        header={<ParticipantAwareHeader />}
+      />
     </>
   )
 }

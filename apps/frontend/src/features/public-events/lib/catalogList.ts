@@ -3,6 +3,7 @@ import { formatCalendarRange } from "@/lib/date"
 import { catalogPhotoUrl } from "@/features/public-events/api/publicEventQueryOptions"
 import { type CatalogItem } from "@/features/public-events/api/publicEventSchemas"
 import { type CatalogEventItem } from "@/features/public-events/components/EventCatalogList"
+import { getPublicEventRegistrationStatus } from "@/features/public-events/lib/publicEventDetail"
 
 /**
  * A catalog item as the card shows it. The term label is shown only when there
@@ -14,6 +15,10 @@ export function toCatalogEventItem(item: CatalogItem): CatalogEventItem {
     name: item.name,
     organizationName: item.organizationName,
     location: item.location,
+    registrationStatus: getPublicEventRegistrationStatus(
+      item.registrationStatus,
+      item.terms.length > 0,
+    ),
     terms: item.terms.map((term) => {
       const dates = formatCalendarRange(term.startDate, term.endDate)
       return item.terms.length > 1 ? `${term.label}: ${dates}` : dates

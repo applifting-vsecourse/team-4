@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import { ArrowRight, BadgeCheck, CalendarDays, FilePen, Send, WalletCards } from "lucide-react"
 
@@ -86,9 +87,10 @@ function ParticipantDemo() {
   )
 }
 
-export function ForParticipantsPage() {
+export function ForParticipantsPage({ header }: { header: ReactNode }) {
   return (
     <AudiencePage
+      header={header}
       title="Pro účastníky"
       lead="Najdete akci, přihlásíte se a pak na jednom místě vidíte, na čem jste."
       imageSrc={participantsImage}

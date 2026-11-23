@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router"
 import { Bell, LogOut, UserRound } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
+import { ActionTooltip } from "@/components/ActionTooltip"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -36,30 +37,32 @@ export function ParticipantAccountMenu({ email }: ParticipantAccountMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Účet"
-          aria-describedby={hasUnread ? unreadId : undefined}
-          className="relative"
-        >
-          <Avatar className="size-8">
-            <AvatarFallback>
-              <UserRound aria-hidden />
-            </AvatarFallback>
-          </Avatar>
-          {hasUnread ? (
-            <>
-              <UnreadDot className="absolute top-1 right-1 ring-2 ring-background" />
-              <span
-                id={unreadId}
-                className="sr-only"
-              >
-                Máte nepřečtená oznámení
-              </span>
-            </>
-          ) : null}
-        </Button>
+        <ActionTooltip label="Účet účastníka">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Účet"
+            aria-describedby={hasUnread ? unreadId : undefined}
+            className="relative"
+          >
+            <Avatar className="size-8">
+              <AvatarFallback>
+                <UserRound aria-hidden />
+              </AvatarFallback>
+            </Avatar>
+            {hasUnread ? (
+              <>
+                <UnreadDot className="absolute top-1 right-1 ring-2 ring-background" />
+                <span
+                  id={unreadId}
+                  className="sr-only"
+                >
+                  Máte nepřečtená oznámení
+                </span>
+              </>
+            ) : null}
+          </Button>
+        </ActionTooltip>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"

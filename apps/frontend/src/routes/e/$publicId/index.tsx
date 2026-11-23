@@ -10,6 +10,7 @@ import { RecordUnavailable } from "@/components/RecordUnavailable"
 import { Seo } from "@/components/Seo"
 import { Button } from "@/components/ui/button"
 
+import { ParticipantAwareHeader } from "@/features/participant-access/components/ParticipantAwareHeader"
 import { catalogEventQueryOptions } from "@/features/public-events/api/publicEventQueryOptions"
 import { PublicEventDetail } from "@/features/public-events/components/PublicEventDetail"
 import { toPublicEventDetail } from "@/features/public-events/lib/publicEventDetail"
@@ -46,7 +47,7 @@ function CatalogEventPage() {
   const { data: event } = useSuspenseQuery(catalogEventQueryOptions(publicId))
 
   return (
-    <PublicShell>
+    <PublicShell header={<ParticipantAwareHeader />}>
       <Seo title={event?.name ?? "Akce není dostupná"} />
       <BackToCatalog />
       {event ? (
@@ -69,7 +70,7 @@ function CatalogEventErrorPage() {
   const { reset } = useQueryErrorResetBoundary()
 
   return (
-    <PublicShell>
+    <PublicShell header={<ParticipantAwareHeader />}>
       <Seo title="Detail akce se nepodařilo načíst" />
       <BackToCatalog />
       <LoadError

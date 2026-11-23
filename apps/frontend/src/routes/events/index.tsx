@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader"
 import { PublicShell } from "@/components/PublicShell"
 import { Seo } from "@/components/Seo"
 
+import { ParticipantAwareHeader } from "@/features/participant-access/components/ParticipantAwareHeader"
 import { catalogListQueryOptions } from "@/features/public-events/api/publicEventQueryOptions"
 import {
   catalogFilterSchema,
@@ -46,7 +47,7 @@ function CatalogPage() {
     })
 
   return (
-    <PublicShell>
+    <PublicShell header={<ParticipantAwareHeader />}>
       <Seo title="Katalog akcí" />
       <PageHeader title="Katalog akcí" />
       {events.length === 0 ? (
@@ -75,7 +76,7 @@ function CatalogErrorPage() {
   const { reset } = useQueryErrorResetBoundary()
 
   return (
-    <PublicShell>
+    <PublicShell header={<ParticipantAwareHeader />}>
       <Seo title="Katalog akcí se nepodařilo načíst" />
       <PageHeader title="Katalog akcí" />
       <LoadError

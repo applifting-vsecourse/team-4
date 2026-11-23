@@ -20,8 +20,8 @@ const origin = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3050").orig
 const toggleName = "Zveřejnit akci v katalogu"
 
 async function openPublicAccess(page: Page) {
-  const section = page.getByRole("button", { name: "Veřejný přístup" })
-  if ((await section.getAttribute("aria-expanded")) !== "true") await section.click()
+  await page.getByRole("tab", { name: "Akce" }).click()
+  await expect(page.getByRole("heading", { name: "Veřejný přístup" })).toBeVisible()
 }
 
 // The first test publishes through the UI; withdraw it so the dev catalog stays as it was.

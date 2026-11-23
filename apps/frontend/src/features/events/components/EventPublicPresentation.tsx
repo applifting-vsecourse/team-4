@@ -140,6 +140,7 @@ export function EventPublicPresentation({
     <CollapsibleSection
       headingId="public-presentation-heading"
       title="Veřejná prezentace"
+      alwaysOpen
     >
       <Card>
         <CardContent>

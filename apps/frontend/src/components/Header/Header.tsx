@@ -21,6 +21,8 @@ type HeaderProps = {
    * account menu. Passed as a slot so `components/` does not import features.
    */
   account?: ReactNode
+  /** Keeps the account control's space stable while the participant session loads. */
+  isAccountLoading?: boolean
   /**
    * `participant`: the signed-in participant's portal (S4-08), with only the
    * participant's own navigation and no organizer entry or audience pages.
@@ -33,7 +35,7 @@ type HeaderProps = {
  * The logo and audience links sit on the left. Entry buttons, theme and
  * account actions sit on the right.
  */
-export function Header({ account, variant = "public" }: HeaderProps) {
+export function Header({ account, isAccountLoading = false, variant = "public" }: HeaderProps) {
   const isParticipant = variant === "participant"
 
   return (
@@ -62,7 +64,14 @@ export function Header({ account, variant = "public" }: HeaderProps) {
           <div className="hidden lg:block">
             <ThemeSwitcher />
           </div>
-          {account}
+          {account ??
+            (isAccountLoading ? (
+              <div
+                className="size-10 shrink-0"
+                role="status"
+                aria-label="Načítání účtu"
+              />
+            ) : null)}
           <MobileMenu isParticipant={isParticipant} />
         </div>
       </div>

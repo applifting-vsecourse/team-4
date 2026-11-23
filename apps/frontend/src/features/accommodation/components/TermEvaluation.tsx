@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { ClipboardList, Ellipsis, RefreshCw } from "lucide-react"
 
+import { ActionTooltip } from "@/components/ActionTooltip"
 import { EmptyState } from "@/components/EmptyState"
 import { FormError } from "@/components/FormError"
 import { HorizontalOverflowViewport } from "@/components/HorizontalOverflowViewport"
@@ -162,13 +163,15 @@ function DecisionMenu({ person, decisions }: { person: OrderPerson; decisions: P
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`Akce: ${person.name}`}
-        >
-          <Ellipsis />
-        </Button>
+        <ActionTooltip label="Akce účastníka">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Akce: ${person.name}`}
+          >
+            <Ellipsis />
+          </Button>
+        </ActionTooltip>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {decisions.onConfirm ? (

@@ -3,17 +3,28 @@ import { CalendarDays, MapPin } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { AspectRatio } from "@/components/ui/aspect-ratio"
+import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
+
+import { type PublicEventRegistrationStatus } from "@/features/public-events/components/PublicEventDetail"
 
 export type CatalogEventItem = {
   publicId: string
   name: string
   organizationName: string
   location: string
+  registrationStatus: PublicEventRegistrationStatus
   /** Already formatted, one entry per term. */
   terms: string[]
   /** Image uploaded by the organizer; `null` shows the default image. */
   imageUrl: string | null
+}
+
+const REGISTRATION_STATUS_LABEL: Record<PublicEventRegistrationStatus, string> = {
+  open: "Otevřeno",
+  closed: "Uzavřeno",
+  "not-open": "Připravujeme",
+  "no-terms": "Připravujeme",
 }
 
 // Veřejný katalog akcí → mřížka karet akcí s odkazem na veřejný detail (F54-2).
@@ -26,7 +37,10 @@ export function EventCatalogList({ events }: { events: CatalogEventItem[] }) {
           key={event.publicId}
           className="flex"
         >
-          <EventCatalogCard event={event} />
+          <EventCatalogCard
+            event={event}
+            isRegistrationStatusVisible
+          />
         </li>
       ))}
     </ul>
@@ -40,9 +54,11 @@ export function EventCatalogList({ events }: { events: CatalogEventItem[] }) {
 export function EventCatalogCard({
   event,
   headingLevel = "h2",
+  isRegistrationStatusVisible = false,
 }: {
   event: CatalogEventItem
   headingLevel?: "h2" | "h3"
+  isRegistrationStatusVisible?: boolean
 }) {
   const Heading = headingLevel
 
@@ -73,7 +89,7 @@ export function EventCatalogCard({
           />
           <span className="min-w-0 break-words">{event.location}</span>
         </p>
-        {event.terms.length > 0 ? (
+        {event.terms.length > 0 || isRegistrationStatusVisible ? (
           <div className="flex items-start gap-1.5 text-sm">
             <CalendarDays
               aria-hidden
@@ -90,6 +106,14 @@ export function EventCatalogCard({
                 </li>
               ))}
             </ul>
+            {isRegistrationStatusVisible ? (
+              <Badge
+                variant={event.registrationStatus === "open" ? "success" : "secondary"}
+                className="mt-0.5"
+              >
+                {REGISTRATION_STATUS_LABEL[event.registrationStatus]}
+              </Badge>
+            ) : null}
           </div>
         ) : null}
       </div>

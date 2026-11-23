@@ -1,8 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { expect, userEvent, waitFor, within } from "storybook/test"
 
+import { neverAnswer } from "@/screens/msw"
 import { screenMeta, showsHeading } from "@/screens/screenMeta"
 
+import { participantHandlers } from "@/features/participant-access/fixtures/handlers"
+import { PARTICIPANT } from "@/features/participant-access/fixtures/participant"
 import { publicEventHandlers } from "@/features/public-events/fixtures/handlers"
 
 const meta = {
@@ -19,6 +22,7 @@ const MOBILE = { viewport: { value: "mobile", isRotated: false } }
 
 /** Published events of all organizations; each card leads to its detail (F54-2a). */
 export const Catalog: Story = {
+  globals: { theme: "light" },
   beforeEach: ({ msw }) => {
     msw.use(...publicEventHandlers.catalogList())
   },
@@ -30,8 +34,17 @@ export const Catalog: Story = {
     await expect(canvas.queryByLabelText("Místo")).not.toBeInTheDocument()
     const link = await canvas.findByRole("link", { name: "Letní tábor Modrá Hora 2027" })
     await expect(link).toHaveAttribute("href", "/e/letni-tabor-2027")
-    await expect(canvas.getByText("Spolek Modrá Hora")).toBeInTheDocument()
+    await expect(canvas.getAllByText("Spolek Modrá Hora")).toHaveLength(2)
     await expect(canvas.getByText(/Turnus 1: 4\. 7\. – 17\. 7\. 2027/)).toBeInTheDocument()
+    for (const label of ["Otevřeno", "Uzavřeno", "Připravujeme"]) {
+      await expect(
+        canvas.getAllByText(label, { selector: '[data-slot="badge"]' }),
+      ).not.toHaveLength(0)
+    }
+    await expect(canvas.getByRole("link", { name: "Zimní víkend v horách" })).toHaveAttribute(
+      "href",
+      "/e/zimni-vikend-2027",
+    )
     filters.focus()
     await expect(context.canvasElement.ownerDocument.activeElement).toBe(filters)
     await userEvent.keyboard("{Enter}")
@@ -39,6 +52,52 @@ export const Catalog: Story = {
     await expect(canvas.getByLabelText("Termín od")).toBeInTheDocument()
     await userEvent.keyboard("{Enter}")
     await expect(filters).toHaveAttribute("aria-expanded", "false")
+  },
+}
+
+/** All registration labels remain readable on a 360 px public card grid. */
+export const MobileRegistrationBadges: Story = {
+  globals: { ...MOBILE, theme: "light" },
+  beforeEach: ({ msw }) => {
+    msw.use(...publicEventHandlers.catalogList())
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await showsHeading("Katalog akcí")({ canvas })
+    for (const label of ["Otevřeno", "Uzavřeno", "Připravujeme"]) {
+      await expect(
+        canvas.getAllByText(label, { selector: '[data-slot="badge"]' }),
+      ).not.toHaveLength(0)
+    }
+    await expect(canvas.getByRole("link", { name: "Zimní víkend v horách" })).toHaveAttribute(
+      "href",
+      "/e/zimni-vikend-2027",
+    )
+    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(360)
+  },
+}
+
+/** Semantic badge colours are also checked under the dark theme. */
+export const DarkRegistrationBadges: Story = {
+  globals: { theme: "dark" },
+  beforeEach: ({ msw }) => {
+    msw.use(...publicEventHandlers.catalogList())
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await showsHeading("Katalog akcí")({ canvas })
+    const badges = canvasElement.querySelectorAll('[data-slot="badge"]')
+    await expect(badges).toHaveLength(4)
+    await expect(canvas.getAllByText("Otevřeno", { selector: '[data-slot="badge"]' })).toHaveLength(
+      2,
+    )
+    await expect(canvas.getAllByText("Uzavřeno", { selector: '[data-slot="badge"]' })).toHaveLength(
+      1,
+    )
+    await expect(
+      canvas.getAllByText("Připravujeme", { selector: '[data-slot="badge"]' }),
+    ).toHaveLength(1)
+    await expect(
+      canvas.getByRole("link", { name: "Podzimní víkend pro mladé organizátory" }),
+    ).toHaveAttribute("href", "/e/podzimni-vikend-2027")
   },
 }
 
@@ -60,6 +119,95 @@ export const MobileLayout: Story = {
       searchField.getBoundingClientRect().bottom,
     )
     await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(360)
+  },
+}
+
+/** A signed-in participant keeps the same account menu on the public catalog. */
+export const SignedInAccount: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...publicEventHandlers.catalogList(), ...participantHandlers.signedIn())
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await showsHeading("Katalog akcí")({ canvas })
+    const header = within(canvasElement.querySelector("header")!)
+    await userEvent.click(await header.findByRole("button", { name: "Účet" }))
+    const menu = await within(document.body).findByRole("menu")
+    await waitFor(async () => {
+      await expect(within(menu).getByText(PARTICIPANT.email)).toBeVisible()
+      for (const label of ["Oznámení", "Můj profil", "Odhlásit se"]) {
+        await expect(within(menu).getByRole("menuitem", { name: new RegExp(label) })).toBeVisible()
+      }
+    })
+    await userEvent.keyboard("{Escape}")
+    await waitFor(() => expect(within(document.body).queryByRole("menu")).not.toBeInTheDocument())
+  },
+}
+
+/** At 360 px the account and hamburger sit to the right of the logo. */
+export const MobileSignedInAccount: Story = {
+  globals: MOBILE,
+  beforeEach: ({ msw }) => {
+    msw.use(...publicEventHandlers.catalogList(), ...participantHandlers.signedIn())
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await showsHeading("Katalog akcí")({ canvas })
+    const header = within(canvasElement.querySelector("header")!)
+    const account = await header.findByRole("button", { name: "Účet" })
+    const hamburger = header.getByRole("button", { name: "Otevřít menu" })
+    await expect(account).toBeVisible()
+    await expect(account.getBoundingClientRect().right).toBeLessThan(
+      hamburger.getBoundingClientRect().left,
+    )
+    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(360)
+  },
+}
+
+/** The mobile header reserves the account position until session validation completes. */
+export const LoadingParticipantSession: Story = {
+  globals: MOBILE,
+  beforeEach: ({ msw }) => {
+    msw.use(...publicEventHandlers.catalogList(), ...neverAnswer("get", "/participant/me"))
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await expect(await canvas.findByRole("status", { name: "Načítání účtu" })).toBeVisible()
+    const header = canvasElement.querySelector("header")!
+    const account = header.querySelector('[role="status"]')!
+    const menu = within(header).getByRole("button", { name: "Otevřít menu" })
+    await expect(account.getBoundingClientRect().right).toBeLessThan(
+      menu.getBoundingClientRect().left,
+    )
+    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(360)
+  },
+}
+
+/** Signed-out visitors still find Moje přihlášky inside the mobile menu. */
+export const MobileSignedOutNavigation: Story = {
+  globals: MOBILE,
+  beforeEach: ({ msw }) => {
+    msw.use(...publicEventHandlers.catalogList(), ...participantHandlers.signedOut())
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await showsHeading("Katalog akcí")({ canvas })
+    const header = within(canvasElement.querySelector("header")!)
+    await expect(header.queryByRole("button", { name: "Účet" })).not.toBeInTheDocument()
+    await userEvent.click(header.getByRole("button", { name: "Otevřít menu" }))
+    const dialog = await within(document.body).findByRole("dialog", { name: "Menu" })
+    await expect(within(dialog).getByRole("link", { name: "Moje přihlášky" })).toBeVisible()
+  },
+}
+
+/** Desktop keeps the current navigation and account on the same row. */
+export const DarkDesktopAccount: Story = {
+  globals: { theme: "dark" },
+  beforeEach: ({ msw }) => {
+    msw.use(...publicEventHandlers.catalogList(), ...participantHandlers.signedIn())
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await showsHeading("Katalog akcí")({ canvas })
+    const header = within(canvasElement.querySelector("header")!)
+    await expect(await header.findByRole("button", { name: "Účet" })).toBeVisible()
+    await expect(header.getByRole("link", { name: "Organizátor" })).toBeVisible()
+    await expect(header.getByRole("button", { name: "Toggle theme" })).toBeVisible()
   },
 }
 
