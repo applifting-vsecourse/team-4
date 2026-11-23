@@ -12,6 +12,8 @@ import { makeRoomProposalPreferences } from "@/features/accommodation/fixtures/r
 import { DRAFT_EVENT, OPEN_EVENT } from "@/features/events/fixtures/events"
 import { eventHandlers } from "@/features/events/fixtures/handlers"
 import { ORGANIZATION } from "@/features/organizations/fixtures/organizations"
+import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
+import { MANAGED_QUESTIONS } from "@/features/registrations/fixtures/questions"
 
 const meta = {
   title: "Screens/Event/Settings",
@@ -605,6 +607,65 @@ export const RoomProposalPreferences: Story = {
     await expect(
       section.queryByRole("button", { name: "Přidat preferenci" }),
     ).not.toBeInTheDocument()
+    await expect(
+      section.getByText("Další preference můžete přidat z otázek v přihlášce."),
+    ).toBeVisible()
+    await expect(section.getByRole("link", { name: "Spravovat otázky" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("registration-questions-heading"),
+    )
+    await userEvent.click(section.getByRole("button", { name: `Odebrat ${SOURCE_QUESTION.label}` }))
+    await waitFor(() =>
+      expect(
+        section.queryByText("Další preference můžete přidat z otázek v přihlášce."),
+      ).not.toBeInTheDocument(),
+    )
+    await userEvent.click(section.getByRole("button", { name: "Přidat preferenci" }))
+    await within(document.body).findByRole("menuitem", { name: SOURCE_QUESTION.label })
+    await userEvent.click(
+      within(document.body).getByRole("menuitem", { name: SOURCE_QUESTION.label }),
+    )
+    await expect(
+      section.getByText("Další preference můžete přidat z otázek v přihlášce."),
+    ).toBeVisible()
+    await expect(
+      section.queryByRole("button", { name: "Přidat preferenci" }),
+    ).not.toBeInTheDocument()
+  },
+}
+
+/** The link opens the registration questions and keeps their existing draft mounted. */
+export const RoomProposalManageQuestions: Story = {
+  args: { url: `${eventUrl("/settings")}?tab=registration` },
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...registrationHandlers.questions(MANAGED_QUESTIONS),
+      ...accommodationHandlers.attributeRules([SOURCE_QUESTION]),
+      ...accommodationHandlers.roomProposalPreferences(SOURCE_PREFERENCES),
+    )
+  },
+  play: async ({ canvas }) => {
+    const questions = await region(canvas, "Otázky v přihlášce")
+    await userEvent.click(await questions.findByRole("button", { name: /Oddíl.*2 možnosti/ }))
+    const label = questions.getByRole("textbox", { name: "Znění otázky" })
+    await userEvent.clear(label)
+    await userEvent.type(label, "Oddíl upravený")
+
+    await userEvent.click(canvas.getByRole("tab", { name: "Ubytování" }))
+    const preferences = await region(canvas, "Návrh pokojů")
+    await userEvent.click(preferences.getByRole("link", { name: "Spravovat otázky" }))
+
+    await expect(canvas.getByRole("tab", { name: "Přihláška" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    )
+    await expect(canvas.getByRole("heading", { name: "Otázky v přihlášce" })).toHaveAttribute(
+      "id",
+      "registration-questions-heading",
+    )
+    await expect(questions.getByRole("textbox", { name: "Znění otázky" })).toHaveValue(
+      "Oddíl upravený",
+    )
   },
 }
 
@@ -654,6 +715,15 @@ export const RankedPreferences: Story = {
     await expect(section.getByRole("checkbox", { name: "Jiná odpověď" })).toBeChecked()
     await expect(section.getByRole("checkbox", { name: "Nechci uvést" })).toBeChecked()
     await expect(section.getByRole("checkbox", { name: "Žena" })).not.toBeChecked()
+    const expandedRow = within(section.getByRole("list")).getAllByRole("listitem")[0]!
+    const rowCenter = expandedRow.getBoundingClientRect().top + expandedRow.offsetHeight / 2
+    for (const action of [
+      within(expandedRow).getByRole("button", { name: "Přesunout Pohlaví" }),
+      within(expandedRow).getByRole("button", { name: "Odebrat Pohlaví" }),
+    ]) {
+      const actionRect = action.getBoundingClientRect()
+      await expect(Math.abs(actionRect.top + actionRect.height / 2 - rowCenter)).toBeLessThan(2)
+    }
     const handle = section.getByRole("button", { name: "Přesunout Přání na spolubydlící" })
     await userEvent.click(handle)
     await userEvent.keyboard(" {ArrowUp} ")

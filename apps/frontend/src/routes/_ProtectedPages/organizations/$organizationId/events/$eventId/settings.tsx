@@ -4,7 +4,7 @@ import { createFileRoute, Link, useRouterState } from "@tanstack/react-router"
 import { Pencil } from "lucide-react"
 import { z } from "zod"
 
-import { ROUTES } from "@/app/routes"
+import { ROUTES, SECTIONS } from "@/app/routes"
 import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { HorizontalOverflowViewport } from "@/components/HorizontalOverflowViewport"
 import { PageHeader } from "@/components/PageHeader"
@@ -48,7 +48,7 @@ const tabForAnchor: Record<string, SettingsTab> = {
   "registration-heading": "event",
   "public-presentation-heading": "event",
   "change-approval-heading": "registration",
-  "registration-questions-heading": "registration",
+  [SECTIONS.registrationQuestions]: "registration",
   "payments-heading": "payments",
   "accommodation-rules-heading": "accommodation",
   "room-proposal-settings-heading": "accommodation",

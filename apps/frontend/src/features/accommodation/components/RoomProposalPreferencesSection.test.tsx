@@ -39,6 +39,7 @@ function renderSection() {
         <RoomProposalPreferencesSection
           organizationId="org"
           eventId="event"
+          manageQuestionsAction={null}
         />
       </TooltipProvider>
     </QueryClientProvider>,

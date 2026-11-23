@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { SECTIONS } from "@/app/routes"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
@@ -14,7 +15,7 @@ import { RegistrationQuestionsSettings } from "@/features/registrations/componen
 import { useSaveQuestions } from "@/features/registrations/hooks/useSaveQuestions"
 
 /** Where a link to the questions of the form leads. */
-export const REGISTRATION_QUESTIONS_HEADING = "registration-questions-heading"
+export const REGISTRATION_QUESTIONS_HEADING = SECTIONS.registrationQuestions
 
 const stillApplies = (questions: ManagedQuestion[]) =>
   questions.length

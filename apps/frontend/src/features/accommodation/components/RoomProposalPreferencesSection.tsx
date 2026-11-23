@@ -1,9 +1,13 @@
 import { useEffect } from "react"
+import type { ReactNode } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { Link } from "@tanstack/react-router"
 import { toast } from "sonner"
 
+import { ROUTES, SECTIONS } from "@/app/routes"
 import { LoadError } from "@/components/LoadError"
 import { LoadingBlock } from "@/components/LoadingBlock"
+import { Button } from "@/components/ui/button"
 import { CollapsibleSection } from "@/components/ui/collapsible-section"
 import { Skeleton } from "@/components/ui/skeleton"
 import { HTTPError } from "@/lib/api-client"
@@ -45,12 +49,15 @@ export function RoomProposalPreferencesSection({
   eventId,
   presentation = "section",
   invalidate,
+  manageQuestionsAction,
 }: {
   organizationId: string
   eventId: string
   presentation?: "section" | "dialog"
   /** Reloaded after a save: the questions show which of them the rules use (#485). */
   invalidate?: readonly (readonly unknown[])[]
+  /** Override for isolated tests or embeddings without event navigation. */
+  manageQuestionsAction?: ReactNode
 }) {
   const setting = useQuery(roomProposalPreferencesQueryOptions(organizationId, eventId))
   const save = useSaveRoomProposalPreferences(organizationId, eventId, invalidate)
@@ -76,6 +83,26 @@ export function RoomProposalPreferencesSection({
       preferences={setting.data.preferences}
       wishes={setting.data.wishes}
       attributes={setting.data.attributes}
+      manageQuestionsAction={
+        manageQuestionsAction === undefined ? (
+          <Button
+            asChild
+            variant="link"
+            size="sm"
+          >
+            <Link
+              to={ROUTES.eventSettings}
+              params={{ organizationId, eventId }}
+              search={{ tab: "registration" }}
+              hash={SECTIONS.registrationQuestions}
+            >
+              Spravovat otázky
+            </Link>
+          </Button>
+        ) : (
+          manageQuestionsAction
+        )
+      }
       isSaving={save.isPending}
       saveError={
         save.isError
