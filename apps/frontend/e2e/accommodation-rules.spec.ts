@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 
 import {
+  confirm,
   newParticipant,
   register,
   setEvaluationMode,
@@ -13,9 +14,10 @@ import {
 
 const terms: TermSpec[] = [
   { label: "1. turnus", startDate: "2027-07-01", endDate: "2027-07-07", priceMinor: 100000 },
+  { label: "2. turnus", startDate: "2027-08-01", endDate: "2027-08-07", priceMinor: 100000 },
 ]
 // One room of two beds: without the rule both fit, with it only one gender.
-const rooms = [{ label: "Chatka", baseBeds: 2, terms: [0] }]
+const rooms = [{ label: "Chatka", baseBeds: 2, terms: [0, 1] }]
 
 const orderRow = (page: Page, name: string) =>
   page.getByRole("tabpanel").getByRole("row").filter({ hasText: name }).first()
@@ -31,11 +33,21 @@ test("splitting rooms by gender from the room split changes eligibility and prop
   const event = await setUpEvent(page.request, { terms, rooms })
   // Manual: the stale proposal stays shown until Přepočítat, however slow the run.
   await setEvaluationMode(page.request, event, "manual")
+  const registrations: string[] = []
   for (const [name, gender] of [
     ["Tereza", "female"],
     ["Petr", "male"],
   ] as const) {
-    await register(page.request, event.publicId, newParticipant(name), event.termIds, { gender })
+    const { id } = await register(
+      page.request,
+      event.publicId,
+      newParticipant(name),
+      event.termIds,
+      {
+        gender,
+      },
+    )
+    registrations.push(id)
   }
 
   // Without a rule only the beds count: both fit into the room.
@@ -46,14 +58,22 @@ test("splitting rooms by gender from the room split changes eligibility and prop
   await expect(orderRow(page, "Tereza")).toContainText("Vhodný")
   await expect(orderRow(page, "Petr")).toContainText("Vhodný")
 
+  // Keep term 1 pending for the eligibility check; confirm the same pair only
+  // in term 2 so the solver has participants to propose rooms for.
+  for (const registrationId of registrations) {
+    await confirm(page.request, event, event.termIds[1]!, registrationId)
+  }
   await page.goto(
-    `/organizations/${event.organizationId}/events/${event.eventId}/rooms?tab=split&term=${event.termIds[0]}`,
+    `/organizations/${event.organizationId}/events/${event.eventId}/rooms?tab=split&term=${event.termIds[1]}`,
   )
   const proposal = page.getByRole("region", { name: "Návrh pokojů" })
   await proposal.getByRole("button", { name: "Navrhnout pokoje" }).click()
   await expect(proposal.getByText("Aktuální návrh", { exact: true })).toBeVisible({
     timeout: 30_000,
   })
+  await expect(page).toHaveURL(/view=proposal/)
+  await page.getByRole("button", { name: "Zpět na uložené rozdělení" }).click()
+  await expect(page).toHaveURL(/view=assignment/)
   await proposal.getByRole("button", { name: "Upravit pravidla" }).click()
   const dialog = page.getByRole("dialog", { name: "Pravidla rozdělení" })
   const rules = dialog.locator('[data-slot="card"]').first()
@@ -63,7 +83,7 @@ test("splitting rooms by gender from the room split changes eligibility and prop
   await expect(page.getByText("Pravidla ubytování byla uložena.")).toBeVisible()
   await expect(rules.getByRole("radio", { name: "Pohlaví" })).toBeChecked()
   await dialog.getByRole("button", { name: "Close" }).click()
-  await expect(page).toHaveURL(new RegExp(`term=${event.termIds[0]}`))
+  await expect(page).toHaveURL(new RegExp(`term=${event.termIds[1]}`))
 
   // The previous proposal is stale; the new one keeps one gender in the room.
   await expect(proposal.getByText("Neaktuální návrh", { exact: true })).toBeVisible()
@@ -72,8 +92,9 @@ test("splitting rooms by gender from the room split changes eligibility and prop
     timeout: 30_000,
   })
   await page.goto(
-    `/organizations/${event.organizationId}/events/${event.eventId}/registrations?view=evaluation`,
+    `/organizations/${event.organizationId}/events/${event.eventId}/registrations?view=evaluation&evaluationTerm=${event.termIds[0]}`,
   )
+  await expect(page.getByRole("tab", { name: "1. turnus", selected: true })).toBeVisible()
   await recalculate(page)
   await expect(orderRow(page, "Tereza")).toContainText("Vhodný")
   await expect(orderRow(page, "Petr")).toContainText("Neubytovatelný")

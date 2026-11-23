@@ -65,6 +65,10 @@ async function signIn(page: Page, event: OpenEvent, email: string) {
   await expect(page.getByRole("heading", { name: event.name, level: 1 })).toBeVisible()
 }
 
+async function openProgramme(page: Page) {
+  await page.getByRole("button", { name: /^Program – Turnus 1/ }).click()
+}
+
 /** Jana is confirmed for Turnus 1, Bea (same term, one bed) is waitlisted. */
 async function eventWithTwoParticipants(page: Page, browser: Browser) {
   const event = await setUpEvent(page.request, { terms, rooms })
@@ -183,8 +187,11 @@ test("the organizer edits a term's programme and the confirmed participant reads
   const participant = await participantContext.newPage()
   await signIn(participant, event, jana.email)
   await expect(participant.getByRole("heading", { name: "Program – Turnus 1" })).toBeVisible()
+  await openProgramme(participant)
+  await participant.getByRole("button", { name: /Pondělí 2\. 8\. 2027/ }).click()
   await expect(participant.getByText("Slavnostní večeře")).toBeVisible()
   await expect(participant.getByText("19:00 – 21:00")).toBeVisible()
+  await participant.getByRole("button", { name: /Úterý 3\. 8\. 2027/ }).click()
   await expect(participant.getByText("8:30 – 9:15", { exact: true })).toBeVisible()
   // They can only read: no editing or booking controls.
   await expect(participant.getByRole("button", { name: /položku|Přidat|Rezervovat/ })).toBeHidden()
@@ -196,7 +203,9 @@ test("the organizer edits a term's programme and the confirmed participant reads
   await expect(page.getByRole("dialog")).toBeHidden()
   await expect(page.getByText("Slavnostní večeře")).toBeHidden()
   await participant.reload()
+  await openProgramme(participant)
   await expect(participant.getByText("Slavnostní večeře")).toBeHidden()
+  await participant.getByRole("button", { name: /Úterý 3\. 8\. 2027/ }).click()
   await expect(participant.getByText("Snídaně")).toBeVisible()
   await participantContext.close()
 
@@ -258,6 +267,7 @@ test("a failed load, save or delete keeps the saved programme and shows no succe
   const participant = await participantContext.newPage()
   await participant.route(`${API_URL}/participant/**/programme`, (route) => route.abort())
   await signIn(participant, event, jana.email)
+  await openProgramme(participant)
   await expect(participant.getByText("Program se nepodařilo načíst")).toBeVisible()
   await expect(participant.getByText("Program zatím není připravený.")).toBeHidden()
   await participant.unroute(`${API_URL}/participant/**/programme`)
@@ -273,6 +283,7 @@ test("a waitlisted participant gets an explanation and no programme", async ({ p
   const context = await browser.newContext()
   const participant = await context.newPage()
   await signIn(participant, event, bea.email)
+  await openProgramme(participant)
   await expect(
     participant.getByText("Program je dostupný až po potvrzení účasti v tomto termínu."),
   ).toBeVisible()
