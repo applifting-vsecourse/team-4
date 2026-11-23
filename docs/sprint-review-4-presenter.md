@@ -4,57 +4,54 @@ Scénář používá obnovitelná data [S4-T08](https://github.com/applifting-vs
 
 ## Spuštění
 
-V kořeni repozitáře:
+V kořeni repozitáře nastartujte lokální služby a obnovte data:
 
 ```bash
-pnpm frontend demo:v4
+pnpm backend docker:up:wait
+pnpm dev:servers
+pnpm demo:reset
 ```
 
-Průchod se zastavuje po kapitolách; pokračujte šipkou doprava, PageDown nebo tlačítkem **Spustit**. `Alt+P` pozastaví nebo obnoví akce. Konec zůstane na obrazovce do potvrzení prezentujícího. Pro souvislý nácvik spusťte:
+Otevřete dvě okna: organizátora Marka a mobilní šířku 360 px pro Adama. Marek se přihlásí účtem `team4vse@seznam.cz` / `akcio-demo-2026`. Adam začne na veřejné stránce `/e/lipa-kurz`; magic link pro účastnický portál otevřete z výstupu backendu v terminálu. Pokud je prostředí už spuštěné, stačí znovu `pnpm demo:reset`.
 
-```bash
-pnpm frontend demo:v4:autoplay
-```
-
-Demo otevře přihlášený pohled Marka a mobilní náhled Adama o šířce 360 px. Mobil začíná rovnou na veřejné stránce **Kurzu první pomoci**; Adamova relace se připraví předem bez viditelného přesměrování na **Moje přihlášky**. Na nasazené aplikaci demo vyžádá odkaz pro `team4vse@seznam.cz`; vložte nejnovější odkaz do výzvy před průchodem.
-
-Před promítáním maximalizujte nebo přepněte obě stránky do prezentačního režimu. Nativní kurzor je v obsahu skrytý a žlutý kurzor s tmavým obrysem se řídí výhradně pohyby dema; nereaguje na pohyb myši prezentujícího. Před akcí plynule dojede na cíl a krátce počká. Při přesunu Petra sleduje celý automatický tah od uchopení karty po puštění v podkroví.
+Před promítáním maximalizujte nebo přepněte obě stránky do prezentačního režimu. Scénář projděte ručně podle časového plánu níže.
 
 ## Časovaný průchod
 
-| Čas       | Obraz a akce                                                                                                                                                                                       | Krátká věta k přednesu                                                                                                                     |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0:00–0:45 | Marek otevře nastavení **Kurzu první pomoci** a rozbalí **Veřejný přístup**. Ukažte zveřejnění, otevřené přihlašování a text podmínek včetně storna.                                               | „Kurz je veřejně dostupný, přihlášky jsou otevřené a podmínky včetně storna jsou vidět před odesláním.“                                    |
-| 0:45–1:35 | Přepněte na mobilní náhled. Adam na veřejném odkazu vybere první termín, ukažte **650 Kč** a předvyplněné jméno, telefon i ověřený e-mail. Rozbalte podmínky.                                      | „Adamovy údaje se doplnily z profilu. Před odesláním zná cenu a potvrzuje podmínky.“                                                       |
-| 1:35–2:15 | Adam potvrdí podmínky, odešle přihlášku. Na potvrzení chvíli zůstaňte.                                                                                                                             | „Přihláška je odeslaná. Výsledek zůstává na mobilu.“                                                                                       |
-| 2:15–2:55 | Marek otevře **Tábor v Jizerkách → Platby**, vybere Fio výpis `fio-vypis-tabor-dve-platby.csv` a spustí import. Ukažte automaticky přiřazenou Adamovu platbu i Elišku v nespárovaných transakcích. | „Jednu platbu jsme podle variabilního symbolu přiřadili Adamovi. Druhá přišla bez něj, takže ji Marek vidí ve frontě k ručnímu přiřazení.“ |
-| 2:55–3:30 | Ukažte Adamův řádek **2 500 Kč** a saldo **0 Kč**, Eliščinou nezařazenou platbu **1 250 Kč** a na Adamově mobilu oznámení **Přijatá platba**.                                                      | „Doplatek je nulový a Adam vidí oznámení o přijaté platbě.“                                                                                |
-| 3:30–4:15 | Adam v detailu táborové přihlášky otevře **Upravit přihlášku → Spolubydlící**, zvolí Filipa a uloží. Marek v nastavení tábora ukáže oddělení pokojů podle pohlaví a preferenci spolubydlících.     | „Adam přidal Filipa. Organizátor kombinuje pevné oddělení pokojů a měkké přání.“                                                           |
-| 4:15–5:10 | Marek přejde do **Ubytování → Rozdělení**, vybere 2. turnus. V rozbalené Chatce Buk uchopí kartu Petra a plynule ji přetáhne do **Podkroví hlavní budovy**.                                        | „Petra přesouvám do podkroví a jeho rozhodnutí zamykám.“                                                                                   |
-| 5:10–6:00 | Otevřete nabídku Petra, zvolte **Zamknout umístění** a ukažte zámek vedle jména. Spusťte **Navrhnout pokoje**. Během čekání na solver popište rozdělení velkých skupin do kapacit.                 | „Návrh rozdělí ostatní podle pravidel a zámek zachová ruční umístění Petra.“                                                               |
-| 6:00–6:45 | V návrhu ukažte Petra v podkroví, návrh použijte a ve **Uloženém rozdělení** znovu ukažte Petra v podkroví se zámkem.                                                                              | „Stejné umístění je v návrhu i po jeho uložení.“                                                                                           |
-| 6:45–7:25 | Marek přepne na 1. turnus a zveřejní rozdělení.                                                                                                                                                    | „Zveřejňuji pouze první turnus; druhý zůstává neveřejný.“                                                                                  |
-| 7:25–8:30 | Adam obnoví detail přihlášky na tábor. Ukažte **Chatka Buk** a u přání Filipa stav **Splněno**. Na výsledku zůstaňte do konce.                                                                     | „Adam vidí své zveřejněné ubytování i splněné přání na Filipa.“                                                                            |
-| 8:30–9:00 | Rezerva pro přepnutí oken, pomalý solver nebo dotaz.                                                                                                                                               | „Tohle je celý průchod od přihlášky přes platbu až po pokoj.“                                                                              |
+| Čas       | Obraz a akce                                                                                                                                                                                                                                                                                                       | Krátká věta k přednesu                                                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0:00–0:45 | Marek otevře nastavení **Kurzu první pomoci** a rozbalí **Veřejný přístup**. Ukažte zveřejnění, otevřené přihlašování a text podmínek včetně storna.                                                                                                                                                               | „Kurz je veřejně dostupný, přihlášky jsou otevřené a podmínky včetně storna jsou vidět před odesláním.“                                    |
+| 0:45–1:35 | Přepněte na mobilní náhled. Adam na veřejném odkazu vybere první termín, ukažte **650 Kč** a předvyplněné jméno, telefon i ověřený e-mail. Rozbalte podmínky.                                                                                                                                                      | „Adamovy údaje se doplnily z profilu. Před odesláním zná cenu a potvrzuje podmínky.“                                                       |
+| 1:35–2:15 | Adam potvrdí podmínky, odešle přihlášku. Na potvrzení chvíli zůstaňte.                                                                                                                                                                                                                                             | „Přihláška je odeslaná. Výsledek zůstává na mobilu.“                                                                                       |
+| 2:15–2:55 | Marek otevře **Tábor v Jizerkách → Platby**, vybere Fio výpis `fio-vypis-tabor-dve-platby.csv` a spustí import. Ukažte automaticky přiřazenou Adamovu platbu i Elišku v nespárovaných transakcích.                                                                                                                 | „Jednu platbu jsme podle variabilního symbolu přiřadili Adamovi. Druhá přišla bez něj, takže ji Marek vidí ve frontě k ručnímu přiřazení.“ |
+| 2:55–3:30 | Ukažte Adamův řádek **2 500 Kč** a saldo **0 Kč**, Eliščinou nezařazenou platbu **1 250 Kč** a na Adamově mobilu oznámení **Přijatá platba**.                                                                                                                                                                      | „Doplatek je nulový a Adam vidí oznámení o přijaté platbě.“                                                                                |
+| 3:30–4:05 | Adam v detailu táborové přihlášky zvolí Filipa v **Upravit přihlášku → Spolubydlící** a uloží přání. Marek ukáže pravidlo pohlaví a měkké přání.                                                                                                                                                                   | „Přání je podkladem návrhu; oddělení podle pohlaví zůstává pevným pravidlem.“                                                              |
+| 4:05–5:00 | Marek otevře **Ubytování → Rozdělení**, 1. turnus. Ukažte Adama + Davida v Buku, Filipa sám v podkroví, Elišku + Terezu v Javoru. Spusťte návrh a v náhledu ukažte Adama s Filipem spolu v Buku. Vraťte se na uložené rozdělení a ukažte tabulku přání: uložený stav **Nesplněno**, stav podle návrhu **Splněno**. | „Návrh mění umístění tak, aby vyhověl Adamovu přání.“                                                                                      |
+| 5:00–5:35 | Návrh použijte a zveřejněte 1. turnus. Na Adamově mobilu obnovte detail přihlášky a ukažte pokoj a **Splněno** u Filipa.                                                                                                                                                                                           | „Adam po zveřejnění vidí pokoj i výsledek svého přání.“                                                                                    |
+| 5:35–6:10 | V organizátoru vyberte 2. turnus. Ukažte 15 přihlášených: 10 potvrzených (Petr, Lukáš, osm žen) a pět žen čeká na vyhodnocení; ukažte chatky 8 + 2 a pravidlo pohlaví.                                                                                                                                             | „Čekající přihlášky zatím lůžka nezabírají.“                                                                                               |
+| 6:10–6:50 | Spusťte návrh a nechte ho v náhledu. Ukažte **10 z 10** potvrzených s pokojem: osm žen v Buku, dva muži v Javoru. Návrh nepoužívejte.                                                                                                                                                                              | „Bez ručního zásahu se všichni potvrzení vejdou.“                                                                                          |
+| 6:50–7:20 | Zavřete náhled. V **Uloženém rozdělení** přesuňte Petra do velké Chatky Buk a v nabídce karty zvolte **Zamknout umístění**.                                                                                                                                                                                        | „Petr potřebuje být kvůli večerní službě ve velké chatce.“                                                                                 |
+| 7:20–8:30 | Spusťte nový návrh a nechte ho v náhledu. Ukažte **4 z 10** s pokojem: Petr + Lukáš v Buku, dvě ženy v Javoru a šest žen bez pokoje. Ukažte šest volných lůžek v Buku a důvod **Pohlaví** u žen bez pokoje. Návrh nepoužívejte.                                                                                    | „Šest lůžek zůstává volných, protože ženy podle pravidla nemohou sdílet chatku s muži. Důsledek je vidět před použitím návrhu.“            |
+| 8:30–9:00 | Rezerva pro přepnutí oken, pomalý solver nebo dotaz.                                                                                                                                                                                                                                                               | „Tohle je celý průchod od přihlášky přes platbu až po pokoj.“                                                                              |
 
 ## Příprava a opakování
 
-1. Obnovte demo data podle [`apps/backend/prisma/demo/README.md`](../apps/backend/prisma/demo/README.md). Pro čistý lokální nácvik je příkaz z kořene repozitáře:
+1. Spusťte lokální databázi a aplikaci. Pokud služby ještě neběží:
 
    ```bash
-   pnpm --filter backend exec prisma db execute --file prisma/demo/demo-create.sql
+   pnpm backend docker:up:wait
+   pnpm dev:servers
    ```
 
-   Lokální `.env` musí mířit na lokální Postgres. Produkční verzi skriptu spusťte jen v Admineru podle README, nikoli přes lokální Prisma CLI.
+2. V dalším terminálu spusťte `pnpm demo:reset`. Obnoví scénář a nahraje fotky přes místní API. `pnpm dev` spusťte jen tehdy, když záměrně chcete i obecný vývojový seed. Produkční data obnovujte jen v Admineru podle README.
 
-2. Spusťte lokální aplikaci (`pnpm dev`) nebo nastavte `E2E_BASE_URL` na nasazenou verzi. Ověřte, že účet Marka a veřejný odkaz `/e/lipa-kurz` fungují.
-3. Spusťte `pnpm frontend demo:v4`. Marek se přihlásí automaticky; na produkci ještě vložte Adamův aktuální magic link.
-4. Po průchodu spusťte obnovu dat znovu a přehrajte scénář podruhé. SQL obnoví i nepoužitý Fio import, odstraní novou přihlášku na kurz a vrátí pokoje na výchozí stav. Před každým během ověřte, že import hlásí dvě nové transakce a jedno automatické spárování.
-5. Časovaný scénář počítá s mluveným komentářem a ručním tempem při přepínání oken; hlavní část končí v 8:30 a zůstává 30 sekund rezervy. Automatický průchod se třikrát podařil z obnovených dat a trval přibližně 2:30 včetně čekání na solver. Tento čas ověřuje průchodnost, nikoli devítiminutový přednes. Před prezentací proto projděte tabulku nahlas se stopkami; `demo:v4:autoplay` slouží jako technická kontrola.
+3. Otevřete organizátora i mobil účastníka a ověřte, že funguje přihlášení Marka i veřejná stránka `/e/lipa-kurz`.
+4. Po průchodu spusťte `pnpm demo:reset` znovu. Odstraní novou přihlášku na kurz a import a vrátí oba turnusy do výchozího stavu. Před během ověřte dvě nové transakce a jedno automatické spárování.
+5. Časovaný scénář počítá s mluveným komentářem a ručním tempem při přepínání oken; hlavní část končí v 8:30 a zůstává 30 sekund rezervy. Pro devítiminutový průchod projděte tabulku nahlas se stopkami.
 
 ## Ruční pokračování ze stejné obrazovky
 
-- **Přesun a zámek Petra:** zůstaňte na kartě Petra v Chatce Buk. Uchopte ji myší, přetáhněte do podkroví a pusťte; pak otevřete nabídku karty a vyberte **Zamknout umístění**. Pokud drag-and-drop selže, nabídka karty nabízí **Přesunout do pokoje → Podkroví hlavní budovy**. Spusťte solver až po potvrzení uloženého přesunu a zámku. Po použití návrhu zkontrolujte oba pohledy, než přejdete dál.
+- **Přesun a zámek Petra:** ve 2. turnusu přetáhněte Petra z nezařazených do Chatky Buk; pak v nabídce karty vyberte **Zamknout umístění**. Spusťte nový návrh až po potvrzení umístění a zámku. Nechte ho v náhledu, abyste ukázali dopad před použitím.
 - **Zveřejnění na mobilu:** pokud se automatické obnovení neprojeví, zůstaňte na Adamově detailu přihlášky a klikněte na tlačítko pro obnovení stránky. Jestli první turnus ještě nebyl zveřejněný, vraťte se do organizátora, zapněte přepínač **Zveřejnit rozdělení** u 1. turnusu a obnovte mobilní detail znovu. Neopouštějte detail, dokud nejsou vidět **Chatka Buk** a **Splněno**.
 
 ## Rychlé vstupy pro dotazy

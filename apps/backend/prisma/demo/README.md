@@ -47,31 +47,43 @@ se při každém obnovení odvodí znovu od D.
 ## Tábor v Jizerkách
 
 - Tvrdé pravidlo: pokoje rozdělené podle pohlaví. Měkká preference: přání na spolubydlící.
-- U obou turnusů je rozdělení nezveřejněné a návrh pokojů se spouští ručně.
-- Všichni účastníci jsou potvrzení.
+- První turnus má uložené, odemčené rozdělení. Adam začíná s Davidem Horákem v Chatce Buk,
+  Filip je sám v podkroví a Eliška s Terezou jsou v Chatce Javor. Adam zatím nemá přání.
+- Druhý turnus začíná bez umístění a bez zveřejnění. Je v něm 10 potvrzených (Petr, Lukáš a osm
+  žen) a pět žen čeká na vyhodnocení. Návrh pokojů se spouští ručně.
 
 | Pokoj                  | 1. turnus  | 2. turnus |
 | ---------------------- | ---------- | --------- |
-| Chatka Buk             | 2 lůžka    | 2 lůžka   |
-| Chatka Javor           | 2 lůžka    | 3 lůžka   |
-| Podkroví hlavní budovy | Nedostupné | 1 lůžko   |
+| Chatka Buk             | 2 lůžka    | 8 lůžek   |
+| Chatka Javor           | 2 lůžka    | 2 lůžka   |
+| Podkroví hlavní budovy | 1 lůžko    | Nedostupné |
 
 | Turnus | Účastníci                                                           | Umístění              |
 | ------ | ------------------------------------------------------------------- | --------------------- |
-| 1.     | Adam Král, Filip Veselý                                             | Chatka Buk            |
+| 1.     | Adam Král, David Horák                                              | Chatka Buk            |
+| 1.     | Filip Veselý                                                        | Podkroví hlavní budovy |
 | 1.     | Eliška Novotná, Tereza Malá                                         | Chatka Javor          |
-| 2.     | Petr Svoboda                                                        | Chatka Buk, bez zámku |
-| 2.     | Lukáš Černý, Viktor Král, Nina Dvořáková, Barbora Malá, Zuzana Nová | Bez pokoje            |
+| 2.     | 8 potvrzených žen                                                   | Bez pokoje            |
+| 2.     | Petr Svoboda, Lukáš Černý                                           | Bez pokoje            |
+| 2.     | 5 žen                                                               | Čeká na vyhodnocení   |
 
-Lukáš a Viktor si přejí bydlet spolu. Návrh pokojů 2. turnusu proto přesune Petra do podkroví a
-dá je spolu do Chatky Buk. Adam zatím žádné přání nemá.
+Adam během dema požádá o pokoj s Filipem. Návrh přesune Adama k Filipovi do Chatky Buk a Davida
+z Buku do podkroví; přání se tím změní na **Splněno**. Po použití návrhu a zveřejnění prvního
+turnusu uvidí Adam pokoj i výsledek přání ve svém mobilním detailu.
+
+Při prvním návrhu 2. turnusu se všech 10 potvrzených vejde: osm žen do Chatky Buk a dva muži do
+Chatky Javor. Potom Marek přesune Petra do Chatky Buk a zamkne ho. Další návrh ponechá oba muže
+v Chatce Buk, do malé Chatky Javor umístí dvě ženy a šest žen nechá bez pokoje. Šest volných
+lůžek v Buk zůstane nevyužitých kvůli pravidlu oddělení pokojů podle pohlaví. Pět čekajících
+žen kapacitu pokojů nezabírá.
 
 ## Platba z Fio výpisu
 
 Adamova cena za 1. turnus je 4 500 Kč, zaevidováno je 2 000 Kč a zbývá 2 500 Kč. Jeho přihláška
-na tábor má vždy variabilní symbol `9000000001`. `fio-vypis-tabor.csv` obsahuje jednu příchozí
-platbu 2 500 Kč s tímto VS. Po importu ve správě tábora (Platby → Import výpisu) se platba
-spáruje s Adamovou přihláškou. Po každém obnovení jde výpis importovat znovu.
+na tábor má vždy variabilní symbol `9000000001`. `fio-vypis-tabor-dve-platby.csv` obsahuje
+Adamův doplatek 2 500 Kč s tímto VS a Eliščinu platbu 1 250 Kč bez VS. Po importu ve správě
+tábora (Platby → Import výpisu) se Adamova platba spáruje a Eliščina zůstane nespárovaná.
+Po každém obnovení jde výpis importovat znovu.
 
 Na rozdíl od termínů je datum platby ve výpisu pevné (21. 11. 2026). Pokud demo proběhne po 21. 12. 2026, platba by byla starší než Adamova přihláška (D − 30). V tom případě předem upravte
 ve výpisu sloupec `Datum` a období v hlavičce na dny po D − 30.
