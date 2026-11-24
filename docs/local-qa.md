@@ -1,7 +1,9 @@
 # Local QA
 
-Test the full SHA in the QA handoff. A new PR commit needs a new handoff and QA;
-advancing `main` alone does not require updating the PR branch.
+Test the PR's current commit. Its full SHA is
+`gh pr view <PR-number> --json headRefOid -q .headRefOid`. A new PR commit
+dismisses earlier approvals and needs QA again; advancing `main` alone does not
+require updating the PR branch.
 
 ## Prepare the checkout
 
@@ -10,7 +12,7 @@ preparation refuses a dirty checkout and does not switch branches for you.
 
 ```sh
 gh pr checkout <PR-number>
-pnpm qa:prepare <full-handoff-SHA>
+pnpm qa:prepare <full-PR-SHA>
 pnpm dev:servers
 ```
 
@@ -29,7 +31,7 @@ without merging main into the branch:
 git fetch origin main
 qa_helper_dir="$(mktemp -d)"
 git show origin/main:scripts/qa/prepare.mjs > "$qa_helper_dir/prepare.mjs"
-node "$qa_helper_dir/prepare.mjs" <full-handoff-SHA>
+node "$qa_helper_dir/prepare.mjs" <full-PR-SHA>
 rm -r "$qa_helper_dir"
 pnpm dev:servers
 ```
@@ -50,8 +52,10 @@ PR #135 at `92d8a9eeaee7f4dac2bd53e3c127c953ec795c89` used
 `paymentDueDays` in registration code but `paymentReminderDays` in its schema;
 that revision's error reproduces even with a freshly generated client.
 
-## Handoff
+## Approving
 
-GitHub handoffs contain the commit, QA owner and next action. Setup instructions
-stay here. After testing, approve the PR only if its current head is still the
-handoff SHA. Checks do not substitute for exercising the story's acceptance criteria.
+The QA notifier asks the tester for a review once CI passed on the current
+commit; testing earlier is fine too. Setup instructions stay here. Approve the
+PR only if its current head is still the commit you tested: an approval always
+applies to the head at the time of the review. Checks do not substitute for
+exercising the story's acceptance criteria.

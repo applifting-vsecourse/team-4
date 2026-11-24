@@ -1,0 +1,44 @@
+name: Copilot review
+
+# `/review` on a pull request runs one advisory Copilot review of its current
+# commit (#499). It posts findings as a comment and never blocks a merge.
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: review-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    # Only on PRs, only for people with access to the repository.
+    if: >-
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/review') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Trusted code and rules from main; the PR is only read as a diff.
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Review the pull request
+        run: node scripts/review/review-pr.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          REQUESTED_BY: ${{ github.event.comment.user.login }}
+          COMMENT_ID: ${{ github.event.comment.id }}

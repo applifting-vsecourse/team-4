@@ -1,6 +1,6 @@
 # ADR-0004: Pause Copilot review for integration child PRs
 
-- **Status:** Accepted 2026-11-19 in #454
+- **Status:** Superseded by ADR-0005
 - **Proposed:** 2026-11-19
 - **Deciders:** Tech lead or PM
 - **Related:** #453, #421, ADR-0003

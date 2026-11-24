@@ -1,8 +1,23 @@
-# Changes to the enforcement boundary require High severity; David or Bogdan can approve requirements.
-/.github/ @darebakdavca
-/scripts/agent-review/ @darebakdavca
-/scripts/delivery/ @darebakdavca
-/scripts/automation/ @darebakdavca
-/CLAUDE.md @darebakdavca
-/AGENTS.md @darebakdavca
-/docs/delivery-workflow.md @darebakdavca
+# Changes here need an approval from a code owner who is not the PR's author
+# (#499, ADR-0005). The paths match OWNED_PATHS in scripts/rules/rules.mjs.
+
+# Automation, CI, review and repository rules
+/.github/ @rmnskb @darebakdavca
+/scripts/ @rmnskb @darebakdavca
+
+# Dependencies
+/package.json @rmnskb @darebakdavca
+/pnpm-lock.yaml @rmnskb @darebakdavca
+/pnpm-workspace.yaml @rmnskb @darebakdavca
+/apps/*/package.json @rmnskb @darebakdavca
+
+# Infrastructure
+/docker-compose.yml @rmnskb @darebakdavca
+/apps/*/docker-compose.yml @rmnskb @darebakdavca
+/apps/*/Dockerfile* @rmnskb @darebakdavca
+/apps/frontend/nginx.conf @rmnskb @darebakdavca
+/apps/*/.env* @rmnskb @darebakdavca
+
+# Database migrations and architecture decisions
+/apps/backend/prisma/migrations/ @rmnskb @darebakdavca
+/docs/adr/ @rmnskb @darebakdavca

@@ -2,8 +2,13 @@ name: CI
 
 on:
   pull_request:
+  # The merge queue runs the required checks, with the whole E2E suite, on the
+  # merge result before it reaches main (#499).
+  merge_group:
   push:
     branches: [main]
+  # A manual run on any branch runs the whole E2E suite.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -24,10 +29,8 @@ jobs:
         run: pnpm env:check
       - name: Generate Prisma client
         run: pnpm backend prisma:generate
-      - name: Test review and merge gates
-        run: pnpm agent-review:test
-      - name: Test local QA preparation
-        run: pnpm qa:test
+      - name: Test repository scripts
+        run: pnpm scripts:test
       - name: Format check
         run: pnpm format:check
       - name: Lint backend
@@ -100,11 +103,37 @@ jobs:
       - name: Test frontend stories
         run: pnpm frontend test:stories
 
-  # Child PRs into an integration/ feature branch integrate FE and BE later, so they skip E2E.
-  # verify then fails for them, which keeps a skipped lane from passing main.
-  e2e:
-    if: ${{ !startsWith(github.base_ref, 'integration/') }}
+  # Which E2E specs this change needs: on a PR the affected ones, otherwise
+  # (merge queue, main, manual run) the whole suite. The summary says why.
+  e2e-select:
     runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.select.outputs.mode }}
+      specs: ${{ steps.select.outputs.specs }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - id: select
+        name: Select E2E specs
+        run: node scripts/e2e/affected.mjs --list
+        env:
+          E2E_BASE: ${{ github.event.pull_request.base.sha }}
+          E2E_ALL: ${{ github.event_name != 'pull_request' }}
+
+  e2e:
+    needs: e2e-select
+    if: needs.e2e-select.outputs.mode != 'none'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     services:
       postgres:
         image: postgres:17-alpine
@@ -138,33 +167,38 @@ jobs:
         run: pnpm backend migrate
       - name: Install Playwright Chromium
         run: pnpm --filter frontend exec playwright install --with-deps chromium
-      # Keep the end-to-end regression suite here; @demo walkthroughs remain runnable locally.
-      - name: End-to-end tests
-        run: pnpm frontend test:e2e:ci
+      # Each shard has its own database and servers. @demo walkthroughs stay local.
+      - name: End-to-end tests (shard ${{ matrix.shard }}/4)
+        run: >-
+          pnpm --filter frontend exec playwright test ${{ needs.e2e-select.outputs.specs }}
+          --grep-invert @demo --shard=${{ matrix.shard }}/4 --pass-with-no-tests
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ github.sha }}
+          name: playwright-report-${{ github.sha }}-${{ matrix.shard }}
           path: apps/frontend/playwright-report
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 7
 
-  # Main-target PRs require every lane. Integration PRs intentionally skip E2E;
-  # ci-verify allows only that skip while requiring all other lanes.
+  # The one required check. Every lane must pass; E2E may only be skipped when
+  # the selection found nothing to run.
   verify:
-    needs: [checks, database, stories, e2e]
+    needs: [checks, database, stories, e2e-select, e2e]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-        with:
-          persist-credentials: false
       - name: Require every CI lane
         env:
-          CHECKS: ${{ needs.checks.result }}
-          DATABASE: ${{ needs.database.result }}
-          STORIES: ${{ needs.stories.result }}
+          RESULTS: ${{ toJSON(needs.*.result) }}
           E2E: ${{ needs.e2e.result }}
-          BASE_REF: ${{ github.base_ref }}
-        run: node scripts/delivery/ci-verify.mjs
+          MODE: ${{ needs.e2e-select.outputs.mode }}
+        run: |
+          echo "Lanes: $RESULTS; E2E selection: $MODE"
+          # A skipped E2E lane passes only when the selection found nothing to run.
+          failed=$(echo "$RESULTS" | jq --arg e2e "$E2E" --arg mode "$MODE" \
+            '[.[] | select(. != "success")] | length - (if $e2e == "skipped" and $mode == "none" then 1 else 0 end)')
+          if [ "$failed" -gt 0 ]; then
+            echo "A required CI lane did not pass."
+            exit 1
+          fi

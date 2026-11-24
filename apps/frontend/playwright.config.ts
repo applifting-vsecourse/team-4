@@ -19,7 +19,9 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   // A retry would let a flaky test pass unnoticed.
   retries: 0,
-  workers: 1,
+  // Every test creates its own organizer, organization and event, so files run
+  // in parallel (#499). A CI shard has its own servers; a demo runs one at a time.
+  workers: Number(process.env.E2E_WORKERS) || (isDemo ? 1 : isCI ? 2 : 4),
   reporter: isCI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3050",

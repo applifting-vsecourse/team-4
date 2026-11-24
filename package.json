@@ -4,7 +4,7 @@
   "scripts": {
     "backend": "pnpm --filter backend",
     "frontend": "pnpm --filter frontend",
-    "agent-review:test": "node --test scripts/agent-review/*.test.mjs scripts/delivery/*.test.mjs scripts/release/*.test.mjs",
+    "scripts:test": "node --test scripts/*/*.test.mjs",
     "env:check": "node scripts/check-env.js",
     "storybook": "pnpm frontend storybook",
     "demo:reset": "pnpm --filter backend exec prisma db execute --file prisma/demo/demo-create.sql && DEMO_URL=http://localhost:4050 node apps/backend/prisma/demo/demo-photos.mjs upload",
@@ -13,7 +13,7 @@
     "dev:down": "pnpm backend docker:down",
     "lint": "pnpm frontend lint:check",
     "check": "run-s \"frontend type-check\" \"frontend lint:check\" \"frontend test:ci\"",
-    "check-all": "run-s \"backend prisma:generate\" agent-review:test qa:test \"backend lint:check\" \"backend test\" \"backend build\" \"frontend lint:check\" \"frontend type-check\" \"frontend test:ci\" \"frontend build\" format:check",
+    "check-all": "run-s \"backend prisma:generate\" scripts:test \"backend lint:check\" \"backend test\" \"backend build\" \"frontend lint:check\" \"frontend type-check\" \"frontend test:ci\" \"frontend build\" format:check",
     "check-stories": "run-s \"frontend test:stories\" \"frontend build-storybook\"",
     "format": "run-s format:root:write format:workspaces:write",
     "format:check": "run-s format:root:check format:workspaces:check",
@@ -24,7 +24,7 @@
     "format:workspaces:check": "pnpm -r --stream --if-present run format:check",
     "prepare": "husky || true",
     "qa:prepare": "node scripts/qa/prepare.mjs",
-    "qa:test": "node --test scripts/qa/*.test.mjs"
+    "e2e:affected": "node scripts/e2e/affected.mjs"
   },
   "devDependencies": {
     "dotenv-flow": "^4.1.0",

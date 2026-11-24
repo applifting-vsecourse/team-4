@@ -1,46 +1,24 @@
 name: Dependency update merge
 
-# Standard Dependabot PRs have no review, approval or QA: GitHub auto-merge
-# merges them once the required checks pass on the current commit.
+# Dependabot PRs merge on their own once a code owner approved them and the
+# required checks pass (#499): this only switches GitHub auto-merge on, and
+# the merge queue does the rest. The ruleset still requires the approval.
 on:
   pull_request_target:
-    types:
-      [
-        opened,
-        reopened,
-        synchronize,
-        labeled,
-        unlabeled,
-        ready_for_review,
-        converted_to_draft,
-      ]
-  schedule:
-    - cron: '*/5 * * * *'
-  workflow_dispatch:
+    types: [opened, reopened]
 
 permissions:
   contents: read
 
-concurrency:
-  group: dependency-merge
-  cancel-in-progress: false
-
 jobs:
-  merge:
+  auto-merge:
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      # Trusted code from main only; the PR's code is never checked out or run.
-      - uses: actions/checkout@v5
-        with:
-          ref: main
-          persist-credentials: false
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .nvmrc
-          package-manager-cache: false
-      # A personal token, not GITHUB_TOKEN: a merge made by GITHUB_TOKEN does
-      # not start the CI, deploy and release workflows on main.
-      - run: node scripts/delivery/dependency-merge-run.mjs
+      # A personal token, not GITHUB_TOKEN: a merge started by GITHUB_TOKEN does
+      # not run the CI, deploy and release workflows on main.
+      - run: gh pr merge --auto --merge "$PR" --repo "$GITHUB_REPOSITORY"
         env:
-          GITHUB_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
+          GH_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
