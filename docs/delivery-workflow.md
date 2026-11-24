@@ -55,23 +55,27 @@ notifier asks.
 
 The QA notifier ([`qa-notify.yml`](../.github/workflows/qa-notify.yml)) never
 blocks anything. When CI passes on the current commit of an open, non-draft PR
-it requests a review from `MatejKrones` (on Matej's PRs from `darebakdavca`),
-unless that person already approved this commit or is already asked, and moves
-the issues the PR links to Ready for Testing. A PR that changes only
-documentation asks nobody: any teammate approves it. Failed CI moves an issue
-in Ready for Testing back to In Progress; a merge moves it to Done. Issues a
-person moved elsewhere stay where they are.
+into `main`, or such a PR is marked ready, it requests a review from
+`MatejKrones` (on Matej's PRs from `darebakdavca`) and moves the issues the PR
+links to Ready for Testing. It asks nobody when the tester or a code owner
+already approved this commit, when the tester already reviewed it, for a PR
+that changes only documentation (any teammate approves it) and for Dependabot
+PRs (a code owner approves them). Failed CI moves an issue in Ready for Testing
+back to In Progress. A merge moves the issues the PR closes (`Closes #N`) to
+Done; an issue it only refers to (`Refs #N`) stays where it is. Issues a person
+moved past testing stay where they are.
 
 ## Copilot review
 
-A comment `/review` on a PR by anyone with access to the repository runs one
-Copilot review of the PR's current commit
+A comment that starts with `/review` alone on its first line, by anyone with
+access to the repository, runs one Copilot review of the PR's current commit
 ([`review.yml`](../.github/workflows/review.yml)). It reads the diff, the PR
 description, the linked issue and the review rules from `CLAUDE.md` and
 `DESIGN.md` on `main`, and posts its findings as a comment: possible breakages
 first, then notes. The review is advisory. It informs the human reviewer and
-never blocks a merge; ask again after new commits if you want another one. The
-model has no tools and never runs the PR's code.
+never blocks a merge; ask again after new commits if you want another one.
+Copilot CLI runs without tool permissions, with the trusted checkout of `main`
+and only its own token; the PR's code is never checked out or run.
 
 ## Local checks
 
@@ -140,7 +144,9 @@ stops before building anything otherwise. A manual run uses the workflow file of
 the ref it starts from, and the deploy secrets are repository-wide, so this
 guard prevents mistakes but does not stop a branch with an edited `deploy.yml`.
 
-To bump minor or major, publish the higher tag by hand; the next merge
+The merge queue may merge several PRs together; the release of that merge is
+named after the last of them, and its notes list everything since the previous
+tag. To bump minor or major, publish the higher tag by hand; the next merge
 continues from it. Redeploying an older version does not roll back database
 migrations.
 

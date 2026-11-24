@@ -4,8 +4,9 @@ name: Dependency update merge
 # required checks pass (#499): this only switches GitHub auto-merge on, and
 # the merge queue does the rest. The ruleset still requires the approval.
 on:
+  # Also after Dependabot rebases its branch; switching auto-merge on is idempotent.
   pull_request_target:
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
 
 permissions:
   contents: read

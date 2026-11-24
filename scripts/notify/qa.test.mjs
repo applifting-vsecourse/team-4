@@ -17,6 +17,7 @@ const pr = (overrides = {}) => ({
   state: 'open',
   draft: false,
   head: { sha: SHA },
+  base: { ref: 'main' },
   user: { login: 'rmnskb' },
   requested_reviewers: [],
   ...overrides,
@@ -111,12 +112,69 @@ test('the board only moves forward from statuses before testing', () => {
   assert.ok(!mayMove(null, DONE));
 });
 
-test('linked issues come from closing keywords and Refs, not code or comments', () => {
+test('linked issues split closing keywords from Refs, ignoring code and comments', () => {
   assert.deepEqual(
     linkedIssues(
       'Closes #12, refs #13\n<!-- Closes #99 -->\n`Fixes #98`\n```\nResolves #97\n```',
     ),
-    [12, 13],
+    { closes: [12], refs: [13] },
   );
-  assert.deepEqual(linkedIssues(undefined), []);
+  assert.deepEqual(linkedIssues('Refs #5\nFixes #5'), {
+    closes: [5],
+    refs: [],
+  });
+  assert.deepEqual(linkedIssues(undefined), { closes: [], refs: [] });
+});
+
+test("a code owner's approval of this commit covers QA", () => {
+  const result = onChecks(
+    checks({
+      pr: pr({ user: { login: 'MatejKrones' } }),
+      reviews: [
+        { user: { login: 'rmnskb' }, state: 'APPROVED', commit_id: SHA },
+      ],
+    }),
+  );
+  assert.equal(result.request, null);
+  assert.equal(result.status, READY_FOR_TESTING);
+  assert.match(result.reason, /rmnskb already approved/);
+});
+
+test('the author approving their own PR covers nothing', () => {
+  const result = onChecks(
+    checks({
+      reviews: [
+        { user: { login: 'rmnskb' }, state: 'APPROVED', commit_id: SHA },
+      ],
+    }),
+  );
+  assert.equal(result.request, 'MatejKrones');
+});
+
+test('after the tester reviewed this commit, a CI re-run asks nobody and moves nothing', () => {
+  for (const state of ['CHANGES_REQUESTED', 'COMMENTED']) {
+    const result = onChecks(
+      checks({
+        reviews: [{ user: { login: 'MatejKrones' }, state, commit_id: SHA }],
+      }),
+    );
+    assert.deepEqual(
+      { request: result.request, status: result.status },
+      { request: null, status: null },
+      state,
+    );
+  }
+});
+
+test('dependency updates and PRs not into main ask no tester', () => {
+  for (const input of [
+    checks({ pr: pr({ user: { login: 'dependabot[bot]' } }) }),
+    checks({ pr: pr({ base: { ref: 'feature/x' } }) }),
+  ]) {
+    const result = onChecks(input);
+    assert.deepEqual(
+      { request: result.request, status: result.status },
+      { request: null, status: null },
+    );
+  }
 });

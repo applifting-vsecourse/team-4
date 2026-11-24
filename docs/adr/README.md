@@ -74,4 +74,4 @@ applies or changes an accepted decision mentions the ADR in its description.
 | [0002](0002-room-proposal-local-search.md)                    | Lay out room proposals by deterministic local search | Accepted   |
 | [0003](0003-pause-copilot-review.md)                          | Pause Copilot review during outages                  | Superseded |
 | [0004](0004-pause-copilot-review-for-integration-children.md) | Pause Copilot review for integration child PRs       | Superseded |
-| [0005](0005-native-github-delivery.md)                        | Deliver through native GitHub rules                  | Proposed   |
+| [0005](0005-native-github-delivery.md)                        | Deliver through native GitHub rules                  | Accepted   |

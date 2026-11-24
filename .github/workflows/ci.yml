@@ -168,10 +168,18 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm --filter frontend exec playwright install --with-deps chromium
       # Each shard has its own database and servers. @demo walkthroughs stay local.
+      # Only a partial selection may leave a shard empty; the whole suite never.
       - name: End-to-end tests (shard ${{ matrix.shard }}/4)
-        run: >-
-          pnpm --filter frontend exec playwright test ${{ needs.e2e-select.outputs.specs }}
-          --grep-invert @demo --shard=${{ matrix.shard }}/4 --pass-with-no-tests
+        env:
+          E2E_SPECS: ${{ needs.e2e-select.outputs.specs }}
+          EMPTY: ${{ needs.e2e-select.outputs.mode == 'some' && '--pass-with-no-tests' || '' }}
+          SHARD: ${{ matrix.shard }}
+        # E2E_SPECS is a space-separated list of e2e/*.spec.ts paths; empty runs all.
+        run: |
+          read -ra specs <<< "$E2E_SPECS"
+          read -ra extra <<< "$EMPTY"
+          pnpm --filter frontend exec playwright test "${specs[@]}" \
+            --grep-invert @demo --shard="$SHARD/4" "${extra[@]}"
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4

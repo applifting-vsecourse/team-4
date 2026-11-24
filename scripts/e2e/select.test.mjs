@@ -123,3 +123,20 @@ test('areas combine across changed paths', () => {
   assert.ok(result.specs.includes('statement-import.spec.ts'));
   assert.equal(result.reasons.length, 2);
 });
+
+test('the public registration form runs the registration specs too', () => {
+  const result = select(
+    'apps/frontend/src/routes/e/$publicId/registration.tsx',
+  );
+  for (const spec of [
+    'public-detail.spec.ts',
+    'registration-needs.spec.ts',
+    'gender.spec.ts',
+    'qr-payment.spec.ts',
+    'participant-profile.spec.ts',
+  ])
+    assert.ok(result.specs.includes(spec), spec);
+  assert.deepEqual(result.reasons, [
+    'apps/frontend/src/routes/e/$publicId/registration.tsx: area events, registrations',
+  ]);
+});

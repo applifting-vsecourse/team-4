@@ -5,6 +5,7 @@ import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { executeReview, planReview } from './batches.mjs';
+import { reviewRequested } from './command.mjs';
 import {
   formatReviewComment,
   MAX_PROMPT_BYTES,
@@ -119,6 +120,16 @@ async function runCopilot(prompt) {
   }
 }
 
+const request = reviewRequested({
+  body: process.env.COMMENT_BODY,
+  association: process.env.AUTHOR_ASSOCIATION,
+  isPullRequest: process.env.IS_PULL_REQUEST === 'true',
+});
+if (!request.run) {
+  console.log(`No review: ${request.reason}.`);
+  process.exit(0);
+}
+
 const meta = await api(`/repos/${cfg.repo}/pulls/${cfg.pr}`);
 const sha = meta.head.sha;
 if (cfg.commentId)
@@ -139,6 +150,12 @@ try {
     diff,
     rules: await readRules(),
   };
+  // The diff must belong to the commit the comment names.
+  const now = await api(`/repos/${cfg.repo}/pulls/${cfg.pr}`);
+  if (now.head.sha !== sha)
+    throw new Error(
+      `během načítání přibyl commit \`${now.head.sha.slice(0, 7)}\`; vyžádejte review znovu`,
+    );
   const limit = cfg.stdin ? MAX_STDIN_PROMPT_BYTES : MAX_PROMPT_BYTES;
   const plan = planReview(context, meta, limit);
   outcome = await executeReview(plan, context, runCopilot, console.log, limit);

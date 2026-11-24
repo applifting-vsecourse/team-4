@@ -154,7 +154,9 @@ const ROUTE_AREAS = [
     ),
     'landing',
   ],
-  [new RegExp(`^${FE}src/routes/(e|events)/`), 'events'],
+  // The public form lives under /e/…/registration: registrations as well.
+  [new RegExp(`^${FE}src/routes/e/`), ['events', 'registrations']],
+  [new RegExp(`^${FE}src/routes/events/`), 'events'],
   [new RegExp(`^${FE}src/routes/my-registrations/`), 'participant'],
   [new RegExp(`^${FE}src/routes/(my-notifications|my-profile)`), 'participant'],
   [new RegExp(`^${FE}src/routes/platba/`), 'payments'],
@@ -166,12 +168,15 @@ const ROUTE_AREAS = [
   ],
 ];
 
-function areaOf(path) {
+/** The areas a path belongs to; empty when no rule knows it. */
+function areasOf(path) {
   const folder =
     new RegExp(`^${FE}src/features/([^/]+)/`).exec(path) ??
     new RegExp(`^${BE}src/modules/([^/]+)/`).exec(path);
-  if (folder) return FOLDER_AREAS[folder[1]] ?? null;
-  return ROUTE_AREAS.find(([pattern]) => pattern.test(path))?.[1] ?? null;
+  const area = folder
+    ? FOLDER_AREAS[folder[1]]
+    : ROUTE_AREAS.find(([pattern]) => pattern.test(path))?.[1];
+  return area ? [area].flat() : [];
 }
 
 /**
@@ -209,11 +214,12 @@ export function selectSpecs(paths, specFiles) {
     if (NO_IMPACT.some((pattern) => pattern.test(path))) continue;
     const everything = EVERYTHING.find(([pattern]) => pattern.test(path));
     if (everything) return all(`${path}: ${everything[1]}`);
-    const area = areaOf(path);
-    if (!area) return all(`${path}: impact unknown`);
-    const matched = specFiles.filter((file) => SPEC_AREAS[file].includes(area));
-    for (const file of matched) specs.add(file);
-    reasons.push(`${path}: area ${area}`);
+    const areas = areasOf(path);
+    if (!areas.length) return all(`${path}: impact unknown`);
+    for (const file of specFiles)
+      if (SPEC_AREAS[file].some((area) => areas.includes(area)))
+        specs.add(file);
+    reasons.push(`${path}: area ${areas.join(', ')}`);
   }
   return specs.size
     ? { mode: 'some', specs: [...specs].sort(), reasons }

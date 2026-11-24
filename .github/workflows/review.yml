@@ -17,7 +17,8 @@ concurrency:
 
 jobs:
   review:
-    # Only on PRs, only for people with access to the repository.
+    # A cheap pre-filter; scripts/review/command.mjs decides (exact `/review`,
+    # on a PR, by someone with access to the repository).
     if: >-
       github.event.issue.pull_request &&
       startsWith(github.event.comment.body, '/review') &&
@@ -42,3 +43,6 @@ jobs:
           PR_NUMBER: ${{ github.event.issue.number }}
           REQUESTED_BY: ${{ github.event.comment.user.login }}
           COMMENT_ID: ${{ github.event.comment.id }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          AUTHOR_ASSOCIATION: ${{ github.event.comment.author_association }}
+          IS_PULL_REQUEST: ${{ github.event.issue.pull_request != null }}

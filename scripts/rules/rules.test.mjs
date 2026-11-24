@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import {
   codeownersProblems,
   mainRuleset,
+  planInstall,
   rulesetDifferences,
   selectRuleset,
 } from './rules.mjs';
@@ -126,4 +127,52 @@ test('CODEOWNERS gives every owned path to both owners', () => {
     ['/.github/', '/package.json'],
   );
   assert.ok(codeownersProblems('/docs/adr/ @rmnskb\n').includes('/docs/adr/'));
+});
+
+const REPO = 'org/repo';
+const CODEOWNERS = readFileSync('.github/CODEOWNERS', 'utf8');
+const install = (overrides = {}) =>
+  planInstall({
+    repo: REPO,
+    rulesets: [
+      { id: 1, name: 'Protect main', source: REPO },
+      { id: 2, name: 'Protect integration branches', source: REPO },
+    ],
+    stored: mainRuleset(),
+    codeowners: CODEOWNERS,
+    localTree: 'tree',
+    trustedTree: 'tree',
+    ...overrides,
+  });
+
+test('the installer refuses rules that are not merged to main', () => {
+  assert.match(
+    install({ localTree: 'other' }).refuse,
+    /differ from origin\/main/,
+  );
+});
+
+test('the installer refuses a CODEOWNERS on main that misses an owned path', () => {
+  assert.match(
+    install({ codeowners: '/scripts/ @rmnskb @darebakdavca\n' }).refuse,
+    /does not give both owners/,
+  );
+});
+
+test('the installer updates Protect main and deletes the integration ruleset', () => {
+  const plan = install();
+  assert.equal(plan.refuse, undefined);
+  assert.equal(plan.main, 1);
+  assert.deepEqual(plan.changes, []);
+  assert.deepEqual(
+    plan.retired.map((rule) => rule.id),
+    [2],
+  );
+});
+
+test('the installer creates Protect main when there is none', () => {
+  const plan = install({ rulesets: [], stored: null });
+  assert.equal(plan.main, null);
+  assert.deepEqual(plan.changes, ['create']);
+  assert.deepEqual(plan.retired, []);
 });

@@ -1,6 +1,6 @@
 # ADR-0005: Deliver through native GitHub rules
 
-- **Status:** Proposed
+- **Status:** Accepted 2026-11-24 in #506
 - **Proposed:** 2026-11-24
 - **Deciders:** tech lead (`rmnskb`); PM (`darebakdavca`) for the issue scope
 - **Related:** #499, ADR-0001, ADR-0003, ADR-0004, #313, #334

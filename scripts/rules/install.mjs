@@ -11,9 +11,9 @@ import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  codeownersProblems,
   MAIN_RULESET,
   mainRuleset,
+  planInstall,
   RETIRED_RULESETS,
   rulesetDifferences,
   selectRuleset,
@@ -33,27 +33,19 @@ const repo = run('gh', [
 ]);
 
 run('git', ['fetch', '--quiet', 'origin', 'main']);
-const local = run('git', ['rev-parse', 'HEAD:scripts/rules']);
-const trusted = run('git', ['rev-parse', 'origin/main:scripts/rules']);
-if (local !== trusted)
-  throw new Error('scripts/rules differ from origin/main; merge them first.');
-
-const problems = codeownersProblems(
-  run('git', ['show', 'origin/main:.github/CODEOWNERS']),
-);
-if (problems.length)
-  throw new Error(
-    `CODEOWNERS on main does not give both owners: ${problems.join(', ')}`,
-  );
-
 const rulesets = gh(`repos/${repo}/rulesets?includes_parents=false`);
-const proposed = mainRuleset();
 const current = selectRuleset(rulesets, repo, MAIN_RULESET);
-const stored = current ? gh(`repos/${repo}/rulesets/${current.id}`) : null;
-const changes = stored ? rulesetDifferences(stored, proposed) : ['create'];
-const retired = RETIRED_RULESETS.map((name) =>
-  selectRuleset(rulesets, repo, name),
-).filter(Boolean);
+const plan = planInstall({
+  repo,
+  rulesets,
+  stored: current ? gh(`repos/${repo}/rulesets/${current.id}`) : null,
+  codeowners: run('git', ['show', 'origin/main:.github/CODEOWNERS']),
+  localTree: run('git', ['rev-parse', 'HEAD:scripts/rules']),
+  trustedTree: run('git', ['rev-parse', 'origin/main:scripts/rules']),
+});
+if (plan.refuse) throw new Error(plan.refuse);
+const { changes, retired } = plan;
+const proposed = mainRuleset();
 
 console.log(
   changes.length

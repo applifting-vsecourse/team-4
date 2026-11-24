@@ -28,9 +28,13 @@ const git = (...gitArgs) =>
 function changedPaths() {
   const base =
     process.env.E2E_BASE || git('merge-base', 'origin/main', 'HEAD')[0];
-  const paths = new Set(git('diff', '--name-only', `${base}...HEAD`));
+  // Without rename detection a moved file counts at its old and new path.
+  const paths = new Set(
+    git('diff', '--name-only', '--no-renames', `${base}...HEAD`),
+  );
   if (!process.env.CI) {
-    for (const path of git('diff', '--name-only', 'HEAD')) paths.add(path);
+    for (const path of git('diff', '--name-only', '--no-renames', 'HEAD'))
+      paths.add(path);
     for (const path of git('ls-files', '--others', '--exclude-standard'))
       paths.add(path);
   }

@@ -145,7 +145,7 @@ async function moveIssue(number, target) {
 }
 
 const pr = await api(`/repos/${cfg.repo}/pulls/${cfg.pr}`);
-const issues = linkedIssues(pr.body);
+const links = linkedIssues(pr.body);
 
 if (cfg.event === 'ready') {
   // CI does not run again when a draft becomes ready: use its latest verify.
@@ -163,7 +163,8 @@ if (cfg.event === 'merged') {
   if (!pr.merged) {
     console.log(`#${cfg.pr} was closed without merging.`);
   } else {
-    for (const number of issues) await moveIssue(number, DONE);
+    // Only issues the PR closes are done; a `Refs` issue stays open and put.
+    for (const number of links.closes) await moveIssue(number, DONE);
   }
 } else if (cfg.event === 'checks') {
   // A cancelled or skipped run (e.g. superseded by a newer push) says nothing.
@@ -189,7 +190,8 @@ if (cfg.event === 'merged') {
       body: { reviewers: [decision.request] },
     });
   if (decision.status)
-    for (const number of issues) await moveIssue(number, decision.status);
+    for (const number of [...links.closes, ...links.refs])
+      await moveIssue(number, decision.status);
 } else {
   throw new Error(`Unknown event: ${cfg.event}`);
 }

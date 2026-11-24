@@ -135,3 +135,35 @@ export function codeownersProblems(text) {
   const expected = [...OWNERS].sort().join(' ');
   return OWNED_PATHS.filter((path) => lines.get(path) !== expected);
 }
+
+/**
+ * What the installer will do, or why it refuses. `stored` is the stored main
+ * ruleset (null when there is none); the trees are the git object ids of
+ * scripts/rules in this checkout and on origin/main.
+ */
+export function planInstall({
+  repo,
+  rulesets,
+  stored,
+  codeowners,
+  localTree,
+  trustedTree,
+}) {
+  if (localTree !== trustedTree)
+    return {
+      refuse: 'scripts/rules differ from origin/main; merge them first.',
+    };
+  const problems = codeownersProblems(codeowners);
+  if (problems.length)
+    return {
+      refuse: `CODEOWNERS on main does not give both owners: ${problems.join(', ')}`,
+    };
+  const current = selectRuleset(rulesets, repo, MAIN_RULESET);
+  return {
+    main: current ? current.id : null,
+    changes: stored ? rulesetDifferences(stored, mainRuleset()) : ['create'],
+    retired: RETIRED_RULESETS.map((name) =>
+      selectRuleset(rulesets, repo, name),
+    ).filter(Boolean),
+  };
+}
