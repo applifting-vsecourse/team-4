@@ -11,13 +11,13 @@ import {
 
 const rule = (type) => mainRuleset().rules.find((r) => r.type === type);
 
-test('a PR needs one approval of its latest push from someone else', () => {
+test('a PR needs one approval of its latest push from any eligible teammate', () => {
   const pr = rule('pull_request').parameters;
   assert.equal(pr.required_approving_review_count, 1);
   // A new commit dismisses older approvals; its pusher cannot approve it.
   assert.equal(pr.dismiss_stale_reviews_on_push, true);
   assert.equal(pr.require_last_push_approval, true);
-  assert.equal(pr.require_code_owner_review, true);
+  assert.equal(pr.require_code_owner_review, false);
   assert.equal(pr.required_review_thread_resolution, true);
 });
 
@@ -79,7 +79,6 @@ test('the old Protect main is reported field by field', () => {
   for (const expected of [
     'rules',
     'pull_request.allowed_merge_methods',
-    'pull_request.require_code_owner_review',
     'pull_request.require_last_push_approval',
     'pull_request.required_approving_review_count',
     'required_status_checks.required_status_checks',

@@ -75,3 +75,4 @@ applies or changes an accepted decision mentions the ADR in its description.
 | [0004](0004-pause-copilot-review-for-integration-children.md) | Pause Copilot review for integration child PRs       | Superseded |
 | [0005](0005-native-github-delivery.md)                        | Deliver through native GitHub rules                  | Accepted   |
 | [0006](0006-role-based-code-ownership.md)                     | Assign code ownership by team role                   | Proposed   |
+| [0007](0007-codeowners-guide-review-routing.md)               | Use code ownership to guide reviewer routing         | Proposed   |

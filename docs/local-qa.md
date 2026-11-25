@@ -54,10 +54,10 @@ that revision's error reproduces even with a freshly generated client.
 
 ## Approving
 
-For owned paths, the QA notifier requests an eligible code owner, so one person
-can test and provide the required review. For unowned paths it rotates the
-request among teammates, skipping the PR author. Any teammate can take the QA
-turn; the request is a reminder, not a merge gate. Testing before CI finishes is
-fine too. Approve the PR only if its current head is still the commit you
-tested: an approval always applies to the head at the time of the review.
-Checks do not substitute for exercising the story's acceptance criteria.
+Matej is the default QA tester for PRs from other teammates. For Matej's PRs,
+the notifier requests the code owner chosen from the changed paths. Any teammate
+can take the QA turn; the request is a reminder, not a merge gate. Testing
+before CI finishes is fine too. Approve the PR only if its current head is still
+the commit you tested: an approval always applies to the head at the time of the
+review. Checks do not substitute for exercising the story's acceptance
+criteria.

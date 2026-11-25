@@ -114,11 +114,11 @@ Run `pnpm backend test:db` after, not before, an E2E run: it shares the local da
 
 ### Delivery
 
-The rules are in [`docs/delivery-workflow.md`](docs/delivery-workflow.md) and [ADR-0005](docs/adr/0005-native-github-delivery.md); role-based ownership is proposed in [ADR-0006](docs/adr/0006-role-based-code-ownership.md).
+The rules are in [`docs/delivery-workflow.md`](docs/delivery-workflow.md), [ADR-0005](docs/adr/0005-native-github-delivery.md) and the proposed [ADR-0007](docs/adr/0007-codeowners-guide-review-routing.md); role-based ownership is proposed in [ADR-0006](docs/adr/0006-role-based-code-ownership.md).
 
 - Never commit or push to `main`. Deliver an issue with one PR into `main`; split an issue that is too big into smaller issues. Do not use stacked PRs or integration branches.
-- A merge needs CI (`verify`) on the current commit, one approval of the latest push from someone other than the author and last pusher, a code owner's approval for owned paths as listed in [`CODEOWNERS`](.github/CODEOWNERS), and resolved conversations. The same eligible code-owner approval can satisfy both approval requirements. It goes through the merge queue, which runs the whole E2E suite on the merge result.
-- QA approves the PR's current commit after testing it ([Local QA](docs/local-qa.md)). The notifier asks an eligible code owner on owned paths, otherwise a rotating teammate; it never blocks.
+- A merge needs CI (`verify`) on the current commit, one approval of the latest push from someone other than the author and last pusher, and resolved conversations. Any eligible teammate may approve; `CODEOWNERS` guides default QA assignment but does not add an approval gate. It goes through the merge queue, which runs the whole E2E suite on the merge result.
+- QA approves the PR's current commit after testing it ([Local QA](docs/local-qa.md)). The notifier asks Matej for PRs from others; Matej's own PRs route to a reviewer by changed area. It never blocks.
 - `/review` on a PR runs an optional, advisory Copilot review. Never post approvals, reviews or `/review` on someone's behalf unless asked.
 
 ### PRs handling

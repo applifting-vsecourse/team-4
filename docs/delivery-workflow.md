@@ -3,8 +3,9 @@
 Work reaches `main` as one pull request per issue. GitHub enforces the rules
 natively (a ruleset, `CODEOWNERS` and a merge queue); there is no custom merge
 check. The delivery model is in
-[ADR-0005](adr/0005-native-github-delivery.md); role-based ownership is proposed
-in [ADR-0006](adr/0006-role-based-code-ownership.md).
+[ADR-0005](adr/0005-native-github-delivery.md) and proposed [ADR-0007](adr/0007-codeowners-guide-review-routing.md);
+role-based ownership is proposed in
+[ADR-0006](adr/0006-role-based-code-ownership.md).
 
 ## The path of a change
 
@@ -27,13 +28,12 @@ delivered by one PR. Split an issue that is too big into smaller issues.
 
 ## What a merge needs
 
-| Rule                   | Detail                                                                                                                           |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| CI (`verify`)          | Passes on the PR's current commit, and again in the merge queue on the merge result.                                             |
-| One approval           | From someone other than the PR's author and its last pusher, on the latest push. A new commit dismisses earlier approvals.       |
-| Code owner             | For [owned paths](#code-owners), one approval must come from an owner listed for the changed path; nobody approves their own PR. |
-| Resolved conversations | Every review thread is resolved.                                                                                                 |
-| Merge queue            | Merges go through the queue with a merge commit; direct pushes, force pushes and deleting `main` are blocked.                    |
+| Rule                   | Detail                                                                                                                     |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| CI (`verify`)          | Passes on the PR's current commit, and again in the merge queue on the merge result.                                       |
+| One approval           | From someone other than the PR's author and its last pusher, on the latest push. A new commit dismisses earlier approvals. |
+| Resolved conversations | Every review thread is resolved.                                                                                           |
+| Merge queue            | Merges go through the queue with a merge commit; direct pushes, force pushes and deleting `main` are blocked.              |
 
 A rejected or dismissed review never counts. There is no bypass, including for
 administrators.
@@ -47,37 +47,34 @@ repository rules, dependencies, infrastructure and ADRs are co-owned by
 `MatejKrones` and `rmnskb`. Frontend E2E files are co-owned by `JakubHerr`
 and `MatejKrones`; backend email files by `MatejKrones` and `rmnskb`.
 
-The co-owner list gives a backup when the primary role owner authored the PR.
-GitHub treats listed co-owners as alternatives: any one may satisfy the code
-owner approval requirement. The PM is not a code owner. On owned paths, a
-code-owner approval also counts as the PR's one approval and QA, as described in
-[ADR-0005](adr/0005-native-github-delivery.md).
+This map documents responsibility and helps choose the default QA reviewer; it
+does not restrict who can approve or add a merge gate. The first listed eligible
+owner is the preferred reviewer when Matej authors a PR. The PM is not a code
+owner.
 
 ## QA
 
 QA approves the PR's current commit after testing it as described in
-[Local QA](local-qa.md). Anyone other than the PR's author may approve; the
-approval counts whenever it is given for the current commit, also before the
-notifier asks.
+[Local QA](local-qa.md). Any teammate other than the PR's author may approve;
+the approval counts whenever it is given for the current commit, including
+before the notifier asks.
 
 The QA notifier ([`qa-notify.yml`](../.github/workflows/qa-notify.yml)) never
 blocks anything. When CI passes on the current commit of an open, non-draft PR
 into `main`, or such a PR is marked ready, it requests one teammate to test and
-moves the issues the PR links to Ready for Testing. For owned paths, it asks the
-first listed eligible code owner of the area with the most changed files,
-skipping the PR author. If areas tie, it prefers an eligible owner shared by
-them, then rotates by PR number among the tied owners. For unowned paths it
-rotates by PR number across Matej, Jakub, rmnskb and David. This lets one owner
-review cover QA and the merge approval. Any teammate's
-approval of the current commit counts as QA, including an approval before the
-request goes out; if that teammate is not a code owner of the changed paths,
-the owner review is still required. The notifier asks nobody when a teammate
-already approved this commit, when the assigned tester already reviewed it,
-for a PR that changes only documentation (any teammate approves it) and for
-Dependabot PRs (a code owner approves them). Failed CI moves an issue in Ready
-for Testing back to In Progress. A merge moves the issues the PR closes
-(`Closes #N`) to Done; an issue it only refers to (`Refs #N`) stays where it is.
-Issues a person moved past testing stay where they are.
+moves the issues the PR links to Ready for Testing. Matej is the default
+tester for PRs from other teammates. For Matej's own PRs, it asks the primary
+code owner of the area with the most changed files, skipping Matej; ties prefer
+an eligible owner shared by the changed areas, then rotate by PR number among
+the tied owners. Any teammate's approval of the current commit counts as QA,
+including an approval before the request goes out. One approval from a teammate
+other than the PR author and last pusher satisfies both QA and the review gate;
+the reviewer does not need to own the changed paths. The notifier asks nobody
+when a teammate already approved this commit, when the assigned tester already
+reviewed it, or for documentation-only and Dependabot PRs. Failed CI moves an
+issue in Ready for Testing back to In Progress. A merge moves the issues the PR
+closes (`Closes #N`) to Done; an issue it only refers to (`Refs #N`) stays where
+it is. Issues a person moved past testing stay where they are.
 
 ## Copilot review
 
@@ -142,7 +139,7 @@ for major updates (`vitest-major`, `nestjs-major`; TypeScript majors are
 ignored) and security updates as soon as an advisory applies. Every Dependabot
 PR gets the `dependencies` label and GitHub auto-merge
 ([`dependency-merge.yml`](../.github/workflows/dependency-merge.yml)): it merges
-through the queue as soon as a code owner approves it and CI passes.
+through the queue as soon as a teammate approves it and CI passes.
 
 ## Releases and the stage
 
@@ -176,12 +173,11 @@ node scripts/rules/install.mjs --apply  # applies it and reads it back
 ```
 
 The installer refuses to run unless its code matches `origin/main` and
-`CODEOWNERS` on `main` gives every protected path its configured owners. It updates
-`Protect main` (one approval of the latest push, code owner review, resolved
-conversations, the required `verify` check from GitHub Actions and the merge
-queue), deletes the retired `Protect integration branches` ruleset and fails
-unless GitHub stored exactly the proposed rules. It does not delete labels or
-branches.
+`CODEOWNERS` on `main` gives every protected path its configured owners. It
+updates `Protect main` (one approval of the latest push, resolved conversations,
+the required `verify` check from GitHub Actions and the merge queue), deletes the
+retired `Protect integration branches` ruleset and fails unless GitHub stored
+exactly the proposed rules. It does not delete labels or branches.
 
 Run it right after the change that introduced these rules is merged: until then
 `Protect main` still requires the retired `Delivery stages` check, which nothing

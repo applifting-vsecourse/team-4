@@ -39,27 +39,22 @@ const checks = (overrides = {}) => ({
   ...overrides,
 });
 
-test('QA follows the largest changed area and skips the PR author', () => {
+test('Matej is QA for teammates; his PRs route by changed area', () => {
   assert.equal(
     qaOwnerFor('rmnskb', 506, ['apps/backend/src/x.ts'], CODEOWNERS),
     'MatejKrones',
   );
   assert.equal(
-    qaOwnerFor(
-      'darebakdavca',
-      506,
-      ['apps/frontend/e2e/x.spec.ts'],
-      CODEOWNERS,
-    ),
+    qaOwnerFor('JakubHerr', 506, ['apps/frontend/src/x.tsx'], CODEOWNERS),
     'MatejKrones',
   );
   assert.equal(
-    qaOwnerFor('JakubHerr', 506, ['apps/frontend/src/x.tsx'], CODEOWNERS),
-    'rmnskb',
+    qaOwnerFor('MatejKrones', 506, ['apps/frontend/src/x.tsx'], CODEOWNERS),
+    'JakubHerr',
   );
   assert.equal(
     qaOwnerFor(
-      'darebakdavca',
+      'MatejKrones',
       506,
       ['apps/frontend/src/x.tsx', 'apps/backend/src/x.ts'],
       CODEOWNERS,
@@ -68,7 +63,7 @@ test('QA follows the largest changed area and skips the PR author', () => {
   );
   assert.equal(
     qaOwnerFor(
-      'darebakdavca',
+      'MatejKrones',
       506,
       [
         'apps/frontend/src/a.tsx',
@@ -81,7 +76,7 @@ test('QA follows the largest changed area and skips the PR author', () => {
   );
   assert.equal(
     qaOwnerFor(
-      'darebakdavca',
+      'MatejKrones',
       506,
       [
         'apps/frontend/src/a.tsx',
@@ -99,11 +94,11 @@ test('QA follows the largest changed area and skips the PR author', () => {
       ['apps/frontend/src/x.tsx', 'apps/backend/src/x.ts'],
       CODEOWNERS,
     ),
-    'JakubHerr',
+    'MatejKrones',
   );
   assert.equal(
-    qaOwnerFor('external-contributor', 1, ['assets/logo.png'], CODEOWNERS),
-    'MatejKrones',
+    qaOwnerFor('MatejKrones', 1, ['assets/logo.png'], CODEOWNERS),
+    'JakubHerr',
   );
 });
 
@@ -118,17 +113,17 @@ test('CODEOWNERS matching uses the most specific last matching pattern', () => {
   );
 });
 
-test('passing checks request a changed-path code owner and move the issue', () => {
+test('passing checks ask Matej for a teammate PR and move the issue', () => {
   assert.deepEqual(onChecks(checks()), {
-    request: 'JakubHerr',
+    request: 'MatejKrones',
     status: READY_FOR_TESTING,
-    reason: 'asking JakubHerr to test',
+    reason: 'asking MatejKrones to test',
   });
 });
 
 test('nobody is asked twice, and an approval given early is kept', () => {
   const asked = onChecks(
-    checks({ pr: pr({ requested_reviewers: [{ login: 'JakubHerr' }] }) }),
+    checks({ pr: pr({ requested_reviewers: [{ login: 'MatejKrones' }] }) }),
   );
   assert.equal(asked.request, null);
   assert.equal(asked.status, READY_FOR_TESTING);
@@ -151,7 +146,7 @@ test('an approval of an older commit does not count for the new one', () => {
       ],
     }),
   );
-  assert.equal(result.request, 'JakubHerr');
+  assert.equal(result.request, 'MatejKrones');
 });
 
 test('any teammate approval of the current commit counts as QA', () => {
@@ -183,7 +178,7 @@ test('approval from outside the team does not count as QA', () => {
       ],
     }),
   );
-  assert.equal(result.request, 'JakubHerr');
+  assert.equal(result.request, 'MatejKrones');
 });
 
 test('drafts, closed PRs and outdated commits are left alone', () => {
@@ -261,14 +256,14 @@ test('the author approving their own PR covers nothing', () => {
       ],
     }),
   );
-  assert.equal(result.request, 'JakubHerr');
+  assert.equal(result.request, 'MatejKrones');
 });
 
 test('after the tester reviewed this commit, a CI re-run asks nobody and moves nothing', () => {
   for (const state of ['CHANGES_REQUESTED', 'COMMENTED']) {
     const result = onChecks(
       checks({
-        reviews: [{ user: { login: 'JakubHerr' }, state, commit_id: SHA }],
+        reviews: [{ user: { login: 'MatejKrones' }, state, commit_id: SHA }],
       }),
     );
     assert.deepEqual(

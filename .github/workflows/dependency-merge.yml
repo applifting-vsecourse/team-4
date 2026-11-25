@@ -1,6 +1,6 @@
 name: Dependency update merge
 
-# Dependabot PRs merge on their own once a code owner approved them and the
+# Dependabot PRs merge on their own once a teammate approved them and the
 # required checks pass (#499): this only switches GitHub auto-merge on, and
 # the merge queue does the rest. The ruleset still requires the approval.
 on:

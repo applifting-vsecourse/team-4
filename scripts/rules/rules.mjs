@@ -10,9 +10,9 @@ const ACTIONS_APP = 15368;
 /**
  * Every PR into main: CI passed, one approval of the latest push by someone
  * other than its author or last pusher (an older approval is dismissed by a
- * new commit), a code owner's approval for owned paths, resolved
- * conversations, and the merge through a merge queue that runs the required
- * checks, the whole E2E suite included, on the merge result.
+ * new commit), resolved conversations, and the merge through a merge queue
+ * that runs the required checks, the whole E2E suite included, on the merge
+ * result. CODEOWNERS guides reviewer assignment but is not a merge gate.
  */
 export function mainRuleset() {
   return {
@@ -29,7 +29,7 @@ export function mainRuleset() {
         parameters: {
           allowed_merge_methods: ['merge'],
           dismiss_stale_reviews_on_push: true,
-          require_code_owner_review: true,
+          require_code_owner_review: false,
           require_last_push_approval: true,
           required_approving_review_count: 1,
           required_review_thread_resolution: true,
@@ -102,7 +102,7 @@ export function rulesetDifferences(stored, proposed) {
   return differences;
 }
 
-/** Required CODEOWNERS entries. Any listed co-owner can approve the path. */
+/** CODEOWNERS entries used for area ownership and default QA routing. */
 export const OWNERSHIP_RULES = [
   { path: '/.github/', owners: ['@MatejKrones', '@rmnskb'] },
   { path: '/scripts/', owners: ['@MatejKrones', '@rmnskb'] },

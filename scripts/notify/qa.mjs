@@ -49,8 +49,14 @@ export function codeOwnersForPath(path, codeowners) {
   return owners;
 }
 
-/** Choose the primary owner of the largest changed area; skip the author. */
+/** Choose the QA tester for an author; Matej tests everyone else's PRs. */
 export const qaOwnerFor = (author, prNumber, paths, codeowners) => {
+  if (author !== 'MatejKrones') return 'MatejKrones';
+  return qaOwnerForMatejPr(prNumber, paths, codeowners);
+};
+
+/** For Matej's PRs, choose the primary owner of the largest changed area. */
+function qaOwnerForMatejPr(prNumber, paths, codeowners) {
   const ownerSets = paths
     .map((path) => codeOwnersForPath(path, codeowners))
     .filter((owners) => owners.length);
@@ -63,7 +69,7 @@ export const qaOwnerFor = (author, prNumber, paths, codeowners) => {
   const votes = new Map();
   for (const owners of ownerSets) {
     const primary = owners.find(
-      (login) => QA_TEAM.includes(login) && login !== author,
+      (login) => QA_TEAM.includes(login) && login !== 'MatejKrones',
     );
     if (primary) votes.set(primary, (votes.get(primary) ?? 0) + 1);
   }
@@ -74,9 +80,9 @@ export const qaOwnerFor = (author, prNumber, paths, codeowners) => {
     ? common.length
       ? common
       : tiedOwners
-    : QA_TEAM.filter((login) => login !== author);
+    : QA_TEAM.filter((login) => login !== 'MatejKrones');
   return teammates[(prNumber - 1) % teammates.length];
-};
+}
 
 /** Documentation alone needs a teammate's approval, not a tester. */
 export const isDocsOnly = (paths) =>
@@ -112,9 +118,9 @@ export function onChecks({ pr, sha, passed, paths, reviews, codeowners }) {
   if (pr.draft) return nothing('the PR is a draft');
   if (pr.base.ref !== 'main') return nothing('the PR does not target main');
   if (pr.head.sha !== sha) return nothing('a newer commit is on the PR');
-  // Dependabot updates need a code owner's approval, not a tester.
+  // Dependabot updates use the ordinary review gate, not a separate QA request.
   if (pr.user.login === 'dependabot[bot]')
-    return nothing('a dependency update: a code owner approves it');
+    return nothing('a dependency update: a teammate reviews it');
   if (!passed)
     return { request: null, status: IN_PROGRESS, reason: 'checks failed' };
   if (isDocsOnly(paths))
@@ -124,7 +130,7 @@ export function onChecks({ pr, sha, passed, paths, reviews, codeowners }) {
     (review) =>
       review.commit_id === sha && review.user?.login !== pr.user.login,
   );
-  // Any teammate's approval of this commit can cover QA (ADR-0005).
+  // Any teammate's approval of this commit can cover QA (ADR-0007).
   const approver = onThisCommit.find(
     (review) =>
       review.state === 'APPROVED' && QA_TEAM.includes(review.user?.login),
