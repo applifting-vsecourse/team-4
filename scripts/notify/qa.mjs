@@ -2,7 +2,7 @@
 // and where its issues move on the board. It never blocks anything: merging
 // is decided by the repository ruleset alone. No I/O here; see run.mjs.
 
-/** Teammates take turns testing; a PR author is never asked to QA their own work. */
+/** Teammates who can approve a PR; its author is never asked to QA their work. */
 export const QA_TEAM = ['MatejKrones', 'JakubHerr', 'rmnskb', 'darebakdavca'];
 
 export const READY_FOR_TESTING = 'Ready for Testing';
@@ -11,9 +11,52 @@ export const DONE = 'Done';
 /** Statuses an issue leaves for Ready for Testing; later ones are left alone. */
 const BEFORE_TESTING = ['Sprint Backlog', IN_PROGRESS, 'Ready for Code Review'];
 
-/** Stable round-robin assignment by PR number, excluding the author. */
-export const qaOwnerFor = (author, prNumber) => {
-  const teammates = QA_TEAM.filter((login) => login !== author);
+/** Match a CODEOWNERS pattern against the repository paths used by this repo. */
+function matchesCodeownersPattern(pattern, path) {
+  const directory = pattern.endsWith('/');
+  const rooted = pattern.startsWith('/');
+  const glob = pattern.replace(/^\/+|\/+$/g, '');
+  let source = '';
+  for (let i = 0; i < glob.length; i++) {
+    if (glob[i] === '*' && glob[i + 1] === '*') {
+      if (glob[i + 2] === '/') {
+        source += '(?:.*/)?';
+        i += 2;
+      } else {
+        source += '.*';
+        i++;
+      }
+    } else if (glob[i] === '*') source += '[^/]*';
+    else if (glob[i] === '?') source += '[^/]';
+    else source += glob[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+  const prefix = rooted || glob.includes('/') ? '^' : '(?:^|/)';
+  const suffix = directory ? '(?:/.*)?$' : '$';
+  return new RegExp(`${prefix}${source}${suffix}`).test(path);
+}
+
+/** Owners of one path, using CODEOWNERS last-match-wins ordering. */
+export function codeOwnersForPath(path, codeowners) {
+  let owners = [];
+  for (const line of codeowners.split('\n')) {
+    const [pattern, ...tokens] = line.trim().split(/\s+/);
+    if (!pattern || pattern.startsWith('#')) continue;
+    if (matchesCodeownersPattern(pattern, path))
+      owners = tokens
+        .filter((token) => token.startsWith('@'))
+        .map((token) => token.slice(1));
+  }
+  return owners;
+}
+
+/** Stable assignment by PR number; prefer a changed-path owner, skip the author. */
+export const qaOwnerFor = (author, prNumber, paths, codeowners) => {
+  const pathOwners = [
+    ...new Set(paths.flatMap((path) => codeOwnersForPath(path, codeowners))),
+  ].filter((login) => QA_TEAM.includes(login) && login !== author);
+  const teammates = pathOwners.length
+    ? pathOwners
+    : QA_TEAM.filter((login) => login !== author);
   return teammates[(prNumber - 1) % teammates.length];
 };
 
@@ -46,7 +89,7 @@ export function linkedIssues(body = '') {
  * @returns {{ request: string | null, status: string | null, reason: string }}
  *   `request` is the reviewer to ask, `status` the board status for its issues.
  */
-export function onChecks({ pr, sha, passed, paths, reviews }) {
+export function onChecks({ pr, sha, passed, paths, reviews, codeowners }) {
   if (pr.state !== 'open') return nothing('the PR is not open');
   if (pr.draft) return nothing('the PR is a draft');
   if (pr.base.ref !== 'main') return nothing('the PR does not target main');
@@ -58,7 +101,7 @@ export function onChecks({ pr, sha, passed, paths, reviews }) {
     return { request: null, status: IN_PROGRESS, reason: 'checks failed' };
   if (isDocsOnly(paths))
     return nothing('documentation only: any teammate approves it');
-  const owner = qaOwnerFor(pr.user.login, pr.number);
+  const owner = qaOwnerFor(pr.user.login, pr.number, paths, codeowners);
   const onThisCommit = reviews.filter(
     (review) =>
       review.commit_id === sha && review.user?.login !== pr.user.login,

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import {
+  codeOwnersForPath,
   DONE,
   IN_PROGRESS,
   isDocsOnly,
@@ -11,6 +13,10 @@ import {
   READY_FOR_TESTING,
 } from './qa.mjs';
 
+const CODEOWNERS = readFileSync(
+  new URL('../../.github/CODEOWNERS', import.meta.url),
+  'utf8',
+);
 const SHA = 'a'.repeat(40);
 const OLD = 'b'.repeat(40);
 const pr = (overrides = {}) => ({
@@ -29,17 +35,42 @@ const checks = (overrides = {}) => ({
   passed: true,
   paths: ['apps/frontend/src/x.tsx'],
   reviews: [],
+  codeowners: CODEOWNERS,
   ...overrides,
 });
 
-test('QA assignment rotates by PR number and excludes the author', () => {
-  assert.equal(qaOwnerFor('rmnskb', 506), 'JakubHerr');
-  assert.equal(qaOwnerFor('MatejKrones', 506), 'rmnskb');
-  assert.equal(qaOwnerFor('external-contributor', 1), 'MatejKrones');
-  assert.notEqual(qaOwnerFor('MatejKrones', 507), 'MatejKrones');
+test('QA assignment follows changed-path owners and skips the author', () => {
+  assert.equal(
+    qaOwnerFor('rmnskb', 506, ['apps/backend/src/x.ts'], CODEOWNERS),
+    'MatejKrones',
+  );
+  assert.equal(
+    qaOwnerFor(
+      'darebakdavca',
+      506,
+      ['apps/frontend/e2e/x.spec.ts'],
+      CODEOWNERS,
+    ),
+    'JakubHerr',
+  );
+  assert.equal(
+    qaOwnerFor('JakubHerr', 506, ['apps/frontend/src/x.tsx'], CODEOWNERS),
+    'rmnskb',
+  );
+  assert.equal(
+    qaOwnerFor('external-contributor', 1, ['assets/logo.png'], CODEOWNERS),
+    'MatejKrones',
+  );
 });
 
-test('passing checks request the rotating tester and move the issue', () => {
+test('CODEOWNERS matching uses the most specific last matching pattern', () => {
+  assert.deepEqual(
+    codeOwnersForPath('apps/frontend/e2e/registration.spec.ts', CODEOWNERS),
+    ['MatejKrones', 'JakubHerr'],
+  );
+});
+
+test('passing checks request a changed-path code owner and move the issue', () => {
   assert.deepEqual(onChecks(checks()), {
     request: 'JakubHerr',
     status: READY_FOR_TESTING,

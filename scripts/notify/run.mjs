@@ -5,7 +5,13 @@
 //   EVENT=checks PR_NUMBER=… SHA=… CONCLUSION=success|failure|…
 //   EVENT=ready  PR_NUMBER=…   (a draft became ready; reads verify itself)
 //   EVENT=merged PR_NUMBER=…
+import { readFileSync } from 'node:fs';
 import { DONE, linkedIssues, mayMove, onChecks } from './qa.mjs';
+
+const codeowners = readFileSync(
+  new URL('../../.github/CODEOWNERS', import.meta.url),
+  'utf8',
+);
 
 const cfg = {
   repo: process.env.GITHUB_REPOSITORY,
@@ -182,6 +188,7 @@ if (cfg.event === 'merged') {
     passed: cfg.conclusion === 'success',
     paths: files.map((file) => file.filename),
     reviews,
+    codeowners,
   });
   console.log(`#${cfg.pr} at ${cfg.sha.slice(0, 7)}: ${decision.reason}`);
   if (decision.request)

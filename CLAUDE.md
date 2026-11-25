@@ -118,7 +118,7 @@ The rules are in [`docs/delivery-workflow.md`](docs/delivery-workflow.md) and [A
 
 - Never commit or push to `main`. Deliver an issue with one PR into `main`; split an issue that is too big into smaller issues. Do not use stacked PRs or integration branches.
 - A merge needs CI (`verify`) on the current commit, one approval of the latest push from someone other than the author and last pusher, a code owner's approval for owned paths as listed in [`CODEOWNERS`](.github/CODEOWNERS), and resolved conversations. The same eligible code-owner approval can satisfy both approval requirements. It goes through the merge queue, which runs the whole E2E suite on the merge result.
-- QA approves the PR's current commit after testing it ([Local QA](docs/local-qa.md)). The QA notifier asks the tester once CI passes; it never blocks.
+- QA approves the PR's current commit after testing it ([Local QA](docs/local-qa.md)). The notifier asks an eligible code owner on owned paths, otherwise a rotating teammate; it never blocks.
 - `/review` on a PR runs an optional, advisory Copilot review. Never post approvals, reviews or `/review` on someone's behalf unless asked.
 
 ### PRs handling
