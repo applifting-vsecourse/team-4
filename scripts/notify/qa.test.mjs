@@ -14,6 +14,7 @@ import {
 const SHA = 'a'.repeat(40);
 const OLD = 'b'.repeat(40);
 const pr = (overrides = {}) => ({
+  number: 500,
   state: 'open',
   draft: false,
   head: { sha: SHA },
@@ -31,23 +32,24 @@ const checks = (overrides = {}) => ({
   ...overrides,
 });
 
-test('Matej tests every PR except his own, which David tests', () => {
-  assert.equal(qaOwnerFor('rmnskb'), 'MatejKrones');
-  assert.equal(qaOwnerFor('darebakdavca'), 'MatejKrones');
-  assert.equal(qaOwnerFor('MatejKrones'), 'darebakdavca');
+test('QA assignment rotates by PR number and excludes the author', () => {
+  assert.equal(qaOwnerFor('rmnskb', 506), 'JakubHerr');
+  assert.equal(qaOwnerFor('MatejKrones', 506), 'rmnskb');
+  assert.equal(qaOwnerFor('external-contributor', 1), 'MatejKrones');
+  assert.notEqual(qaOwnerFor('MatejKrones', 507), 'MatejKrones');
 });
 
-test('passing checks on the current commit ask QA and move the issue', () => {
+test('passing checks request the rotating tester and move the issue', () => {
   assert.deepEqual(onChecks(checks()), {
-    request: 'MatejKrones',
+    request: 'JakubHerr',
     status: READY_FOR_TESTING,
-    reason: 'asking MatejKrones to test',
+    reason: 'asking JakubHerr to test',
   });
 });
 
 test('nobody is asked twice, and an approval given early is kept', () => {
   const asked = onChecks(
-    checks({ pr: pr({ requested_reviewers: [{ login: 'MatejKrones' }] }) }),
+    checks({ pr: pr({ requested_reviewers: [{ login: 'JakubHerr' }] }) }),
   );
   assert.equal(asked.request, null);
   assert.equal(asked.status, READY_FOR_TESTING);
@@ -66,11 +68,43 @@ test('an approval of an older commit does not count for the new one', () => {
   const result = onChecks(
     checks({
       reviews: [
-        { user: { login: 'MatejKrones' }, state: 'APPROVED', commit_id: OLD },
+        { user: { login: 'darebakdavca' }, state: 'APPROVED', commit_id: OLD },
       ],
     }),
   );
-  assert.equal(result.request, 'MatejKrones');
+  assert.equal(result.request, 'JakubHerr');
+});
+
+test('any teammate approval of the current commit counts as QA', () => {
+  const result = onChecks(
+    checks({
+      reviews: [
+        {
+          user: { login: 'darebakdavca' },
+          state: 'APPROVED',
+          commit_id: SHA,
+        },
+      ],
+    }),
+  );
+  assert.equal(result.request, null);
+  assert.equal(result.status, READY_FOR_TESTING);
+  assert.match(result.reason, /darebakdavca already approved/);
+});
+
+test('approval from outside the team does not count as QA', () => {
+  const result = onChecks(
+    checks({
+      reviews: [
+        {
+          user: { login: 'outside-reviewer' },
+          state: 'APPROVED',
+          commit_id: SHA,
+        },
+      ],
+    }),
+  );
+  assert.equal(result.request, 'JakubHerr');
 });
 
 test('drafts, closed PRs and outdated commits are left alone', () => {
@@ -148,14 +182,14 @@ test('the author approving their own PR covers nothing', () => {
       ],
     }),
   );
-  assert.equal(result.request, 'MatejKrones');
+  assert.equal(result.request, 'JakubHerr');
 });
 
 test('after the tester reviewed this commit, a CI re-run asks nobody and moves nothing', () => {
   for (const state of ['CHANGES_REQUESTED', 'COMMENTED']) {
     const result = onChecks(
       checks({
-        reviews: [{ user: { login: 'MatejKrones' }, state, commit_id: SHA }],
+        reviews: [{ user: { login: 'JakubHerr' }, state, commit_id: SHA }],
       }),
     );
     assert.deepEqual(

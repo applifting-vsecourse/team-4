@@ -2,11 +2,8 @@
 // and where its issues move on the board. It never blocks anything: merging
 // is decided by the repository ruleset alone. No I/O here; see run.mjs.
 
-export const QA_OWNER = 'MatejKrones';
-/** Tests the PRs the QA owner authors. */
-export const QA_SUBSTITUTE = 'darebakdavca';
-/** Accounts listed in CODEOWNERS; an owner's approval also covers QA (ADR-0005). */
-export const CODE_OWNERS = ['rmnskb', 'MatejKrones', 'JakubHerr'];
+/** Teammates take turns testing; a PR author is never asked to QA their own work. */
+export const QA_TEAM = ['MatejKrones', 'JakubHerr', 'rmnskb', 'darebakdavca'];
 
 export const READY_FOR_TESTING = 'Ready for Testing';
 export const IN_PROGRESS = 'In Progress';
@@ -14,8 +11,11 @@ export const DONE = 'Done';
 /** Statuses an issue leaves for Ready for Testing; later ones are left alone. */
 const BEFORE_TESTING = ['Sprint Backlog', IN_PROGRESS, 'Ready for Code Review'];
 
-export const qaOwnerFor = (author) =>
-  author === QA_OWNER ? QA_SUBSTITUTE : QA_OWNER;
+/** Stable round-robin assignment by PR number, excluding the author. */
+export const qaOwnerFor = (author, prNumber) => {
+  const teammates = QA_TEAM.filter((login) => login !== author);
+  return teammates[(prNumber - 1) % teammates.length];
+};
 
 /** Documentation alone needs a teammate's approval, not a tester. */
 export const isDocsOnly = (paths) =>
@@ -58,16 +58,15 @@ export function onChecks({ pr, sha, passed, paths, reviews }) {
     return { request: null, status: IN_PROGRESS, reason: 'checks failed' };
   if (isDocsOnly(paths))
     return nothing('documentation only: any teammate approves it');
-  const owner = qaOwnerFor(pr.user.login);
+  const owner = qaOwnerFor(pr.user.login, pr.number);
   const onThisCommit = reviews.filter(
     (review) =>
       review.commit_id === sha && review.user?.login !== pr.user.login,
   );
-  // An approval by the tester or by a code owner covers QA of this commit.
+  // Any teammate's approval of this commit can cover QA (ADR-0005).
   const approver = onThisCommit.find(
     (review) =>
-      review.state === 'APPROVED' &&
-      [owner, ...CODE_OWNERS].includes(review.user?.login),
+      review.state === 'APPROVED' && QA_TEAM.includes(review.user?.login),
   );
   if (approver)
     return {

@@ -54,8 +54,9 @@ that revision's error reproduces even with a freshly generated client.
 
 ## Approving
 
-The QA notifier asks the tester for a review once CI passed on the current
-commit; testing earlier is fine too. Setup instructions stay here. Approve the
-PR only if its current head is still the commit you tested: an approval always
-applies to the head at the time of the review. Checks do not substitute for
-exercising the story's acceptance criteria.
+The QA notifier rotates the requested tester across teammates, skipping the PR
+author; any teammate can take the QA turn. The request is a reminder, not a
+merge gate. Testing before CI finishes is fine too. Approve the PR only if its
+current head is still the commit you tested: an approval always applies to the
+head at the time of the review. Checks do not substitute for exercising the
+story's acceptance criteria.

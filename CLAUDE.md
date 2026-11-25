@@ -117,7 +117,7 @@ Run `pnpm backend test:db` after, not before, an E2E run: it shares the local da
 The rules are in [`docs/delivery-workflow.md`](docs/delivery-workflow.md) and [ADR-0005](docs/adr/0005-native-github-delivery.md); role-based ownership is proposed in [ADR-0006](docs/adr/0006-role-based-code-ownership.md).
 
 - Never commit or push to `main`. Deliver an issue with one PR into `main`; split an issue that is too big into smaller issues. Do not use stacked PRs or integration branches.
-- A merge needs CI (`verify`) on the current commit, one approval of the latest push from someone other than the author, a code owner's approval for owned paths as listed in [`CODEOWNERS`](.github/CODEOWNERS), and resolved conversations. It goes through the merge queue, which runs the whole E2E suite on the merge result.
+- A merge needs CI (`verify`) on the current commit, one approval of the latest push from someone other than the author and last pusher, a code owner's approval for owned paths as listed in [`CODEOWNERS`](.github/CODEOWNERS), and resolved conversations. The same eligible code-owner approval can satisfy both approval requirements. It goes through the merge queue, which runs the whole E2E suite on the merge result.
 - QA approves the PR's current commit after testing it ([Local QA](docs/local-qa.md)). The QA notifier asks the tester once CI passes; it never blocks.
 - `/review` on a PR runs an optional, advisory Copilot review. Never post approvals, reviews or `/review` on someone's behalf unless asked.
 

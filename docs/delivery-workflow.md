@@ -62,15 +62,18 @@ notifier asks.
 
 The QA notifier ([`qa-notify.yml`](../.github/workflows/qa-notify.yml)) never
 blocks anything. When CI passes on the current commit of an open, non-draft PR
-into `main`, or such a PR is marked ready, it requests a review from
-`MatejKrones` (on Matej's PRs from `darebakdavca`) and moves the issues the PR
-links to Ready for Testing. It asks nobody when the tester or a code owner
-already approved this commit, when the tester already reviewed it, for a PR
-that changes only documentation (any teammate approves it) and for Dependabot
-PRs (a code owner approves them). Failed CI moves an issue in Ready for Testing
-back to In Progress. A merge moves the issues the PR closes (`Closes #N`) to
-Done; an issue it only refers to (`Refs #N`) stays where it is. Issues a person
-moved past testing stay where they are.
+into `main`, or such a PR is marked ready, it requests one teammate to test and
+moves the issues the PR links to Ready for Testing. Requests rotate by PR number
+across Matej, Jakub, rmnskb and David, skipping the PR author. Any teammate's
+approval of the current commit counts as QA, including an approval before the
+request goes out; code-owner approval on owned paths can therefore satisfy both
+requirements. The notifier asks nobody when a teammate already approved this
+commit, when the assigned tester already reviewed it, for a PR that changes only
+documentation (any teammate approves it) and for Dependabot PRs (a code owner
+approves them). Failed CI moves an issue in Ready for Testing back to In
+Progress. A merge moves the issues the PR closes (`Closes #N`) to Done; an issue
+it only refers to (`Refs #N`) stays where it is. Issues a person moved past
+testing stay where they are.
 
 ## Copilot review
 
