@@ -68,7 +68,7 @@
     "@tanstack/eslint-plugin-router": "catalog:lint",
     "@tanstack/router-plugin": "^1.169.0",
     "@testing-library/dom": "^10.4.2",
-    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/jest-dom": "^8.0.0",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.9",
     "@types/node": "^26.6.6",
