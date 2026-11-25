@@ -49,27 +49,32 @@ export function codeOwnersForPath(path, codeowners) {
   return owners;
 }
 
-/** Stable assignment by PR number; prefer a changed-path owner, skip the author. */
+/** Choose the primary owner of the largest changed area; skip the author. */
 export const qaOwnerFor = (author, prNumber, paths, codeowners) => {
   const ownerSets = paths
     .map((path) => codeOwnersForPath(path, codeowners))
     .filter((owners) => owners.length);
-  const allPathOwners = new Set(ownerSets.flat());
   const commonPathOwners = ownerSets.length
     ? ownerSets.reduce(
         (common, owners) => common.filter((login) => owners.includes(login)),
         ownerSets[0],
       )
     : [];
-  const eligible = (owners) =>
-    QA_TEAM.filter((login) => owners.includes(login) && login !== author);
-  const common = eligible(commonPathOwners);
-  const pathOwners = eligible([...allPathOwners]);
-  const teammates = common.length
-    ? common
-    : pathOwners.length
-      ? pathOwners
-      : QA_TEAM.filter((login) => login !== author);
+  const votes = new Map();
+  for (const owners of ownerSets) {
+    const primary = owners.find(
+      (login) => QA_TEAM.includes(login) && login !== author,
+    );
+    if (primary) votes.set(primary, (votes.get(primary) ?? 0) + 1);
+  }
+  const maxVotes = Math.max(0, ...votes.values());
+  const tiedOwners = QA_TEAM.filter((login) => votes.get(login) === maxVotes);
+  const common = tiedOwners.filter((login) => commonPathOwners.includes(login));
+  const teammates = maxVotes
+    ? common.length
+      ? common
+      : tiedOwners
+    : QA_TEAM.filter((login) => login !== author);
   return teammates[(prNumber - 1) % teammates.length];
 };
 

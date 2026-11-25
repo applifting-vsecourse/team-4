@@ -39,7 +39,7 @@ const checks = (overrides = {}) => ({
   ...overrides,
 });
 
-test('QA assignment follows changed-path owners and skips the author', () => {
+test('QA follows the largest changed area and skips the PR author', () => {
   assert.equal(
     qaOwnerFor('rmnskb', 506, ['apps/backend/src/x.ts'], CODEOWNERS),
     'MatejKrones',
@@ -51,7 +51,7 @@ test('QA assignment follows changed-path owners and skips the author', () => {
       ['apps/frontend/e2e/x.spec.ts'],
       CODEOWNERS,
     ),
-    'JakubHerr',
+    'MatejKrones',
   );
   assert.equal(
     qaOwnerFor('JakubHerr', 506, ['apps/frontend/src/x.tsx'], CODEOWNERS),
@@ -62,6 +62,32 @@ test('QA assignment follows changed-path owners and skips the author', () => {
       'darebakdavca',
       506,
       ['apps/frontend/src/x.tsx', 'apps/backend/src/x.ts'],
+      CODEOWNERS,
+    ),
+    'rmnskb',
+  );
+  assert.equal(
+    qaOwnerFor(
+      'darebakdavca',
+      506,
+      [
+        'apps/frontend/src/a.tsx',
+        'apps/frontend/src/b.tsx',
+        'apps/backend/src/x.ts',
+      ],
+      CODEOWNERS,
+    ),
+    'JakubHerr',
+  );
+  assert.equal(
+    qaOwnerFor(
+      'darebakdavca',
+      506,
+      [
+        'apps/frontend/src/a.tsx',
+        'apps/backend/src/x.ts',
+        'apps/backend/src/y.ts',
+      ],
       CODEOWNERS,
     ),
     'rmnskb',
