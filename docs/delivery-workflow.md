@@ -63,10 +63,11 @@ notifier asks.
 The QA notifier ([`qa-notify.yml`](../.github/workflows/qa-notify.yml)) never
 blocks anything. When CI passes on the current commit of an open, non-draft PR
 into `main`, or such a PR is marked ready, it requests one teammate to test and
-moves the issues the PR links to Ready for Testing. For owned paths, it chooses
-an eligible code owner of the changed files, skipping the PR author; for
+moves the issues the PR links to Ready for Testing. For owned paths, it prefers
+an eligible owner shared by all changed paths, skipping the PR author; if there
+is no eligible common owner, it chooses one of the changed-path owners. For
 unowned paths it rotates by PR number across Matej, Jakub, rmnskb and David.
-This lets one owner review cover QA and the merge approval. Any teammate's
+This lets one owner review cover QA and the merge approval when possible. Any teammate's
 approval of the current commit counts as QA, including an approval before the
 request goes out; if that teammate is not a code owner of the changed paths,
 the owner review is still required. The notifier asks nobody when a teammate

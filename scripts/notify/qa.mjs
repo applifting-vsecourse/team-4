@@ -51,12 +51,25 @@ export function codeOwnersForPath(path, codeowners) {
 
 /** Stable assignment by PR number; prefer a changed-path owner, skip the author. */
 export const qaOwnerFor = (author, prNumber, paths, codeowners) => {
-  const pathOwners = [
-    ...new Set(paths.flatMap((path) => codeOwnersForPath(path, codeowners))),
-  ].filter((login) => QA_TEAM.includes(login) && login !== author);
-  const teammates = pathOwners.length
-    ? pathOwners
-    : QA_TEAM.filter((login) => login !== author);
+  const ownerSets = paths
+    .map((path) => codeOwnersForPath(path, codeowners))
+    .filter((owners) => owners.length);
+  const allPathOwners = new Set(ownerSets.flat());
+  const commonPathOwners = ownerSets.length
+    ? ownerSets.reduce(
+        (common, owners) => common.filter((login) => owners.includes(login)),
+        ownerSets[0],
+      )
+    : [];
+  const eligible = (owners) =>
+    QA_TEAM.filter((login) => owners.includes(login) && login !== author);
+  const common = eligible(commonPathOwners);
+  const pathOwners = eligible([...allPathOwners]);
+  const teammates = common.length
+    ? common
+    : pathOwners.length
+      ? pathOwners
+      : QA_TEAM.filter((login) => login !== author);
   return teammates[(prNumber - 1) % teammates.length];
 };
 

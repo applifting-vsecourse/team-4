@@ -58,6 +58,24 @@ test('QA assignment follows changed-path owners and skips the author', () => {
     'rmnskb',
   );
   assert.equal(
+    qaOwnerFor(
+      'darebakdavca',
+      506,
+      ['apps/frontend/src/x.tsx', 'apps/backend/src/x.ts'],
+      CODEOWNERS,
+    ),
+    'rmnskb',
+  );
+  assert.equal(
+    qaOwnerFor(
+      'rmnskb',
+      506,
+      ['apps/frontend/src/x.tsx', 'apps/backend/src/x.ts'],
+      CODEOWNERS,
+    ),
+    'JakubHerr',
+  );
+  assert.equal(
     qaOwnerFor('external-contributor', 1, ['assets/logo.png'], CODEOWNERS),
     'MatejKrones',
   );
@@ -67,6 +85,10 @@ test('CODEOWNERS matching uses the most specific last matching pattern', () => {
   assert.deepEqual(
     codeOwnersForPath('apps/frontend/e2e/registration.spec.ts', CODEOWNERS),
     ['MatejKrones', 'JakubHerr'],
+  );
+  assert.deepEqual(
+    codeOwnersForPath('apps/frontend/Dockerfile.prod', CODEOWNERS),
+    ['MatejKrones', 'rmnskb'],
   );
 });
 
