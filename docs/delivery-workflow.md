@@ -139,7 +139,8 @@ for major updates (`vitest-major`, `nestjs-major`; TypeScript majors are
 ignored) and security updates as soon as an advisory applies. Every Dependabot
 PR gets the `dependencies` label and GitHub auto-merge
 ([`dependency-merge.yml`](../.github/workflows/dependency-merge.yml)): it merges
-through the queue as soon as a teammate approves it and CI passes.
+through the queue as soon as CI passes; the workflow approves it itself, so no
+teammate is involved.
 
 ## Releases and the stage
 
