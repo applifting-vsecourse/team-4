@@ -35,6 +35,9 @@ catalogs:
 # Security audit (#166): patched versions of transitive dependencies that their
 # parents don't require yet. Remove an entry once its parent requires the fix.
 overrides:
+  # axe-core 4.14 adds label-content-name-mismatch, which many existing aria-labels
+  # fail in the Storybook accessibility check. Remove once those labels are fixed.
+  axe-core: 4.13.0
   # Optional peers of better-auth; akc.io uses neither Next.js nor MySQL.
   'better-auth>next': '-'
   'better-auth>mysql2': '-'
