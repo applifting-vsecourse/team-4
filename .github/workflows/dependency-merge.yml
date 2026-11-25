@@ -1,8 +1,10 @@
 name: Dependency update merge
 
-# Dependabot PRs merge on their own once a teammate approved them and the
-# required checks pass (#499): this only switches GitHub auto-merge on, and
-# the merge queue does the rest. The ruleset still requires the approval.
+# Dependabot PRs merge on their own once the required checks pass (#499): this
+# approves the PR, which the ruleset requires, and switches GitHub auto-merge
+# on; the merge queue does the rest. Dependabot pushes the last commit, so the
+# approval of the token's owner counts. A rebase dismisses the approval, so the
+# `synchronize` run approves again.
 on:
   # Also after Dependabot rebases its branch; switching auto-merge on is idempotent.
   pull_request_target:
@@ -13,13 +15,19 @@ permissions:
 
 jobs:
   auto-merge:
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    # The actor check keeps a person's push to a Dependabot branch from being
+    # approved automatically.
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       # A personal token, not GITHUB_TOKEN: a merge started by GITHUB_TOKEN does
       # not run the CI, deploy and release workflows on main.
-      - run: gh pr merge --auto --merge "$PR" --repo "$GITHUB_REPOSITORY"
+      - run: |
+          gh pr review --approve "$PR" --repo "$GITHUB_REPOSITORY"
+          gh pr merge --auto --merge "$PR" --repo "$GITHUB_REPOSITORY"
         env:
           GH_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
