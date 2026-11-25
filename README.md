@@ -12,17 +12,17 @@ The wider backlog also includes accommodation allocation, waiting lists, bank im
 
 ## Engineering and delivery
 
-| Practice                       | How it works / evidence                                                                                                                                                                                                                                                      |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Traceable delivery**         | Standard and High PRs link their user stories with `Closes #N`. Automation moves linked issues through code review and testing, retaining review findings and QA handoffs.                                                                                                   |
-| **Independent code review**    | Copilot reviews Standard and High PRs against the issue scope. New commits require fresh review; a recorded, commit-specific manual waiver is available to the designated maintainer.                                                                                        |
-| **Human acceptance testing**   | A designated teammate tests the exact PR commit after the review handoff. New commits require fresh QA, preventing approval of an older version from accepting changed code.                                                                                                 |
-| **Risk-based merge gates**     | Standard requires CI, an issue link, independent review and human QA. High additionally requires product scope approval. Low is limited to documentation/text and isolated tests and still requires CI. Enforcement changes require High.                                    |
-| **Automated verification**     | CI runs lint, formatting, type checks, unit tests, builds, migrations against a clean PostgreSQL database, database constraint tests and Playwright end-to-end tests. Playwright reports are uploaded as artifacts. The delivery automation itself also has automated tests. |
-| **Deployment and releases**    | Pushes to `main` build Docker images and deploy the course stage through Coolify. Successful CI on `main` triggers a versioned GitHub Release with linked delivered issues.                                                                                                  |
-| **Shared UI and architecture** | A documented design system, semantic tokens and reusable shadcn/ui controls support consistent responsive screens. Backend modules separate HTTP, business rules and persistence; frontend features separate API schemas, queries and components.                            |
+| Practice                       | How it works / evidence                                                                                                                                                                                                                                                                                            |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Traceable delivery**         | One PR per issue links its user story with `Closes #N`. Once CI passes, automation asks Matej to test PRs from others; Matej's own PRs route to a reviewer by changed area. Any eligible teammate's current-commit approval can satisfy QA and the single review requirement, and a merge moves the issue to Done. |
+| **Code review**                | Every PR needs one approval of its latest commit from someone other than its author and last pusher. `CODEOWNERS` records area responsibility and guides default QA assignment; it does not restrict who can approve. An advisory Copilot review runs on request with `/review`.                                   |
+| **Human acceptance testing**   | A teammate tests the exact PR commit and approves it. New commits dismiss earlier approvals, so an approval of an older version cannot accept changed code.                                                                                                                                                        |
+| **Native merge gates**         | GitHub enforces the rules itself: one eligible review, CI and resolved conversations, followed by a merge queue that runs CI, including the whole end-to-end suite, on the merge result before it reaches `main`.                                                                                                  |
+| **Automated verification**     | CI runs lint, formatting, type checks, unit tests, builds, migrations against a clean PostgreSQL database, database constraint tests and Playwright end-to-end tests: on a PR the specs the change affects, in the merge queue all of them in parallel shards.                                                     |
+| **Deployment and releases**    | Pushes to `main` build Docker images and deploy the course stage through Coolify. Successful CI on `main` triggers a versioned GitHub Release with linked delivered issues.                                                                                                                                        |
+| **Shared UI and architecture** | A documented design system, semantic tokens and reusable shadcn/ui controls support consistent responsive screens. Backend modules separate HTTP, business rules and persistence; frontend features separate API schemas, queries and components.                                                                  |
 
-See [review, QA and merge policy](docs/delivery-workflow.md), [automated code review](docs/agent-code-review.md), [local PR testing](docs/local-qa.md) and [release history](https://github.com/applifting-vsecourse/team-4/releases) for details and evidence. Workflow definitions live in [.github/workflows](.github/workflows).
+See [review, QA and merge policy](docs/delivery-workflow.md), [local PR testing](docs/local-qa.md) and [release history](https://github.com/applifting-vsecourse/team-4/releases) for details and evidence. Workflow definitions live in [.github/workflows](.github/workflows).
 
 ## Technology
 
@@ -69,7 +69,8 @@ Storybook shows every screen with fixture data, without the backend: `pnpm story
 ## Verify and demonstrate
 
 ```sh
-pnpm check-all                  # Local checks: automation, lint, types, unit tests, builds, formatting
+pnpm check-all                  # Local checks: scripts, lint, types, unit tests, builds, formatting
+pnpm e2e:affected               # End-to-end specs the current change affects
 pnpm frontend test:e2e          # Playwright end-to-end tests
 ```
 

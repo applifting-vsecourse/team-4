@@ -30,14 +30,15 @@ Significant architectural decisions are recorded as ADRs in [`docs/adr/`](docs/a
 
 - Before designing a change, check the accepted ADRs for its area and follow them. A conflict with an accepted ADR is a structural change: report it to the tech lead (architecture) instead of working around it.
 - When your work makes a decision that meets the README's criteria, propose an ADR with status `Proposed` from [`docs/adr/template.md`](docs/adr/template.md), in the PR that introduces the decision or before it, and point the tech lead to it.
-- Set an ADR to `Accepted` only when its text is final and ready for an `/adr-accept NNNN` Comment review by the tech lead or the PM; never post that review or claim acceptance yourself. Any later change to the file needs a fresh acceptance. Do not rewrite an accepted ADR: supersede it with a new one.
+- Set an ADR to `Accepted` only when its text is final and ready for an approving PR review from a code owner of `docs/adr/` as listed in [`CODEOWNERS`](.github/CODEOWNERS). The PM may review product-scope decisions but is not a code owner. Never approve it or claim acceptance yourself. Any later change to the file needs a fresh approval. Do not rewrite an accepted ADR: supersede it with a new one.
 
 ## Commands
 
 - `pnpm dev` — everything: env files, Postgres (Docker), migrate, run the seed entry point, both dev servers
 - `pnpm storybook` — launch the frontend Storybook on port 6006
-- `pnpm check-all` — lint + type-check + unit tests + build (CI also validates migrations and database constraints)
-- `pnpm check-stories` — story tests in Chromium + Storybook build; once at the end of UI work, not after every change
+- `pnpm check-all` — lint + type-check + unit tests + build, the same as CI's checks lane (CI also validates migrations and database constraints)
+- `pnpm check-stories` — every story in Chromium + Storybook build
+- `pnpm e2e:affected` — the Playwright E2E specs the change affects (`--list` shows them, `--all` runs everything)
 - `pnpm backend test` / `pnpm frontend test:ci` — unit tests
 - `pnpm backend prisma:migrations:run` — create/apply migrations after schema changes
 
@@ -57,7 +58,7 @@ When updating notes on PO or teacher feedback, keep each note concise and factua
 
 ### Sync with main before starting an issue
 
-Before starting work on an issue, read its current GitHub labels along with its body and native parent relationship. Use the labels to identify the assigned scope and delivery workflow. Then fetch the latest `origin/main`. For ordinary issues, create new branches from it and merge it into existing working branches. For frontend and backend child issues, follow [Feature integration branches](#feature-integration-branches). Resolve merge conflicts before implementation and preserve unrelated local changes.
+Before starting work on an issue, read its body and labels. Then fetch the latest `origin/main`, create the branch from it, or merge it into an existing working branch. Resolve merge conflicts before implementation and preserve unrelated local changes.
 
 ### User stories are owned by the PM
 
@@ -91,7 +92,7 @@ Frontend stack (`apps/frontend`): Vite + React 19, Tailwind v4, shadcn/ui, TypeS
 - Do not, without asking the developer: add theme tokens, add lint-disable comments, edit the lint config (including `SHADCN_LEGACY_FILES`), or edit `src/components/ui` just to make a violation go away.
 - UI is implemented directly from the issue and [`DESIGN.md`](DESIGN.md); there is no separate design-preview step. Follow the existing screens of the same area.
 - Every screen has a light desktop story in Storybook (`pnpm storybook`). Its data comes from fixtures parsed with the feature's zod schemas and served through MSW; an API request without a handler fails instead of reaching the backend. `pnpm frontend test:stories` renders every story in Chromium with its `play` checks and the accessibility check; it is the evidence for UI work, and agents run it through the Storybook MCP server too. While iterating, run only the affected file (`pnpm frontend test:stories <path>`).
-- After any UI change, run `pnpm check` and fix every error before finishing. `pnpm check-all` still gates handoff; UI work additionally runs `pnpm check-stories` once, at the end.
+- After any UI change, run `pnpm check` and the story files you touched (`pnpm frontend test:stories <path>`) and fix every error before finishing. CI runs every story on the PR.
 
 ### UI controls come from the kit
 
@@ -105,150 +106,20 @@ Assume the dev servers are up. If something is listening on the app's ports, tha
 
 Don't reach for the browser to check your own work. Tests and type-checks are the evidence; open the running app when asked to, not on your own initiative. The exception is taking screenshots for a PR (see [PRs handling](#prs-handling)).
 
-### Run `pnpm check-all` before handing work back
+### Check what you changed
 
-Before you hand work to the developer (report it done, commit, push or open a PR), run `pnpm check-all` from the repo root and fix every failure. If you changed UI, stories or their fixtures, also run `pnpm check-stories` once at that point. CI additionally validates migrations and database constraints. Running single checks or Prettier from the root is not enough, because each app has its own Prettier config.
+Before you commit, push or open a PR, run the checks that fit the change and fix every failure: `pnpm check` for frontend work, `pnpm backend test` for backend work, `pnpm backend test:db` for repositories and migrations, the story files you touched, and `pnpm e2e:affected` when a flow can be affected. Run Prettier and lint through each app's scripts, not from the root, because each app has its own config. `pnpm check-all` and `pnpm check-stories` are available but not required before every commit: CI runs every lane on every PR, and the merge queue runs the whole E2E suite before anything reaches `main`. When a change alters UI labels, flows or an API contract, update the E2E and database specs that still use the old behaviour, and give a new E2E spec its areas in `scripts/e2e/select.mjs`.
 
-Also confirm that CI will pass before every commit, not only before handoff. Run everything CI runs: `pnpm check-all`, `pnpm check-stories` for UI work, `pnpm backend test:db` against the local Postgres, and the Playwright e2e suite (`pnpm exec playwright test` in `apps/frontend`, which reuses the running dev servers). When a change alters UI labels, flows or an API contract, update the e2e specs and database specs that still use the old behaviour.
+Run `pnpm backend test:db` after, not before, an E2E run: it shares the local database and leaves queued evaluations that slow the next E2E run down.
 
-### Delivery gates
+### Delivery
 
-Never commit or push changes directly to `main`. All changes to `main` must go
-through a pull request from another branch, including documentation and configuration changes.
+The rules are in [`docs/delivery-workflow.md`](docs/delivery-workflow.md), [ADR-0005](docs/adr/0005-native-github-delivery.md) and the proposed [ADR-0007](docs/adr/0007-codeowners-guide-review-routing.md); role-based ownership is proposed in [ADR-0006](docs/adr/0006-role-based-code-ownership.md).
 
-Before opening a PR, classify its risk using the severity rules in
-[`docs/delivery-workflow.md`](docs/delivery-workflow.md) and apply exactly one
-matching label: `severity:low`, `severity:standard` or `severity:high`. Do not
-leave a PR unlabelled just because the delivery gate defaults it to Standard;
-that default is a fallback, not the author's classification. PR creation does
-not infer severity from changed files, so if the PR tool cannot set labels at
-creation, add the label immediately afterward and verify it is present. For
-mixed changes, use the highest applicable severity. Migrations, permissions or
-authentication, payments, destructive operations, deployment and approval-
-workflow changes require High; routine features, UI work and bug fixes use
-Standard. Mixed/unknown severity labels block delivery.
-Also apply `technical-review` when the PR adds or replaces a Docker Compose
-service, adds a package/dependency, or makes a comparable shared infrastructure
-or tooling change that needs Bogdan's technical sign-off. Apply it when creating
-the PR, or immediately afterward if the creation tool cannot set labels. Routine
-feature work such as adding a page does not need this label. For non-draft PRs,
-the workflow requests `rmnskb` once CI and the agent review of the current
-commit have passed (never earlier), and requires
-an approval from Bogdan or David (`darebakdavca`) on the current commit before QA
-handoff and merge; one is enough and nobody approves their own PR. The workflow
-never requests David automatically. On PRs Bogdan authors, David approves the
-current commit after a manual request. Once applied, removing the label does not
-remove the approval requirement.
-Before opening a non-draft PR, launch a fresh independent agent with no access to
-the implementation conversation or plan to review the final diff. Give it the
-issue description and acceptance criteria, the diff, and only the repository
-instructions needed to assess them. Resolve its actionable findings or record
-why each finding is not applicable before opening the PR. If you cannot launch
-an independent agent, do not open the non-draft PR; report the blocker.
-Low requires CI but skips linked issues, requirements approval, code review and
-QA; a changed ADR still needs its `/adr-accept` review. It is limited to documentation/text and isolated test files; executable or
-configuration changes cannot use Low. Enforcement changes always require High.
-Standard requires an issue link (`Closes #N` for completed work or `Refs #N` for
-partial work), independent Copilot review and current-commit QA, without
-requirements approval. An isolated Storybook design-preview PR marked
-`design:storybook-preview` replaces separate QA with current-commit PM approval;
-see the [delivery workflow](docs/delivery-workflow.md) for its scope and rules.
-High additionally requires issue-level scope approval
-from David (`darebakdavca`) or Bogdan (`rmnskb`), requested only after CI, agent
-review and any required human code review have passed on the current commit
-(the order is in the delivery workflow), with no PR-author exemption. Either may approve via a linked PR review or an explicit
-`/requirements-approve` issue or linked PR comment. PR commands approve linked
-issues and are recorded on those issues. Collaborators may request fresh scope review
-with `/requirements-rereview`. Requirement/title changes invalidate scope approval;
-checkbox and `Evidence dokončení` updates do not. Implementation commits preserve
-unchanged scope approval but require fresh code review and QA.
-
-A standard Dependabot PR (`dependencies`, `severity:standard`) needs no issue,
-agent review, human approval or QA: it merges automatically once CI passes on the
-current commit.
-
-`MatejKrones` approves QA after the testing handoff; on Matej's PRs, David performs
-QA. Request QA only after independent review passes and the current commit receives
-a bot-authored QA handoff, except for approved Storybook design-preview PRs. The
-issue enters Ready for Testing when all linked PRs are ready. A plain stack of
-PRs is handed to QA once, on its tip (see [Stacked PRs](#stacked-prs)); a PR
-that targets a feature branch outside a plain stack keeps waiting for its
-prerequisite and retargeting to main. Low PRs
-receive no automated QA request. CODEOWNERS routes
-David enforcement-path requests; code-owner approval is disabled. GitHub's
-blanket approval count is zero after severity installation; Delivery stages
-enforces the named approvals. See [the delivery workflow](docs/delivery-workflow.md).
-Any human GitHub user who can comment on a PR, including its author, may waive
-Copilot review with a standalone PR comment
-`/copilot-waive <full-current-SHA> <reason>`. A waiver replaces only Copilot review
-for that PR commit; CI and severity-specific requirements/QA still apply. Preserve
-findings and record a manual waiver, never a fabricated Copilot pass. A new
-commit needs a new waiver or review; recheck edited/deleted commands.
-During a Copilot outage, a repository administrator may set the Actions secret
-`PAUSE_COPILOT_REVIEW` to `true` to skip only Copilot for delivery to `main`,
-including stacks, and for child PRs into feature integration branches. The
-pause does not waive the review gate for integration PRs linked to the parent
-issue. See the [pause procedure](docs/delivery-workflow.md#pause-copilot-review-for-main-and-child-prs).
-Never manufacture passing gate evidence or bypass merge protection.
-
-### Stacked PRs
-
-Split a story that exceeds the Copilot review limit into a stack of PRs, one
-reviewable slice each. The workflow judges the stack as one change; the rules
-and automation are in [`docs/delivery-workflow.md`](docs/delivery-workflow.md#stacked-prs).
-
-- Create each branch from the one below it; the bottom PR targets `main`, every
-  other PR targets the branch of the PR below it.
-- Keep the stack in sync by merging the parent branch into the child, bottom to
-  top, whenever a lower PR changes, including after syncing with `main`. Never
-  rebase, squash or force-push a stacked branch: it rewrites the commits that
-  were reviewed and tested, and the carried-over reviews and the single QA pass
-  depend on the history staying intact.
-- A stack has one author and every PR links the same issue; use `Refs #N` on every
-  slice and `Closes #N` only on the tip, which completes the story. A Low PR
-  cannot be the tip. Label each PR with its own severity.
-- Do not ask for QA on lower PRs. When every slice has passed review the bot hands
-  the stack to QA once, on the tip; QA tests the tip commit, which contains the
-  whole change.
-- After creating the PRs, link them into a stack on GitHub with
-  `gh stack link <PRs, bottom to top>`, and merge with the stack merge button (or
-  `gh stack merge <stack-number> --merge`). The merge is atomic. Always choose the
-  merge-commit method; squash and rebase break the stack. Never use
-  `gh stack sync`, `rebase`, `push` or `submit`: they can rebase and force-push
-  the branches and rewrite the PR bases.
-
-### Feature integration branches
-
-When a feature is split into frontend and backend sub-issues (`area:frontend`,
-`area:backend`) under a parent issue, deliver it through the parent's linked
-`integration/<parent>-<slug>` branch; the flow is in
-[`docs/delivery-workflow.md`](docs/delivery-workflow.md#feature-integration-branches).
-
-- Verify that the child has exactly one of `area:frontend` or `area:backend`
-  and that its open parent links the intended integration branch. The area label
-  determines the child scope and CI lanes. If the labels or parent link are
-  missing, ambiguous, or inconsistent with the issue, report the discrepancy.
-- Fetch the linked integration branch and `origin/main`. If the child needs
-  changes from `main` that the integration branch lacks, reuse an open sync PR
-  that brings them in or create one from a
-  sync branch based on the integration branch. Merge `origin/main` into the sync
-  branch and target the integration branch with `Refs #<parent>`. Follow the
-  normal delivery gates and use a merge commit so Git retains the ancestry.
-  If Delivery stages blocks the sync, report the specific reason.
-- Start from the fetched integration branch. If the child needs a sync, fetch
-  it again after the sync lands. Create the child branch from that remote ref,
-  or merge it into an existing child branch.
-  Open the child PR into the integration branch with
-  `Closes #<sub-issue>`. The frontend child delivers components and Storybook
-  states with fixtures or mocks; live API and route wiring belongs to the parent.
-- Integrate both sides through PRs into the integration branch with
-  `Refs #<parent>`. Never push to an integration branch directly, rebase it or
-  merge into it with a rebase merge.
-- Child and integration PRs need agent review only. Open the parent PR into
-  `main` with `Closes #<parent>` once the children are merged; it carries the
-  feature's severity, requirements approval and QA.
-- Never open a PR from an integration branch into anything but `main`, and do
-  not change review or merge enforcement in a child PR.
+- Never commit or push to `main`. Deliver an issue with one PR into `main`; split an issue that is too big into smaller issues. Do not use stacked PRs or integration branches.
+- A merge needs CI (`verify`) on the current commit, one approval of the latest push from someone other than the author and last pusher, and resolved conversations. Any eligible teammate may approve; `CODEOWNERS` guides default QA assignment but does not add an approval gate. It goes through the merge queue, which runs the whole E2E suite on the merge result.
+- QA approves the PR's current commit after testing it ([Local QA](docs/local-qa.md)). The notifier asks Matej for PRs from others; Matej's own PRs route to a reviewer by changed area. It never blocks.
+- `/review` on a PR runs an optional, advisory Copilot review. Never post approvals, reviews or `/review` on someone's behalf unless asked.
 
 ### PRs handling
 
@@ -261,4 +132,4 @@ Use `.github/pull_request_template.md` as the starting point for PR descriptions
 
 Code reviews must evaluate the PR's declared scope as well as its linked story. Treat the PR title and `What`/`Why` sections as the author's description of the slice being delivered, and use the issue for product context and relevant criteria. `Refs #N` explicitly means partial work: missing behavior that the PR says is deferred is not a blocker just because the broader issue requires it. `Closes #N` claims completion, so review the full issue scope. For either link type, block concrete regressions and defects in behavior the PR claims to deliver; do not infer that an inert or mocked design preview must persist data or call a backend when the PR explicitly says implementation comes later. If the PR's declared scope conflicts with the issue or is too vague to review, report the conflict as a note or ask the author to clarify instead of silently expanding the PR's scope.
 
-Keep the template headings (`What`, `Why`, `How to test`, `Screenshots`), including for small documentation PRs. Keep each section brief; where a section does not apply, state that concisely rather than removing the heading. Remove template comments. Describe the final scope, without conversational history or abandoned approaches. Continue running all required checks before handoff; keeping their routine results out of the PR body does not waive validation.
+Keep the template headings (`What`, `Why`, `How to test`, `Screenshots`), including for small documentation PRs. Keep each section brief; where a section does not apply, state that concisely rather than removing the heading. Remove template comments. Describe the final scope, without conversational history or abandoned approaches. Keeping routine check results out of the PR body does not waive running the checks that fit the change.

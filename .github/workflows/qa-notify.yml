@@ -1,0 +1,49 @@
+name: QA notifier
+
+# Asks the tester once CI passed on a PR's current commit and keeps the board
+# in step (#499). It never blocks a merge; the ruleset on main decides that.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  pull_request_target:
+    types: [closed, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: qa-notify-${{ github.event.workflow_run.pull_requests[0].number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    # CI of a pull request in this repository, a draft marked ready, or a merge.
+    if: >-
+      (github.event_name == 'workflow_run' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.pull_requests[0]) ||
+      (github.event_name == 'pull_request_target' &&
+      (github.event.action == 'ready_for_review' || github.event.pull_request.merged))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Trusted code from main only; the PR's code is never checked out or run.
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - run: node scripts/notify/run.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PROJECT_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
+          PROJECT_NUMBER: 1 # "Kemp.io Team 4"
+          EVENT: ${{ github.event_name == 'workflow_run' && 'checks' || github.event.action == 'ready_for_review' && 'ready' || 'merged' }}
+          PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number || github.event.pull_request.number }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}

@@ -1,8 +1,37 @@
-# Changes to the enforcement boundary require High severity; David or Bogdan can approve requirements.
-/.github/ @darebakdavca
-/scripts/agent-review/ @darebakdavca
-/scripts/delivery/ @darebakdavca
-/scripts/automation/ @darebakdavca
-/CLAUDE.md @darebakdavca
-/AGENTS.md @darebakdavca
-/docs/delivery-workflow.md @darebakdavca
+# Code owners are co-owners; GitHub accepts an approval from any one listed.
+# Keep protected paths aligned with OWNERSHIP_RULES in scripts/rules/rules.mjs.
+
+# Domain code: primary role owner with a technical reviewer as backup.
+/apps/backend/ @rmnskb @MatejKrones
+/apps/frontend/ @JakubHerr @rmnskb
+
+# QA and email
+/apps/frontend/e2e/ @MatejKrones @JakubHerr
+/apps/backend/src/core/email/ @MatejKrones @rmnskb
+/apps/backend/src/modules/registrations/services/participant-result-mail.service.ts @MatejKrones @rmnskb
+/apps/backend/src/modules/registrations/participant-result-mail.db-spec.ts @MatejKrones @rmnskb
+/apps/backend/src/testing/confirmation-mail.ts @MatejKrones @rmnskb
+/docs/local-qa.md @MatejKrones @rmnskb
+
+# Shared delivery, CI, repository rules, and infrastructure
+/.github/ @MatejKrones @rmnskb
+/scripts/ @MatejKrones @rmnskb
+/CLAUDE.md @MatejKrones @rmnskb
+/docs/delivery-workflow.md @MatejKrones @rmnskb
+/docs/adr/ @MatejKrones @rmnskb
+
+# Shared dependency manifests and lockfiles
+/package.json @MatejKrones @rmnskb
+/pnpm-lock.yaml @MatejKrones @rmnskb
+/pnpm-workspace.yaml @MatejKrones @rmnskb
+/apps/*/package.json @MatejKrones @rmnskb
+
+# Shared deployment and environment configuration
+/docker-compose.yml @MatejKrones @rmnskb
+/apps/*/docker-compose.yml @MatejKrones @rmnskb
+/apps/*/Dockerfile* @MatejKrones @rmnskb
+/apps/frontend/nginx.conf @MatejKrones @rmnskb
+/apps/*/.env* @MatejKrones @rmnskb
+
+# Database migrations
+/apps/backend/prisma/migrations/ @rmnskb @MatejKrones

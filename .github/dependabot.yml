@@ -8,7 +8,7 @@ updates:
       time: '06:00'
       timezone: Europe/Prague
     open-pull-requests-limit: 5
-    labels: [dependencies, 'severity:standard']
+    labels: [dependencies]
     ignore:
       - dependency-name: typescript
         update-types: ['version-update:semver-major']
