@@ -34,7 +34,8 @@ export async function refresh(canvas: Canvas) {
 
 /** Clicks the button named `button` inside a dialog. */
 export async function submitDialog(dialog: HTMLElement, button: Name) {
-  await userEvent.click(within(dialog).getByRole("button", { name: button }))
+  // The footer can render a moment after the dialog is visible.
+  await userEvent.click(await within(dialog).findByRole("button", { name: button }, TIMEOUT))
 }
 
 /** Play check: `text` is visible somewhere on the page (canvas or a portal), at least once. */
