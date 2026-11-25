@@ -2,8 +2,9 @@
 
 Work reaches `main` as one pull request per issue. GitHub enforces the rules
 natively (a ruleset, `CODEOWNERS` and a merge queue); there is no custom merge
-check. The decision and its reasons are in
-[ADR-0005](adr/0005-native-github-delivery.md).
+check. The delivery model is in
+[ADR-0005](adr/0005-native-github-delivery.md); role-based ownership is proposed
+in [ADR-0006](adr/0006-role-based-code-ownership.md).
 
 ## The path of a change
 
@@ -26,25 +27,31 @@ delivered by one PR. Split an issue that is too big into smaller issues.
 
 ## What a merge needs
 
-| Rule                   | Detail                                                                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| CI (`verify`)          | Passes on the PR's current commit, and again in the merge queue on the merge result.                                           |
-| One approval           | From someone other than the PR's author and its last pusher, on the latest push. A new commit dismisses earlier approvals.     |
-| Code owner             | For [owned paths](#code-owners), one of the approvals must come from `rmnskb` or `darebakdavca`; nobody approves their own PR. |
-| Resolved conversations | Every review thread is resolved.                                                                                               |
-| Merge queue            | Merges go through the queue with a merge commit; direct pushes, force pushes and deleting `main` are blocked.                  |
+| Rule                   | Detail                                                                                                                           |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| CI (`verify`)          | Passes on the PR's current commit, and again in the merge queue on the merge result.                                             |
+| One approval           | From someone other than the PR's author and its last pusher, on the latest push. A new commit dismisses earlier approvals.       |
+| Code owner             | For [owned paths](#code-owners), one approval must come from an owner listed for the changed path; nobody approves their own PR. |
+| Resolved conversations | Every review thread is resolved.                                                                                                 |
+| Merge queue            | Merges go through the queue with a merge commit; direct pushes, force pushes and deleting `main` are blocked.                    |
 
 A rejected or dismissed review never counts. There is no bypass, including for
 administrators.
 
 ## Code owners
 
-[`CODEOWNERS`](../.github/CODEOWNERS) gives these paths to `rmnskb` and
-`darebakdavca`: `.github/` and `scripts/` (automation, CI, review and rules),
-dependency manifests and the lockfile, Docker, deployment and env templates,
-database migrations and [ADRs](adr/README.md). A PR touching them needs one of
-the two to approve it. The approval also counts as the PR's one approval, so an
-owner who has tested the change covers QA too.
+[`CODEOWNERS`](../.github/CODEOWNERS) routes domain work to the team members
+responsible for it: `rmnskb` for backend and database work, `JakubHerr` for
+frontend work, and `MatejKrones` for QA and email work. Shared delivery,
+repository rules, dependencies, infrastructure and ADRs are co-owned by
+`MatejKrones` and `rmnskb`. Frontend E2E files are co-owned by `JakubHerr`
+and `MatejKrones`; backend email files by `MatejKrones` and `rmnskb`.
+
+The co-owner list gives a backup when the primary role owner authored the PR.
+GitHub treats listed co-owners as alternatives: any one may satisfy the code
+owner approval requirement. The PM is not a code owner. On owned paths, a
+code-owner approval also counts as the PR's one approval and QA, as described in
+[ADR-0005](adr/0005-native-github-delivery.md).
 
 ## QA
 
@@ -162,7 +169,7 @@ node scripts/rules/install.mjs --apply  # applies it and reads it back
 ```
 
 The installer refuses to run unless its code matches `origin/main` and
-`CODEOWNERS` on `main` gives every owned path to both owners. It updates
+`CODEOWNERS` on `main` gives every protected path its configured owners. It updates
 `Protect main` (one approval of the latest push, code owner review, resolved
 conversations, the required `verify` check from GitHub Actions and the merge
 queue), deletes the retired `Protect integration branches` ruleset and fails

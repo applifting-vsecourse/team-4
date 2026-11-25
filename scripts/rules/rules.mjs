@@ -102,25 +102,49 @@ export function rulesetDifferences(stored, proposed) {
   return differences;
 }
 
-/** Paths in CODEOWNERS that need a code owner, each owned by both owners. */
-export const OWNERS = ['@rmnskb', '@darebakdavca'];
-export const OWNED_PATHS = [
-  '/.github/',
-  '/scripts/',
-  '/package.json',
-  '/pnpm-lock.yaml',
-  '/pnpm-workspace.yaml',
-  '/apps/*/package.json',
-  '/docker-compose.yml',
-  '/apps/*/docker-compose.yml',
-  '/apps/*/Dockerfile*',
-  '/apps/frontend/nginx.conf',
-  '/apps/*/.env*',
-  '/apps/backend/prisma/migrations/',
-  '/docs/adr/',
+/** Required CODEOWNERS entries. Any listed co-owner can approve the path. */
+export const OWNERSHIP_RULES = [
+  { path: '/.github/', owners: ['@MatejKrones', '@rmnskb'] },
+  { path: '/scripts/', owners: ['@MatejKrones', '@rmnskb'] },
+  { path: '/package.json', owners: ['@MatejKrones', '@rmnskb'] },
+  { path: '/pnpm-lock.yaml', owners: ['@MatejKrones', '@rmnskb'] },
+  { path: '/pnpm-workspace.yaml', owners: ['@MatejKrones', '@rmnskb'] },
+  { path: '/apps/*/package.json', owners: ['@MatejKrones', '@rmnskb'] },
+  { path: '/docker-compose.yml', owners: ['@MatejKrones', '@rmnskb'] },
+  { path: '/apps/*/docker-compose.yml', owners: ['@MatejKrones', '@rmnskb'] },
+  { path: '/apps/*/Dockerfile*', owners: ['@MatejKrones', '@rmnskb'] },
+  { path: '/apps/frontend/nginx.conf', owners: ['@MatejKrones', '@rmnskb'] },
+  { path: '/apps/*/.env*', owners: ['@MatejKrones', '@rmnskb'] },
+  {
+    path: '/apps/backend/prisma/migrations/',
+    owners: ['@MatejKrones', '@rmnskb'],
+  },
+  { path: '/docs/adr/', owners: ['@MatejKrones', '@rmnskb'] },
+  { path: '/apps/backend/', owners: ['@MatejKrones', '@rmnskb'] },
+  { path: '/apps/frontend/', owners: ['@JakubHerr', '@rmnskb'] },
+  { path: '/apps/frontend/e2e/', owners: ['@JakubHerr', '@MatejKrones'] },
+  {
+    path: '/apps/backend/src/core/email/',
+    owners: ['@MatejKrones', '@rmnskb'],
+  },
+  {
+    path: '/apps/backend/src/modules/registrations/services/participant-result-mail.service.ts',
+    owners: ['@MatejKrones', '@rmnskb'],
+  },
+  {
+    path: '/apps/backend/src/modules/registrations/participant-result-mail.db-spec.ts',
+    owners: ['@MatejKrones', '@rmnskb'],
+  },
+  {
+    path: '/apps/backend/src/testing/confirmation-mail.ts',
+    owners: ['@MatejKrones', '@rmnskb'],
+  },
+  { path: '/docs/local-qa.md', owners: ['@MatejKrones', '@rmnskb'] },
+  { path: '/CLAUDE.md', owners: ['@MatejKrones', '@rmnskb'] },
+  { path: '/docs/delivery-workflow.md', owners: ['@MatejKrones', '@rmnskb'] },
 ];
 
-/** Paths CODEOWNERS is missing or owns by someone else than both owners. */
+/** Paths CODEOWNERS is missing or assigns to the wrong co-owners. */
 export function codeownersProblems(text) {
   const lines = new Map(
     text
@@ -132,8 +156,9 @@ export function codeownersProblems(text) {
         return [path, owners.sort().join(' ')];
       }),
   );
-  const expected = [...OWNERS].sort().join(' ');
-  return OWNED_PATHS.filter((path) => lines.get(path) !== expected);
+  return OWNERSHIP_RULES.filter(
+    ({ path, owners }) => lines.get(path) !== [...owners].sort().join(' '),
+  ).map(({ path }) => path);
 }
 
 /**
@@ -156,7 +181,7 @@ export function planInstall({
   const problems = codeownersProblems(codeowners);
   if (problems.length)
     return {
-      refuse: `CODEOWNERS on main does not give both owners: ${problems.join(', ')}`,
+      refuse: `CODEOWNERS on main does not give the required owners: ${problems.join(', ')}`,
     };
   const current = selectRuleset(rulesets, repo, MAIN_RULESET);
   return {

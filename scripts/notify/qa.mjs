@@ -5,8 +5,8 @@
 export const QA_OWNER = 'MatejKrones';
 /** Tests the PRs the QA owner authors. */
 export const QA_SUBSTITUTE = 'darebakdavca';
-/** Code owners; an owner's approval also covers QA (ADR-0005). */
-export const CODE_OWNERS = ['rmnskb', 'darebakdavca'];
+/** Accounts listed in CODEOWNERS; an owner's approval also covers QA (ADR-0005). */
+export const CODE_OWNERS = ['rmnskb', 'MatejKrones', 'JakubHerr'];
 
 export const READY_FOR_TESTING = 'Ready for Testing';
 export const IN_PROGRESS = 'In Progress';

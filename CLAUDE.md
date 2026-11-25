@@ -30,7 +30,7 @@ Significant architectural decisions are recorded as ADRs in [`docs/adr/`](docs/a
 
 - Before designing a change, check the accepted ADRs for its area and follow them. A conflict with an accepted ADR is a structural change: report it to the tech lead (architecture) instead of working around it.
 - When your work makes a decision that meets the README's criteria, propose an ADR with status `Proposed` from [`docs/adr/template.md`](docs/adr/template.md), in the PR that introduces the decision or before it, and point the tech lead to it.
-- Set an ADR to `Accepted` only when its text is final and ready for an approving PR review by the tech lead (`rmnskb`) or the PM (`darebakdavca`), who own `docs/adr/`; never approve it or claim acceptance yourself. Any later change to the file needs a fresh approval. Do not rewrite an accepted ADR: supersede it with a new one.
+- Set an ADR to `Accepted` only when its text is final and ready for an approving PR review from a code owner of `docs/adr/` as listed in [`CODEOWNERS`](.github/CODEOWNERS). The PM may review product-scope decisions but is not a code owner. Never approve it or claim acceptance yourself. Any later change to the file needs a fresh approval. Do not rewrite an accepted ADR: supersede it with a new one.
 
 ## Commands
 
@@ -114,10 +114,10 @@ Run `pnpm backend test:db` after, not before, an E2E run: it shares the local da
 
 ### Delivery
 
-The rules are in [`docs/delivery-workflow.md`](docs/delivery-workflow.md) and [ADR-0005](docs/adr/0005-native-github-delivery.md); GitHub enforces them natively.
+The rules are in [`docs/delivery-workflow.md`](docs/delivery-workflow.md) and [ADR-0005](docs/adr/0005-native-github-delivery.md); role-based ownership is proposed in [ADR-0006](docs/adr/0006-role-based-code-ownership.md).
 
 - Never commit or push to `main`. Deliver an issue with one PR into `main`; split an issue that is too big into smaller issues. Do not use stacked PRs or integration branches.
-- A merge needs CI (`verify`) on the current commit, one approval of the latest push from someone other than the author, a code owner's approval (`rmnskb` or `darebakdavca`) for `.github/`, `scripts/`, dependencies, infrastructure, migrations and ADRs, and resolved conversations. It goes through the merge queue, which runs the whole E2E suite on the merge result.
+- A merge needs CI (`verify`) on the current commit, one approval of the latest push from someone other than the author, a code owner's approval for owned paths as listed in [`CODEOWNERS`](.github/CODEOWNERS), and resolved conversations. It goes through the merge queue, which runs the whole E2E suite on the merge result.
 - QA approves the PR's current commit after testing it ([Local QA](docs/local-qa.md)). The QA notifier asks the tester once CI passes; it never blocks.
 - `/review` on a PR runs an optional, advisory Copilot review. Never post approvals, reviews or `/review` on someone's behalf unless asked.
 

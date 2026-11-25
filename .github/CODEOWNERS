@@ -1,23 +1,37 @@
-# Changes here need an approval from a code owner who is not the PR's author
-# (#499, ADR-0005). The paths match OWNED_PATHS in scripts/rules/rules.mjs.
+# Code owners are co-owners; GitHub accepts an approval from any one listed.
+# Keep protected paths aligned with OWNERSHIP_RULES in scripts/rules/rules.mjs.
 
-# Automation, CI, review and repository rules
-/.github/ @rmnskb @darebakdavca
-/scripts/ @rmnskb @darebakdavca
+# Domain code: primary role owner with a technical reviewer as backup.
+/apps/backend/ @rmnskb @MatejKrones
+/apps/frontend/ @JakubHerr @rmnskb
 
-# Dependencies
-/package.json @rmnskb @darebakdavca
-/pnpm-lock.yaml @rmnskb @darebakdavca
-/pnpm-workspace.yaml @rmnskb @darebakdavca
-/apps/*/package.json @rmnskb @darebakdavca
+# QA and email
+/apps/frontend/e2e/ @MatejKrones @JakubHerr
+/apps/backend/src/core/email/ @MatejKrones @rmnskb
+/apps/backend/src/modules/registrations/services/participant-result-mail.service.ts @MatejKrones @rmnskb
+/apps/backend/src/modules/registrations/participant-result-mail.db-spec.ts @MatejKrones @rmnskb
+/apps/backend/src/testing/confirmation-mail.ts @MatejKrones @rmnskb
+/docs/local-qa.md @MatejKrones @rmnskb
 
-# Infrastructure
-/docker-compose.yml @rmnskb @darebakdavca
-/apps/*/docker-compose.yml @rmnskb @darebakdavca
-/apps/*/Dockerfile* @rmnskb @darebakdavca
-/apps/frontend/nginx.conf @rmnskb @darebakdavca
-/apps/*/.env* @rmnskb @darebakdavca
+# Shared delivery, CI, repository rules, and infrastructure
+/.github/ @MatejKrones @rmnskb
+/scripts/ @MatejKrones @rmnskb
+/CLAUDE.md @MatejKrones @rmnskb
+/docs/delivery-workflow.md @MatejKrones @rmnskb
+/docs/adr/ @MatejKrones @rmnskb
 
-# Database migrations and architecture decisions
-/apps/backend/prisma/migrations/ @rmnskb @darebakdavca
-/docs/adr/ @rmnskb @darebakdavca
+# Shared dependency manifests and lockfiles
+/package.json @MatejKrones @rmnskb
+/pnpm-lock.yaml @MatejKrones @rmnskb
+/pnpm-workspace.yaml @MatejKrones @rmnskb
+/apps/*/package.json @MatejKrones @rmnskb
+
+# Shared deployment and environment configuration
+/docker-compose.yml @MatejKrones @rmnskb
+/apps/*/docker-compose.yml @MatejKrones @rmnskb
+/apps/*/Dockerfile* @MatejKrones @rmnskb
+/apps/frontend/nginx.conf @MatejKrones @rmnskb
+/apps/*/.env* @MatejKrones @rmnskb
+
+# Database migrations
+/apps/backend/prisma/migrations/ @rmnskb @MatejKrones

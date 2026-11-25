@@ -37,11 +37,10 @@ requirements (they belong in the issue), or rules already in `CLAUDE.md` or
    the same file.
 4. Once the discussion has settled, the author sets the status to
    `Accepted YYYY-MM-DD in #PR`, here and in the index, and pushes the final text.
-5. The tech lead (`rmnskb`) or the PM (`darebakdavca`) accepts that text with an
-   approving review of the PR. `docs/adr/` belongs to both in
-   [`CODEOWNERS`](../../.github/CODEOWNERS), so GitHub requires the approval of
-   one of them who is not the PR's author, and a later commit, even a typo fix,
-   dismisses it. The approval also counts as the PR's one approval.
+5. A code owner of `docs/adr/` listed in [`CODEOWNERS`](../../.github/CODEOWNERS)
+   accepts the final text with an approving PR review. The PM may review
+   product-scope decisions but is not a code owner. A later commit, even a typo
+   fix, dismisses the approval. It also counts as the PR's one approval.
 6. If the decision is rejected, close the PR without merging.
 
 Approve only a final status: an approved `Proposed` ADR would merge as
@@ -75,3 +74,4 @@ applies or changes an accepted decision mentions the ADR in its description.
 | [0003](0003-pause-copilot-review.md)                          | Pause Copilot review during outages                  | Superseded |
 | [0004](0004-pause-copilot-review-for-integration-children.md) | Pause Copilot review for integration child PRs       | Superseded |
 | [0005](0005-native-github-delivery.md)                        | Deliver through native GitHub rules                  | Accepted   |
+| [0006](0006-role-based-code-ownership.md)                     | Assign code ownership by team role                   | Proposed   |

@@ -115,14 +115,14 @@ test("only this repository's ruleset counts, and duplicates are refused", () => 
   );
 });
 
-test('CODEOWNERS gives every owned path to both owners', () => {
+test('CODEOWNERS assigns each required path to its agreed co-owners', () => {
   assert.deepEqual(
     codeownersProblems(readFileSync('.github/CODEOWNERS', 'utf8')),
     [],
   );
   assert.deepEqual(
     codeownersProblems(
-      '/docs/adr/ @rmnskb\n/scripts/ @darebakdavca @rmnskb\n',
+      '/docs/adr/ @rmnskb\n/scripts/ @MatejKrones @rmnskb\n',
     ).slice(0, 2),
     ['/.github/', '/package.json'],
   );
@@ -155,7 +155,7 @@ test('the installer refuses rules that are not merged to main', () => {
 test('the installer refuses a CODEOWNERS on main that misses an owned path', () => {
   assert.match(
     install({ codeowners: '/scripts/ @rmnskb @darebakdavca\n' }).refuse,
-    /does not give both owners/,
+    /does not give the required owners/,
   );
 });
 
