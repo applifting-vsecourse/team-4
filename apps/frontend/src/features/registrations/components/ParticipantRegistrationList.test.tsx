@@ -147,9 +147,10 @@ describe("ParticipantRegistrationList", () => {
     expect(within(terms[1]!).getByText("Náhradník")).toBeInTheDocument()
     const value = (label: string) =>
       plain(within(mixed).getByText(label, { selector: "dt" }).nextElementSibling?.textContent)
-    expect(value("Cena celkem")).toBe("9 000 Kč")
+    expect(within(mixed).queryByText("Cena celkem")).not.toBeInTheDocument()
+    expect(value("Cena potvrzených termínů")).toBe("4 500 Kč")
+    expect(value("Zaplaceno")).toBe("0 Kč")
     expect(value("Zbývá zaplatit")).toBe("4 500 Kč")
-    expect(within(mixed).queryByText("Zaplaceno", { selector: "dt" })).not.toBeInTheDocument()
     expect(value("Datum připomenutí platby")).toBe("28. 6. 2027")
     expect(within(mixed).getByRole("link", { name: /Detail přihlášky/ })).toHaveAttribute(
       "href",
@@ -163,7 +164,7 @@ describe("ParticipantRegistrationList", () => {
     renderList()
 
     const card = (await screen.findByRole("heading", { name: "Podzimní víkend" })).closest("li")!
-    expect(within(card).getByText("Nyní nemáte platební povinnost.")).toBeInTheDocument()
+    expect(within(card).getByText(/Zatím nic neplaťte/)).toBeInTheDocument()
     expect(within(card).queryByText("Zbývá zaplatit")).not.toBeInTheDocument()
     expect(within(card).queryByText("Datum připomenutí platby")).not.toBeInTheDocument()
   })

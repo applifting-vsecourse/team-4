@@ -139,9 +139,16 @@ describe("ParticipantRegistrationDetail", () => {
 
     const value = (label: string) =>
       plain(screen.getByText(label, { selector: "dt" }).nextElementSibling?.textContent)
-    expect(value("Cena celkem")).toBe("9 000 Kč")
+    // Only the confirmed term counts; the waitlisted 4 500 Kč is not owed (S5-02).
+    expect(screen.queryByText("Cena celkem", { selector: "dt" })).not.toBeInTheDocument()
+    expect(value("Cena potvrzených termínů")).toBe("4 500 Kč")
+    expect(value("Zaplaceno")).toBe("2 000 Kč")
     expect(value("Zbývá zaplatit")).toBe("2 500 Kč")
-    expect(screen.queryByText("Zaplaceno", { selector: "dt" })).not.toBeInTheDocument()
+    // The short status under the header offers the way to the payment details.
+    const status = screen.getByRole("region", { name: "Stav platby" })
+    expect(within(status).getByText("Zbývá zaplatit")).toBeInTheDocument()
+    expect(within(status).getByText("2 500 Kč")).toBeInTheDocument()
+    expect(within(status).getByRole("link", { name: "Platební údaje" })).toBeInTheDocument()
     expect(value("Číslo účtu")).toBe("2501234567/2010")
     expect(value("Variabilní symbol")).toBe("2610190042")
     expect(value("Datum připomenutí platby")).toBe("28. 6. 2027")
@@ -167,7 +174,7 @@ describe("ParticipantRegistrationDetail", () => {
       }),
     )
     renderDetail()
-    await screen.findByText("Zbývá zaplatit")
+    await screen.findByText("Zbývá zaplatit", { selector: "dt" })
     expect(screen.queryByText("Variabilní symbol")).not.toBeInTheDocument()
     expect(screen.queryByText("Datum připomenutí platby")).not.toBeInTheDocument()
   })

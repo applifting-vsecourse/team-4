@@ -27,6 +27,7 @@ import { type ChangeProposal } from "@/features/registrations/api/registrationCh
 import { AccommodationCard } from "@/features/registrations/components/AccommodationCard"
 import { ChangeRequestCard } from "@/features/registrations/components/ChangeRequestCard"
 import { ChangeReviewDialog } from "@/features/registrations/components/ChangeReviewDialog"
+import { ParticipantPaymentStatus } from "@/features/registrations/components/ParticipantPaymentStatus"
 import { ParticipantPaymentSummary } from "@/features/registrations/components/ParticipantPaymentSummary"
 import { PaymentQrCard } from "@/features/registrations/components/PaymentQrCard"
 import { QuestionAnswersList } from "@/features/registrations/components/QuestionAnswersList"
@@ -88,6 +89,7 @@ export function ParticipantRegistrationDetail({
   const isChangeRequestTarget =
     hash !== SECTIONS.registrationTerms &&
     hash !== SECTIONS.receivedPayments &&
+    hash !== SECTIONS.payment &&
     hash !== SECTIONS.changeRequests &&
     hash.length > 0
   const isTargetRequestLoaded = resolvedRequests.some((request) => request.id === hash)
@@ -201,6 +203,8 @@ export function ParticipantRegistrationDetail({
               />
             </section>
           ) : null}
+
+          <ParticipantPaymentStatus registration={data} />
 
           {changesQuery.isError ? (
             <LoadError
@@ -342,15 +346,19 @@ export function ParticipantRegistrationDetail({
 
           {renderProgramme?.(data)}
 
-          <Card>
+          <Card
+            id={SECTIONS.payment}
+            className="scroll-mt-20"
+          >
             <CardHeader>
               <CardTitle>Platba</CardTitle>
             </CardHeader>
             <CardContent>
               <ParticipantPaymentSummary
+                terms={data.terms}
                 selectedPriceMinor={data.selectedPriceMinor}
                 amountDueMinor={data.amountDueMinor}
-                balanceMinor={data.balanceMinor}
+                paidMinor={data.paidMinor}
                 instructions={data.paymentInstructions}
               />
               {data.paymentLinkToken ? (

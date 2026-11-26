@@ -123,7 +123,7 @@ test("an organizer opens an event, participants register and payments settle the
   await step(visitor, "7 · Anna se přihlásí a čeká na rozhodnutí pořadatelky", async () => {
     const result = await register("Anna", "Nováková", anna)
     await expect(result.getByText("Čeká na rozhodnutí organizátora")).toBeVisible()
-    await expect(result.getByText("Nyní nemáte platební povinnost.")).toBeVisible()
+    await expect(result.getByText(/Zatím nic neplaťte/)).toBeVisible()
   })
 
   await step(visitor, "8 · Petr se přihlásí a také čeká", async () => {

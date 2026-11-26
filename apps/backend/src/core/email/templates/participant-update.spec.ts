@@ -78,8 +78,11 @@ describe('ParticipantUpdate', () => {
     expect(out).toContain('1. turnus');
     expect(out).toContain('Potvrzeno');
     expect(out).toContain('Náhradník');
-    expect(out).toContain('Cena celkem 9 000 Kč');
+    expect(out).toContain('Cena potvrzených termínů 3 000 Kč');
+    expect(out).toContain('Zaplaceno 0 Kč');
     expect(out).toContain('Zbývá zaplatit 3 000 Kč');
+    expect(out).not.toContain('Cena celkem');
+    expect(out).not.toContain('9 000 Kč');
     expect(out).not.toContain('Celkem přijato');
     expect(out).not.toContain('Přijatá platba');
     expect(out).toContain('2301234567/2010');
@@ -103,9 +106,9 @@ describe('ParticipantUpdate', () => {
     );
 
     expect(out).not.toContain('Platební údaje');
-    expect(out).toContain('Cena celkem 9 000 Kč');
-    expect(out).toContain('Zbývá zaplatit 0 Kč');
-    expect(out).toContain('Nyní není co hradit');
+    expect(out).toContain('Předběžná cena vybraných termínů 9 000 Kč');
+    expect(out).toContain('Zatím nic neplaťte');
+    expect(out).not.toContain('Zbývá zaplatit');
     expect(out).not.toContain('Celkem přijato');
     expect(out).not.toContain('Vše je uhrazeno');
   });
@@ -124,7 +127,8 @@ describe('ParticipantUpdate', () => {
     const out = text(html);
 
     expect(out).toContain('Přijali jsme vaši platbu');
-    expect(out).toContain('Cena celkem 9 000 Kč');
+    expect(out).toContain('Cena potvrzených termínů 7 500 Kč');
+    expect(out).toContain('Zaplaceno 7 500 Kč');
     expect(out).toContain('Zbývá zaplatit 0 Kč');
     expect(out).not.toContain('Přijatá platba');
     expect(out).not.toContain('Celkem přijato');
@@ -147,11 +151,44 @@ describe('ParticipantUpdate', () => {
       ),
     );
 
-    expect(out).toContain('Cena celkem 9 000 Kč');
-    expect(out).toContain('Zbývá zaplatit 0 Kč');
-    expect(out).not.toContain('Přeplatek 500 Kč');
+    expect(out).toContain('Zaplaceno 8 000 Kč');
+    expect(out).toContain('Přeplatek 500 Kč');
+    expect(out).not.toContain('Zbývá zaplatit');
     expect(out).toContain('domluvte s organizátorem');
     expect(out).not.toMatch(/vrát|refund/i);
+    expect(out).not.toContain('Platební údaje');
+  });
+
+  it('leaves out the price of waitlisted terms from what remains to pay', async () => {
+    const out = text(
+      await render(
+        update(
+          { selectedPriceMinor: 900_000 },
+          { receivedMinor: 200_000, balanceMinor: 250_000 },
+        ),
+      ),
+    );
+
+    expect(out).toContain('Cena potvrzených termínů 4 500 Kč');
+    expect(out).toContain('Zaplaceno 2 000 Kč');
+    expect(out).toContain('Zbývá zaplatit 2 500 Kč');
+    expect(out).not.toContain('9 000 Kč');
+  });
+
+  it('says the participation is cancelled and names an overpayment without asking for payment', async () => {
+    const out = text(
+      await render(
+        update(
+          { reason: 'organizerChange', terms: [], selectedPriceMinor: 0 },
+          { receivedMinor: 200_000, balanceMinor: -200_000, bank: null },
+        ),
+      ),
+    );
+
+    expect(out).toContain('Účast zrušena');
+    expect(out).toContain('Přeplatek 2 000 Kč');
+    expect(out).not.toContain('Zbývá zaplatit');
+    expect(out).not.toContain('Předběžná cena');
     expect(out).not.toContain('Platební údaje');
   });
 

@@ -41,6 +41,11 @@ test("the participant sees the payment the organizer recorded", async ({ browser
   await expect(page.getByRole("heading", { name: event.name, level: 1 })).toBeVisible()
   await expect(page.getByRole("listitem").filter({ hasText: "400 Kč" })).toBeVisible()
   await expect(definition(page, "Zbývá zaplatit")).toHaveText("600 Kč")
+  // The short status under the header repeats the amount and leads to the payment details.
+  const status = page.getByRole("region", { name: "Stav platby" })
+  await expect(status).toContainText("Zbývá zaplatit")
+  await expect(status).toContainText("600 Kč")
+  await expect(status.getByRole("link", { name: "Platební údaje" })).toBeVisible()
 })
 
 test("a link works only once", async ({ browser, page }) => {

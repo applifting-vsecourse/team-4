@@ -78,9 +78,10 @@ function Submitted() {
               <ParticipantTermStates terms={SUBMITTED} />
               <div className="border-t border-border pt-4">
                 <ParticipantPaymentSummary
+                  terms={SUBMITTED.map((term) => ({ status: term.state }))}
                   selectedPriceMinor={960_000}
                   amountDueMinor={0}
-                  balanceMinor={0}
+                  paidMinor={0}
                   instructions={null}
                 />
               </div>
@@ -111,9 +112,10 @@ function Decided() {
           </CardHeader>
           <CardContent>
             <ParticipantPaymentSummary
+              terms={DECIDED.map((term) => ({ status: term.state }))}
               selectedPriceMinor={1_440_000}
               amountDueMinor={480_000}
-              balanceMinor={480_000}
+              paidMinor={0}
               instructions={INSTRUCTIONS}
             />
             <PaymentQrCard link="https://akc.io/p/7Hq2xL9mVw" />

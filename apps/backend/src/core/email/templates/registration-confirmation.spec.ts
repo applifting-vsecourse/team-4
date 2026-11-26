@@ -62,7 +62,10 @@ describe('RegistrationConfirmation', () => {
 
     expect(out).toContain('Čeká na rozhodnutí organizátora');
     expect(out).toContain('Za tyto termíny zatím nic neplatíte');
-    expect(out).toContain('Nyní není co hradit.');
+    expect(out).toContain('Předběžná cena vybraných termínů 4 100 Kč');
+    expect(out).toContain('Zatím nic neplaťte');
+    expect(out).not.toContain('Cena potvrzených termínů');
+    expect(out).not.toContain('Zbývá zaplatit');
     expect(out).not.toContain('Platební instrukce');
     expect(out).not.toContain('K úhradě');
   });
@@ -79,8 +82,11 @@ describe('RegistrationConfirmation', () => {
     expect(out).toContain('6. 7. – 12. 7. 2026');
     expect(out).toContain('Potvrzeno');
     expect(out).toContain('Náhradník');
-    expect(out).toContain('Cena celkem 8 400,50 Kč');
+    expect(out).toContain('Cena potvrzených termínů 4 500 Kč');
+    expect(out).toContain('Zaplaceno 0 Kč');
     expect(out).toContain('Zbývá zaplatit 4 500 Kč');
+    expect(out).not.toContain('Cena celkem');
+    expect(out).not.toContain('8 400,50 Kč');
     expect(out).not.toContain('3 900,50 Kč');
     expect(out).not.toContain('Částka 4 500 Kč');
     expect(out).toContain('Za tyto termíny nic neplatíte');
@@ -103,11 +109,21 @@ describe('RegistrationConfirmation', () => {
     const out = text(await render([waitlisted], null));
 
     expect(out).toContain('Náhradník');
-    expect(out).toContain('Nyní není co hradit.');
+    expect(out).toContain('Předběžná cena vybraných termínů 3 900,50 Kč');
+    expect(out).toContain('Zatím nic neplaťte');
+    expect(out).not.toContain('Zbývá zaplatit');
     expect(out).not.toContain('Platební instrukce');
     expect(out).not.toContain('K úhradě');
     expect(out).not.toContain('připomenutí');
     expect(out).not.toContain('Potvrzeno');
+  });
+
+  it('says the participation is cancelled when every term is released', async () => {
+    const out = text(await render([], null));
+
+    expect(out).toContain('Účast zrušena');
+    expect(out).not.toContain('Předběžná cena');
+    expect(out).not.toContain('Zbývá zaplatit');
   });
 
   it('links the button to the magic link and states how long it lasts', async () => {

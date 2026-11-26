@@ -180,9 +180,10 @@ function RegistrationCard({ registration }: { registration: ParticipantRegistrat
           <ParticipantTermList terms={registration.terms} />
           <div className="border-t border-border pt-4">
             <ParticipantPaymentSummary
+              terms={registration.terms}
               selectedPriceMinor={registration.selectedPriceMinor}
               amountDueMinor={registration.amountDueMinor}
-              balanceMinor={registration.balanceMinor}
+              paidMinor={registration.paidMinor}
               instructions={registration.paymentInstructions}
               shouldShowAccount={false}
             />
