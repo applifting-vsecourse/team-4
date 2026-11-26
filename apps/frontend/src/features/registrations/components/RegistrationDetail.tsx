@@ -259,10 +259,10 @@ function RegistrationSummary({ registration }: { registration: Detail }) {
           </div>
           <div className="space-y-1 text-sm">
             <p className="text-muted-foreground">Platba</p>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-baseline gap-3">
               <PaymentStateBadge state={registration.paymentState} />
               {hasObligation ? (
-                <span className="flex items-center gap-2">
+                <span className="flex items-baseline gap-2">
                   <span>{isOverpaid ? "Přeplatek" : "Zbývá zaplatit"}</span>
                   <BalanceAmount
                     amount={formatCzk(Math.abs(registration.balanceMinor))}
