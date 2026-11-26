@@ -194,6 +194,14 @@ export const ChangeHistory: Story = {
   play: () => showsText("Historie změn"),
 }
 
+/** A registration that was never changed: the history says so instead of vanishing. */
+export const ChangeHistoryEmpty: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.registrationChanges([]))
+  },
+  play: () => showsText("Přihláška zatím nebyla změněna"),
+}
+
 export const ChangesLoadFailed: Story = {
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", `${DETAIL}/changes`))
