@@ -262,7 +262,7 @@ function RegistrationSummary({ registration }: { registration: Detail }) {
             <div className="flex flex-wrap items-center gap-3">
               <PaymentStateBadge state={registration.paymentState} />
               {hasObligation ? (
-                <span className="flex items-baseline gap-2">
+                <span className="flex items-center gap-2">
                   <span>{isOverpaid ? "Přeplatek" : "Zbývá zaplatit"}</span>
                   <BalanceAmount
                     amount={formatCzk(Math.abs(registration.balanceMinor))}
