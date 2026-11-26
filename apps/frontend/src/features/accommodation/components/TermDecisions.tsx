@@ -40,7 +40,7 @@ export function TermDecisions({
   selectedTermId?: string
 } & TermDecisionHandlers) {
   const content = (
-    <ul className="divide-y divide-border text-sm">
+    <ul className="text-sm">
       {terms.map((term) => (
         <li
           key={term.id}

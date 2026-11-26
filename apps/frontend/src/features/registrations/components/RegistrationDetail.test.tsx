@@ -173,7 +173,7 @@ describe("RegistrationDetail", () => {
       variableSymbol: null,
       payments: [],
     })
-    expect(screen.getByText("Bez povinnosti")).toBeInTheDocument()
+    expect(screen.queryByText("Bez povinnosti")).not.toBeInTheDocument()
     expect(screen.queryByText("Celkem k úhradě")).not.toBeInTheDocument()
     expect(screen.queryByText("Zbývá zaplatit")).not.toBeInTheDocument()
     expect(screen.queryByText("Datum připomenutí platby")).not.toBeInTheDocument()

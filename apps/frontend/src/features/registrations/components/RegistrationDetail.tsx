@@ -15,7 +15,6 @@ import { formatCzk } from "@/lib/money"
 
 import { type RegistrationDetail as Detail } from "@/features/registrations/api/eventRegistrationSchemas"
 import { BalanceAmount } from "@/features/registrations/components/BalanceAmount"
-import { PaymentStateBadge } from "@/features/registrations/components/PaymentStateBadge"
 import { QuestionAnswersList } from "@/features/registrations/components/QuestionAnswersList"
 import { ReceivedPaymentsTable } from "@/features/registrations/components/ReceivedPaymentsTable"
 import {
@@ -152,7 +151,7 @@ export function RegistrationDetail({
                 <CardTitle>Termíny</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="divide-y divide-border text-sm">
+                <ul className="text-sm">
                   {registration.terms.map((term) => (
                     <li
                       key={term.termId}
@@ -257,21 +256,18 @@ function RegistrationSummary({ registration }: { registration: Detail }) {
               Potvrzené {confirmed} · Čekající {waiting}
             </p>
           </div>
-          <div className="space-y-1 text-sm">
-            <p className="text-muted-foreground">Platba</p>
-            <div className="flex flex-wrap items-baseline gap-3">
-              <PaymentStateBadge state={registration.paymentState} />
-              {hasObligation ? (
-                <span className="flex items-baseline gap-2">
-                  <span>{isOverpaid ? "Přeplatek" : "Zbývá zaplatit"}</span>
-                  <BalanceAmount
-                    amount={formatCzk(Math.abs(registration.balanceMinor))}
-                    isSettled={registration.balanceMinor <= 0}
-                  />
-                </span>
-              ) : null}
+          {hasObligation ? (
+            <div className="space-y-1 text-sm">
+              <p className="text-muted-foreground">Platba</p>
+              <p className="flex items-baseline gap-2">
+                <span>{isOverpaid ? "Přeplatek" : "Zbývá zaplatit"}</span>
+                <BalanceAmount
+                  amount={formatCzk(Math.abs(registration.balanceMinor))}
+                  isSettled={registration.balanceMinor <= 0}
+                />
+              </p>
             </div>
-          </div>
+          ) : null}
         </div>
       </CardContent>
     </Card>
