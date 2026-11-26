@@ -36,6 +36,8 @@ export const SECTIONS = {
   changeRequests: "zadosti-o-zmenu",
   /** Organizer's questions in the event registration form. */
   registrationQuestions: "registration-questions-heading",
+  /** Platba card of the participant's registration detail (S5-02). */
+  payment: "platba",
   /** Přijaté platby of the participant's registration detail (S4-06). */
   receivedPayments: "prijate-platby",
 } as const

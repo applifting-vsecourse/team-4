@@ -13,6 +13,9 @@ import {
   Text,
 } from 'react-email';
 import { EmailBrand } from './email-brand';
+import { paymentOverview } from '@/modules/registrations/domain/payment-overview';
+import { Row } from './email-row';
+import { PaymentOverviewRows } from './payment-overview';
 import {
   formatBankAccount,
   formatDateRange,
@@ -59,29 +62,6 @@ const STATUS_TONE: Record<ConfirmationTerm['status'], string> = {
 export const confirmationSubject = (eventName: string): string =>
   `akc.io — přihláška přijata: ${eventName}`;
 
-const Row = ({
-  label,
-  value,
-  strong,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}): React.JSX.Element => (
-  <table width="100%" role="presentation" cellPadding={0} cellSpacing={0}>
-    <tbody>
-      <tr>
-        <td className="py-1 text-sm text-gray-500 align-top">{label}</td>
-        <td
-          className={`py-1 text-sm text-right align-top ${strong ? 'font-bold text-gray-900' : 'text-gray-900'}`}
-        >
-          {value}
-        </td>
-      </tr>
-    </tbody>
-  </table>
-);
-
 export const RegistrationConfirmation = ({
   eventName,
   terms,
@@ -91,6 +71,15 @@ export const RegistrationConfirmation = ({
 }: RegistrationConfirmationProps): React.JSX.Element => {
   const hasPending = terms.some((term) => term.status === 'pending');
   const hasWaitlisted = terms.some((term) => term.status === 'waitlisted');
+  // Nothing is paid before the e-mail goes out; only confirmed terms are due.
+  const overview = paymentOverview({
+    terms,
+    selectedPriceMinor,
+    dueMinor: terms
+      .filter((term) => term.status === 'confirmed')
+      .reduce((sum, term) => sum + term.priceMinor, 0),
+    paidMinor: 0,
+  });
   return (
     <Html lang="cs">
       <Head />
@@ -147,17 +136,7 @@ export const RegistrationConfirmation = ({
             <Hr className="border-gray-200 my-0" />
 
             <Section className="mt-3">
-              <Row
-                label="Cena celkem"
-                value={formatMoney(selectedPriceMinor)}
-              />
-              {payment ? (
-                <Row
-                  label="Zbývá zaplatit"
-                  value={formatMoney(payment.amountMinor)}
-                  strong
-                />
-              ) : null}
+              <PaymentOverviewRows overview={overview} />
             </Section>
 
             {hasPending ? (
@@ -189,11 +168,7 @@ export const RegistrationConfirmation = ({
                 />
                 <Row label="Variabilní symbol" value={payment.variableSymbol} />
               </Section>
-            ) : (
-              <Text className="text-sm text-gray-900 leading-5 font-semibold">
-                Nyní není co hradit.
-              </Text>
-            )}
+            ) : null}
 
             <Section className="my-6">
               <Button

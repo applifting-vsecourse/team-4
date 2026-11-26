@@ -54,9 +54,10 @@ export function RegistrationResult({ result }: { result: Result }) {
             <ParticipantTermList terms={result.terms} />
             <div className="border-t border-border pt-4">
               <ParticipantPaymentSummary
+                terms={result.terms}
                 selectedPriceMinor={result.selectedPriceMinor}
                 amountDueMinor={result.amountDueMinor}
-                balanceMinor={result.amountDueMinor}
+                paidMinor={0}
                 instructions={result.paymentInstructions}
               />
               {result.paymentLinkToken ? (

@@ -3,67 +3,102 @@ import { Money } from "@/components/Money"
 import { formatPragueDate } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 
+import { type ParticipantTerm } from "@/features/registrations/api/participantRegistrationSchemas"
 import { type PaymentInstructions } from "@/features/registrations/api/registrationSchemas"
 import { BalanceRow } from "@/features/registrations/components/BalanceRow"
 import { formatBankAccount } from "@/features/registrations/lib/bankAccount"
+import { paymentOverview } from "@/features/registrations/lib/paymentOverview"
 
 type ParticipantPaymentSummaryProps = {
+  terms: Pick<ParticipantTerm, "status">[]
   selectedPriceMinor: number
   amountDueMinor: number
-  balanceMinor: number
+  paidMinor: number
   /** Present only while a debt remains. */
   instructions: PaymentInstructions | null
   /** The list shows the reminder date only; the account and VS belong to the detail. */
   shouldShowAccount?: boolean
-  /** Moves "Zbývá zaplatit" last as a coloured, bold total (F21-1 design). */
-  isBalanceHighlighted?: boolean
 }
 
-// Show the full selected price and the balance for confirmed terms. Waitlisted
-// terms are included in the total, but create no payment obligation until confirmed.
+// Before any confirmation the selected price is only preliminary; afterwards
+// the summary counts the confirmed terms alone. Waiting and waitlisted terms
+// create no payment obligation until they are confirmed (S5-02).
 export function ParticipantPaymentSummary({
+  terms,
   selectedPriceMinor,
   amountDueMinor,
-  balanceMinor,
+  paidMinor,
   instructions,
   shouldShowAccount = true,
-  isBalanceHighlighted = false,
 }: ParticipantPaymentSummaryProps) {
-  const hasObligation = amountDueMinor > 0
+  const overview = paymentOverview({ terms, selectedPriceMinor, amountDueMinor, paidMinor })
 
   return (
     <div className="space-y-3">
-      <DefinitionList>
-        <DefinitionRow label="Cena celkem">
-          <Money minor={selectedPriceMinor} />
-        </DefinitionRow>
-        {hasObligation ? (
-          <>
-            {isBalanceHighlighted ? null : (
-              <DefinitionRow label="Zbývá zaplatit">
-                <Money
-                  minor={Math.max(balanceMinor, 0)}
-                  isEmphasised
-                />
-              </DefinitionRow>
-            )}
-            {isBalanceHighlighted ? (
-              <BalanceRow
-                amount={formatCzk(Math.max(balanceMinor, 0))}
-                isSettled={balanceMinor <= 0}
-              />
-            ) : null}
-          </>
-        ) : null}
-      </DefinitionList>
+      {overview.kind === "cancelled" ? <p className="text-sm font-medium">Účast zrušena</p> : null}
 
-      {hasObligation ? null : (
+      {overview.kind === "preliminary" ? (
+        <>
+          <DefinitionList>
+            <DefinitionRow label="Předběžná cena vybraných termínů">
+              <Money minor={overview.priceMinor} />
+            </DefinitionRow>
+          </DefinitionList>
+          <p className="text-sm font-medium">
+            {overview.priceMinor === 0
+              ? "Účast je zdarma, po potvrzení nic neplatíte."
+              : "Zatím nic neplaťte. Platit budete až za termíny, které organizátor potvrdí."}
+          </p>
+        </>
+      ) : null}
+
+      {overview.kind === "confirmed" && overview.dueMinor === 0 && overview.paidMinor === 0 ? (
+        <p className="text-sm font-medium">Potvrzená účast je zdarma, nic neplatíte.</p>
+      ) : null}
+
+      {overview.kind === "confirmed" && (overview.dueMinor > 0 || overview.paidMinor > 0) ? (
+        <DefinitionList>
+          <DefinitionRow label="Cena potvrzených termínů">
+            <Money minor={overview.dueMinor} />
+          </DefinitionRow>
+          <DefinitionRow label="Zaplaceno">
+            <Money minor={overview.paidMinor} />
+          </DefinitionRow>
+          {overview.overpaidMinor > 0 ? (
+            <DefinitionRow
+              label="Přeplatek"
+              isEmphasised
+            >
+              <Money
+                minor={overview.overpaidMinor}
+                isEmphasised
+              />
+            </DefinitionRow>
+          ) : (
+            <BalanceRow
+              amount={formatCzk(overview.remainingMinor)}
+              isSettled={overview.remainingMinor === 0}
+            />
+          )}
+        </DefinitionList>
+      ) : null}
+
+      {overview.kind === "cancelled" && overview.overpaidMinor > 0 ? (
+        <DefinitionList>
+          <DefinitionRow label="Přeplatek">
+            <Money
+              minor={overview.overpaidMinor}
+              isEmphasised
+            />
+          </DefinitionRow>
+        </DefinitionList>
+      ) : null}
+
+      {overview.kind !== "preliminary" && overview.overpaidMinor > 0 ? (
         <p className="text-sm text-muted-foreground">
-          {selectedPriceMinor === 0
-            ? "Účast je zdarma, nic neplatíte."
-            : "Nyní nemáte platební povinnost."}
+          O naložení s přeplatkem se domluvte s organizátorem. Další platba není potřeba.
         </p>
-      )}
+      ) : null}
 
       {instructions ? (
         <DefinitionList className="border-t border-border pt-3">

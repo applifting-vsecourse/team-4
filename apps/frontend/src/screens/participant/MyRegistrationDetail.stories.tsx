@@ -239,6 +239,145 @@ export const TermCancelled: Story = {
   },
 }
 
+const OWNED_WITHOUT_PAYMENT = {
+  ...OWN_REGISTRATION,
+  paidMinor: 0,
+  payments: [],
+  paymentInstructions: null,
+  paymentLinkToken: null,
+}
+
+/** Nothing confirmed yet: a preliminary price and "do not pay yet", no debt (S5-02). */
+export const AwaitingConfirmation: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...registrationHandlers.ownRegistration({
+        ...OWNED_WITHOUT_PAYMENT,
+        terms: OWN_REGISTRATION.terms.map((term) => ({ ...term, status: "pending" })),
+        amountDueMinor: 0,
+        balanceMinor: 0,
+      }),
+    )
+  },
+  play: async ({ canvas }) => {
+    await showsText("Předběžná cena vybraných termínů 9 000 Kč")
+    await showsText(/Zatím nic neplaťte/)
+    await expect(canvas.queryByText("Zbývá zaplatit")).not.toBeInTheDocument()
+    await expect(canvas.queryByRole("link", { name: "Platební údaje" })).not.toBeInTheDocument()
+  },
+}
+
+/** Only waitlisted terms: still preliminary, nothing to pay. */
+export const WaitlistedOnly: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...registrationHandlers.ownRegistration({
+        ...OWNED_WITHOUT_PAYMENT,
+        terms: OWN_REGISTRATION.terms.map((term) => ({ ...term, status: "waitlisted" })),
+        amountDueMinor: 0,
+        balanceMinor: 0,
+      }),
+    )
+  },
+  play: async ({ canvas }) => {
+    await showsText(/Zatím nic neplaťte/)
+    await expect(canvas.queryByText("Zbývá zaplatit")).not.toBeInTheDocument()
+  },
+}
+
+/** Confirmed 4 500 Kč, waitlisted 4 500 Kč and 2 000 Kč paid: 2 500 Kč remain; the waitlisted term is not counted. */
+export const MixedPartlyPaid: Story = {
+  play: async ({ canvas, canvasElement }) => {
+    const status = await canvas.findByRole("region", { name: "Stav platby" })
+    await expect(within(status).getByText("Zbývá zaplatit")).toBeVisible()
+    await expect(within(status).getByText("2 500 Kč")).toBeVisible()
+    await expect(canvas.queryByText("Cena celkem")).not.toBeInTheDocument()
+    // The jump leads to the Platba section of the same page.
+    await expect(within(status).getByRole("link", { name: "Platební údaje" })).toHaveAttribute(
+      "href",
+      expect.stringMatching(/#platba$/),
+    )
+    await expect(canvasElement.querySelector("#platba")).not.toBeNull()
+  },
+}
+
+/** Confirmed and fully paid: "Zaplaceno", no further payment offered. */
+export const MixedPaidInFull: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...registrationHandlers.ownRegistration({
+        ...OWN_REGISTRATION,
+        paidMinor: 450_000,
+        balanceMinor: 0,
+        paymentInstructions: null,
+        paymentLinkToken: null,
+        payments: [
+          {
+            id: "0190c0de-0000-7000-8000-000000000510",
+            receivedOn: "2027-03-05",
+            amountMinor: 450_000,
+            source: "organizer",
+          },
+        ],
+      }),
+    )
+  },
+  play: async ({ canvas }) => {
+    await showsText("Zaplaceno")
+    await expect(canvas.queryByRole("link", { name: "Platební údaje" })).not.toBeInTheDocument()
+    await expect(
+      canvas.queryByRole("img", { name: "QR kód s odkazem na platbu" }),
+    ).not.toBeInTheDocument()
+  },
+}
+
+/** More paid than confirmed: the overpayment is named and no payment is requested. */
+export const Overpaid: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...registrationHandlers.ownRegistration({
+        ...OWN_REGISTRATION,
+        paidMinor: 500_000,
+        balanceMinor: -50_000,
+        paymentInstructions: null,
+        paymentLinkToken: null,
+        payments: [
+          {
+            id: "0190c0de-0000-7000-8000-000000000511",
+            receivedOn: "2027-03-05",
+            amountMinor: 500_000,
+            source: "organizer",
+          },
+        ],
+      }),
+    )
+  },
+  play: async ({ canvas }) => {
+    await showsText(/O naložení s přeplatkem se domluvte s organizátorem/)
+    await expect(canvas.getByText("500 Kč", { selector: "strong" })).toBeVisible()
+    await expect(canvas.queryByText("Zbývá zaplatit")).not.toBeInTheDocument()
+  },
+}
+
+/** A confirmed free participation is told apart from a paid one that still waits. */
+export const FreeConfirmed: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(
+      ...registrationHandlers.ownRegistration({
+        ...OWNED_WITHOUT_PAYMENT,
+        terms: OWN_REGISTRATION.terms.slice(0, 1).map((term) => ({ ...term, priceMinor: 0 })),
+        selectedPriceMinor: 0,
+        amountDueMinor: 0,
+        balanceMinor: 0,
+      }),
+    )
+  },
+  play: async ({ canvas }) => {
+    await showsText("Potvrzená účast je zdarma, nic neplatíte.")
+    await expect(canvas.queryByText(/Předběžná cena/)).not.toBeInTheDocument()
+  },
+}
+
 /** The whole registration was cancelled: marked, no further changes. */
 export const RegistrationCancelled: Story = {
   beforeEach: ({ msw }) => {
@@ -246,6 +385,12 @@ export const RegistrationCancelled: Story = {
       ...registrationHandlers.ownRegistration({
         ...OWN_REGISTRATION,
         terms: OWN_REGISTRATION.terms.map((term) => ({ ...term, status: "cancelled" })),
+        // Nothing is owed any more; what was paid stays as an overpayment (S5-02).
+        selectedPriceMinor: 0,
+        amountDueMinor: 0,
+        balanceMinor: -200_000,
+        paymentInstructions: null,
+        paymentLinkToken: null,
         isCancelled: true,
         canChange: false,
       }),
@@ -253,6 +398,10 @@ export const RegistrationCancelled: Story = {
   },
   play: async (context) => {
     await showsText("Odhlášená přihláška")
+    await showsText("Účast zrušena")
+    await showsText(/O naložení s přeplatkem se domluvte s organizátorem/)
+    await expect(context.canvas.getByText("2 000 Kč", { selector: "strong" })).toBeVisible()
+    await expect(context.canvas.queryByText(/Předběžná cena/)).not.toBeInTheDocument()
     await expect(
       context.canvas.queryByRole("button", { name: "Zrušit účast" }),
     ).not.toBeInTheDocument()

@@ -22,6 +22,9 @@ import {
 } from '@/modules/registrations/domain/participant-update';
 import { QR_CID } from '../qr-code';
 import { EmailBrand } from './email-brand';
+import { paymentOverview } from '@/modules/registrations/domain/payment-overview';
+import { Row } from './email-row';
+import { PaymentOverviewRows } from './payment-overview';
 import {
   formatBankAccount,
   formatDateRange,
@@ -109,29 +112,6 @@ const STATUS_COLORS: Record<UpdateTerm['status'], string> = {
   proposed: 'text-gray-700',
   cancelled: 'text-gray-500',
 };
-
-const Row = ({
-  label,
-  value,
-  strong,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}): React.JSX.Element => (
-  <table width="100%" role="presentation" cellPadding={0} cellSpacing={0}>
-    <tbody>
-      <tr>
-        <td className="py-1 text-sm text-gray-500 align-top">{label}</td>
-        <td
-          className={`py-1 text-sm text-right align-top ${strong ? 'font-bold text-gray-900' : 'text-gray-900'}`}
-        >
-          {value}
-        </td>
-      </tr>
-    </tbody>
-  </table>
-);
 
 const TermList = ({
   title,
@@ -223,12 +203,18 @@ const Payments = ({
   const { payment } = update;
   const kind = balanceKind(payment.balanceMinor);
   const { bank } = payment;
-  // Keep the summary for selected waitlisted terms even when nothing is due.
+  const overview = paymentOverview({
+    terms: update.terms,
+    selectedPriceMinor: update.selectedPriceMinor ?? 0,
+    // Confirmed terms are what the balance is measured against.
+    dueMinor: payment.balanceMinor + payment.receivedMinor,
+    paidMinor: payment.receivedMinor,
+  });
+  // Older queued messages carry no price: nothing to say before confirmation.
   if (
-    kind === 'settled' &&
-    payment.receivedMinor === 0 &&
-    !payment.recorded &&
-    (update.selectedPriceMinor === undefined || update.selectedPriceMinor === 0)
+    overview.kind === 'preliminary' &&
+    update.selectedPriceMinor === undefined &&
+    payment.receivedMinor === 0
   ) {
     return <></>;
   }
@@ -237,34 +223,7 @@ const Payments = ({
       <Text className="text-base font-semibold text-gray-900 mt-6 mb-1">
         Platby
       </Text>
-      {update.selectedPriceMinor !== undefined ? (
-        <Row
-          label="Cena celkem"
-          value={formatMoney(update.selectedPriceMinor)}
-        />
-      ) : null}
-      <Row
-        label="Zbývá zaplatit"
-        value={formatMoney(Math.max(payment.balanceMinor, 0))}
-        strong
-      />
-      {kind === 'settled' && payment.receivedMinor > 0 ? (
-        <Text className="text-sm text-gray-900 leading-5">
-          Vše je uhrazeno.
-        </Text>
-      ) : null}
-      {kind === 'settled' &&
-      payment.receivedMinor === 0 &&
-      update.selectedPriceMinor ? (
-        <Text className="text-sm text-gray-700 leading-5">
-          Nyní není co hradit.
-        </Text>
-      ) : null}
-      {kind === 'overpaid' ? (
-        <Text className="text-sm text-gray-700 leading-5">
-          O naložení s přeplatkem se domluvte s organizátorem.
-        </Text>
-      ) : null}
+      <PaymentOverviewRows overview={overview} />
       {kind === 'debt' && bank ? (
         <Section className="bg-gray-100 rounded-md p-4 mt-4">
           <Text className="text-base font-semibold text-gray-900 m-0 mb-2">
