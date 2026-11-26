@@ -31,6 +31,7 @@ export const SPEC_AREAS = {
   'qr-payment.spec.ts': ['payments', 'participant', 'registrations'],
   'queue-order.spec.ts': ['accommodation', 'registrations'],
   'registration-changes.spec.ts': ['registrations', 'participant'],
+  'registration-detail-tabs.spec.ts': ['registrations'],
   'registration-needs.spec.ts': ['registrations', 'participant'],
   'registration-questions.spec.ts': [
     'registrations',

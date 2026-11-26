@@ -121,6 +121,7 @@ test("an approved change notification waits for its request before scrolling", a
   )
   await organizerPage.getByRole("link", { name: "Přihláška Jana Nováková" }).click()
   await organizerPage.getByRole("button", { name: "Schválit" }).click()
+  await organizerPage.getByRole("tab", { name: "Historie" }).click()
   await expect(organizerPage.getByText(/– schváleno$/)).toBeVisible()
 
   let isChangesLoaded = false

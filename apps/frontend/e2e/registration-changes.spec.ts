@@ -176,6 +176,7 @@ test("a change inside the threshold waits for the organizer, who approves it", a
   await expect(page.getByText("+420777123456").first()).toBeVisible()
   await page.getByRole("button", { name: "Schválit" }).click()
   // A decided request is history only, never shown as an open request.
+  await page.getByRole("tab", { name: "Historie" }).click()
   await expect(page.getByText(/– schváleno$/)).toBeVisible()
   await expect(page.getByRole("heading", { name: "Žádost o změnu" })).toBeHidden()
 
@@ -195,6 +196,7 @@ test("a rejected request leaves the registration as it was", async ({ page, brow
 
   await openOrganizerRequest(page, event, registration.id)
   await page.getByRole("button", { name: "Zamítnout" }).click()
+  await page.getByRole("tab", { name: "Historie" }).click()
   await expect(page.getByText(/– zamítnuto$/)).toBeVisible()
   await expect(page.getByRole("heading", { name: "Žádost o změnu" })).toBeHidden()
 

@@ -108,7 +108,7 @@ test("the organizer imports a statement once; it pairs by VS, the rest is paired
     .getByRole("row", { name: /1\s500\sKč/ })
     .getByRole("link", { name: `Přihláška ${anna.firstName} ${anna.lastName}` })
     .click()
-  await expect(page).toHaveURL(new RegExp(`/registrations/${registration.id}$`))
+  await expect(page).toHaveURL(new RegExp(`/registrations/${registration.id}\\?tab=payments$`))
 })
 
 test("an empty statement imports zero transactions; a foreign file is refused", async ({

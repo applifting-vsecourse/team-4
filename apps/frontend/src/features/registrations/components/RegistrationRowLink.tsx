@@ -5,7 +5,20 @@ import { ROUTES } from "@/app/routes"
 import { TableCell } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
-type RegistrationLink = { organizationId: string; eventId: string; registrationId: string }
+import { type RegistrationDetailTab } from "@/features/registrations/lib/detailTabs"
+
+type RegistrationLink = {
+  organizationId: string
+  eventId: string
+  registrationId: string
+  /** The tab of the detail to open; the contact data without one. */
+  tab?: RegistrationDetailTab
+}
+
+const toLink = ({ tab, ...params }: RegistrationLink) => ({
+  params,
+  search: tab ? { tab } : {},
+})
 
 type RegistrationNameCellProps = {
   link: RegistrationLink
@@ -27,7 +40,7 @@ export function RegistrationNameCell({
     <TableCell className="relative">
       <Link
         to={ROUTES.registration}
-        params={link}
+        {...toLink(link)}
         aria-label={`Přihláška ${firstName} ${lastName}`}
         className="block font-medium text-foreground after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
       >
@@ -60,7 +73,7 @@ export function RegistrationCell({
       {children}
       <Link
         to={ROUTES.registration}
-        params={link}
+        {...toLink(link)}
         aria-hidden="true"
         tabIndex={-1}
         className="absolute inset-0"

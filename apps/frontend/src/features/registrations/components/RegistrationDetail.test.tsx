@@ -201,4 +201,46 @@ describe("RegistrationDetail", () => {
     renderDetail(MIXED, { isRefreshing: true })
     expect(screen.getByRole("button", { name: "Aktualizuji…" })).toBeDisabled()
   })
+
+  it("summarises confirmed and waiting terms and what is left to pay above the tabs", () => {
+    renderDetail(MIXED)
+    expect(screen.getByText("Potvrzené 1 · Čekající 1")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "eliska@example.test" })).toHaveAttribute(
+      "href",
+      "mailto:eliska@example.test",
+    )
+    expect(screen.getByRole("link", { name: "+420601234567" })).toHaveAttribute(
+      "href",
+      "tel:+420601234567",
+    )
+  })
+
+  it("offers the six tabs in order and reports a chosen one", async () => {
+    const onTabChange = vi.fn()
+    render(
+      <RegistrationDetail
+        registration={MIXED}
+        updatedAt={UPDATED_AT}
+        isRefreshing={false}
+        hasRefreshFailed={false}
+        onRefresh={vi.fn()}
+        tab="terms"
+        onTabChange={onTabChange}
+      />,
+    )
+    const tabs = within(screen.getByRole("tablist", { name: "Detail přihlášky" })).getAllByRole(
+      "tab",
+    )
+    expect(tabs.map((tab) => tab.textContent)).toEqual([
+      "Osobní údaje",
+      "Termíny",
+      "Ubytování",
+      "Platby",
+      "Potřeby",
+      "Historie",
+    ])
+    expect(screen.getByRole("tab", { name: "Termíny" })).toHaveAttribute("aria-selected", "true")
+    await userEvent.click(screen.getByRole("tab", { name: "Platby" }))
+    expect(onTabChange).toHaveBeenCalledWith("payments")
+  })
 })

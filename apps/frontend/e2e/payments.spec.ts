@@ -55,6 +55,7 @@ test("an overpayment shows as Přeplatek in the detail and, without a reload, in
   await expect(row).toContainText("Nezaplaceno")
   await page.getByRole("link", { name: annaLink }).click()
 
+  await page.getByRole("tab", { name: "Platby" }).click()
   await recordPayment(page, "1200")
   await expect(definition(page, "Přeplatek")).toHaveText("200 Kč")
 
@@ -72,7 +73,8 @@ test("an overpayment shows as Přeplatek in the detail and, without a reload, in
   )
   // A payment opens its registration.
   await payments.getByRole("link", { name: annaLink }).click()
-  await expect(page).toHaveURL(new RegExp(`/registrations/${registration.id}$`))
+  await expect(page).toHaveURL(new RegExp(`/registrations/${registration.id}\\?tab=payments$`))
+  await expect(page.getByRole("tab", { name: "Platby", selected: true })).toBeVisible()
 })
 
 test("a payment without an obligation is an overpayment", async ({ page, request }) => {
@@ -80,7 +82,7 @@ test("a payment without an obligation is an overpayment", async ({ page, request
   // Petr waits for the organizer's decision and owes nothing (S3-01).
   const petr = await register(request, event.publicId, newParticipant("Petr"), event.termIds)
 
-  await page.goto(`${registrationsUrl(event)}/${petr.id}`)
+  await page.goto(`${registrationsUrl(event)}/${petr.id}?tab=payments`)
   await recordPayment(page, "500")
   await expect(definition(page, "Přeplatek")).toHaveText("500 Kč")
 })

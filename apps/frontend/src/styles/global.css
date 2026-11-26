@@ -244,6 +244,16 @@
   ) {
   box-shadow: var(--shadow-sm);
 }
+/* The shadow above is declared outside the utility layer and would replace the focus ring, which is
+   a box shadow too: keep the ring of the variant (`ring-*` utilities) next to the shadow. */
+[data-variant][data-size]:not(
+    [data-variant="ghost"],
+    [data-variant="link"],
+    [data-slot="date-picker"],
+    [data-slot="form-control"]
+  ):focus-visible {
+  box-shadow: var(--tw-ring-shadow, 0 0 #0000), var(--shadow-sm);
+}
 /* Form fields have an outline and no shadow, all alike: the kit's `shadow-xs` on selects, radios
    and checkboxes would draw a hard ink shadow the text inputs do not have. Focus and invalid
    rings are box shadows too and stay. */

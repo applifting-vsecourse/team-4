@@ -4,9 +4,11 @@ import { Check, History, X } from "lucide-react"
 import { EmptyState } from "@/components/EmptyState"
 import { FormError } from "@/components/FormError"
 import { LoadError } from "@/components/LoadError"
+import { LoadingBlock } from "@/components/LoadingBlock"
 import { Notice } from "@/components/Notice"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { readApiError } from "@/lib/apiError"
 
 import { registrationChangesQueryOptions } from "@/features/registrations/api/eventRegistrationQueryOptions"
@@ -119,8 +121,29 @@ export function RegistrationChangeHistory({
   registrationId,
 }: Pick<RegistrationChangeDecisionProps, "organizationId" | "eventId" | "registrationId">) {
   const query = useQuery(registrationChangesQueryOptions(organizationId, eventId, registrationId))
-  // A failed load is reported by the decision above; it is never shown as empty.
-  if (!query.data) return null
+  // A failed load is never shown as an empty history.
+  if (!query.data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Historie změn</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {query.isError ? (
+            <LoadError
+              title="Historii změn se nepodařilo načíst"
+              isRetrying={query.isFetching}
+              onRetry={() => query.refetch()}
+            />
+          ) : (
+            <LoadingBlock label="Načítání historie změn">
+              <Skeleton className="h-20 w-full" />
+            </LoadingBlock>
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
   return (
     <RegistrationChangeHistoryCard
       changes={query.data}

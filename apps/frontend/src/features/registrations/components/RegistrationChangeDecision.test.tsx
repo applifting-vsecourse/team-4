@@ -199,7 +199,25 @@ describe("RegistrationChangeDecision", () => {
       </QueryClientProvider>,
     )
 
-    expect(await screen.findByText("Historie změn")).toBeInTheDocument()
-    expect(screen.getByText("Přihláška zatím nebyla změněna")).toBeInTheDocument()
+    expect(await screen.findByText("Přihláška zatím nebyla změněna")).toBeInTheDocument()
+    expect(screen.getByText("Historie změn")).toBeInTheDocument()
+  })
+
+  it("says that the history is loading or failed instead of showing it empty", async () => {
+    get.mockRejectedValue(new Error("offline"))
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <RegistrationChangeHistory
+          organizationId="org"
+          eventId="event"
+          registrationId={id(1)}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(await screen.findByText("Historii změn se nepodařilo načíst")).toBeInTheDocument()
+    expect(screen.queryByText("Přihláška zatím nebyla změněna")).not.toBeInTheDocument()
   })
 })

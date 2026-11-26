@@ -65,6 +65,7 @@ async function openOrganizerDetail(page: Page, event: OpenEvent) {
     .first()
     .click()
   await expect(page.getByRole("heading", { name: "Jana Nováková", level: 1 })).toBeVisible()
+  await page.getByRole("tab", { name: "Potřeby" }).click()
 }
 
 test("the needs entered in the form reach the participant and the organizer, who corrects them", async ({

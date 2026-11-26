@@ -85,7 +85,7 @@ test("a confirmed participant picks roommates, and the organizer sees them", asy
 
   // The organizer sees it at once, without approving anything.
   await page.goto(
-    `/organizations/${event.organizationId}/events/${event.eventId}/registrations/${ids.jana}`,
+    `/organizations/${event.organizationId}/events/${event.eventId}/registrations/${ids.jana}?tab=accommodation`,
   )
   await expect(page.getByText("Přání na spolubydlící")).toBeVisible()
   await expect(page.getByText("Eva Nováková")).toBeVisible()

@@ -1,8 +1,9 @@
 import type { ReactNode } from "react"
 
+import { CardTitleRow } from "@/components/CardTitleRow"
 import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { Notice } from "@/components/Notice"
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
 import { type GenderAnswer } from "@/features/registrations/api/registrationSchemas"
 import { genderText } from "@/features/registrations/lib/gender"
@@ -70,8 +71,10 @@ export function AccommodationCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Ubytování</CardTitle>
-        {action ? <CardAction>{action}</CardAction> : null}
+        <CardTitleRow
+          title="Ubytování"
+          action={action}
+        />
       </CardHeader>
       <CardContent>{content}</CardContent>
     </Card>

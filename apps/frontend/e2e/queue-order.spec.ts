@@ -111,6 +111,7 @@ test("the organizer moves a person in the queue with a reason; only that term ch
 
   // The registration detail lists the move in its history.
   await page.getByRole("link", { name: "Eva Nováková" }).click()
+  await page.getByRole("tab", { name: "Historie" }).click()
   await expect(
     page.getByText("Historie vyhodnocení").locator("xpath=ancestor::*[@data-slot='card'][1]"),
   ).toContainText("Změna pořadí · Eva Nováková · 1. turnus · fronta Žena")

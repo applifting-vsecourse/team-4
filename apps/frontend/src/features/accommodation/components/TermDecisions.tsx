@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { type TermParticipation } from "@/lib/participation"
+import { cn } from "@/lib/utils"
 
 import { RESULT_BADGE, type ProposalResult } from "@/features/accommodation/lib/proposal"
 
@@ -31,13 +32,23 @@ export function TermDecisions({
   onConfirm,
   onWaitlist,
   isSection = false,
-}: { terms: DecisionTerm[]; isSection?: boolean } & TermDecisionHandlers) {
+  selectedTermId,
+}: {
+  terms: DecisionTerm[]
+  isSection?: boolean
+  /** The term the organizer came for, e.g. from the evaluation. */
+  selectedTermId?: string
+} & TermDecisionHandlers) {
   const content = (
     <ul className="divide-y divide-border text-sm">
       {terms.map((term) => (
         <li
           key={term.id}
-          className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0"
+          aria-current={term.id === selectedTermId ? "true" : undefined}
+          className={cn(
+            "flex flex-col gap-2 py-3 first:pt-0 last:pb-0",
+            term.id === selectedTermId && "-mx-3 rounded-md bg-muted px-3 first:pt-3 last:pb-3",
+          )}
         >
           <div>
             <div className="flex items-start justify-between gap-3">
