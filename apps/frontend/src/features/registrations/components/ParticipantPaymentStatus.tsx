@@ -1,10 +1,12 @@
+import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { CircleCheck } from "lucide-react"
+import { CircleAlert, CircleCheck, CircleX, Clock, type LucideIcon } from "lucide-react"
 
 import { ROUTES, SECTIONS } from "@/app/routes"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { formatCzk } from "@/lib/money"
+import { cn } from "@/lib/utils"
 
 import { type ParticipantRegistration } from "@/features/registrations/api/participantRegistrationSchemas"
 import { BalanceAmount } from "@/features/registrations/components/BalanceAmount"
@@ -27,16 +29,20 @@ export function ParticipantPaymentStatus({
       <section aria-label="Stav platby">
         <Card>
           <CardContent>
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-              <p className="flex flex-wrap items-baseline gap-x-3 text-lg font-semibold">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-x-4">
+              <StatusLine
+                icon={CircleAlert}
+                tone="text-destructive"
+              >
                 <span>Zbývá zaplatit</span>
                 <BalanceAmount
                   amount={formatCzk(overview.remainingMinor)}
                   isSettled={false}
                 />
-              </p>
+              </StatusLine>
               <Button
                 variant="secondary"
+                className="w-full sm:w-auto"
                 asChild
               >
                 <Link
@@ -58,10 +64,32 @@ export function ParticipantPaymentStatus({
     <section aria-label="Stav platby">
       <Card>
         <CardContent>
-          <div className="space-y-1 text-sm">{describe(overview)}</div>
+          <div className="space-y-2 text-sm">{describe(overview)}</div>
         </CardContent>
       </Card>
     </section>
+  )
+}
+
+// Every status leads with the same large icon and text; the colour carries the
+// meaning: green settled, red a debt, neutral waiting or cancelled.
+function StatusLine({
+  icon: Icon,
+  tone,
+  children,
+}: {
+  icon: LucideIcon
+  tone: string
+  children: ReactNode
+}) {
+  return (
+    <p className={cn("flex items-center gap-2 text-lg leading-none font-semibold", tone)}>
+      <Icon
+        aria-hidden
+        className="size-5 shrink-0"
+      />
+      {children}
+    </p>
   )
 }
 
@@ -69,7 +97,12 @@ function describe(overview: ReturnType<typeof paymentOverview>) {
   if (overview.kind === "cancelled") {
     return (
       <>
-        <p className="font-medium">Účast zrušena</p>
+        <StatusLine
+          icon={CircleX}
+          tone="text-muted-foreground"
+        >
+          Účast zrušena
+        </StatusLine>
         {overview.overpaidMinor > 0 ? <Overpayment minor={overview.overpaidMinor} /> : null}
       </>
     )
@@ -77,9 +110,12 @@ function describe(overview: ReturnType<typeof paymentOverview>) {
   if (overview.kind === "preliminary") {
     return (
       <>
-        <p className="font-medium">
+        <StatusLine
+          icon={Clock}
+          tone="text-foreground"
+        >
           Předběžná cena vybraných termínů {formatCzk(overview.priceMinor)}
-        </p>
+        </StatusLine>
         <p className="text-muted-foreground">
           {overview.priceMinor === 0
             ? "Účast je zdarma, po potvrzení nic neplatíte."
@@ -89,17 +125,23 @@ function describe(overview: ReturnType<typeof paymentOverview>) {
     )
   }
   if (overview.dueMinor === 0 && overview.paidMinor === 0) {
-    return <p className="font-medium">Potvrzená účast je zdarma, nic neplatíte.</p>
+    return (
+      <StatusLine
+        icon={CircleCheck}
+        tone="text-success"
+      >
+        Potvrzená účast je zdarma, nic neplatíte.
+      </StatusLine>
+    )
   }
   return (
     <>
-      <p className="flex items-center gap-2 text-lg leading-none font-semibold text-success">
-        <CircleCheck
-          aria-hidden
-          className="size-5 shrink-0"
-        />
+      <StatusLine
+        icon={CircleCheck}
+        tone="text-success"
+      >
         Zaplaceno
-      </p>
+      </StatusLine>
       {overview.overpaidMinor > 0 ? <Overpayment minor={overview.overpaidMinor} /> : null}
     </>
   )
