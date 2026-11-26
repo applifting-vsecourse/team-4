@@ -71,6 +71,7 @@ test("the answer from the form is shown to both sides, changed and corrected", a
     .getByRole("link", { name: /Jana Nováková/ })
     .first()
     .click()
+  await page.getByRole("tab", { name: "Ubytování" }).click()
   await expect(definition(page, ANSWER)).toHaveText("Žena")
   await expect(page.getByText("Ubytování je potřeba určit ručně")).toBeHidden()
 
@@ -148,7 +149,7 @@ test("an older registration without an answer reads Neuvedeno, decided by hand",
   await setHardAttribute(page.request, event, "gender")
 
   await page.goto(
-    `/organizations/${event.organizationId}/events/${event.eventId}/registrations/${registration.id}`,
+    `/organizations/${event.organizationId}/events/${event.eventId}/registrations/${registration.id}?tab=accommodation`,
   )
   await expect(definition(page, ANSWER)).toHaveText("Neuvedeno")
   await expect(page.getByText("Ubytování je potřeba určit ručně")).toBeVisible()
@@ -164,7 +165,7 @@ test("without a hard attribute nobody's accommodation is decided by hand", async
   )
 
   await page.goto(
-    `/organizations/${event.organizationId}/events/${event.eventId}/registrations/${registration.id}`,
+    `/organizations/${event.organizationId}/events/${event.eventId}/registrations/${registration.id}?tab=accommodation`,
   )
   await expect(definition(page, ANSWER)).toHaveText("Neuvedeno")
   await expect(page.getByText("Ubytování je potřeba určit ručně")).toBeHidden()

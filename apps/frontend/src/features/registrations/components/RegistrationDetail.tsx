@@ -1,19 +1,27 @@
 import type { ReactNode } from "react"
+import { Mail, Phone } from "lucide-react"
 
+import { CardTitleRow } from "@/components/CardTitleRow"
 import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
+import { HorizontalOverflowViewport } from "@/components/HorizontalOverflowViewport"
 import { LoadError } from "@/components/LoadError"
 import { Money } from "@/components/Money"
 import { ParticipationBadge } from "@/components/ParticipationBadge"
 import { RefreshButton } from "@/components/RefreshButton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatCalendarRange, formatPragueDate, formatPragueDateTime } from "@/lib/date"
 import { formatCzk } from "@/lib/money"
 
 import { type RegistrationDetail as Detail } from "@/features/registrations/api/eventRegistrationSchemas"
 import { BalanceAmount } from "@/features/registrations/components/BalanceAmount"
-import { PaymentStateBadge } from "@/features/registrations/components/PaymentStateBadge"
 import { QuestionAnswersList } from "@/features/registrations/components/QuestionAnswersList"
 import { ReceivedPaymentsTable } from "@/features/registrations/components/ReceivedPaymentsTable"
+import {
+  DEFAULT_REGISTRATION_DETAIL_TAB,
+  REGISTRATION_DETAIL_TABS,
+  type RegistrationDetailTab,
+} from "@/features/registrations/lib/detailTabs"
 
 type RegistrationDetailProps = {
   registration: Detail
@@ -23,25 +31,36 @@ type RegistrationDetailProps = {
   /** The last refresh failed; `registration` is still from the one before. */
   hasRefreshFailed: boolean
   onRefresh: () => unknown
+  tab?: RegistrationDetailTab
+  onTabChange?: (tab: RegistrationDetailTab) => void
+  /** Above the tabs whichever is selected, e.g. a request waiting for a decision. */
+  notice?: ReactNode
+  /** Records a payment; belongs to the payments, not to the header. */
+  paymentAction?: ReactNode
   /** Transport, diet and health with the organizer's correction (F63). */
   needs?: ReactNode
-  /** The gender answer and its correction (F64), under the contacts. */
+  /** The gender answer, its correction, the wishes and the rooms (F64, S4-05). */
   accommodation?: ReactNode
   /** Replaces the list of terms, e.g. with each term's proposal (S3-01). */
   terms?: ReactNode
-  /** Below the terms, e.g. the history of the evaluation (S3-01). */
+  /** The histories of the changes and of the evaluation (S3-01). */
   history?: ReactNode
 }
 
-// The organizer's view of one registration (S2-11): contacts,
-// each term with its own status, and the payment summary with the payments.
-// Recording a payment (S2-12) refreshes it through the shared query key.
+// The organizer's view of one registration (S2-11, F38-1): a common summary
+// above six tabs. Every tab stays mounted while another one is shown, so
+// switching never drops a half-written edit. Recording a payment (S2-12)
+// refreshes it through the shared query key.
 export function RegistrationDetail({
   registration,
   updatedAt,
   isRefreshing,
   hasRefreshFailed,
   onRefresh,
+  tab = DEFAULT_REGISTRATION_DETAIL_TAB,
+  onTabChange,
+  notice,
+  paymentAction,
   needs,
   accommodation,
   terms,
@@ -73,74 +92,185 @@ export function RegistrationDetail({
         />
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Údaje účastníka</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            <section aria-label="Kontaktní údaje">
-              <h2 className="mb-3 text-sm font-semibold">Kontaktní údaje</h2>
-              <DefinitionList>
-                <DefinitionRow label="Jméno a příjmení">
-                  {registration.firstName} {registration.lastName}
-                </DefinitionRow>
-                <DefinitionRow label="E-mail">{registration.email}</DefinitionRow>
-                <DefinitionRow label="Telefon">{registration.phone}</DefinitionRow>
-              </DefinitionList>
-            </section>
-            {registration.answers.length > 0 ? (
-              <section aria-label="Otázky pořadatele">
-                <h2 className="mb-3 text-sm font-semibold">Otázky pořadatele</h2>
-                <QuestionAnswersList answers={registration.answers} />
-              </section>
-            ) : null}
-            {accommodation}
-          </div>
-        </CardContent>
-      </Card>
+      <RegistrationSummary registration={registration} />
 
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Termíny a platby</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {terms ?? (
-                <section aria-label="Termíny">
-                  <h2 className="mb-3 text-sm font-semibold">Termíny</h2>
-                  <ul className="divide-y divide-border text-sm">
-                    {registration.terms.map((term) => (
-                      <li
-                        key={term.termId}
-                        className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0"
-                      >
-                        <div>
-                          <p className="font-medium">{term.label}</p>
-                          <p className="text-muted-foreground">
-                            {formatCalendarRange(term.startDate, term.endDate)} ·{" "}
-                            {formatCzk(term.priceMinor)}
-                          </p>
-                        </div>
-                        <ParticipationBadge status={term.status} />
-                      </li>
-                    ))}
-                  </ul>
+      {notice}
+
+      <Tabs
+        value={tab}
+        onValueChange={(next) => onTabChange?.(next as RegistrationDetailTab)}
+      >
+        <HorizontalOverflowViewport>
+          <TabsList
+            aria-label="Detail přihlášky"
+            className="w-max min-w-full"
+          >
+            {REGISTRATION_DETAIL_TABS.map(({ value, label }) => (
+              <TabsTrigger
+                key={value}
+                value={value}
+              >
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </HorizontalOverflowViewport>
+
+        <TabPanel value="personal">
+          <Card>
+            <CardHeader>
+              <CardTitle>Osobní údaje</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <section aria-label="Kontaktní údaje">
+                  <h2 className="mb-3 text-sm font-semibold">Kontaktní údaje</h2>
+                  <DefinitionList>
+                    <DefinitionRow label="Jméno a příjmení">
+                      {registration.firstName} {registration.lastName}
+                    </DefinitionRow>
+                    <DefinitionRow label="E-mail">{registration.email}</DefinitionRow>
+                    <DefinitionRow label="Telefon">{registration.phone}</DefinitionRow>
+                  </DefinitionList>
                 </section>
-              )}
-              <div className="border-t border-border pt-6">
-                <PaymentSummary registration={registration} />
+                {registration.answers.length > 0 ? (
+                  <section aria-label="Otázky pořadatele">
+                    <h2 className="mb-3 text-sm font-semibold">Otázky pořadatele</h2>
+                    <QuestionAnswersList answers={registration.answers} />
+                  </section>
+                ) : null}
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </TabPanel>
 
-        {needs}
+        <TabPanel value="terms">
+          {terms ?? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Termíny</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="text-sm">
+                  {registration.terms.map((term) => (
+                    <li
+                      key={term.termId}
+                      className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0"
+                    >
+                      <div>
+                        <p className="font-medium">{term.label}</p>
+                        <p className="text-muted-foreground">
+                          {formatCalendarRange(term.startDate, term.endDate)} ·{" "}
+                          {formatCzk(term.priceMinor)}
+                        </p>
+                      </div>
+                      <ParticipationBadge status={term.status} />
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+        </TabPanel>
 
-        {history}
-      </div>
+        <TabPanel value="accommodation">{accommodation}</TabPanel>
+
+        <TabPanel value="payments">
+          <Card>
+            <CardHeader>
+              <CardTitleRow
+                title="Platby"
+                action={paymentAction}
+              />
+            </CardHeader>
+            <CardContent>
+              <PaymentSummary registration={registration} />
+            </CardContent>
+          </Card>
+        </TabPanel>
+
+        <TabPanel value="needs">{needs}</TabPanel>
+
+        <TabPanel value="history">{history}</TabPanel>
+      </Tabs>
     </div>
+  )
+}
+
+/** Stays mounted while hidden, so an unsaved edit survives a switch of the tab. */
+function TabPanel({ value, children }: { value: RegistrationDetailTab; children: ReactNode }) {
+  return (
+    <TabsContent
+      value={value}
+      forceMount
+      className="mt-6 data-[state=inactive]:hidden"
+    >
+      <div className="space-y-6">{children}</div>
+    </TabsContent>
+  )
+}
+
+// The common header of every tab: how to reach the person, how many terms are
+// confirmed or waiting (mixed participation is never one status of the whole
+// registration) and what is left to pay.
+function RegistrationSummary({ registration }: { registration: Detail }) {
+  const confirmed = registration.terms.filter((term) => term.status === "confirmed").length
+  const waiting = registration.terms.filter(
+    (term) => term.status === "pending" || term.status === "waitlisted",
+  ).length
+  const hasObligation = registration.paymentState !== "none"
+  const isOverpaid = registration.balanceMinor < 0
+
+  return (
+    <Card>
+      <CardContent>
+        <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-4">
+          <div className="min-w-0 space-y-1 text-sm">
+            <p className="font-medium wrap-break-word">
+              {registration.firstName} {registration.lastName}
+            </p>
+            <ul className="space-y-1">
+              <li className="flex items-center gap-2">
+                <Mail className="size-4 shrink-0 text-muted-foreground" />
+                <a
+                  href={`mailto:${registration.email}`}
+                  className="wrap-break-word text-foreground"
+                >
+                  {registration.email}
+                </a>
+              </li>
+              <li className="flex items-center gap-2">
+                <Phone className="size-4 shrink-0 text-muted-foreground" />
+                <a
+                  href={`tel:${registration.phone.replace(/\s/g, "")}`}
+                  className="text-foreground"
+                >
+                  {registration.phone}
+                </a>
+              </li>
+            </ul>
+          </div>
+          <div className="space-y-1 text-sm">
+            <p className="text-muted-foreground">Termíny</p>
+            <p className="font-medium">
+              Potvrzené {confirmed} · Čekající {waiting}
+            </p>
+          </div>
+          {hasObligation ? (
+            <div className="space-y-1 text-sm">
+              <p className="text-muted-foreground">Platba</p>
+              <p className="flex items-baseline gap-2">
+                <span>{isOverpaid ? "Přeplatek" : "Zbývá zaplatit"}</span>
+                <BalanceAmount
+                  amount={formatCzk(Math.abs(registration.balanceMinor))}
+                  isSettled={registration.balanceMinor <= 0}
+                />
+              </p>
+            </div>
+          ) : null}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -150,10 +280,6 @@ function PaymentSummary({ registration }: { registration: Detail }) {
 
   return (
     <section aria-label="Platba">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Platba</h2>
-        <PaymentStateBadge state={registration.paymentState} />
-      </div>
       <DefinitionList>
         {hasNoObligation ? null : (
           <DefinitionRow label="Celkem k úhradě">

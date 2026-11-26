@@ -80,7 +80,12 @@ export function EventPaymentsTable({ organizationId, eventId, payments }: EventP
         </TableHeader>
         <TableBody>
           {sorted.map(({ registration, ...payment }) => {
-            const link = { organizationId, eventId, registrationId: registration.id }
+            const link = {
+              organizationId,
+              eventId,
+              registrationId: registration.id,
+              tab: "payments" as const,
+            }
             return (
               <TableRow key={payment.id}>
                 <RegistrationCell link={link}>

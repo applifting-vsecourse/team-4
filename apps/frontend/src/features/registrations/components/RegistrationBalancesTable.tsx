@@ -38,7 +38,12 @@ export function RegistrationBalancesTable({
         </TableHeader>
         <TableBody>
           {balances.map(({ registration, ...balance }) => {
-            const link = { organizationId, eventId, registrationId: registration.id }
+            const link = {
+              organizationId,
+              eventId,
+              registrationId: registration.id,
+              tab: "payments" as const,
+            }
             return (
               <TableRow key={registration.id}>
                 <RegistrationNameCell

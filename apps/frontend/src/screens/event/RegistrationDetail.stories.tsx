@@ -10,13 +10,18 @@ import { organizerRoommateWishesSchema } from "@/features/registrations/api/room
 import { registrationHandlers } from "@/features/registrations/fixtures/handlers"
 import { SCHOOL, TROOP } from "@/features/registrations/fixtures/questions"
 import { makeOwnChange } from "@/features/registrations/fixtures/registrationChanges"
-import { makeRegistrationDetail } from "@/features/registrations/fixtures/registrations"
+import { makeRegistrationDetail, TERM_JULY } from "@/features/registrations/fixtures/registrations"
 import { ORGANIZER_WISHES, STORED_WISHES } from "@/features/registrations/fixtures/roommateWishes"
 
 const REGISTRATION_ID = makeRegistrationDetail().id
 const DETAIL = "/organizations/:organizationId/events/:eventId/registrations/:registrationId"
 const NAME = "Anna Nováková"
+const TERM_ID = TERM_JULY.termId
+const TERM_LABEL = TERM_JULY.label
 const PENDING = makeOwnChange({ registrationId: REGISTRATION_ID })
+
+const detailUrl = (tab: string, search = "") =>
+  eventUrl(`/registrations/${REGISTRATION_ID}?tab=${tab}${search}`)
 
 const meta = {
   title: "Screens/Event/RegistrationDetail",
@@ -39,6 +44,7 @@ export const PoFeedbackLayoutPreview: Story = { play: showsHeading(NAME) }
 
 /** The participant's roommate wishes, read-only for the organizer (S4-05). */
 export const RoommateWishes: Story = {
+  args: { url: detailUrl("accommodation") },
   play: async (context) => {
     await showsHeading(NAME)(context)
     await expect(await context.canvas.findByText("Přání na spolubydlící")).toBeVisible()
@@ -51,6 +57,7 @@ const ORGANIZER_WISHES_URL =
 
 /** No wishes yet. */
 export const RoommateWishesNone: Story = {
+  args: { url: detailUrl("accommodation") },
   beforeEach: ({ msw }) => {
     msw.use(
       http.get(apiUrl(ORGANIZER_WISHES_URL), () =>
@@ -66,6 +73,7 @@ export const RoommateWishesNone: Story = {
 
 /** The wishes failed to load: the rest of the detail stays, with a retry. */
 export const RoommateWishesFailed: Story = {
+  args: { url: detailUrl("accommodation") },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", ORGANIZER_WISHES_URL))
   },
@@ -79,6 +87,7 @@ export const RoommateWishesFailed: Story = {
 
 /** "Aktualizovat" also reloads the wishes, not only the registration. */
 export const RoommateWishesRefreshed: Story = {
+  args: { url: detailUrl("accommodation") },
   beforeEach: ({ msw }) => {
     let requests = 0
     msw.use(
@@ -184,6 +193,7 @@ export const DecidedElsewhere: Story = {
 
 /** Decided requests stay in the history of the registration. */
 export const ChangeHistory: Story = {
+  args: { url: detailUrl("history") },
   beforeEach: ({ msw }) => {
     msw.use(
       ...registrationHandlers.registrationChanges([
@@ -196,6 +206,7 @@ export const ChangeHistory: Story = {
 
 /** A registration that was never changed: the history says so instead of vanishing. */
 export const ChangeHistoryEmpty: Story = {
+  args: { url: detailUrl("history") },
   beforeEach: ({ msw }) => {
     msw.use(...registrationHandlers.registrationChanges([]))
   },
@@ -203,6 +214,7 @@ export const ChangeHistoryEmpty: Story = {
 }
 
 export const ChangesLoadFailed: Story = {
+  args: { url: detailUrl("history") },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("get", `${DETAIL}/changes`))
   },
@@ -211,6 +223,7 @@ export const ChangesLoadFailed: Story = {
 
 /** The answer needs the organizer's own decision about accommodation (F39-1). */
 export const NeedsDetermination: Story = {
+  args: { url: detailUrl("accommodation") },
   beforeEach: ({ msw }) => {
     msw.use(
       http.get(apiUrl(DETAIL), () =>
@@ -227,6 +240,7 @@ export const NeedsDetermination: Story = {
 }
 
 export const RecordPaymentDialog: Story = {
+  args: { url: detailUrl("payments") },
   play: async ({ canvas }) => {
     const dialog = await openDialog(canvas, "Zaznamenat platbu")
     await expect(within(dialog).getByLabelText("Přijatá částka (Kč)")).toBeVisible()
@@ -234,6 +248,7 @@ export const RecordPaymentDialog: Story = {
 }
 
 export const RecordPaymentFailed: Story = {
+  args: { url: detailUrl("payments") },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("post", `${DETAIL}/payments`))
   },
@@ -246,6 +261,7 @@ export const RecordPaymentFailed: Story = {
 }
 
 export const NeedsSaveFailed: Story = {
+  args: { url: detailUrl("needs") },
   beforeEach: ({ msw }) => {
     msw.use(...failOn("put", `${DETAIL}/needs`))
   },
@@ -291,5 +307,52 @@ export const QuestionAnswers: Story = {
     const answers = within(context.canvas.getByRole("region", { name: "Otázky pořadatele" }))
     await expect(answers.getByText("ZŠ Dubová")).toBeVisible()
     await expect(answers.getByText("Neuvedeno")).toBeVisible()
+  },
+}
+
+/** Opened from the evaluation: the Termíny tab points at that term (F38-1). */
+export const OpenedFromEvaluation: Story = {
+  args: { url: detailUrl("terms", `&term=${TERM_ID}&fromTerm=${TERM_ID}`) },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole("tab", { name: "Termíny", selected: true })).toBeVisible()
+    const current = canvas.getByText(TERM_LABEL).closest("li")
+    await expect(current).toHaveAttribute("aria-current", "true")
+  },
+}
+
+/** An unknown tab in the link opens the personal data. */
+export const UnknownTab: Story = {
+  args: { url: detailUrl("neexistuje") },
+  play: async ({ canvas }) => {
+    await expect(
+      await canvas.findByRole("tab", { name: "Osobní údaje", selected: true }),
+    ).toBeVisible()
+  },
+}
+
+/** The summary and a waiting request stay above every tab. */
+export const TabsKeepSummary: Story = {
+  beforeEach: ({ msw }) => {
+    msw.use(...registrationHandlers.registrationChanges([PENDING]))
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(await canvas.findByRole("tab", { name: "Platby" }, { timeout: 5000 }))
+    await expect(canvas.getByRole("tab", { name: "Platby", selected: true })).toBeVisible()
+    await expect(await canvas.findByRole("button", { name: "Schválit" })).toBeVisible()
+    await expect(canvas.getByText(/Potvrzené \d+ · Čekající \d+/)).toBeVisible()
+    await expect(canvas.getByRole("button", { name: "Zaznamenat platbu" })).toBeVisible()
+  },
+}
+
+/** A half-written correction survives a switch to another tab and back. */
+export const UnsavedEditKept: Story = {
+  args: { url: detailUrl("needs") },
+  play: async ({ canvas }) => {
+    await userEvent.click(await canvas.findByRole("button", { name: "Upravit" }, { timeout: 5000 }))
+    const note = await canvas.findByLabelText(/Poznámka k dopravě/)
+    await userEvent.type(note, "Přijedu vlakem")
+    await userEvent.click(canvas.getByRole("tab", { name: "Platby" }))
+    await userEvent.click(canvas.getByRole("tab", { name: "Potřeby" }))
+    await expect(await canvas.findByLabelText(/Poznámka k dopravě/)).toHaveValue("Přijedu vlakem")
   },
 }

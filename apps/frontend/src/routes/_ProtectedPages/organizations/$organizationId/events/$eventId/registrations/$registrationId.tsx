@@ -14,6 +14,7 @@ import { HTTPError } from "@/lib/api-client"
 import { evaluationKeys } from "@/features/accommodation/api/evaluationQueryOptions"
 import { RegistrationDeterminationPanel } from "@/features/accommodation/components/RegistrationDeterminationPanel"
 import { RegistrationEvaluationHistory } from "@/features/accommodation/components/RegistrationEvaluationHistory"
+import { RegistrationRoomPlacements } from "@/features/accommodation/components/RegistrationRoomPlacements"
 import { RegistrationTermDecisions } from "@/features/accommodation/components/RegistrationTermDecisions"
 import { eventQueryOptions } from "@/features/events/api/eventQueryOptions"
 import { EventBreadcrumb } from "@/features/events/components/EventBreadcrumb"
@@ -31,6 +32,10 @@ import {
   RegistrationChangeHistory,
 } from "@/features/registrations/components/RegistrationChangeDecision"
 import { RegistrationDetail } from "@/features/registrations/components/RegistrationDetail"
+import {
+  DEFAULT_REGISTRATION_DETAIL_TAB,
+  registrationDetailTabSchema,
+} from "@/features/registrations/lib/detailTabs"
 
 // Správa akce → Přihlášky → Detail účastníka (S2-11): the organizer's view of
 // one registration, not the participant's account.
@@ -41,6 +46,9 @@ export const Route = createFileRoute(
   validateSearch: z.object({
     fromTerm: z.string().uuid().optional().catch(undefined),
     fromQueue: z.string().max(100).optional().catch(undefined),
+    // The tab and the term it points at (F38-1); an unknown tab opens the default.
+    tab: registrationDetailTabSchema.optional().catch(undefined),
+    term: z.string().uuid().optional().catch(undefined),
   }),
   loader: ({ context, params }) =>
     Promise.all([
@@ -56,7 +64,8 @@ export const Route = createFileRoute(
 
 function RegistrationPage() {
   const { organizationId, eventId, registrationId } = Route.useParams()
-  const { fromTerm, fromQueue } = Route.useSearch()
+  const { fromTerm, fromQueue, tab, term } = Route.useSearch()
+  const navigate = Route.useNavigate()
   const queryClient = useQueryClient()
   const { data: organization } = useSuspenseQuery(organizationQueryOptions(organizationId))
   const { data: event } = useSuspenseQuery(eventQueryOptions(organizationId, eventId))
@@ -90,24 +99,29 @@ function RegistrationPage() {
         }
         title={name}
         description={event.name}
-        actions={
+      />
+      <RegistrationDetail
+        registration={registration.data}
+        tab={tab ?? DEFAULT_REGISTRATION_DETAIL_TAB}
+        // A tab is a history entry of its own, and the scroll stays where it was.
+        onTabChange={(next) =>
+          void navigate({ search: (previous) => ({ ...previous, tab: next }), resetScroll: false })
+        }
+        notice={
+          <RegistrationChangeDecision
+            organizationId={organizationId}
+            eventId={eventId}
+            registrationId={registrationId}
+            shouldShowHistory={false}
+          />
+        }
+        paymentAction={
           <RecordPaymentDialog
             organizationId={organizationId}
             eventId={eventId}
             registrationId={registrationId}
           />
         }
-      />
-      <div className="mb-6">
-        <RegistrationChangeDecision
-          organizationId={organizationId}
-          eventId={eventId}
-          registrationId={registrationId}
-          shouldShowHistory={false}
-        />
-      </div>
-      <RegistrationDetail
-        registration={registration.data}
         updatedAt={registration.dataUpdatedAt}
         isRefreshing={registration.isFetching}
         hasRefreshFailed={registration.isRefetchError}
@@ -122,7 +136,6 @@ function RegistrationPage() {
             organizationId={organizationId}
             eventId={eventId}
             registration={registration.data}
-            isSection
             // The answer is an input of the evaluation: its proposals turn stale.
             onAnswerSaved={() =>
               void queryClient.invalidateQueries({
@@ -140,11 +153,21 @@ function RegistrationPage() {
               />
             }
             wishes={
-              <OrganizerRoommateWishes
-                organizationId={organizationId}
-                eventId={eventId}
-                registrationId={registrationId}
-              />
+              <>
+                <OrganizerRoommateWishes
+                  organizationId={organizationId}
+                  eventId={eventId}
+                  registrationId={registrationId}
+                />
+                <RegistrationRoomPlacements
+                  organizationId={organizationId}
+                  eventId={eventId}
+                  registrationId={registrationId}
+                  confirmedTerms={registration.data.terms.filter(
+                    (candidate) => candidate.status === "confirmed",
+                  )}
+                />
+              </>
             }
           />
         }
@@ -155,7 +178,7 @@ function RegistrationPage() {
             registrationId={registrationId}
             person={name}
             terms={registration.data.terms}
-            isSection
+            selectedTermId={registration.data.terms.find((t) => t.termId === term)?.termId}
             invalidate={eventRegistrationKeys.detail(organizationId, eventId, registrationId)}
           />
         }

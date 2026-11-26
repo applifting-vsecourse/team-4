@@ -151,9 +151,12 @@ test("the organizer determines the accommodation from the order and the detail; 
 
   // The detail shows the determination and its record, without the F64 notice.
   await orderRow(page, "Alex").getByRole("link").click()
+  await expect(page.getByRole("tab", { name: "Termíny", selected: true })).toBeVisible()
+  await page.getByRole("tab", { name: "Ubytování" }).click()
   await expect(page.getByText("Ubytovat jako", { exact: true })).toBeVisible()
   await expect(page.getByText("Muž, všechny termíny", { exact: true })).toBeVisible()
   await expect(page.getByText("Ubytování je potřeba určit ručně")).toBeHidden()
+  await page.getByRole("tab", { name: "Historie" }).click()
   const history = page
     .getByText("Historie vyhodnocení")
     .locator("xpath=ancestor::*[@data-slot='card'][1]")
@@ -161,6 +164,7 @@ test("the organizer determines the accommodation from the order and the detail; 
   await expect(history).toContainText("Důvod: Domluva s rodiči")
 
   // Changed from the detail: a second record.
+  await page.getByRole("tab", { name: "Ubytování" }).click()
   await page.getByRole("button", { name: "Změnit určení" }).click()
   const change = page.getByRole("dialog", { name: "Změnit určení ubytování" })
   await change.getByRole("combobox").click()
@@ -168,19 +172,21 @@ test("the organizer determines the accommodation from the order and the detail; 
   await change.getByLabel("Důvod").fill("Oprava po hovoru")
   await change.getByRole("button", { name: "Uložit určení" }).click()
   await expect(page.getByText("Žena, všechny termíny", { exact: true })).toBeVisible()
+  await page.getByRole("tab", { name: "Historie" }).click()
   await expect(history.getByRole("listitem")).toHaveCount(2)
 
   // A corrected answer cancels it: the notice and "Určit ubytování" are back.
+  await page.getByRole("tab", { name: "Ubytování" }).click()
   await page.getByRole("button", { name: "Opravit" }).click()
   await page.getByRole("radio", { name: "Jiná odpověď" }).check()
   await page.getByRole("button", { name: "Uložit", exact: true }).click()
   await expect(page.getByText("Ubytování je potřeba určit ručně")).toBeVisible()
   await expect(page.getByRole("button", { name: "Určit ubytování" })).toBeVisible()
+  await page.getByRole("tab", { name: "Historie" }).click()
   await expect(history.getByRole("listitem")).toHaveCount(2)
   // The terms follow: the old place is not shown, the new evaluation needs a determination.
-  const termsCard = page
-    .getByText("Termíny", { exact: true })
-    .locator("xpath=ancestor::*[@data-slot='card'][1]")
+  await page.getByRole("tab", { name: "Termíny" }).click()
+  const termsCard = page.getByRole("tabpanel", { name: "Termíny" })
   await expect(termsCard).toContainText("Ruční určení", { timeout: 30_000 })
 })
 
@@ -306,5 +312,6 @@ test("the organizer confirms the proposal of a term, then decides one person", a
 
   // The history of the registration shows the decisions.
   await orderRow(page, "Petr").getByRole("link").click()
+  await page.getByRole("tab", { name: "Historie" }).click()
   await expect(page.getByText("Čeká na rozhodnutí organizátora → Náhradník")).toBeVisible()
 })

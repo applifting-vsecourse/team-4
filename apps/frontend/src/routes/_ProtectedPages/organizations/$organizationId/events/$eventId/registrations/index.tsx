@@ -159,7 +159,7 @@ function RegistrationsPage() {
                 <Link
                   to={ROUTES.registration}
                   params={{ organizationId, eventId, registrationId: person.id }}
-                  search={{ fromTerm: termId, fromQueue: queue }}
+                  search={{ tab: "terms", term: termId, fromTerm: termId, fromQueue: queue }}
                   className="text-foreground underline"
                 >
                   {person.name}

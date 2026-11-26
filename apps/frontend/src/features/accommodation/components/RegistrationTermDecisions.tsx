@@ -35,6 +35,8 @@ type RegistrationTermDecisionsProps = {
   terms: RegistrationTerm[]
   /** Render inside the registration overview card. */
   isSection?: boolean
+  /** The term to point out, e.g. the one the organizer came from. */
+  selectedTermId?: string
   /** Reloaded after a decision, i.e. the registration detail with its term states. */
   invalidate: readonly unknown[]
 }
@@ -50,6 +52,7 @@ export function RegistrationTermDecisions({
   person,
   terms,
   isSection = false,
+  selectedTermId,
   invalidate,
 }: RegistrationTermDecisionsProps) {
   const labels = useAttributeLabels(organizationId, eventId)
@@ -110,6 +113,7 @@ export function RegistrationTermDecisions({
       <TermDecisions
         terms={decisionTerms}
         isSection={isSection}
+        selectedTermId={selectedTermId}
         // Whether the person needs a determination is known only once it is read.
         onConfirm={accommodation.data ? (term) => decide(term, "confirm") : undefined}
         onWaitlist={accommodation.data ? (term) => decide(term, "waitlist") : undefined}
