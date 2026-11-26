@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
-import { Check, X } from "lucide-react"
+import { Check, History, X } from "lucide-react"
 
+import { EmptyState } from "@/components/EmptyState"
 import { FormError } from "@/components/FormError"
 import { LoadError } from "@/components/LoadError"
 import { Notice } from "@/components/Notice"
@@ -118,12 +119,24 @@ export function RegistrationChangeHistory({
   registrationId,
 }: Pick<RegistrationChangeDecisionProps, "organizationId" | "eventId" | "registrationId">) {
   const query = useQuery(registrationChangesQueryOptions(organizationId, eventId, registrationId))
-  const changes = query.data ?? []
-  return <RegistrationChangeHistoryCard changes={changes} />
+  // A failed load is reported by the decision above; it is never shown as empty.
+  if (!query.data) return null
+  return (
+    <RegistrationChangeHistoryCard
+      changes={query.data}
+      shouldShowEmpty
+    />
+  )
 }
 
-function RegistrationChangeHistoryCard({ changes }: { changes: RegistrationChange[] }) {
-  if (!changes.length) return null
+function RegistrationChangeHistoryCard({
+  changes,
+  shouldShowEmpty = false,
+}: {
+  changes: RegistrationChange[]
+  shouldShowEmpty?: boolean
+}) {
+  if (!changes.length && !shouldShowEmpty) return null
 
   return (
     <Card>
@@ -131,13 +144,20 @@ function RegistrationChangeHistoryCard({ changes }: { changes: RegistrationChang
         <CardTitle>Historie změn</CardTitle>
       </CardHeader>
       <CardContent>
-        <RegistrationHistory
-          entries={changes.map((change) => ({
-            id: change.id,
-            at: formatChangeTime(change.decidedAt ?? change.createdAt),
-            text: describeHistoryEntry(change),
-          }))}
-        />
+        {changes.length ? (
+          <RegistrationHistory
+            entries={changes.map((change) => ({
+              id: change.id,
+              at: formatChangeTime(change.decidedAt ?? change.createdAt),
+              text: describeHistoryEntry(change),
+            }))}
+          />
+        ) : (
+          <EmptyState
+            icon={History}
+            title="Přihláška zatím nebyla změněna"
+          />
+        )}
       </CardContent>
     </Card>
   )

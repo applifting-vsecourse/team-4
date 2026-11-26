@@ -3,7 +3,10 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { RegistrationChangeDecision } from "@/features/registrations/components/RegistrationChangeDecision"
+import {
+  RegistrationChangeDecision,
+  RegistrationChangeHistory,
+} from "@/features/registrations/components/RegistrationChangeDecision"
 
 const { get, post, FakeHTTPError } = vi.hoisted(() => {
   class FakeHTTPError extends Error {
@@ -182,5 +185,21 @@ describe("RegistrationChangeDecision", () => {
     await waitFor(() => expect(get).toHaveBeenCalled())
     expect(screen.queryByText("Žádost o změnu")).not.toBeInTheDocument()
     expect(screen.queryByText("Historie změn")).not.toBeInTheDocument()
+  })
+
+  it("shows an empty history on the detail page for a registration without changes", async () => {
+    get.mockReturnValue(answer({ changes: [] }))
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <RegistrationChangeHistory
+          organizationId="org"
+          eventId="event"
+          registrationId={id(1)}
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(await screen.findByText("Historie změn")).toBeInTheDocument()
+    expect(screen.getByText("Přihláška zatím nebyla změněna")).toBeInTheDocument()
   })
 })
