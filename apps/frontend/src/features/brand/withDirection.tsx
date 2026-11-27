@@ -3,7 +3,7 @@ import type { Decorator } from "@storybook/react-vite"
 
 import "@/features/brand/directions.css"
 
-export type Direction = "a" | "b" | "c"
+export type Direction = "a" | "b" | "c" | "e" | "f"
 
 // Puts the direction on <html> so dialogs, selects and menus rendered in portals take it too.
 function DirectionScope({ direction, children }: { direction: Direction; children: ReactNode }) {

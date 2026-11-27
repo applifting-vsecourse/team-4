@@ -264,3 +264,29 @@ export const REGISTRATION_TABS = [
 export const registrationHref = (id: string) => `${EVENT_PATH}/registrations/${id}`
 
 export type ListState = "ready" | "loading" | "empty" | "no-results"
+
+/** Filter options with counts over all 48 registrations. */
+export const FACETS = {
+  participation: [
+    { label: "Potvrzeno", count: 27 },
+    { label: "Náhradník", count: 9 },
+    { label: "Čeká na rozhodnutí", count: 6 },
+    { label: "Odhlášeno", count: 6 },
+  ],
+  payment: [
+    { label: "Nezaplaceno", count: 12 },
+    { label: "Částečně", count: 8 },
+    { label: "Zaplaceno", count: 19 },
+    { label: "Bez povinnosti", count: 9 },
+  ],
+  terms: [
+    { label: "Turnus 1", count: 31 },
+    { label: "Turnus 2", count: 14 },
+    { label: "Instruktorský víkend", count: 7 },
+  ],
+}
+
+/** Steps of a stepped registration form; the form keeps every value when moving between them. */
+export const STEPS = ["Termíny", "Účastník a kontakt", "Doplňující údaje", "Souhrn a odeslání"]
+
+export type StepNumber = 1 | 2 | 3 | 4

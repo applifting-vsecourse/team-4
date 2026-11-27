@@ -67,6 +67,32 @@ const DIRECTIONS = [
       ["Švýcarský typografický styl", "mřížka, velká typografie, linky místo boxů"],
     ],
   },
+  {
+    name: "Směr E „Riso“",
+    mood: "Tisk dvěma barvami. Novinový papír, modrý inkoust místo černé, fluorescenční růžová, rastrové tečky a lehce posunutý soutisk.",
+    type: "Recursive: jedna rodina pro hravé nadpisy, text i čísla (osy Casual a Mono)",
+    icons: "Iconoir",
+    composition:
+      "Přihláška: průvodce ve čtyřech krocích, hotové kroky se sbalí do řádku se Změnit, na mobilu Krok 2 ze 4 s průběhem. Seznam: navigace nahoře místo postranního panelu, filtry jako sloupec zaškrtávátek s počty, tabulka seskupená po termínech.",
+    references: [
+      ["Risografický tisk (Hato Press)", "dvě barvy, rastr, posunutý soutisk"],
+      ["GOV.UK One thing per page", "jeden krok s jedním tématem, hotové kroky jako shrnutí"],
+      ["Airtable", "seskupení řádků a filtry s počty"],
+    ],
+  },
+  {
+    name: "Směr F „Orientační systém“",
+    mood: "Nádražní a městské značení. Betonově šedá, tmavě modrá, signální žlutá, piktogramy ve čtvercích.",
+    type: "Overpass (z dálničního písma Highway Gothic), Overpass Mono",
+    icons: "Carbon",
+    composition:
+      "Přihláška: modrý pás s akcí a fakty jako piktogramy, termíny jako jízdní řád, cena na modré tabuli u tlačítka. Seznam: lišta s piktogramy, počty na tabuli jako rychlé filtry, pruhovaná tabulka s textovou akcí Detail.",
+    references: [
+      ["Orientační systém pražského metra a SBB", "piktogramy ve čtvercích, krátké popisky"],
+      ["Odjezdové tabule", "počty jako tabule, číslice stejné šířky"],
+      ["Jízdní řád", "termíny v pevných sloupcích, pruhované řádky"],
+    ],
+  },
 ]
 
 export function BrandOverview() {
@@ -74,7 +100,7 @@ export function BrandOverview() {
     <div className="min-h-svh space-y-10 bg-background p-8 text-foreground">
       <header className="space-y-3">
         <BrandMark isLarge />
-        <h1 className="text-h2">Tři směry brandu</h1>
+        <h1 className="text-h2">Směry brandu</h1>
         <p className="max-w-2xl text-muted-foreground">
           Všechny směry používají stejný obsah, data a výchozí stavy, stejný kit komponent a stejný
           význam stavových barev. Liší se kompozicí, barvami, písmem, ikonami a tvarem.
