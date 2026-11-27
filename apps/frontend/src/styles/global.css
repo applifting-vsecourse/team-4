@@ -341,3 +341,30 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+/* Kitchen summaries have many columns, so paper is landscape. */
+@page {
+  size: landscape;
+}
+
+/* A printout is only the page's own content: the organizer sidebar and its
+   gap are app navigation. */
+@media print {
+  [data-slot="sidebar-gap"],
+  [data-slot="sidebar-container"] {
+    display: none;
+  }
+  /* A long term runs over several pages: a row is never split between two,
+     and the header row repeats on each. */
+  tr {
+    break-inside: avoid;
+  }
+  /* Paper is white: a printout stays in the light palette (the :root values)
+     even while the screen is dark. */
+  .dark [data-print-light] {
+    --background: oklch(0.955 0.035 95);
+    --foreground: oklch(0.17 0.03 60);
+    --muted-foreground: oklch(0.42 0.04 60);
+    --border: oklch(0.78 0.04 85);
+  }
+}

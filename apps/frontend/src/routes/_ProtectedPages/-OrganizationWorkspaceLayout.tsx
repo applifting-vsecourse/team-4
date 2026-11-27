@@ -46,7 +46,7 @@ export function OrganizationWorkspaceLayout({
         }
       />
       <SidebarInset>
-        <div className="flex h-14 items-center gap-2 border-b border-border px-4 md:hidden">
+        <div className="flex h-14 items-center gap-2 border-b border-border px-4 md:hidden print:hidden">
           <SidebarTrigger aria-label="Otevřít menu" />
           <Link
             to={ROUTES.home}

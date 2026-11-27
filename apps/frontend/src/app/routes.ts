@@ -10,6 +10,7 @@ export const ROUTES = {
   eventSettings: "/organizations/$organizationId/events/$eventId/settings",
   eventProgramme: "/organizations/$organizationId/events/$eventId/programme",
   eventRooms: "/organizations/$organizationId/events/$eventId/rooms",
+  eventMeals: "/organizations/$organizationId/events/$eventId/meals",
   eventPayments: "/organizations/$organizationId/events/$eventId/payments",
   eventRegistrations: "/organizations/$organizationId/events/$eventId/registrations",
   registration: "/organizations/$organizationId/events/$eventId/registrations/$registrationId",
