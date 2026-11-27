@@ -30,14 +30,19 @@ type DefinitionRowProps = {
   children: ReactNode
   /** The total of an inline list, e.g. „Zbývá zaplatit“: a bold label below a separator. */
   isEmphasised?: boolean
+  /** Only when a link points at the row (`#strava`). */
+  id?: string
 }
 
-export function DefinitionRow({ label, children, isEmphasised = false }: DefinitionRowProps) {
+export function DefinitionRow({ label, children, isEmphasised = false, id }: DefinitionRowProps) {
   const layout = useContext(LayoutContext)
 
   if (layout === "stacked") {
     return (
-      <div className="space-y-1">
+      <div
+        id={id}
+        className="space-y-1"
+      >
         <dt className="text-muted-foreground">{label}</dt>
         <dd className="wrap-break-word">{children}</dd>
       </div>
@@ -46,6 +51,7 @@ export function DefinitionRow({ label, children, isEmphasised = false }: Definit
 
   return (
     <div
+      id={id}
       className={cn(
         "flex flex-wrap justify-between gap-x-4 gap-y-1",
         isEmphasised && "items-baseline not-first:border-t not-first:border-border not-first:pt-2",

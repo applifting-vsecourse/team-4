@@ -1,5 +1,12 @@
+import { useEffect } from "react"
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query"
-import { createFileRoute, Link, useRouter, type ErrorComponentProps } from "@tanstack/react-router"
+import {
+  createFileRoute,
+  Link,
+  useLocation,
+  useRouter,
+  type ErrorComponentProps,
+} from "@tanstack/react-router"
 import { z } from "zod"
 
 import { ROUTES } from "@/app/routes"
@@ -73,6 +80,31 @@ function RegistrationPage() {
     eventRegistrationQueryOptions(organizationId, eventId, registrationId),
   )
   const name = `${registration.data.firstName} ${registration.data.lastName}`
+  const hash = useLocation({ select: (location) => location.hash })
+
+  // The router's own hash scroll may run before the selected tab is visible
+  // (a link to the diet of a registration, S5-04): scroll again once it is.
+  useEffect(() => {
+    if (!hash) return
+    let firstFrame = 0
+    let secondFrame = 0
+    firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        const target = document.getElementById(hash)
+        if (!target || target.closest("[hidden]")) return
+        target.scrollIntoView({
+          block: "center",
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? "auto"
+            : "smooth",
+        })
+      })
+    })
+    return () => {
+      window.cancelAnimationFrame(firstFrame)
+      window.cancelAnimationFrame(secondFrame)
+    }
+  }, [hash, tab])
 
   return (
     <WorkspacePage>

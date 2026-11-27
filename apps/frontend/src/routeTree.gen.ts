@@ -33,6 +33,7 @@ import { Route as ProtectedPagesOrganizationsOrganizationIdIndexRouteImport } fr
 import { Route as ProtectedPagesOrganizationsOrganizationIdEventsNewRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/events/new'
 import { Route as ProtectedPagesOrganizationsOrganizationIdEventsEventIdIndexRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/events/$eventId/index'
 import { Route as ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/events/$eventId/edit'
+import { Route as ProtectedPagesOrganizationsOrganizationIdEventsEventIdMealsRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/events/$eventId/meals'
 import { Route as ProtectedPagesOrganizationsOrganizationIdEventsEventIdPaymentsRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/events/$eventId/payments'
 import { Route as ProtectedPagesOrganizationsOrganizationIdEventsEventIdProgrammeRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/events/$eventId/programme'
 import { Route as ProtectedPagesOrganizationsOrganizationIdEventsEventIdRoomsRouteImport } from './routes/_ProtectedPages/organizations/$organizationId/events/$eventId/rooms'
@@ -170,6 +171,14 @@ const ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute =
     path: '/events/$eventId/edit',
     getParentRoute: () => ProtectedPagesOrganizationsOrganizationIdRoute,
   } as any)
+const ProtectedPagesOrganizationsOrganizationIdEventsEventIdMealsRoute =
+  ProtectedPagesOrganizationsOrganizationIdEventsEventIdMealsRouteImport.update(
+    {
+      id: '/events/$eventId/meals',
+      path: '/events/$eventId/meals',
+      getParentRoute: () => ProtectedPagesOrganizationsOrganizationIdRoute,
+    } as any,
+  )
 const ProtectedPagesOrganizationsOrganizationIdEventsEventIdPaymentsRoute =
   ProtectedPagesOrganizationsOrganizationIdEventsEventIdPaymentsRouteImport.update(
     {
@@ -242,6 +251,7 @@ export interface FileRoutesByFullPath {
   '/organizations/$organizationId/': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/events/new': typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRoute
   '/organizations/$organizationId/events/$eventId/edit': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute
+  '/organizations/$organizationId/events/$eventId/meals': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdMealsRoute
   '/organizations/$organizationId/events/$eventId/payments': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdPaymentsRoute
   '/organizations/$organizationId/events/$eventId/programme': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdProgrammeRoute
   '/organizations/$organizationId/events/$eventId/rooms': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdRoomsRoute
@@ -272,6 +282,7 @@ export interface FileRoutesByTo {
   '/organizations/$organizationId': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
   '/organizations/$organizationId/events/new': typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRoute
   '/organizations/$organizationId/events/$eventId/edit': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute
+  '/organizations/$organizationId/events/$eventId/meals': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdMealsRoute
   '/organizations/$organizationId/events/$eventId/payments': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdPaymentsRoute
   '/organizations/$organizationId/events/$eventId/programme': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdProgrammeRoute
   '/organizations/$organizationId/events/$eventId/rooms': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdRoomsRoute
@@ -305,6 +316,7 @@ export interface FileRoutesById {
   '/_ProtectedPages/organizations/$organizationId/': typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
   '/_ProtectedPages/organizations/$organizationId/events/new': typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRoute
   '/_ProtectedPages/organizations/$organizationId/events/$eventId/edit': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute
+  '/_ProtectedPages/organizations/$organizationId/events/$eventId/meals': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdMealsRoute
   '/_ProtectedPages/organizations/$organizationId/events/$eventId/payments': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdPaymentsRoute
   '/_ProtectedPages/organizations/$organizationId/events/$eventId/programme': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdProgrammeRoute
   '/_ProtectedPages/organizations/$organizationId/events/$eventId/rooms': typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdRoomsRoute
@@ -338,6 +350,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId/'
     | '/organizations/$organizationId/events/new'
     | '/organizations/$organizationId/events/$eventId/edit'
+    | '/organizations/$organizationId/events/$eventId/meals'
     | '/organizations/$organizationId/events/$eventId/payments'
     | '/organizations/$organizationId/events/$eventId/programme'
     | '/organizations/$organizationId/events/$eventId/rooms'
@@ -368,6 +381,7 @@ export interface FileRouteTypes {
     | '/organizations/$organizationId'
     | '/organizations/$organizationId/events/new'
     | '/organizations/$organizationId/events/$eventId/edit'
+    | '/organizations/$organizationId/events/$eventId/meals'
     | '/organizations/$organizationId/events/$eventId/payments'
     | '/organizations/$organizationId/events/$eventId/programme'
     | '/organizations/$organizationId/events/$eventId/rooms'
@@ -400,6 +414,7 @@ export interface FileRouteTypes {
     | '/_ProtectedPages/organizations/$organizationId/'
     | '/_ProtectedPages/organizations/$organizationId/events/new'
     | '/_ProtectedPages/organizations/$organizationId/events/$eventId/edit'
+    | '/_ProtectedPages/organizations/$organizationId/events/$eventId/meals'
     | '/_ProtectedPages/organizations/$organizationId/events/$eventId/payments'
     | '/_ProtectedPages/organizations/$organizationId/events/$eventId/programme'
     | '/_ProtectedPages/organizations/$organizationId/events/$eventId/rooms'
@@ -599,6 +614,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRouteImport
       parentRoute: typeof ProtectedPagesOrganizationsOrganizationIdRoute
     }
+    '/_ProtectedPages/organizations/$organizationId/events/$eventId/meals': {
+      id: '/_ProtectedPages/organizations/$organizationId/events/$eventId/meals'
+      path: '/events/$eventId/meals'
+      fullPath: '/organizations/$organizationId/events/$eventId/meals'
+      preLoaderRoute: typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdMealsRouteImport
+      parentRoute: typeof ProtectedPagesOrganizationsOrganizationIdRoute
+    }
     '/_ProtectedPages/organizations/$organizationId/events/$eventId/payments': {
       id: '/_ProtectedPages/organizations/$organizationId/events/$eventId/payments'
       path: '/events/$eventId/payments'
@@ -648,6 +670,7 @@ interface ProtectedPagesOrganizationsOrganizationIdRouteChildren {
   ProtectedPagesOrganizationsOrganizationIdIndexRoute: typeof ProtectedPagesOrganizationsOrganizationIdIndexRoute
   ProtectedPagesOrganizationsOrganizationIdEventsNewRoute: typeof ProtectedPagesOrganizationsOrganizationIdEventsNewRoute
   ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute: typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute
+  ProtectedPagesOrganizationsOrganizationIdEventsEventIdMealsRoute: typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdMealsRoute
   ProtectedPagesOrganizationsOrganizationIdEventsEventIdPaymentsRoute: typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdPaymentsRoute
   ProtectedPagesOrganizationsOrganizationIdEventsEventIdProgrammeRoute: typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdProgrammeRoute
   ProtectedPagesOrganizationsOrganizationIdEventsEventIdRoomsRoute: typeof ProtectedPagesOrganizationsOrganizationIdEventsEventIdRoomsRoute
@@ -665,6 +688,8 @@ const ProtectedPagesOrganizationsOrganizationIdRouteChildren: ProtectedPagesOrga
       ProtectedPagesOrganizationsOrganizationIdEventsNewRoute,
     ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute:
       ProtectedPagesOrganizationsOrganizationIdEventsEventIdEditRoute,
+    ProtectedPagesOrganizationsOrganizationIdEventsEventIdMealsRoute:
+      ProtectedPagesOrganizationsOrganizationIdEventsEventIdMealsRoute,
     ProtectedPagesOrganizationsOrganizationIdEventsEventIdPaymentsRoute:
       ProtectedPagesOrganizationsOrganizationIdEventsEventIdPaymentsRoute,
     ProtectedPagesOrganizationsOrganizationIdEventsEventIdProgrammeRoute:

@@ -2,6 +2,7 @@ import { ConfigModule } from '@applifting-io/nestjs-decorated-config';
 import { Module } from '@nestjs/common';
 import { AccommodationModule } from './modules/accommodation/accommodation.module';
 import { EventsModule } from './modules/events/events.module';
+import { MealsModule } from './modules/meals/meals.module';
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { ParticipantAccessModule } from './modules/participant-access/participant-access.module';
 import { ParticipantNotificationsModule } from './modules/participant-notifications/participant-notifications.module';
@@ -19,6 +20,7 @@ const imports = [
   AuthModule,
   EventsModule,
   RoomsModule,
+  MealsModule,
   AccommodationModule,
   ProgrammeModule,
   RegistrationsModule,

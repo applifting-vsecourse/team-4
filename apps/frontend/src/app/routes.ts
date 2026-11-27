@@ -10,6 +10,7 @@ export const ROUTES = {
   eventSettings: "/organizations/$organizationId/events/$eventId/settings",
   eventProgramme: "/organizations/$organizationId/events/$eventId/programme",
   eventRooms: "/organizations/$organizationId/events/$eventId/rooms",
+  eventMeals: "/organizations/$organizationId/events/$eventId/meals",
   eventPayments: "/organizations/$organizationId/events/$eventId/payments",
   eventRegistrations: "/organizations/$organizationId/events/$eventId/registrations",
   registration: "/organizations/$organizationId/events/$eventId/registrations/$registrationId",
@@ -36,6 +37,8 @@ export const SECTIONS = {
   changeRequests: "zadosti-o-zmenu",
   /** Organizer's questions in the event registration form. */
   registrationQuestions: "registration-questions-heading",
+  /** Strava row of the organizer's registration detail, Potřeby tab (S5-04). */
+  registrationDiet: "strava",
   /** Platba card of the participant's registration detail (S5-02). */
   payment: "platba",
   /** Přijaté platby of the participant's registration detail (S4-06). */

@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Mail,
   Settings,
+  UtensilsCrossed,
 } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
@@ -22,6 +23,7 @@ const sections = [
   { label: "Přihlášky", icon: ClipboardList, to: ROUTES.eventRegistrations },
   { label: "Platby", icon: CreditCard, to: ROUTES.eventPayments },
   { label: "Ubytování", icon: BedDouble, to: ROUTES.eventRooms },
+  { label: "Stravování", icon: UtensilsCrossed, to: ROUTES.eventMeals },
   { label: "Program", icon: CalendarDays, to: ROUTES.eventProgramme },
   { label: "Komunikace", icon: Mail },
 ] as const

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 
+import { SECTIONS } from "@/app/routes"
 import { CardTitleRow } from "@/components/CardTitleRow"
 import { DefinitionList, DefinitionRow } from "@/components/DefinitionList"
 import { Badge } from "@/components/ui/badge"
@@ -46,7 +47,10 @@ export function RegistrationNeedsSummary({ values, action }: RegistrationNeedsSu
               NOT_PROVIDED
             )}
           </DefinitionRow>
-          <DefinitionRow label="Strava">
+          <DefinitionRow
+            label="Strava"
+            id={SECTIONS.registrationDiet}
+          >
             {hasDiet ? (
               <div className="space-y-2">
                 {values.hasNoDietRestriction || values.diet.length > 0 ? (

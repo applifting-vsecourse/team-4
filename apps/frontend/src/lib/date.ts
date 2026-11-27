@@ -66,3 +66,10 @@ const pragueDay = new Intl.DateTimeFormat("en-CA", {
 export function todayInPrague(now: Date = new Date()) {
   return pragueDay.format(now)
 }
+
+const calendarWeekday = new Intl.DateTimeFormat("cs-CZ", { weekday: "short", timeZone: "UTC" })
+
+/** The weekday of a calendar date (`yyyy-MM-dd`), abbreviated: "po", "út". */
+export function formatCalendarWeekday(value: string) {
+  return calendarWeekday.format(new Date(`${value}T00:00:00Z`))
+}

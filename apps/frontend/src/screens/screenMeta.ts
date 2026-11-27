@@ -9,6 +9,7 @@ import { publicationHandlers } from "@/features/accommodation/fixtures/publicati
 import { authHandlers } from "@/features/auth/fixtures/handlers"
 import { OPEN_EVENT } from "@/features/events/fixtures/events"
 import { eventHandlers } from "@/features/events/fixtures/handlers"
+import { mealHandlers } from "@/features/meals/fixtures/handlers"
 import { organizationHandlers } from "@/features/organizations/fixtures/handlers"
 import { ORGANIZATION } from "@/features/organizations/fixtures/organizations"
 import { participantHandlers } from "@/features/participant-access/fixtures/handlers"
@@ -34,6 +35,7 @@ export const organizerBackend = () => [
   ...organizationHandlers.list(),
   ...eventHandlers.list(),
   ...roomHandlers.overview(),
+  ...mealHandlers.overview(),
   ...paymentHandlers.transactions(),
   ...paymentHandlers.import(),
   ...registrationHandlers.event(),
