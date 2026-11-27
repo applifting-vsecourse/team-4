@@ -46,7 +46,12 @@ export function MealCountsTable({
               key={categoryKey(column)}
               className="text-right"
             >
-              <abbr title={categoryLabel(column)}>{categoryAbbreviation(column)}</abbr>
+              <abbr
+                title={categoryLabel(column)}
+                className="no-underline"
+              >
+                {categoryAbbreviation(column)}
+              </abbr>
             </TableHead>
           ))}
           <TableHead className="text-right">Celkem osob</TableHead>
