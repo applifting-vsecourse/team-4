@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 import { mealOverviewQueryOptions } from "@/features/meals/api/mealQueryOptions"
 import { MealCountsTable } from "@/features/meals/components/MealCountsTable"
+import { MealDayList } from "@/features/meals/components/MealDayList"
 import { MealNotes } from "@/features/meals/components/MealNotes"
 
 type MealsSectionProps = { organizationId: string; eventId: string; termId: string }
@@ -29,7 +30,7 @@ export function MealsSection({ organizationId, eventId, termId }: MealsSectionPr
 
   return (
     <PageSection
-      title="Strávníci po dnech"
+      title="Denní počty strávníků"
       isBusy={query.isFetching}
       actions={
         <>
@@ -84,7 +85,8 @@ export function MealsSection({ organizationId, eventId, termId }: MealsSectionPr
             inert={isStale}
             className="space-y-8"
           >
-            <Card>
+            <MealDayList overview={data} />
+            <Card className="hidden md:block">
               <div className="-my-6">
                 <MealCountsTable
                   overview={data}

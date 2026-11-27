@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import { http, HttpResponse } from "msw"
-import { expect, userEvent, within } from "storybook/test"
+import { expect, userEvent, waitFor, within } from "storybook/test"
 
 import { apiUrl, failOn, failsOnRefresh } from "@/screens/msw"
 import { eventUrl, organizerBackend, screenMeta, showsHeading } from "@/screens/screenMeta"
@@ -354,5 +354,25 @@ export const UnsavedEditKept: Story = {
     await userEvent.click(canvas.getByRole("tab", { name: "Platby" }))
     await userEvent.click(canvas.getByRole("tab", { name: "Potřeby" }))
     await expect(await canvas.findByLabelText(/Poznámka k dopravě/)).toHaveValue("Přijedu vlakem")
+  },
+}
+
+/** A link from the meal notes (S5-04) opens Potřeby and brings the diet into view. */
+export const OpenedAtDiet: Story = {
+  args: { url: `${detailUrl("needs")}#strava` },
+  play: async ({ canvas }) => {
+    await expect(
+      await canvas.findByRole("tab", { name: "Potřeby" }, { timeout: 5000 }),
+    ).toHaveAttribute("aria-selected", "true")
+    const diet = await canvas.findByText("Strava", { selector: "dt" })
+    await expect(diet.closest("#strava")).not.toBeNull()
+    await waitFor(
+      async () => {
+        const { top, bottom } = diet.getBoundingClientRect()
+        await expect(top).toBeGreaterThanOrEqual(0)
+        await expect(bottom).toBeLessThanOrEqual(window.innerHeight)
+      },
+      { timeout: 5000 },
+    )
   },
 }

@@ -37,6 +37,8 @@ export const SECTIONS = {
   changeRequests: "zadosti-o-zmenu",
   /** Organizer's questions in the event registration form. */
   registrationQuestions: "registration-questions-heading",
+  /** Strava row of the organizer's registration detail, Potřeby tab (S5-04). */
+  registrationDiet: "strava",
   /** Platba card of the participant's registration detail (S5-02). */
   payment: "platba",
   /** Přijaté platby of the participant's registration detail (S4-06). */

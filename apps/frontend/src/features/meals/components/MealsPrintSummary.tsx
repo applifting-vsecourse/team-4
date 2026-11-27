@@ -39,6 +39,7 @@ export function MealsPrintSummary({
         </p>
         <p className="text-sm">Vytvořeno {formatPragueDate(new Date().toISOString())}</p>
       </header>
+      <h2 className="text-h4">Denní počty strávníků</h2>
       <MealCountsTable
         overview={data}
         isPrint

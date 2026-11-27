@@ -56,7 +56,7 @@ export function MealCountsTable({
               </span>
             </TableHead>
           ))}
-          <TableHead className="text-right">Celkem</TableHead>
+          <TableHead className="text-right">Celkem osob</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

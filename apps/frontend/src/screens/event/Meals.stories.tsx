@@ -33,7 +33,7 @@ export const OpenFromEvent: Story = {
       { timeout: 5000 },
     )
     await userEvent.click(within(navigation).getByRole("link", { name: "Stravování" }))
-    await showsHeading("Strávníci po dnech")({ canvas })
+    await showsHeading("Denní počty strávníků")({ canvas })
     await expect(within(navigation).getByRole("link", { name: "Stravování" })).toHaveAttribute(
       "aria-current",
       "page",
@@ -61,7 +61,7 @@ export const DailyCounts: Story = {
       "Veganská",
       "Vegetariánská + Bezlaktózová",
       "Bezlepková",
-      "Celkem",
+      "Celkem osob",
     ]) {
       await expect(within(table).getByRole("columnheader", { name })).toBeVisible()
     }
@@ -90,8 +90,14 @@ export const Notes: Story = {
       { name: "Poznámky ke stravě" },
       { timeout: 5000 },
     )
-    await expect(within(notes).getByRole("link", { name: "Eliška Svobodová" })).toBeVisible()
-    await expect(within(notes).getByText("Alergie na ořechy, stopy nevadí.")).toBeVisible()
+    // The button opens the registration on Potřeby, at the diet.
+    const open = within(notes).getByRole("link", {
+      name: "Zobrazit přihlášku: Eliška Svobodová",
+    })
+    await expect(open).toHaveAttribute("href", expect.stringContaining("tab=needs"))
+    await expect(open).toHaveAttribute("href", expect.stringContaining("#strava"))
+    const table = within(within(notes).getByRole("region", { name: "Tabulka poznámek ke stravě" }))
+    await expect(table.getByText("Alergie na ořechy, stopy nevadí.")).toBeVisible()
   },
 }
 
@@ -177,5 +183,30 @@ export const LongTerm: Story = {
     )
     await expect(within(table).getAllByRole("row")).toHaveLength(46)
     await expect(within(table).getByText("14. 9. 2027")).toBeVisible()
+  },
+}
+
+/** On a phone the days are a compact list with the weekday, the total and the used categories. */
+export const MobileDays: Story = {
+  globals: { viewport: { value: "mobile", isRotated: false } },
+  play: async ({ canvas }) => {
+    const heading = await canvas.findByRole(
+      "heading",
+      { name: "Denní počty strávníků" },
+      { timeout: 5000 },
+    )
+    const section = within(heading.closest("section")!)
+    await expect(await section.findByText("ne 4. 7. 2027")).toBeVisible()
+    // One item per day of the term (the table is in the page, but hidden).
+    const days = within(section.getAllByRole("list")[0]!)
+    await expect(days.getAllByText(/Celkem osob/)).toHaveLength(14)
+    await expect(section.getAllByText("Vegetariánská + Bezlaktózová")[0]).toBeVisible()
+    // The wide table is only for larger screens.
+    await expect(section.queryByRole("region", { name: "Tabulka stravování po dnech" })).toBeNull()
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth)
+    // The notes stack too, so the button to the registration is in reach.
+    const open = canvas.getByRole("link", { name: "Zobrazit přihlášku: Eliška Svobodová" })
+    await expect(open).toBeVisible()
+    await expect(open.getBoundingClientRect().right).toBeLessThanOrEqual(window.innerWidth)
   },
 }
