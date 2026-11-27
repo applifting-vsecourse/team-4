@@ -78,7 +78,7 @@ You are extending an existing product, not designing a new one. Most UI rework s
 | Tokens, colours, type (canonical)         | `apps/frontend/src/styles/global.css`                                                                        |
 | Components in code                        | `apps/frontend/src/components/ui/`                                                                           |
 | Live preview of all tokens and components | `/design-system` in the running dev app (`src/routes/design-system.tsx`, dev only, 404 in production builds) |
-| Screen stories                            | Storybook: `pnpm storybook` → <http://localhost:6006>, one light desktop story per screen with fixture data  |
+| Component and screen stories              | Storybook: `pnpm storybook` → <http://localhost:6006>; what gets a story: [CLAUDE.md](CLAUDE.md#storybook)   |
 
 ## Principles
 

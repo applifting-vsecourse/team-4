@@ -7,7 +7,7 @@ import { screenMeta, showsHeading } from "@/screens/screenMeta"
 import { authHandlers } from "@/features/auth/fixtures/handlers"
 
 const meta = {
-  title: "Screens/Dev/Design system",
+  title: "Foundations/Design system",
   ...screenMeta,
   args: { url: "/design-system" },
   beforeEach: ({ msw }) => {

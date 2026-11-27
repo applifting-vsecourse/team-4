@@ -64,7 +64,7 @@ Stop servers with `Ctrl+C`; stop the database with `pnpm dev:down`.
 
 ## Screen previews
 
-Storybook shows every screen with fixture data, without the backend: `pnpm storybook`, then open http://localhost:6006.
+Storybook shows the design system, shared components and selected screens with fixture data, without the backend: `pnpm storybook`, then open http://localhost:6006. What gets a story is described in [CLAUDE.md](CLAUDE.md#storybook).
 
 ## Verify and demonstrate
 

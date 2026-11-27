@@ -91,8 +91,18 @@ Frontend stack (`apps/frontend`): Vite + React 19, Tailwind v4, shadcn/ui, TypeS
 - Pages control layout only. Appearance comes from component variants and sizes; if none fits, ask instead of restyling with `className`.
 - Do not, without asking the developer: add theme tokens, add lint-disable comments, edit the lint config (including `SHADCN_LEGACY_FILES`), or edit `src/components/ui` just to make a violation go away.
 - UI is implemented directly from the issue and [`DESIGN.md`](DESIGN.md); there is no separate design-preview step. Follow the existing screens of the same area.
-- Every screen has a light desktop story in Storybook (`pnpm storybook`). Its data comes from fixtures parsed with the feature's zod schemas and served through MSW; an API request without a handler fails instead of reaching the backend. `pnpm frontend test:stories` renders every story in Chromium with its `play` checks and the accessibility check; it is the evidence for UI work, and agents run it through the Storybook MCP server too. While iterating, run only the affected file (`pnpm frontend test:stories <path>`).
 - After any UI change, run `pnpm check` and the story files you touched (`pnpm frontend test:stories <path>`) and fix every error before finishing. CI runs every story on the PR.
+
+### Storybook
+
+Storybook (`pnpm storybook`) covers shared components, reused UI patterns and the states where UI tends to break; it is not a catalogue of every screen.
+
+- **What gets a story.** A shared component or reused pattern, with its relevant variants and risky states: error, loading, empty, long content, mobile. A new page or feature needs no story unless it brings such a component or state. A whole screen may be added for a concrete design, consultation or showcase need.
+- **Same components as the app.** Screen stories render the real route through `ScreenPreview`; component stories render the component itself. Do not maintain copies of screens only for show: a design preview made for a concrete need is replaced by the real screen once it is implemented, or removed when its direction is dropped.
+- **Keep covered stories current.** When you change a component or screen that has stories, update them in the same PR. There is no separate design or approval step in Storybook.
+- **Remove without losing checks.** When deleting or merging a duplicate or obsolete story, move its important `play` checks into the remaining story or a test.
+- **Data and checks.** Fixtures are parsed with the feature's zod schemas and served through MSW; an API request without a handler fails instead of reaching the backend. `pnpm frontend test:stories` renders every story in Chromium with its `play` checks and the accessibility check, and agents run it through the Storybook MCP server too. While iterating, run only the affected file (`pnpm frontend test:stories <path>`).
+- **Sidebar.** `Foundations` (tokens and the kit), `Components` (shared components and patterns), `Screens` (by access area) and `Brand` (brand directions).
 
 ### UI controls come from the kit
 
