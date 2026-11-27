@@ -56,15 +56,15 @@ export function MealNotes({ organizationId, eventId, notes }: MealNotesProps) {
             <TableBody>
               {notes.map((note) => (
                 <TableRow key={note.registrationId}>
-                  <TableCell className="align-top">
+                  <TableCell>
                     <span className="font-medium">
                       {note.firstName} {note.lastName}
                     </span>
                   </TableCell>
-                  <TableCell className="align-top">
+                  <TableCell>
                     <span className="block min-w-48 whitespace-normal">{note.note}</span>
                   </TableCell>
-                  <TableCell className="text-right align-top">
+                  <TableCell className="text-right">
                     <ShowRegistration
                       organizationId={organizationId}
                       eventId={eventId}

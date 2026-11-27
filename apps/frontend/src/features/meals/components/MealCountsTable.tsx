@@ -6,10 +6,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { formatCalendarDate } from "@/lib/date"
+import { formatCalendarDate, formatCalendarWeekday } from "@/lib/date"
 
 import type { MealOverview } from "@/features/meals/api/mealSchemas"
-import { categoryKey, categoryLabel } from "@/features/meals/lib/mealCategories"
+import {
+  categoryAbbreviation,
+  categoryKey,
+  categoryLabel,
+  mealColumns,
+} from "@/features/meals/lib/mealCategories"
 
 type MealCountsTableProps = {
   overview: MealOverview
@@ -26,11 +31,7 @@ export function MealCountsTable({
   containerLabel,
   isPrint = false,
 }: MealCountsTableProps) {
-  const categories = new Map<string, MealOverview["days"][number]["categories"][number]>()
-  for (const day of overview.days) {
-    for (const category of day.categories) categories.set(categoryKey(category), category)
-  }
-  const columns = [...categories.values()]
+  const columns = mealColumns(overview)
 
   return (
     <Table
@@ -45,15 +46,7 @@ export function MealCountsTable({
               key={categoryKey(column)}
               className="text-right"
             >
-              <span
-                className={
-                  isPrint
-                    ? "block text-xs whitespace-normal"
-                    : "inline-block max-w-28 whitespace-normal"
-                }
-              >
-                {categoryLabel(column)}
-              </span>
+              <abbr title={categoryLabel(column)}>{categoryAbbreviation(column)}</abbr>
             </TableHead>
           ))}
           <TableHead className="text-right">Celkem osob</TableHead>
@@ -63,7 +56,9 @@ export function MealCountsTable({
         {overview.days.map((day) => (
           <TableRow key={day.date}>
             <TableCell>
-              <span className="font-medium">{formatCalendarDate(day.date)}</span>
+              <span className="font-medium">
+                {formatCalendarWeekday(day.date)} {formatCalendarDate(day.date)}
+              </span>
             </TableCell>
             {columns.map((column) => {
               const count =

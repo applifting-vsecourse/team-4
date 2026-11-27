@@ -5,6 +5,7 @@ import { formatCalendarRange, formatPragueDate } from "@/lib/date"
 
 import { mealOverviewQueryOptions } from "@/features/meals/api/mealQueryOptions"
 import { MealCountsTable } from "@/features/meals/components/MealCountsTable"
+import { MealLegend } from "@/features/meals/components/MealLegend"
 
 type MealsPrintSummaryProps = {
   organizationId: string
@@ -40,6 +41,7 @@ export function MealsPrintSummary({
         <p className="text-sm">Vytvořeno {formatPragueDate(new Date().toISOString())}</p>
       </header>
       <h2 className="text-h4">Denní počty strávníků</h2>
+      <MealLegend overview={data} />
       <MealCountsTable
         overview={data}
         isPrint

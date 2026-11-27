@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { mealOverviewQueryOptions } from "@/features/meals/api/mealQueryOptions"
 import { MealCountsTable } from "@/features/meals/components/MealCountsTable"
 import { MealDayList } from "@/features/meals/components/MealDayList"
+import { MealLegend } from "@/features/meals/components/MealLegend"
 import { MealNotes } from "@/features/meals/components/MealNotes"
 
 type MealsSectionProps = { organizationId: string; eventId: string; termId: string }
@@ -86,14 +87,17 @@ export function MealsSection({ organizationId, eventId, termId }: MealsSectionPr
             className="space-y-8"
           >
             <MealDayList overview={data} />
-            <Card className="hidden md:block">
-              <div className="-my-6">
-                <MealCountsTable
-                  overview={data}
-                  containerLabel="Tabulka stravování po dnech"
-                />
-              </div>
-            </Card>
+            <div className="hidden space-y-3 md:block">
+              <MealLegend overview={data} />
+              <Card>
+                <div className="-my-6">
+                  <MealCountsTable
+                    overview={data}
+                    containerLabel="Tabulka stravování po dnech"
+                  />
+                </div>
+              </Card>
+            </div>
             {data.notes.length > 0 ? (
               <MealNotes
                 organizationId={organizationId}

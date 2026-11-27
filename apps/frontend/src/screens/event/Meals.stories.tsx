@@ -51,26 +51,28 @@ export const DailyCounts: Story = {
       { timeout: 5000 },
     )
     const rows = within(table).getAllByRole("row")
-    // The header and 14 days: 4. 7. to 17. 7. 2027.
+    // The header and 14 days: 4. 7. (Sunday) to 17. 7. 2027.
     await expect(rows).toHaveLength(15)
-    await expect(within(rows[1]!).getByText("4. 7. 2027")).toBeVisible()
-    await expect(within(rows[14]!).getByText("17. 7. 2027")).toBeVisible()
-    for (const name of [
+    await expect(within(rows[1]!).getByText("ne 4. 7. 2027")).toBeVisible()
+    await expect(within(rows[14]!).getByText("so 17. 7. 2027")).toBeVisible()
+    // The header uses short marks, the legend above the table names the ones in use.
+    for (const name of ["ZÁK", "VEG", "VGN", "VEG + BLK", "BLP", "Celkem osob"]) {
+      await expect(within(table).getByRole("columnheader", { name })).toBeVisible()
+    }
+    const legend = within(canvas.getAllByRole("list", { name: "Legenda zkratek" })[0]!)
+    for (const text of [
       "Základní strava",
       "Vegetariánská",
       "Veganská",
-      "Vegetariánská + Bezlaktózová",
       "Bezlepková",
-      "Celkem osob",
+      "Bezlaktózová",
     ]) {
-      await expect(within(table).getByRole("columnheader", { name })).toBeVisible()
+      await expect(legend.getByText(text, { exact: false })).toBeVisible()
     }
-    // Long category names wrap, so the table needs no sideways scrolling.
+    // A combination stays on one line, so the table needs no sideways scrolling.
     await expect(table.scrollWidth).toBeLessThanOrEqual(table.clientWidth)
-    // A category nobody belongs to is not a column.
-    await expect(
-      within(table).queryByRole("columnheader", { name: "Bezlaktózová" }),
-    ).not.toBeInTheDocument()
+    // A category nobody belongs to is not a column, nor in the legend.
+    await expect(within(table).queryByRole("columnheader", { name: "BLK" })).not.toBeInTheDocument()
     // The categories add up to the day's total.
     const cells = within(rows[1]!)
       .getAllByRole("cell")
@@ -98,6 +100,16 @@ export const Notes: Story = {
     await expect(open).toHaveAttribute("href", expect.stringContaining("#strava"))
     const table = within(within(notes).getByRole("region", { name: "Tabulka poznámek ke stravě" }))
     await expect(table.getByText("Alergie na ořechy, stopy nevadí.")).toBeVisible()
+    // Name, note and button share one vertical centre in each row.
+    const row = table.getByRole("row", { name: /Eliška Svobodová/ })
+    const centres = ["Eliška Svobodová", "Alergie na ořechy, stopy nevadí."].map((text) => {
+      const rect = within(row).getByText(text).getBoundingClientRect()
+      return rect.top + rect.height / 2
+    })
+    const button = within(row).getByRole("link").getBoundingClientRect()
+    for (const centre of centres) {
+      await expect(Math.abs(centre - (button.top + button.height / 2))).toBeLessThan(2)
+    }
   },
 }
 
@@ -124,6 +136,12 @@ export const PrintSummary: Story = {
       within(summary).getByText(/Turnus 1 · 4\. 7\. – 17\. 7\. 2027/),
     ).toBeInTheDocument()
     await expect(within(summary).getByText(/Vytvořeno/)).toBeInTheDocument()
+    await expect(
+      within(summary).getByRole("list", { name: "Legenda zkratek", hidden: true }),
+    ).toBeInTheDocument()
+    await expect(
+      within(summary).getByRole("columnheader", { name: "VEG + BLK", hidden: true }),
+    ).toBeInTheDocument()
     await expect(within(summary).queryByText(/Svobodová|ořechy/)).not.toBeInTheDocument()
     // Hidden on screen; only shown by the browser when printing.
     await expect(summary).not.toBeVisible()
@@ -182,7 +200,7 @@ export const LongTerm: Story = {
       { timeout: 5000 },
     )
     await expect(within(table).getAllByRole("row")).toHaveLength(46)
-    await expect(within(table).getByText("14. 9. 2027")).toBeVisible()
+    await expect(within(table).getByText("út 14. 9. 2027")).toBeVisible()
   },
 }
 
@@ -196,9 +214,9 @@ export const MobileDays: Story = {
       { timeout: 5000 },
     )
     const section = within(heading.closest("section")!)
-    await expect(await section.findByText("ne 4. 7. 2027")).toBeVisible()
     // One item per day of the term (the table is in the page, but hidden).
-    const days = within(section.getAllByRole("list")[0]!)
+    const days = within(await section.findAllByRole("list").then((lists) => lists[0]!))
+    await expect(days.getByText("ne 4. 7. 2027")).toBeVisible()
     await expect(days.getAllByText(/Celkem osob/)).toHaveLength(14)
     await expect(section.getAllByText("Vegetariánská + Bezlaktózová")[0]).toBeVisible()
     // The wide table is only for larger screens.
