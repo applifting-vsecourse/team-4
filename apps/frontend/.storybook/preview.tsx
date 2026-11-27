@@ -61,12 +61,15 @@ const preview: Preview = {
       },
     },
     options: {
-      // Real screens first, by access area; designs the app lacks come last.
+      // Tokens and the kit, shared components, screens by access area, brand
+      // directions (S5-T03).
       storySort: {
         order: [
+          "Foundations",
+          "Components",
           "Screens",
-          ["Public", "Participant", "Organization", "Event", "Dev"],
-          "Not implemented",
+          ["Public", "Participant", "Organization", "Event"],
+          "Brand",
         ],
       },
     },
