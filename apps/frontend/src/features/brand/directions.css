@@ -1,0 +1,565 @@
+/* Brand directions A/B/C/E/F (S5-T03-1, POC). Storybook only: `withDirection` puts
+   `brand-direction` and `brand-<x>` on <html>, so portals (selects, menus) take the direction too.
+   Each direction re-values the existing semantic tokens; no new tokens. All of them drop the
+   "ticket stub" shape: no ink outlines, no hard ink shadows, no pressed shift. Status colours keep
+   their meaning. */
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/fraunces";
+@import "@fontsource-variable/dm-sans";
+@import "@fontsource-variable/space-grotesk";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/recursive/full.css";
+@import "@fontsource-variable/overpass";
+@import "@fontsource-variable/overpass-mono";
+
+/* ---------- Shared: remove the ticket-stub shape ---------- */
+
+:root.brand-direction body {
+  font-family: var(--font-sans);
+}
+:root.brand-direction [data-slot="card"] {
+  border-width: 1px;
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+:root.brand-direction
+  [data-variant][data-size]:not(
+    [data-variant="ghost"],
+    [data-variant="link"],
+    [data-slot="date-picker"],
+    [data-slot="form-control"]
+  ) {
+  border-width: 1px;
+  border-color: transparent;
+  box-shadow: none;
+}
+:root.brand-direction [data-variant="outline"][data-size] {
+  border-color: var(--input);
+}
+:root.brand-direction
+  [data-variant][data-size]:not(
+    [data-variant="ghost"],
+    [data-variant="link"],
+    [data-slot="date-picker"],
+    [data-slot="form-control"]
+  ):focus-visible {
+  box-shadow: var(--tw-ring-shadow, 0 0 #0000);
+}
+:root.brand-direction
+  [data-variant][data-size]:not(
+    [data-variant="ghost"],
+    [data-variant="link"],
+    [data-slot="date-picker"],
+    [data-slot="form-control"]
+  ):active {
+  transform: none;
+  box-shadow: none;
+}
+:root.brand-direction
+  :is(
+    [data-slot="input"],
+    [data-slot="input-group"],
+    [data-slot="textarea"],
+    [data-slot="select-trigger"],
+    [data-slot="date-picker"],
+    input[data-slot="form-control"],
+    textarea[data-slot="form-control"],
+    button[data-slot="form-control"]:not([role="radio"], [role="checkbox"])
+  ):not(:focus-visible, [aria-invalid="true"]):not(
+    :has([data-slot="input-group-control"]:focus-visible),
+    :has([aria-invalid="true"])
+  ) {
+  border-width: 1px;
+  border-color: var(--input);
+}
+:root.brand-direction :is(h1, h2, h3, h4, [data-slot="card-title"]) {
+  font-family: var(--font-heading);
+  font-weight: var(--heading-weight);
+  letter-spacing: var(--heading-tracking);
+}
+:root.brand-direction [data-slot="table-head"] {
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root.brand-direction :is(*, *::before, *::after) {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
+}
+
+/* ---------- A „Klid“: civil SaaS. Cool neutral surfaces, indigo action, Inter. ---------- */
+
+:root.brand-a {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --heading-weight: 650;
+  --heading-tracking: -0.02em;
+  --radius: 0.5rem;
+
+  --background: oklch(0.985 0.003 265);
+  --foreground: oklch(0.21 0.02 265);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.47 0.2 268);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.955 0.008 265);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.96 0.006 265);
+  --muted-foreground: oklch(0.42 0.02 265);
+  --accent: oklch(0.95 0.02 270);
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.91 0.008 265);
+  --input: oklch(0.82 0.012 265);
+  --input-editable-surface: oklch(1 0 0);
+  --ring: oklch(0.55 0.2 268);
+  --sidebar: oklch(0.975 0.004 265);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: oklch(0.93 0.035 270);
+  --sidebar-primary-foreground: oklch(0.35 0.17 268);
+  --sidebar-accent: oklch(0.945 0.012 265);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --shadow-2xs: 0 1px 1px 0 oklch(0.2 0.02 265 / 0.04);
+  --shadow-xs: 0 1px 2px 0 oklch(0.2 0.02 265 / 0.05);
+  --shadow-sm: 0 1px 3px 0 oklch(0.2 0.02 265 / 0.07), 0 1px 2px -1px oklch(0.2 0.02 265 / 0.05);
+  --shadow: var(--shadow-sm);
+  --shadow-md: 0 4px 12px -2px oklch(0.2 0.02 265 / 0.08);
+  --shadow-lg: 0 10px 24px -6px oklch(0.2 0.02 265 / 0.12);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-2xl: var(--shadow-lg);
+}
+:root.brand-a.dark {
+  --background: oklch(0.16 0.01 265);
+  --foreground: oklch(0.95 0.005 265);
+  --card: oklch(0.2 0.012 265);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.23 0.014 265);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.72 0.14 270);
+  --primary-foreground: oklch(0.16 0.03 270);
+  --secondary: oklch(0.25 0.012 265);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.24 0.012 265);
+  --muted-foreground: oklch(0.73 0.015 265);
+  --accent: oklch(0.28 0.03 270);
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.29 0.012 265);
+  --input: oklch(0.42 0.014 265);
+  --input-editable-surface: oklch(0.18 0.01 265);
+  --ring: oklch(0.72 0.14 270);
+  --sidebar: oklch(0.14 0.01 265);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: oklch(0.28 0.05 270);
+  --sidebar-primary-foreground: oklch(0.9 0.05 270);
+  --sidebar-accent: oklch(0.22 0.012 265);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --shadow-2xs: none;
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-md: none;
+  --shadow-lg: 0 10px 24px -6px oklch(0 0 0 / 0.5);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-2xl: var(--shadow-lg);
+}
+
+/* ---------- B „Tábor“: warm community. Sand, forest green, terracotta, Fraunces. ---------- */
+
+:root.brand-b {
+  --font-sans: "DM Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Fraunces Variable", Georgia, serif;
+  /* No mono face: amounts use DM Sans tabular figures. */
+  --font-mono: "DM Sans Variable", ui-sans-serif, sans-serif;
+  --heading-weight: 600;
+  --heading-tracking: -0.01em;
+  --radius: 0.875rem;
+
+  --background: oklch(0.97 0.014 80);
+  --foreground: oklch(0.25 0.03 155);
+  --card: oklch(0.995 0.006 85);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.995 0.006 85);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.42 0.09 155);
+  --primary-foreground: oklch(0.98 0.012 95);
+  --secondary: oklch(0.925 0.045 55);
+  --secondary-foreground: oklch(0.4 0.11 40);
+  --muted: oklch(0.945 0.02 80);
+  --muted-foreground: oklch(0.42 0.03 120);
+  --accent: oklch(0.93 0.035 150);
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.895 0.022 80);
+  --input: oklch(0.8 0.028 80);
+  --input-editable-surface: oklch(1 0.003 85);
+  --ring: oklch(0.56 0.13 45);
+  --sidebar: oklch(0.3 0.05 155);
+  --sidebar-foreground: oklch(0.95 0.02 100);
+  --sidebar-primary: oklch(0.4 0.07 155);
+  --sidebar-primary-foreground: oklch(0.98 0.02 100);
+  --sidebar-accent: oklch(0.36 0.055 155);
+  --sidebar-accent-foreground: oklch(0.98 0.02 100);
+  --sidebar-border: oklch(0.36 0.05 155);
+  --shadow-2xs: none;
+  --shadow-xs: 0 1px 2px 0 oklch(0.3 0.05 60 / 0.06);
+  --shadow-sm: 0 2px 10px -2px oklch(0.3 0.05 60 / 0.12);
+  --shadow: var(--shadow-sm);
+  --shadow-md: 0 8px 24px -8px oklch(0.3 0.05 60 / 0.18);
+  --shadow-lg: 0 16px 40px -12px oklch(0.3 0.05 60 / 0.22);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-2xl: var(--shadow-lg);
+}
+:root.brand-b.dark {
+  --background: oklch(0.19 0.016 150);
+  --foreground: oklch(0.94 0.014 90);
+  --card: oklch(0.23 0.018 150);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.26 0.02 150);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.76 0.12 150);
+  --primary-foreground: oklch(0.2 0.04 150);
+  --secondary: oklch(0.32 0.05 45);
+  --secondary-foreground: oklch(0.88 0.06 55);
+  --muted: oklch(0.27 0.018 150);
+  --muted-foreground: oklch(0.75 0.02 110);
+  --accent: oklch(0.3 0.03 150);
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.33 0.02 150);
+  --input: oklch(0.47 0.02 150);
+  --input-editable-surface: oklch(0.17 0.012 150);
+  --ring: oklch(0.74 0.12 50);
+  --sidebar: oklch(0.16 0.016 150);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: oklch(0.3 0.04 150);
+  --sidebar-primary-foreground: var(--foreground);
+  --sidebar-accent: oklch(0.26 0.03 150);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: oklch(0.27 0.02 150);
+  --shadow-2xs: none;
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-md: none;
+  --shadow-lg: 0 16px 40px -12px oklch(0 0 0 / 0.5);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-2xl: var(--shadow-lg);
+}
+:root.brand-b [data-slot="card"] {
+  border-color: transparent;
+}
+:root.brand-b.dark [data-slot="card"] {
+  border-color: var(--border);
+}
+/* `secondary` is terracotta here; a neutral status must not read as a warning. */
+:root.brand-b [data-slot="badge"][data-variant="secondary"] {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+:root.brand-b [data-variant][data-size]:not([data-variant="ghost"], [data-variant="link"]) {
+  border-radius: 999px;
+}
+
+/* ---------- C „Plakát“: editorial contrast. White and near-black, vermillion, Space Grotesk. ---------- */
+
+:root.brand-c {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Space Grotesk Variable", ui-sans-serif, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --heading-weight: 700;
+  --heading-tracking: -0.04em;
+  --radius: 0.25rem;
+
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.16 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.55 0.215 33);
+  --primary-foreground: oklch(0.995 0 0);
+  --secondary: oklch(0.95 0 0);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.965 0 0);
+  --muted-foreground: oklch(0.42 0 0);
+  --accent: oklch(0.955 0.025 33);
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.76 0 0);
+  --input-editable-surface: oklch(1 0 0);
+  --ring: oklch(0.16 0 0);
+  --sidebar: oklch(0.16 0 0);
+  --sidebar-foreground: oklch(0.96 0 0);
+  --sidebar-primary: oklch(0.55 0.215 33);
+  --sidebar-primary-foreground: oklch(0.995 0 0);
+  --sidebar-accent: oklch(0.25 0 0);
+  --sidebar-accent-foreground: oklch(0.96 0 0);
+  --sidebar-border: oklch(0.26 0 0);
+  --shadow-2xs: none;
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-md: none;
+  --shadow-lg: 0 12px 32px -8px oklch(0 0 0 / 0.18);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-2xl: var(--shadow-lg);
+}
+:root.brand-c.dark {
+  --background: oklch(0.13 0 0);
+  --foreground: oklch(0.96 0 0);
+  --card: oklch(0.17 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.2 0 0);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.7 0.18 35);
+  --primary-foreground: oklch(0.13 0 0);
+  --secondary: oklch(0.22 0 0);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.21 0 0);
+  --muted-foreground: oklch(0.73 0 0);
+  --accent: oklch(0.26 0.03 33);
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.27 0 0);
+  --input: oklch(0.44 0 0);
+  --input-editable-surface: oklch(0.15 0 0);
+  --ring: oklch(0.96 0 0);
+  --sidebar: oklch(0.1 0 0);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: oklch(0.7 0.18 35);
+  --sidebar-primary-foreground: oklch(0.13 0 0);
+  --sidebar-accent: oklch(0.2 0 0);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: oklch(0.2 0 0);
+  --shadow-2xs: none;
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-md: none;
+  --shadow-lg: 0 12px 32px -8px oklch(0 0 0 / 0.6);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-2xl: var(--shadow-lg);
+}
+:root.brand-c [data-slot="badge"] {
+  border-radius: var(--radius-sm);
+}
+/* An outline button keeps an ink border, so on the near-white page it reads as a button and its
+   boundary has well over 3:1 contrast (WCAG 1.4.11); the shared rule above would leave it bare. */
+:root.brand-c.brand-direction [data-variant="outline"][data-size]:not([data-slot="form-control"]) {
+  border-color: var(--foreground);
+}
+
+/* ---------- E „Riso“: a two-ink risograph print. Newsprint, blue ink as text, fluorescent pink,
+   halftone dots, misregistered pink offset under cards. One family: Recursive (casual headings,
+   linear text, mono figures). ---------- */
+
+:root.brand-e {
+  --font-sans: "Recursive Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono: var(--font-sans);
+  --heading-weight: 800;
+  --heading-tracking: -0.01em;
+  --radius: 0.625rem;
+
+  --background: oklch(0.965 0.014 85);
+  --foreground: oklch(0.3 0.11 264);
+  --card: oklch(0.985 0.008 85);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.985 0.008 85);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.56 0.22 358);
+  --primary-foreground: oklch(0.99 0.005 85);
+  --secondary: oklch(0.93 0.05 355);
+  --secondary-foreground: oklch(0.42 0.17 358);
+  --muted: oklch(0.935 0.02 85);
+  --muted-foreground: oklch(0.42 0.07 264);
+  --accent: oklch(0.92 0.045 250);
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.85 0.03 264);
+  --input: oklch(0.6 0.08 264);
+  --input-editable-surface: oklch(0.995 0.004 85);
+  --ring: oklch(0.56 0.22 358);
+  --sidebar: oklch(0.3 0.11 264);
+  --sidebar-foreground: oklch(0.97 0.012 85);
+  --sidebar-primary: oklch(0.56 0.22 358);
+  --sidebar-primary-foreground: oklch(0.99 0.005 85);
+  --sidebar-accent: oklch(0.38 0.11 264);
+  --sidebar-accent-foreground: oklch(0.97 0.012 85);
+  --sidebar-border: oklch(0.38 0.1 264);
+  /* Misregistration: the pink plate lands a little off the blue one. */
+  --shadow-2xs: none;
+  --shadow-xs: none;
+  --shadow-sm: 4px 4px 0 0 oklch(0.8 0.12 358 / 0.55);
+  --shadow: var(--shadow-sm);
+  --shadow-md: var(--shadow-sm);
+  --shadow-lg: 6px 6px 0 0 oklch(0.8 0.12 358 / 0.55);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-2xl: var(--shadow-lg);
+}
+:root.brand-e.dark {
+  --background: oklch(0.2 0.05 264);
+  --foreground: oklch(0.94 0.02 85);
+  --card: oklch(0.24 0.055 264);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.27 0.06 264);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.74 0.17 358);
+  --primary-foreground: oklch(0.2 0.05 264);
+  --secondary: oklch(0.32 0.09 358);
+  --secondary-foreground: oklch(0.9 0.07 358);
+  --muted: oklch(0.26 0.05 264);
+  --muted-foreground: oklch(0.8 0.04 264);
+  --accent: oklch(0.3 0.07 264);
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.34 0.06 264);
+  --input: oklch(0.52 0.07 264);
+  --input-editable-surface: oklch(0.18 0.045 264);
+  --ring: oklch(0.74 0.17 358);
+  --sidebar: oklch(0.16 0.05 264);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: oklch(0.74 0.17 358);
+  --sidebar-primary-foreground: oklch(0.2 0.05 264);
+  --sidebar-accent: oklch(0.24 0.06 264);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: oklch(0.26 0.06 264);
+  --shadow-2xs: none;
+  --shadow-xs: none;
+  --shadow-sm: 4px 4px 0 0 oklch(0.74 0.17 358 / 0.3);
+  --shadow: var(--shadow-sm);
+  --shadow-md: var(--shadow-sm);
+  --shadow-lg: 6px 6px 0 0 oklch(0.74 0.17 358 / 0.3);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-2xl: var(--shadow-lg);
+}
+:root.brand-e body {
+  font-variation-settings:
+    "CASL" 0,
+    "MONO" 0;
+}
+:root.brand-e :is(h1, h2, h3, h4, [data-slot="card-title"]) {
+  font-variation-settings:
+    "CASL" 1,
+    "MONO" 0;
+}
+:root.brand-e .font-mono {
+  font-variation-settings:
+    "CASL" 0,
+    "MONO" 1;
+}
+:root.brand-e [data-slot="card"] {
+  border-color: transparent;
+}
+/* `secondary` is pink here; a neutral status must not read as the action colour. */
+:root.brand-e [data-slot="badge"][data-variant="secondary"] {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+:root.brand-e.dark [data-slot="card"] {
+  border-color: var(--border);
+}
+/* Halftone: a decorative block printed in pink dots. Never under text. */
+:root.brand-e [data-decor="halftone"] {
+  background-image: radial-gradient(circle, var(--primary) 1.3px, transparent 1.6px);
+  background-size: 9px 9px;
+}
+:root.brand-e [data-decor="halftone-blue"] {
+  background-image: radial-gradient(circle, var(--foreground) 1.1px, transparent 1.4px);
+  background-size: 7px 7px;
+}
+
+/* ---------- F „Orientační systém“: wayfinding. Concrete grey, navy, signal yellow, pictograms in
+   squares, Overpass (from the US highway signage typeface) and Overpass Mono. ---------- */
+
+:root.brand-f {
+  --font-sans: "Overpass Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono: "Overpass Mono Variable", ui-monospace, monospace;
+  --heading-weight: 800;
+  --heading-tracking: -0.01em;
+  --radius: 0.375rem;
+
+  --background: oklch(0.935 0.004 250);
+  --foreground: oklch(0.2 0.02 255);
+  --card: oklch(0.995 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.995 0 0);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.87 0.17 95);
+  --primary-foreground: oklch(0.2 0.02 255);
+  --secondary: oklch(0.3 0.08 255);
+  --secondary-foreground: oklch(0.98 0 0);
+  --muted: oklch(0.91 0.005 250);
+  --muted-foreground: oklch(0.42 0.015 255);
+  --accent: oklch(0.95 0.06 95);
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.84 0.006 250);
+  --input: oklch(0.5 0.015 255);
+  --input-editable-surface: oklch(0.995 0 0);
+  --ring: oklch(0.45 0.16 255);
+  --sidebar: oklch(0.27 0.07 255);
+  --sidebar-foreground: oklch(0.97 0.005 250);
+  --sidebar-primary: oklch(0.87 0.17 95);
+  --sidebar-primary-foreground: oklch(0.2 0.02 255);
+  --sidebar-accent: oklch(0.34 0.07 255);
+  --sidebar-accent-foreground: oklch(0.97 0.005 250);
+  --sidebar-border: oklch(0.36 0.06 255);
+  --shadow-2xs: none;
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-md: none;
+  --shadow-lg: 0 12px 32px -8px oklch(0.2 0.05 255 / 0.25);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-2xl: var(--shadow-lg);
+}
+:root.brand-f.dark {
+  --background: oklch(0.17 0.03 255);
+  --foreground: oklch(0.95 0.005 95);
+  --card: oklch(0.21 0.035 255);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.24 0.04 255);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.86 0.16 95);
+  --primary-foreground: oklch(0.2 0.02 255);
+  --secondary: oklch(0.32 0.05 255);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.24 0.035 255);
+  --muted-foreground: oklch(0.77 0.02 255);
+  --accent: oklch(0.29 0.04 255);
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.32 0.035 255);
+  --input: oklch(0.52 0.03 255);
+  --input-editable-surface: oklch(0.15 0.03 255);
+  --ring: oklch(0.75 0.13 250);
+  --sidebar: oklch(0.13 0.03 255);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: oklch(0.86 0.16 95);
+  --sidebar-primary-foreground: oklch(0.2 0.02 255);
+  --sidebar-accent: oklch(0.22 0.04 255);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: oklch(0.22 0.035 255);
+  --shadow-2xs: none;
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-md: none;
+  --shadow-lg: 0 12px 32px -8px oklch(0 0 0 / 0.6);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-2xl: var(--shadow-lg);
+}
+/* `secondary` is navy here; a neutral status stays quiet. */
+:root.brand-f [data-slot="badge"][data-variant="secondary"] {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+:root.brand-f [data-slot="badge"] {
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+}
+/* Timetable rows: every other row on the grey band. */
+:root.brand-f [data-slot="table-body"] [data-slot="table-row"]:nth-child(even) {
+  background-color: color-mix(in oklch, var(--muted) 60%, transparent);
+}
