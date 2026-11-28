@@ -34,11 +34,11 @@ const DIRECTIONS = [
     type: "Inter, JetBrains Mono pro částky",
     icons: "Phosphor",
     composition:
-      "Přihláška: formulář vlevo, vpravo lepicí shrnutí akce, termínů a ceny s tlačítkem. Seznam: jeden řádek nástrojů s rychlými filtry a počty, termín i jeho stav na jednom řádku, menu akcí u řádku.",
+      "Přihláška: formulář vlevo, vpravo lepicí shrnutí akce, termínů a ceny s tlačítkem; nadpis sekce nad poli na každé šířce. Seznam: záložky vedou na jiné stránky přihlášek, filtry s popisky jsou v kartě tabulky a použité filtry se ukazují jako odebíratelné štítky u počtu výsledků; každý údaj má vlastní sloupec, přihláška s více termíny má řádek na termín.",
     references: [
       ["Linear", "tichá navigace, husté řádky, vlasové linky místo rámečků"],
       ["Stripe Dashboard", "částky zarovnané vpravo, stavové štítky, filtry s počty"],
-      ["GOV.UK Design System", "skupiny otázek s nadpisem vlevo, krátké popisky"],
+      ["GOV.UK Design System", "skupiny otázek s nadpisem, krátké popisky"],
     ],
   },
   {
@@ -60,9 +60,9 @@ const DIRECTIONS = [
     type: "Space Grotesk pro nadpisy, Geist a Geist Mono",
     icons: "Remix Icon",
     composition:
-      "Přihláška: akce jako plakát vedle formuláře (na mobilu nahoře), formulář jako číslovaný dokument s linkami. Seznam: černá navigace, velký nadpis s počtem, textové filtry, stavy jako tečka a text, tři sloupce částek.",
+      "Přihláška: jeden sloupec, akce jako nízký plakátový pás nad formulářem, formulář jako číslovaný dokument s linkami. Seznam: černá navigace, velký nadpis s počtem, textové filtry, stavy jako tečka a text, tři sloupce částek.",
     references: [
-      ["Luma", "akce jako plakát vedle přihlášky"],
+      ["Luma", "akce jako plakát nad přihláškou"],
       ["Vercel Dashboard", "monochrom, mono čísla, tečkové stavy"],
       ["Švýcarský typografický styl", "mřížka, velká typografie, linky místo boxů"],
     ],

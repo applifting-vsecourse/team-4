@@ -262,7 +262,7 @@ export function RegistrationF() {
           <Section
             id="f-contact"
             icon={Email}
-            title="Kontakt na rodiče"
+            title="Kontakt"
           >
             <div className="grid gap-4 sm:grid-cols-2">
               <TextField

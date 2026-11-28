@@ -23,6 +23,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 
 import { EVENT, FORM, STEPS, TERMS, type StepNumber } from "@/features/brand/data"
+import { BrandGenderField, BrandPhoneField } from "@/features/brand/fields"
 
 const DONE_SUMMARY: Record<1 | 2 | 3, string> = {
   1: `Turnus 1 · ${FORM.total}`,
@@ -150,22 +151,14 @@ function ParticipantStep() {
           value={FORM.birthDate}
         />
       </div>
-      <Choices
-        name="e-gender"
-        legend="Pohlaví"
-        options={FORM.genders}
-      />
+      <BrandGenderField id="e-gender" />
       <div className="grid gap-4 border-t border-dashed pt-5 sm:grid-cols-2">
         <TextField
           id="e-email"
-          label="E-mail rodiče"
+          label="E-mail"
           value={FORM.email}
         />
-        <TextField
-          id="e-phone"
-          label="Telefon rodiče"
-          value={FORM.phone}
-        />
+        <BrandPhoneField id="e-phone" />
       </div>
     </div>
   )

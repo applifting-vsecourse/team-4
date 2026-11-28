@@ -22,6 +22,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 
 import { EVENT, FORM, TERMS } from "@/features/brand/data"
+import { BrandGenderField, BrandPhoneField } from "@/features/brand/fields"
 
 function NumberedSection({
   number,
@@ -267,17 +268,13 @@ export function RegistrationB() {
                 value={FORM.birthDate}
               />
             </div>
-            <ChoicePills
-              name="b-gender"
-              legend="Pohlaví"
-              options={FORM.genders}
-            />
+            <BrandGenderField id="b-gender" />
           </NumberedSection>
 
           <NumberedSection
             number={3}
             id="b-contact"
-            title="Kontakt na rodiče"
+            title="Kontakt"
           >
             <div className="grid gap-4 sm:grid-cols-2">
               <TextField
@@ -285,11 +282,7 @@ export function RegistrationB() {
                 label="E-mail"
                 value={FORM.email}
               />
-              <TextField
-                id="b-phone"
-                label="Telefon"
-                value={FORM.phone}
-              />
+              <BrandPhoneField id="b-phone" />
             </div>
           </NumberedSection>
 

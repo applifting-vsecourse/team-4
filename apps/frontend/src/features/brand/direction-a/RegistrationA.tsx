@@ -1,6 +1,7 @@
 // Brand → Směr A → Přihláška (S5-T03-1, POC). Design only: every value comes from the shared data.
 // Composition: form on the left, a sticky summary of the event, picked terms and price on the right;
-// on a phone the summary comes first and the form ends with the submit button.
+// on a phone the summary comes first and the form ends with the submit button. Every section puts
+// its title above its fields, on a phone and a desktop alike.
 import type { ReactNode } from "react"
 import { ArrowLeftIcon, CalendarBlankIcon, MapPinIcon, UsersThreeIcon } from "@phosphor-icons/react"
 
@@ -23,6 +24,7 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 
 import { EVENT, FORM, TERMS } from "@/features/brand/data"
+import { BrandGenderField, BrandPhoneField } from "@/features/brand/fields"
 
 function Section({
   id,
@@ -38,7 +40,7 @@ function Section({
   return (
     <section
       aria-labelledby={id}
-      className="grid gap-4 px-5 py-6 sm:px-6 md:grid-cols-3 md:gap-6"
+      className="space-y-4 px-5 py-6 sm:px-6"
     >
       <div className="space-y-1">
         <h2
@@ -49,7 +51,7 @@ function Section({
         </h2>
         {hint ? <p className="text-sm text-muted-foreground">{hint}</p> : null}
       </div>
-      <div className="space-y-4 md:col-span-2">{children}</div>
+      <div className="space-y-4">{children}</div>
     </section>
   )
 }
@@ -270,12 +272,8 @@ export function RegistrationA() {
                     label="Datum narození"
                     value={FORM.birthDate}
                   />
-                  <SelectField
-                    id="a-gender"
-                    label="Pohlaví"
-                    options={FORM.genders}
-                  />
                 </div>
+                <BrandGenderField id="a-gender" />
               </Section>
               <Separator />
               <Section
@@ -289,11 +287,7 @@ export function RegistrationA() {
                     label="E-mail"
                     value={FORM.email}
                   />
-                  <TextField
-                    id="a-phone"
-                    label="Telefon"
-                    value={FORM.phone}
-                  />
+                  <BrandPhoneField id="a-phone" />
                 </div>
               </Section>
               <Separator />

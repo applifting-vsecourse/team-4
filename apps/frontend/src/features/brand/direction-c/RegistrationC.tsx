@@ -1,6 +1,6 @@
 // Brand → Směr C → Přihláška (S5-T03-1, POC). Design only: every value comes from the shared data.
-// Composition: a poster panel with the event in large type and mono facts (sticky on desktop, on
-// top on a phone) next to the form as a numbered document: hairline rows, no boxes.
+// Composition: one centred column. A compact poster band with the event and mono facts opens it,
+// the form follows as a numbered document: hairline rows, no boxes.
 import type { ReactNode } from "react"
 import { RiArrowLeftLine } from "@remixicon/react"
 
@@ -20,6 +20,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 
 import { EVENT, FORM, TERMS } from "@/features/brand/data"
+import { BrandGenderField, BrandPhoneField } from "@/features/brand/fields"
 
 function Row({
   number,
@@ -87,12 +88,15 @@ function SelectField({ id, label, options }: { id: string; label: string; option
   )
 }
 
+/** The event as a compact poster band above the form: as tall as its content, never a half screen. */
 function Poster() {
   return (
-    <div className="space-y-6 bg-foreground p-6 text-background sm:p-10 lg:sticky lg:top-0 lg:min-h-svh dark:bg-card dark:text-card-foreground">
-      <p className="font-mono text-xs tracking-widest uppercase">{EVENT.organization}</p>
-      <h1 className="text-4xl leading-none sm:text-6xl">{EVENT.name}</h1>
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-4 border-t border-current pt-6 font-mono text-sm">
+    <div className="space-y-5 bg-foreground p-6 text-background sm:p-8 dark:bg-card dark:text-card-foreground">
+      <div className="space-y-2">
+        <p className="font-mono text-xs tracking-widest uppercase">{EVENT.organization}</p>
+        <h1 className="text-3xl leading-tight sm:text-4xl">{EVENT.name}</h1>
+      </div>
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 border-t border-current pt-4 font-mono text-sm sm:grid-cols-4">
         <div>
           <dt className="text-xs uppercase">Kdy</dt>
           <dd>{EVENT.dates}</dd>
@@ -110,16 +114,14 @@ function Poster() {
           <dd>31. 5. 2027</dd>
         </div>
       </dl>
-      <p className="hidden max-w-md text-base lg:block">{EVENT.summary}</p>
     </div>
   )
 }
 
 export function RegistrationC() {
   return (
-    <div className="min-h-svh bg-background text-foreground lg:grid lg:grid-cols-2">
-      <Poster />
-      <div className="px-4 py-6 sm:px-10 lg:py-10">
+    <div className="min-h-svh bg-background text-foreground">
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-8 lg:py-10">
         <header className="flex items-center justify-between pb-6">
           <BrandMark />
           <Button
@@ -131,9 +133,11 @@ export function RegistrationC() {
           </Button>
         </header>
 
+        <Poster />
+
         <form
           aria-label="Přihláška na akci"
-          className="max-w-xl"
+          className="pt-8"
         >
           <Row
             number="01"
@@ -146,7 +150,7 @@ export function RegistrationC() {
                 {TERMS.map((term) => (
                   <li
                     key={term.id}
-                    className="py-3 has-data-[state=checked]:bg-accent"
+                    className="p-3 has-data-[state=checked]:bg-accent"
                   >
                     <Field orientation="horizontal">
                       <Checkbox
@@ -200,12 +204,8 @@ export function RegistrationC() {
                 label="Datum narození"
                 value={FORM.birthDate}
               />
-              <SelectField
-                id="c-gender"
-                label="Pohlaví"
-                options={FORM.genders}
-              />
             </div>
+            <BrandGenderField id="c-gender" />
           </Row>
 
           <Row
@@ -219,11 +219,7 @@ export function RegistrationC() {
                 label="E-mail"
                 value={FORM.email}
               />
-              <TextField
-                id="c-phone"
-                label="Telefon"
-                value={FORM.phone}
-              />
+              <BrandPhoneField id="c-phone" />
             </div>
           </Row>
 

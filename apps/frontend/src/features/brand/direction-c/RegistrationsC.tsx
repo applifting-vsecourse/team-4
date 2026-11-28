@@ -295,8 +295,8 @@ export function RegistrationsC({ state = "ready" }: { state?: ListState }) {
                 aria-pressed={index === 0}
                 className={
                   index === 0
-                    ? "flex items-baseline gap-2 text-sm font-semibold underline decoration-2 underline-offset-8"
-                    : "flex items-baseline gap-2 text-sm text-muted-foreground hover:text-foreground"
+                    ? "flex items-baseline gap-2 border-b-2 border-foreground pb-1.5 text-sm font-semibold"
+                    : "flex items-baseline gap-2 border-b-2 border-transparent pb-1.5 text-sm text-muted-foreground hover:border-border hover:text-foreground"
                 }
               >
                 {chip.label}

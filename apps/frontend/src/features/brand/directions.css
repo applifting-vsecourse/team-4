@@ -346,6 +346,11 @@
 :root.brand-c [data-slot="badge"] {
   border-radius: var(--radius-sm);
 }
+/* An outline button keeps an ink border, so on the near-white page it reads as a button and its
+   boundary has well over 3:1 contrast (WCAG 1.4.11); the shared rule above would leave it bare. */
+:root.brand-c.brand-direction [data-variant="outline"][data-size]:not([data-slot="form-control"]) {
+  border-color: var(--foreground);
+}
 
 /* ---------- E „Riso“: a two-ink risograph print. Newsprint, blue ink as text, fluorescent pink,
    halftone dots, misregistered pink offset under cards. One family: Recursive (casual headings,

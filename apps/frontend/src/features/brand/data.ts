@@ -93,12 +93,13 @@ export const FORM = {
   lastName: "Nováková",
   birthDate: "14. 3. 2014",
   email: "tereza.novakova@example.cz",
-  phone: "777 123 456",
+  /** With its prefix, as the app's phone field stores it. */
+  phone: "+420 777 123 456",
   schools: ["ZŠ Lipová", "ZŠ Dubová", "Jiná škola"],
   troops: ["Lišky", "Vlci", "Zatím žádný"],
   transport: ["Společný autobus z Prahy", "Vlastní doprava"],
   diets: ["Bez omezení", "Vegetariánská", "Bezlepková", "Jiná"],
-  genders: ["Dívka", "Chlapec", "Jiné", "Nechci uvést"],
+  genders: ["Žena", "Muž", "Jiná odpověď", "Nechci uvést"],
 }
 
 export type BrandRegistration = {

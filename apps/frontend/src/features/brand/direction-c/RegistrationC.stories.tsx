@@ -15,10 +15,10 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-/** Desktop: the event as a sticky poster next to the form as a numbered document. */
+/** Desktop: one column, a compact poster band of the event above the form as a numbered document. */
 export const Desktop: Story = {}
 
-/** Phone at 360 px: the poster shrinks to a header block above the form. */
+/** Phone at 360 px: the same column; the facts of the poster fold into two columns. */
 export const Mobil: Story = {
   globals: { viewport: { value: "mobile", isRotated: false } },
 }
